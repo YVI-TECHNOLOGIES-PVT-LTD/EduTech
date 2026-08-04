@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.taskRouter = void 0;
+const express_1 = require("express");
+const task_controller_1 = require("./task.controller");
+exports.taskRouter = (0, express_1.Router)();
+exports.taskRouter.get('/', task_controller_1.TaskController.listTasks);
+exports.taskRouter.post('/', task_controller_1.TaskController.createTask);
+exports.taskRouter.post('/:id/complete', task_controller_1.TaskController.completeTask);
+exports.taskRouter.post('/:id/comments', task_controller_1.TaskController.addComment);
+exports.taskRouter.post('/:id/attachments', task_controller_1.TaskController.addAttachment);

@@ -1,0 +1,3 @@
+[2026-07-24T08:03:52.795Z] [INFO] Starting EduTrack Enterprise Migration Framework...
+[2026-07-24T08:03:52.797Z] [INFO] PostgreSQL driver (pg) not dynamically loaded. Running in static validation mode.
+[2026-07-24T08:03:52.797Z] [INFO] --- EDUTRACK MIGRATION STATUS ---

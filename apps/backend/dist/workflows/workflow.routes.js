@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.workflowRouter = void 0;
+const express_1 = require("express");
+const workflow_controller_1 = require("./workflow.controller");
+exports.workflowRouter = (0, express_1.Router)();
+exports.workflowRouter.get('/', workflow_controller_1.WorkflowController.listWorkflows);
+exports.workflowRouter.post('/', workflow_controller_1.WorkflowController.createWorkflow);
+exports.workflowRouter.post('/:id/clone', workflow_controller_1.WorkflowController.cloneWorkflow);
+exports.workflowRouter.get('/runs', workflow_controller_1.WorkflowController.getRuns);
+exports.workflowRouter.get('/runs/:runId/logs', workflow_controller_1.WorkflowController.getLogs);
+exports.workflowRouter.post('/runs/:runId/nodes/:nodeId/decide', workflow_controller_1.WorkflowController.submitDecision);
+exports.workflowRouter.get('/analytics', workflow_controller_1.WorkflowController.getAnalytics);
