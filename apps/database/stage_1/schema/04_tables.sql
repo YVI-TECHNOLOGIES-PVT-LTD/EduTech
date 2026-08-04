@@ -299,6 +299,11 @@ CREATE TABLE parents (
         ON DELETE SET NULL
 );
 
+ALTER TABLE parents
+ADD COLUMN user_id UUID UNIQUE
+REFERENCES users(user_id)
+ON DELETE SET NULL;
+
 -- ============================================================================
 -- ACADEMIC YEARS
 -- ============================================================================
