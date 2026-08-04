@@ -1,0 +1,12 @@
+# EduTrack Enterprise Codeowners Governance
+* @YVI-TECHNOLOGIES-PVT-LTD/lead-architects
+
+# Applications
+/apps/backend/ @YVI-TECHNOLOGIES-PVT-LTD/backend-team
+/apps/web_app/ @YVI-TECHNOLOGIES-PVT-LTD/frontend-team
+/apps/mobile_app/ @YVI-TECHNOLOGIES-PVT-LTD/mobile-team
+
+# Shared Packages & Configs
+/packages/ @YVI-TECHNOLOGIES-PVT-LTD/core-tooling
+/prisma/ @YVI-TECHNOLOGIES-PVT-LTD/database-team
+/docs/ @YVI-TECHNOLOGIES-PVT-LTD/tech-writers
