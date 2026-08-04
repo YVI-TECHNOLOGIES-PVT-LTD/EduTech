@@ -1,0 +1,25 @@
+{
+  "name": "@edutrack/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared UI component primitives for EduTrack Enterprise Platform",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@edutrack/types": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0",
+    "typescript": "^5.3.2"
+  }
+}

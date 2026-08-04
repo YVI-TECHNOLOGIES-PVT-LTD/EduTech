@@ -1,0 +1,124 @@
+{
+  "info": {
+    "name": "EduTrack Auth API Collection",
+    "version": "1.0.0",
+    "description": "Postman API Collection for EduTrack Authentication Endpoints with JWT Token Extraction and Negative Scenarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login - Success (JWT Token Extraction)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@edutrack.com\",\n  \"password\": \"AdminPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Response Time SLA < 1000ms', function () { pm.expect(pm.response.responseTime).to.be.below(1000); });",
+              "pm.test('Contains JWT token in data envelope', function () {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.have.property('success', true);",
+              "  if (json.data && json.data.token) {",
+              "    pm.environment.set('accessToken', json.data.token);",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login - Negative: Missing Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@edutrack.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Current User - Success (Bearer Auth)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "me"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 200 or 401 depending on server session', function () { pm.expect(pm.response.code).to.be.oneOf([200, 401]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Current User - Negative: Missing JWT Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "me"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

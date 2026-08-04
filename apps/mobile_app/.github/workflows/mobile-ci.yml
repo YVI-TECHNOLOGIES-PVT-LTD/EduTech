@@ -1,0 +1,28 @@
+name: EduTrack Mobile CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build_and_verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile-app/package.json
+
+      - name: Install Dependencies
+        run: cd mobile-app && npm ci
+
+      - name: Type Check
+        run: cd mobile-app && npm run type-check
+
+      - name: Lint
+        run: cd mobile-app && npm run lint

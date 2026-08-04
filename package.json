@@ -1,0 +1,47 @@
+{
+  "name": "edutrack-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EduTrack Enterprise SaaS ERP Monorepo",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:api": "pnpm --filter @edutrack/api run dev",
+    "dev:web": "pnpm --filter @edutrack/web run dev",
+    "dev:mobile": "pnpm --filter @edutrack/mobile run start",
+    "build": "turbo run build",
+    "build:api": "pnpm --filter @edutrack/api run build",
+    "build:web": "pnpm --filter @edutrack/web run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:api": "newman run postman/collections/common.collection.json -e postman/environments/development.postman_environment.template.json",
+    "test:auth": "newman run postman/collections/auth.collection.json -e postman/environments/development.postman_environment.template.json",
+    "test:admission": "newman run postman/collections/admission.collection.json -e postman/environments/development.postman_environment.template.json",
+    "test:all": "newman run postman/collections/auth.collection.json -e postman/environments/development.postman_environment.template.json && newman run postman/collections/admission.collection.json -e postman/environments/development.postman_environment.template.json && newman run postman/collections/common.collection.json -e postman/environments/development.postman_environment.template.json",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "turbo run clean",
+    "prepare": "husky",
+    "verify": "pnpm run typecheck && pnpm run lint && pnpm run build"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "eslint": "^8.57.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "newman": "^6.2.1",
+    "newman-reporter-htmlextra": "^1.23.1",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.4"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}

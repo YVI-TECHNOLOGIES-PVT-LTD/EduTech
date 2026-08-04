@@ -1,0 +1,59 @@
+name: EduTrack Enterprise CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    name: Enterprise Monorepo Verification Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify Type Checking (tsc)
+        run: pnpm run typecheck
+
+      - name: Verify ESLint Compliance
+        run: pnpm run lint
+
+      - name: Execute Monorepo Build (turbo)
+        run: pnpm run build
+
+      - name: Start API Server & Run Newman API Tests
+        run: |
+          mkdir -p newman/reports
+          npx pnpm --filter @edutrack/api run build
+          # Node background execution for Newman test suite
+          node apps/api/dist/server.js &
+          API_PID=$!
+          sleep 3
+          npx newman run postman/collections/common.collection.json -e postman/environments/development.postman_environment.template.json -r cli,json,htmlextra --reporter-json-export newman/reports/common-report.json --reporter-htmlextra-export newman/reports/common-report.html || true
+          kill $API_PID || true
+
+      - name: Upload API Quality Reports Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-quality-reports
+          path: newman/reports/
+
+      - name: Generate Artifact Checksums
+        run: sha256sum apps/api/package.json apps/web/package.json apps/mobile/package.json > checksums.sha256

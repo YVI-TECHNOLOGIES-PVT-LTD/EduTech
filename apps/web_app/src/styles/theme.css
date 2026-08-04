@@ -1,0 +1,150 @@
+/* ==================================================
+   ERP Design System Engine Theme Overrides
+   ================================================== */
+
+:root {
+  /* Font Scaling Options */
+  --font-scale-sm: 0.875rem;
+  --font-scale-base: 1rem;
+  --font-scale-lg: 1.125rem;
+  --font-scale-xl: 1.25rem;
+
+  /* Spacings defaults: Comfortable */
+  --spacing-density-padding: 1.25rem;
+  --spacing-density-gap: 1rem;
+  --spacing-card-padding: 1.5rem;
+
+  /* Radius Options */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  
+  /* Preset: Blue (Default) */
+  --primary: 221.2 83.2% 53.3%; /* #2563EB */
+  --primary-foreground: 210 40% 98%;
+  --accent: 243.4 75.4% 58.6%; /* #4F46E5 */
+  --accent-foreground: 210 40% 98%;
+  --ring: 221.2 83.2% 53.3%;
+}
+
+/* --- Density Options --- */
+[data-density="compact"] {
+  --spacing-density-padding: 0.625rem;
+  --spacing-density-gap: 0.375rem;
+  --spacing-card-padding: 0.875rem;
+}
+
+[data-density="comfortable"] {
+  --spacing-density-padding: 1.25rem;
+  --spacing-density-gap: 1rem;
+  --spacing-card-padding: 1.5rem;
+}
+
+[data-density="spacious"] {
+  --spacing-density-padding: 1.875rem;
+  --spacing-density-gap: 1.5rem;
+  --spacing-card-padding: 2rem;
+}
+
+/* --- Accessibility: High Contrast Mode --- */
+[data-high-contrast="true"] {
+  --border: 220 10% 20%;
+  --ring: 220 10% 10%;
+  --foreground: 0 0% 0%;
+  --muted-foreground: 220 10% 25%;
+}
+[data-high-contrast="true"].dark {
+  --border: 220 10% 90%;
+  --ring: 220 10% 95%;
+  --foreground: 0 0% 100%;
+  --muted-foreground: 220 10% 75%;
+}
+
+/* --- Color Presets --- */
+/* 1. Theme Blue */
+.theme-blue {
+  --primary: 221.2 83.2% 53.3%; /* #2563EB */
+  --accent: 243.4 75.4% 58.6%; /* #4F46E5 */
+  --ring: 221.2 83.2% 53.3%;
+}
+.dark .theme-blue {
+  --primary: 217.2 91.2% 59.8%;
+  --accent: 224.3 76.3% 48%;
+  --ring: 217.2 91.2% 59.8%;
+}
+
+/* 2. Theme Purple */
+.theme-purple {
+  --primary: 271.5 81.3% 55.9%; /* #8B5CF6 */
+  --accent: 262.1 83.3% 57.8%; /* #7C3AED */
+  --ring: 271.5 81.3% 55.9%;
+}
+.dark .theme-purple {
+  --primary: 270 95% 75%;
+  --accent: 262 80% 50%;
+  --ring: 270 95% 75%;
+}
+
+/* 3. Theme Emerald */
+.theme-emerald {
+  --primary: 142.1 76.2% 36.3%; /* #059669 */
+  --accent: 142.1 70.6% 45.3%; /* #10B981 */
+  --ring: 142.1 76.2% 36.3%;
+}
+.dark .theme-emerald {
+  --primary: 142.1 70.6% 45.3%;
+  --accent: 142.1 60% 30%;
+  --ring: 142.1 70.6% 45.3%;
+}
+
+/* 4. Theme Slate */
+.theme-slate {
+  --primary: 215.4 16.3% 46.9%; /* #64748B */
+  --accent: 217.2 32.6% 17.5%;
+  --ring: 215.4 16.3% 46.9%;
+}
+.dark .theme-slate {
+  --primary: 213 27% 84%;
+  --accent: 215 20% 65%;
+  --ring: 213 27% 84%;
+}
+
+/* 5. Theme Corporate */
+.theme-corporate {
+  --primary: 222.2 47.4% 11.2%; /* #0F172A */
+  --accent: 217.2 91.2% 59.8%; /* #3B82F6 */
+  --ring: 222.2 47.4% 11.2%;
+}
+.dark .theme-corporate {
+  --primary: 210 40% 98%;
+  --accent: 217.2 91.2% 59.8%;
+  --ring: 210 40% 98%;
+}
+
+/* --- Dark Mode Background Overrides --- */
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+
+  --card: 222.2 84% 6.5%;
+  --card-foreground: 210 40% 98%;
+
+  --popover: 222.2 84% 6.5%;
+  --popover-foreground: 210 40% 98%;
+
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+}
+

@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-07-05T10:28:01.450Z",
+  "migrationFiles": [
+    {
+      "file": "083_admission_sprint4_documents.sql",
+      "exists": true
+    },
+    {
+      "file": "085_admission_sprint6_enrollment.sql",
+      "exists": true
+    },
+    {
+      "file": "086_student_master.sql",
+      "exists": true
+    },
+    {
+      "file": "090_counselor_document_permissions.sql",
+      "exists": true
+    },
+    {
+      "file": "091_admission_stage31_checklist_seed.sql",
+      "exists": true
+    },
+    {
+      "file": "092_admission_atomic_erp_provision.sql",
+      "exists": true
+    }
+  ],
+  "tables": {
+    "document_types": {
+      "table": "document_types",
+      "count": 6,
+      "error": null
+    },
+    "document_checklists": {
+      "table": "document_checklists",
+      "count": 288,
+      "error": null
+    },
+    "application_documents": {
+      "table": "application_documents",
+      "count": 58,
+      "error": null
+    },
+    "document_versions": {
+      "table": "document_versions",
+      "count": 58,
+      "error": null
+    },
+    "status_history": {
+      "table": "status_history",
+      "count": 361,
+      "error": null
+    },
+    "audit_logs": {
+      "table": "audit_logs",
+      "count": 488,
+      "error": null
+    },
+    "student_provisioning_jobs": {
+      "table": "student_provisioning_jobs",
+      "count": 16,
+      "error": null
+    },
+    "admission_confirmation": {
+      "table": "admission_confirmation",
+      "count": 3,
+      "error": null
+    },
+    "students": {
+      "table": "students",
+      "count": 502,
+      "error": null
+    },
+    "student_profiles": {
+      "table": "student_profiles",
+      "count": 2,
+      "error": null
+    }
+  },
+  "checklist": {
+    "grade5Rows": 6
+  },
+  "rpc": {
+    "provision": {
+      "name": "fn_provision_admission_student",
+      "exists": true,
+      "probeError": "ERP provisioning failed: Application 00000000-0000-0000-0000-000000000001 not found"
+    }
+  },
+  "counselorPermissions": {
+    "ok": true,
+    "counselorPermLinks": 6
+  },
+  "status": "PASS",
+  "blockers": []
+}

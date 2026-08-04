@@ -1,0 +1,1366 @@
+{
+  "user": {
+    "id": "e12cb08e-c28d-4067-a10d-8786a4d46c8d",
+    "school_id": "457bbda3-f542-47dc-9d41-3d7729226f86",
+    "full_name": "exam_platform",
+    "email": "examplatform@edu.in",
+    "status": "active",
+    "created_at": "2026-07-08T07:13:42.836182+00:00",
+    "login_status": "APPROVED",
+    "login_decision_reason": "Login approved by admin",
+    "login_decided_by": "b125789d-13df-47bf-b44a-f19998c8f64b",
+    "login_decided_at": "2026-07-08T13:20:05.746+00:00"
+  },
+  "userRoles": [
+    {
+      "user_id": "e12cb08e-c28d-4067-a10d-8786a4d46c8d",
+      "role_id": "4e9d87ac-7f9c-454d-ac85-53caa1cf6d4f",
+      "assigned_at": "2026-07-08T09:16:29.057165+00:00",
+      "roles": {
+        "id": "4e9d87ac-7f9c-454d-ac85-53caa1cf6d4f",
+        "name": "ADMIN",
+        "created_at": "2026-06-01T11:38:16.981302+00:00",
+        "description": "System Administrator with full access"
+      }
+    },
+    {
+      "user_id": "e12cb08e-c28d-4067-a10d-8786a4d46c8d",
+      "role_id": "2d19acf3-83d7-4d61-b81a-3d8e64ec034b",
+      "assigned_at": "2026-07-08T09:16:29.156632+00:00",
+      "roles": {
+        "id": "2d19acf3-83d7-4d61-b81a-3d8e64ec034b",
+        "name": "EXAM_CELL_ADMIN",
+        "created_at": "2026-06-30T12:08:03.028368+00:00",
+        "description": "Exam cell administrator managing tests"
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "role": "ADMIN",
+      "permissionCode": "ACADEMIC_ASSIGN_FACULTY"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ACADEMIC_REMOVE_FACULTY"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ACADEMIC_VIEW_ASSIGNMENTS"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TRIP_MONITOR"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "DEPARTMENT_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "DEPARTMENT_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "DEPARTMENT_UPDATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "DEPARTMENT_DELETE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.view_own"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.view_all"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.recommend"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.approve"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.reject"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.enrol"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "login.approve"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "login.reject"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "login.read"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assignment.create"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assignment.edit"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assignment.delete"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assignment.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assignment.grade"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TRIP_EXECUTE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TRIP_VIEW_SELF"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.create"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.review"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "student.read"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "student.update"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "exam.create"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "exam.publish"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "payment.collect"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "transport.assign"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ADMISSION_REVIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "STUDENT_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "PAYMENT_MANAGE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "SCHOOL_SETTINGS"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ADMISSION_APPLY"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ADMISSION_VIEW_SELF"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ADMISSION_APPROVE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ADMISSION_REJECT"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "STUDENT_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "STUDENT_UPDATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "CLASS_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "CLASS_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "SECTION_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "SECTION_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "STUDENT_ASSIGN_SECTION"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "FACULTY_ASSIGN_SECTION"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "SUBJECT_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "SUBJECT_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "EXAM_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "EXAM_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "MARKS_ENTER"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "MARKS_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ATTENDANCE_MARK"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "ATTENDANCE_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TIMETABLE_CREATE"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TIMETABLE_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "DASHBOARD_VIEW_ADMIN"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "FEES_SETUP"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "FEES_ASSIGN"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "FEES_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "PAYMENT_RECORD"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TRANSPORT_SETUP"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TRANSPORT_ASSIGN"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "TRANSPORT_VIEW"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.enquiry.create"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.enquiry.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.leads.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.visitors.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.status_history.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "feature_flags.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.application.view"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.exam.evaluate"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.exam.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.interview.evaluate"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.interview.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.fees.initialize"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.demand.generate"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.demand.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.payment.collect"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.payment.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.receipt.generate"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.refund.process"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.structure.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.structure.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "fees.waiver.approve"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.assessment.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "admission.assessment.evaluate"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.assessment.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.assessment.evaluate"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.view_all"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.merit.generate"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "admission.offer.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.config.view"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.config.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.workflow.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.question.view"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.question.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.question.import"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.template.view"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.template.manage"
+    },
+    {
+      "role": "EXAM_CELL_ADMIN",
+      "permissionCode": "assessment.template.publish"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.config.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.config.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.workflow.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.question.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.question.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.question.import"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.template.view"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.template.manage"
+    },
+    {
+      "role": "ADMIN",
+      "permissionCode": "assessment.template.publish"
+    }
+  ],
+  "allRoles": [
+    {
+      "id": "be08bd22-0cd0-4557-83ad-dae8040da584",
+      "name": "ADMISSION_OFFICER",
+      "description": "Staff responsible for reviewing applications",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "f8c6c28d-272f-4709-99af-18e9483df518",
+      "name": "SUPER_ADMIN",
+      "description": "Super Administrator",
+      "created_at": "2026-06-01T11:38:16.981302+00:00"
+    },
+    {
+      "id": "a4599be8-fc7c-41c0-a438-9ec5bd2cde48",
+      "name": "HEAD_OF_INSTITUTE",
+      "description": "Principal/Head of Institute",
+      "created_at": "2026-06-01T11:38:16.981302+00:00"
+    },
+    {
+      "id": "6b5e9d0f-0d29-4195-85d3-ea61d8132ed7",
+      "name": "ACADEMIC_COORDINATOR",
+      "description": "Can manage faculty and section assignments",
+      "created_at": "2026-06-01T11:38:30.925862+00:00"
+    },
+    {
+      "id": "c5e3f6ee-77de-424d-9a57-2e68dae52150",
+      "name": "BUS_DRIVER",
+      "description": "School Bus Driver",
+      "created_at": "2026-06-01T11:39:11.860797+00:00"
+    },
+    {
+      "id": "4e9d87ac-7f9c-454d-ac85-53caa1cf6d4f",
+      "name": "ADMIN",
+      "description": "System Administrator with full access",
+      "created_at": "2026-06-01T11:38:16.981302+00:00"
+    },
+    {
+      "id": "bf776905-b5c9-46c3-869f-50cb4cfc84c1",
+      "name": "FACULTY",
+      "description": "Teaching staff",
+      "created_at": "2026-06-01T11:38:16.981302+00:00"
+    },
+    {
+      "id": "cfd2dbc6-df9f-47fd-8489-3c0a70e37a74",
+      "name": "PARENT",
+      "description": "Parent or Guardian",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "1fe56f1f-658e-4a06-8c43-a0814bfb06e2",
+      "name": "STUDENT",
+      "description": "Enrolled Student",
+      "created_at": "2026-06-01T11:38:16.981302+00:00"
+    },
+    {
+      "id": "74ef44f2-e924-46ef-82a5-d37fbc74d6d4",
+      "name": "TRANSPORT_ADMIN",
+      "description": "Manages fleet and routes",
+      "created_at": "2026-06-01T11:39:00.799276+00:00"
+    },
+    {
+      "id": "cf994b9b-380c-4b27-a634-bf58acd33f6a",
+      "name": "COUNSELLOR",
+      "description": "Student guidance counsellor",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "e57cbdf5-1c47-404a-b9a0-3908af717370",
+      "name": "RECEPTIONIST",
+      "description": "Front-desk receptionist logging walk-in visitors",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "171db15b-a44b-4387-9dc9-2228ebe0d24b",
+      "name": "COUNSELOR",
+      "description": "Admissions counselor responsible for follow-ups",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "2d19acf3-83d7-4d61-b81a-3d8e64ec034b",
+      "name": "EXAM_CELL_ADMIN",
+      "description": "Exam cell administrator managing tests",
+      "created_at": "2026-06-30T12:08:03.028368+00:00"
+    },
+    {
+      "id": "84708ac4-ef94-4fcd-8bcd-d3d0073ef6ba",
+      "name": "FINANCE_OFFICER",
+      "description": "Finance officer handling fees",
+      "created_at": "2026-06-30T12:08:03.073189+00:00"
+    }
+  ],
+  "allPerms": [
+    {
+      "id": "97703715-84b9-44e2-b0a9-a93c3b3a44b9",
+      "code": "admission.view_own",
+      "description": "View own admission applications",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "7254824e-e7ce-4133-9e65-09e0d2896510",
+      "code": "admission.view_all",
+      "description": "View all admission applications in the school",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "dacf5eda-a5ae-429c-8604-d0fcf47e1621",
+      "code": "admission.recommend",
+      "description": "Recommend application to HOI",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "869fa478-369e-4eb0-a615-9fb89142eb93",
+      "code": "admission.approve",
+      "description": "Final approval of application",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "53e1b8ef-bbe8-4b87-8dcc-d412b899bd80",
+      "code": "admission.reject",
+      "description": "Reject an application",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "bb8c27a5-ae92-42a8-b14c-d03148cff467",
+      "code": "admission.enrol",
+      "description": "Enrol approved applicant as student",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "a61f2770-3548-4eca-b9a3-e4217a2e7526",
+      "code": "login.approve",
+      "description": "Approve parent/student login access",
+      "created_at": "2026-06-01T11:36:55.070597+00:00"
+    },
+    {
+      "id": "d93f73e6-6c0d-4cb8-9d8a-15e960ae76f6",
+      "code": "login.reject",
+      "description": "Reject parent/student login access",
+      "created_at": "2026-06-01T11:36:55.070597+00:00"
+    },
+    {
+      "id": "fb21a92b-66ba-4ba2-ba7b-830749530857",
+      "code": "login.read",
+      "description": "View login approval queue and status",
+      "created_at": "2026-06-01T11:36:55.070597+00:00"
+    },
+    {
+      "id": "5e86a912-15b8-4ac9-b4c9-48a0b638cac0",
+      "code": "assignment.create",
+      "description": "Create Assignments (Academic)",
+      "created_at": "2026-06-01T11:37:03.377767+00:00"
+    },
+    {
+      "id": "501aebd0-f7df-4e9e-b21b-162cb2d82f77",
+      "code": "assignment.edit",
+      "description": "Edit Assignments (Academic)",
+      "created_at": "2026-06-01T11:37:03.377767+00:00"
+    },
+    {
+      "id": "19555c53-257b-442e-b783-a0b6b654ee79",
+      "code": "assignment.delete",
+      "description": "Delete Assignments (Academic)",
+      "created_at": "2026-06-01T11:37:03.377767+00:00"
+    },
+    {
+      "id": "0d1af2ae-b684-446b-bb68-65f09b9e58d0",
+      "code": "assignment.view",
+      "description": "View Assignments (Academic)",
+      "created_at": "2026-06-01T11:37:03.377767+00:00"
+    },
+    {
+      "id": "f02f7726-e15d-45df-afb0-acfaf7803d1d",
+      "code": "assignment.grade",
+      "description": "Grade Submissions (Academic)",
+      "created_at": "2026-06-01T11:37:03.377767+00:00"
+    },
+    {
+      "id": "2cf48bdb-94e8-46c4-adda-5895629b7152",
+      "code": "ACADEMIC_ASSIGN_FACULTY",
+      "description": "Assign faculty to sections",
+      "created_at": "2026-06-01T11:38:30.925862+00:00"
+    },
+    {
+      "id": "b1740d11-6ae2-4b4d-bbfe-aff49f6ea199",
+      "code": "ACADEMIC_REMOVE_FACULTY",
+      "description": "Remove faculty from sections",
+      "created_at": "2026-06-01T11:38:30.925862+00:00"
+    },
+    {
+      "id": "0af2db38-eb49-412e-a758-52c8d57e3da2",
+      "code": "ACADEMIC_VIEW_ASSIGNMENTS",
+      "description": "View all faculty-student assignments",
+      "created_at": "2026-06-01T11:38:30.925862+00:00"
+    },
+    {
+      "id": "d0b70f80-03a7-4315-94e4-6eeb2c54c8e0",
+      "code": "TRIP_EXECUTE",
+      "description": "can execute transport trips",
+      "created_at": "2026-06-01T11:39:11.860797+00:00"
+    },
+    {
+      "id": "c331fdd9-0dac-4eef-a9cd-333ccba5e3c5",
+      "code": "TRIP_VIEW_SELF",
+      "description": "can view own trips",
+      "created_at": "2026-06-01T11:39:11.860797+00:00"
+    },
+    {
+      "id": "3e7d6f5b-99aa-43ae-a53e-4dd42484c1f7",
+      "code": "TRIP_MONITOR",
+      "description": "can monitor all trips",
+      "created_at": "2026-06-01T11:39:11.860797+00:00"
+    },
+    {
+      "id": "c5d66a75-0eb6-4802-8779-842390a79881",
+      "code": "DEPARTMENT_VIEW",
+      "description": "View departments list",
+      "created_at": "2026-06-01T11:46:28.402761+00:00"
+    },
+    {
+      "id": "92100216-6d96-483d-917c-4c26e8699788",
+      "code": "DEPARTMENT_CREATE",
+      "description": "Create new department",
+      "created_at": "2026-06-01T11:46:28.402761+00:00"
+    },
+    {
+      "id": "c143ec2c-1a82-4b1a-8924-b947abf50626",
+      "code": "DEPARTMENT_UPDATE",
+      "description": "Update department details",
+      "created_at": "2026-06-01T11:46:28.402761+00:00"
+    },
+    {
+      "id": "ab923952-e5f0-4987-b0b7-8383803cee9e",
+      "code": "DEPARTMENT_DELETE",
+      "description": "Delete department",
+      "created_at": "2026-06-01T11:46:28.402761+00:00"
+    },
+    {
+      "id": "7f7272d1-05a3-441f-966d-d2b2806e121a",
+      "code": "admission.create",
+      "description": "Create new admission applications",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "dbdeedb1-49ad-461a-b06a-7d7ae98daa7a",
+      "code": "admission.review",
+      "description": "Review and approve admissions",
+      "created_at": "2026-06-01T11:35:57.123788+00:00"
+    },
+    {
+      "id": "d8ca9fed-a9f1-4d6d-a151-dffe09c4b984",
+      "code": "student.read",
+      "description": "View student profiles",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "98c2ddb0-210b-4a16-8b9b-e8ccda4490a2",
+      "code": "student.update",
+      "description": "Update student details",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "83d59314-d36d-40f2-8af7-4ed1e398556a",
+      "code": "exam.create",
+      "description": "Create new exams",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "6c4ab699-775e-4268-b196-b757ecdecb24",
+      "code": "exam.publish",
+      "description": "Publish exam results",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "b9ccbd3e-13cc-44dc-aa49-8c6648442b55",
+      "code": "payment.collect",
+      "description": "Collect fees and payments",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "edf942ed-9ad7-457b-9360-001f2e0778ce",
+      "code": "transport.assign",
+      "description": "Assign students to routes",
+      "created_at": "2026-06-01T12:04:36.36969+00:00"
+    },
+    {
+      "id": "ba95e0f9-0a5a-4772-8156-6adf68fdd00a",
+      "code": "ADMISSION_REVIEW",
+      "description": "Review admission applications",
+      "created_at": "2026-06-01T12:05:57.861809+00:00"
+    },
+    {
+      "id": "fc248741-bdc5-4b6f-ba44-c434ac1dab99",
+      "code": "STUDENT_VIEW",
+      "description": "View student details",
+      "created_at": "2026-06-01T12:05:57.861809+00:00"
+    },
+    {
+      "id": "1e4e92d1-b583-496a-ba9c-88e9b7a7a04a",
+      "code": "PAYMENT_MANAGE",
+      "description": "Manage payments",
+      "created_at": "2026-06-01T12:05:57.861809+00:00"
+    },
+    {
+      "id": "ad0d4d5c-02f9-4dd0-9289-e6085c532c2a",
+      "code": "SCHOOL_SETTINGS",
+      "description": "Manage school settings",
+      "created_at": "2026-06-01T12:05:57.861809+00:00"
+    },
+    {
+      "id": "06962219-dbd0-4f06-99e3-6f1be2585bd1",
+      "code": "ADMISSION_APPLY",
+      "description": "Apply for admission",
+      "created_at": "2026-06-01T12:06:07.055055+00:00"
+    },
+    {
+      "id": "1d4c95aa-1921-4b6c-9f73-53c69f79f5ef",
+      "code": "ADMISSION_VIEW_SELF",
+      "description": "View own admission applications",
+      "created_at": "2026-06-01T12:06:07.055055+00:00"
+    },
+    {
+      "id": "87e8a03d-dd5b-4243-a304-bb3f64420687",
+      "code": "ADMISSION_APPROVE",
+      "description": "Approve admission",
+      "created_at": "2026-06-01T12:06:07.055055+00:00"
+    },
+    {
+      "id": "ea8af234-1be6-430b-b3ed-91b82d7854bc",
+      "code": "ADMISSION_REJECT",
+      "description": "Reject admission",
+      "created_at": "2026-06-01T12:06:07.055055+00:00"
+    },
+    {
+      "id": "3f91fcb2-3b0e-4ac1-a400-9f9c5c3e2ffb",
+      "code": "STUDENT_CREATE",
+      "description": "Create new student record",
+      "created_at": "2026-06-01T12:06:19.191633+00:00"
+    },
+    {
+      "id": "7aa10e22-025b-45ef-a278-691166e74ff2",
+      "code": "STUDENT_UPDATE",
+      "description": "Update student details",
+      "created_at": "2026-06-01T12:06:19.191633+00:00"
+    },
+    {
+      "id": "dac3664d-f51d-47a6-9556-bc7cf8fdeb04",
+      "code": "STUDENT_VIEW_SELF",
+      "description": "View own child records",
+      "created_at": "2026-06-01T12:06:19.191633+00:00"
+    },
+    {
+      "id": "51dddcd8-32a6-492d-9f90-97a85ca2e64a",
+      "code": "CLASS_CREATE",
+      "description": "Create classes/grades",
+      "created_at": "2026-06-01T12:06:32.501983+00:00"
+    },
+    {
+      "id": "6020ff78-df48-4a5d-9e35-1ae603aedcfc",
+      "code": "CLASS_VIEW",
+      "description": "View classes/grades",
+      "created_at": "2026-06-01T12:06:32.501983+00:00"
+    },
+    {
+      "id": "9e9a7c6a-b65e-432f-836c-c62a3fd36184",
+      "code": "SECTION_CREATE",
+      "description": "Create sections",
+      "created_at": "2026-06-01T12:06:32.501983+00:00"
+    },
+    {
+      "id": "1f7fe1e7-faf9-4036-a44a-8c992c3df442",
+      "code": "SECTION_VIEW",
+      "description": "View sections",
+      "created_at": "2026-06-01T12:06:32.501983+00:00"
+    },
+    {
+      "id": "a2a0ab53-f5ec-4f4f-aa08-bb7bfeb159ac",
+      "code": "STUDENT_ASSIGN_SECTION",
+      "description": "Assign students to sections",
+      "created_at": "2026-06-01T12:06:32.501983+00:00"
+    },
+    {
+      "id": "7b98135b-0433-432a-a919-cec948c417b7",
+      "code": "FACULTY_ASSIGN_SECTION",
+      "description": "Assign faculty to sections",
+      "created_at": "2026-06-01T12:06:32.501983+00:00"
+    },
+    {
+      "id": "53468306-8276-46cf-9d05-580103e5bc2f",
+      "code": "SUBJECT_CREATE",
+      "description": "Create subjects",
+      "created_at": "2026-06-01T12:06:51.8591+00:00"
+    },
+    {
+      "id": "22f364ae-6284-4984-8d22-a5d79eb0f6a4",
+      "code": "SUBJECT_VIEW",
+      "description": "View subjects",
+      "created_at": "2026-06-01T12:06:51.8591+00:00"
+    },
+    {
+      "id": "3c0e2026-f05e-4da6-afef-0fad0cefac75",
+      "code": "EXAM_CREATE",
+      "description": "Create exams",
+      "created_at": "2026-06-01T12:06:51.8591+00:00"
+    },
+    {
+      "id": "28af9392-2fb8-4db3-9d1b-21ea7d744184",
+      "code": "EXAM_VIEW",
+      "description": "View exams",
+      "created_at": "2026-06-01T12:06:51.8591+00:00"
+    },
+    {
+      "id": "315bd77d-77ba-4594-9e19-050408ea2f0a",
+      "code": "MARKS_ENTER",
+      "description": "Enter student marks",
+      "created_at": "2026-06-01T12:06:51.8591+00:00"
+    },
+    {
+      "id": "158538db-2e00-4f95-bb8d-6fbff6fadb63",
+      "code": "MARKS_VIEW",
+      "description": "View student marks",
+      "created_at": "2026-06-01T12:06:51.8591+00:00"
+    },
+    {
+      "id": "dfaf675c-55e8-439c-8050-71d8183fd88e",
+      "code": "ATTENDANCE_MARK",
+      "description": "Mark attendance",
+      "created_at": "2026-06-01T12:07:05.327085+00:00"
+    },
+    {
+      "id": "50eb924e-896d-4a70-85b8-c5701d988429",
+      "code": "ATTENDANCE_VIEW",
+      "description": "View attendance",
+      "created_at": "2026-06-01T12:07:05.327085+00:00"
+    },
+    {
+      "id": "dccc22b4-6064-4ae0-8f7c-3d5818d04514",
+      "code": "ATTENDANCE_VIEW_SELF",
+      "description": "View own attendance",
+      "created_at": "2026-06-01T12:07:05.327085+00:00"
+    },
+    {
+      "id": "bcb408e6-cccc-49f2-a278-2db3b210fb6f",
+      "code": "TIMETABLE_CREATE",
+      "description": "Create/Manage timetable slots",
+      "created_at": "2026-06-01T12:07:25.723256+00:00"
+    },
+    {
+      "id": "9dfe1a7f-9273-45a1-a2c8-10b261df7180",
+      "code": "TIMETABLE_VIEW",
+      "description": "View all timetables",
+      "created_at": "2026-06-01T12:07:25.723256+00:00"
+    },
+    {
+      "id": "25ed1a60-e41c-477c-8d00-93ad481f7b0f",
+      "code": "TIMETABLE_VIEW_SELF",
+      "description": "View own timetable",
+      "created_at": "2026-06-01T12:07:25.723256+00:00"
+    },
+    {
+      "id": "1caa7aac-b936-4144-920d-bbbd83ab4f59",
+      "code": "DASHBOARD_VIEW_ADMIN",
+      "description": "View Admin Dashboard",
+      "created_at": "2026-06-01T12:07:35.310949+00:00"
+    },
+    {
+      "id": "b5f70f08-1992-451f-8168-b937d5982b0f",
+      "code": "DASHBOARD_VIEW_FACULTY",
+      "description": "View Faculty Dashboard",
+      "created_at": "2026-06-01T12:07:35.310949+00:00"
+    },
+    {
+      "id": "d16618b4-f944-411a-ba52-bac463856662",
+      "code": "DASHBOARD_VIEW_PARENT",
+      "description": "View Parent/Student Dashboard",
+      "created_at": "2026-06-01T12:07:35.310949+00:00"
+    },
+    {
+      "id": "b42c1317-d959-4891-afc6-a577e78864de",
+      "code": "FEES_SETUP",
+      "description": "Create fee structures",
+      "created_at": "2026-06-01T12:07:43.893117+00:00"
+    },
+    {
+      "id": "1040118d-d9dd-4576-aa7c-86b1cdd94aa9",
+      "code": "FEES_ASSIGN",
+      "description": "Assign fees to students",
+      "created_at": "2026-06-01T12:07:43.893117+00:00"
+    },
+    {
+      "id": "ade7297a-9af9-4faa-84c2-05bda71b1107",
+      "code": "FEES_VIEW",
+      "description": "View fees",
+      "created_at": "2026-06-01T12:07:43.893117+00:00"
+    },
+    {
+      "id": "dd03d20b-7990-40e5-8056-4bc05c740d26",
+      "code": "PAYMENT_RECORD",
+      "description": "Record payments",
+      "created_at": "2026-06-01T12:07:43.893117+00:00"
+    },
+    {
+      "id": "7168a94c-845b-44d6-854e-1bec92610645",
+      "code": "PAYMENT_VIEW_SELF",
+      "description": "View own payments",
+      "created_at": "2026-06-01T12:07:43.893117+00:00"
+    },
+    {
+      "id": "0127a404-f139-4f87-a61b-7587f1616e8e",
+      "code": "TRANSPORT_SETUP",
+      "description": "Manage transport routes and vehicles",
+      "created_at": "2026-06-01T12:07:55.077655+00:00"
+    },
+    {
+      "id": "703991d1-a5f0-4ec8-b025-917766857339",
+      "code": "TRANSPORT_ASSIGN",
+      "description": "Assign transport to students",
+      "created_at": "2026-06-01T12:07:55.077655+00:00"
+    },
+    {
+      "id": "12066cfc-1140-4040-960a-a1094ed2b4e4",
+      "code": "TRANSPORT_VIEW",
+      "description": "View transport details",
+      "created_at": "2026-06-01T12:07:55.077655+00:00"
+    },
+    {
+      "id": "df5bb841-1ce4-4792-9ca8-8822a28f4eaf",
+      "code": "TRANSPORT_VIEW_SELF",
+      "description": "View own transport details",
+      "created_at": "2026-06-01T12:07:55.077655+00:00"
+    },
+    {
+      "id": "d7b64e9d-3232-4914-bea8-3dd2254ca132",
+      "code": "admission.enquiry.create",
+      "description": "Submit prospective candidate enquiries",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "80435ab9-46a0-4797-83a3-6332a92d512c",
+      "code": "admission.enquiry.view",
+      "description": "View candidate enquiries log",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "f702e3df-29a4-4163-9fcf-a1b8386ef3f1",
+      "code": "admission.leads.manage",
+      "description": "Access and update lead follow-ups and pipelines",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "ba509292-2598-46b0-9a1f-3b6f8c7a4035",
+      "code": "admission.visitors.manage",
+      "description": "Create and view visitor check-ins",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "165f73da-189a-4a02-8104-09a6eb1657ea",
+      "code": "admission.status_history.view",
+      "description": "View status change history log",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "b4fb6145-a006-4601-9649-3a3f8ce7624a",
+      "code": "feature_flags.manage",
+      "description": "View and edit module feature flags",
+      "created_at": "2026-06-29T09:01:51.609177+00:00"
+    },
+    {
+      "id": "0fa7b508-7379-42f8-9d60-2b98ae06e927",
+      "code": "admission.application.create",
+      "description": "Allows drafting and registering new applications",
+      "created_at": "2026-06-29T10:04:45.871345+00:00"
+    },
+    {
+      "id": "09776336-4a85-4f4a-b2c0-31da955a4b88",
+      "code": "admission.application.update",
+      "description": "Allows updating drafts or corrections details",
+      "created_at": "2026-06-29T10:04:45.871345+00:00"
+    },
+    {
+      "id": "7f1d3344-6e0b-40fc-8548-dbce16b6f194",
+      "code": "admission.application.submit",
+      "description": "Allows submitting under-review applications",
+      "created_at": "2026-06-29T10:04:45.871345+00:00"
+    },
+    {
+      "id": "ae277dc8-d7b5-45cc-8d01-0d34c9efeb1d",
+      "code": "admission.application.view",
+      "description": "Allows viewing digital applications list and timeline",
+      "created_at": "2026-06-29T10:04:45.871345+00:00"
+    },
+    {
+      "id": "3f0b4bb4-9001-49d5-9853-0567296ce0e9",
+      "code": "admission.application.delete",
+      "description": "Allows deleting drafts applications",
+      "created_at": "2026-06-29T10:04:45.871345+00:00"
+    },
+    {
+      "id": "80a9f5de-8be2-4ce4-b4ec-9a038501a419",
+      "code": "admission.document.upload",
+      "description": "Allows uploading files metadata",
+      "created_at": "2026-06-29T10:19:18.072058+00:00"
+    },
+    {
+      "id": "6068be61-61e2-4834-bba4-a10cc4e89ccd",
+      "code": "admission.document.view",
+      "description": "Allows checking uploaded files metadata list",
+      "created_at": "2026-06-29T10:19:18.072058+00:00"
+    },
+    {
+      "id": "b7fe23d3-07b1-4289-ac3b-dfb93cfc5fc7",
+      "code": "admission.document.delete",
+      "description": "Allows deleting uploaded files",
+      "created_at": "2026-06-29T10:19:18.072058+00:00"
+    },
+    {
+      "id": "ec1cce6f-6e07-4aaa-80ee-e77ff94acbad",
+      "code": "admission.document.verify",
+      "description": "Allows marking documents verified or rejected",
+      "created_at": "2026-06-29T10:19:18.072058+00:00"
+    },
+    {
+      "id": "351383b1-52d7-49e7-adae-39055e70a8be",
+      "code": "admission.document.download",
+      "description": "Allows requesting short signed read URLs",
+      "created_at": "2026-06-29T10:19:18.072058+00:00"
+    },
+    {
+      "id": "cddad621-5c90-4251-8cb7-2ef1e96a3863",
+      "code": "admission.document.checklist",
+      "description": "Allows creating and editing checklists",
+      "created_at": "2026-06-29T10:19:18.072058+00:00"
+    },
+    {
+      "id": "738476d9-9ba9-40e8-82b5-3e21fc4690da",
+      "code": "admission.exam.manage",
+      "description": "Allows scheduling exams and seating allocations",
+      "created_at": "2026-06-29T10:23:09.268606+00:00"
+    },
+    {
+      "id": "8886a4c2-f422-4d2f-a895-15550ab01859",
+      "code": "admission.exam.evaluate",
+      "description": "Allows publishes candidate results",
+      "created_at": "2026-06-29T10:23:09.268606+00:00"
+    },
+    {
+      "id": "a27f63a8-4b69-4584-af81-92071c567c7c",
+      "code": "admission.interview.manage",
+      "description": "Allows scheduling interviews panels",
+      "created_at": "2026-06-29T10:23:09.268606+00:00"
+    },
+    {
+      "id": "f5ee61a0-0d2f-48b3-9b50-c951415f85dc",
+      "code": "admission.interview.evaluate",
+      "description": "Allows grading candidates interviews criteria",
+      "created_at": "2026-06-29T10:23:09.268606+00:00"
+    },
+    {
+      "id": "20bf3415-6522-4d6f-9bde-0b227d0305af",
+      "code": "admission.merit.generate",
+      "description": "Allows running merit list weight engine calculations",
+      "created_at": "2026-06-29T10:23:09.268606+00:00"
+    },
+    {
+      "id": "26bc59c1-9437-4756-99d0-104b26fbafc2",
+      "code": "admission.offer.manage",
+      "description": "Allows generating offer letters templates and details",
+      "created_at": "2026-06-29T10:23:09.268606+00:00"
+    },
+    {
+      "id": "7e6e292f-d578-4a10-83d6-1d532404dce8",
+      "code": "admission.fees.manage",
+      "description": "Allows configuring grade-wise fees structure",
+      "created_at": "2026-06-29T10:49:22.858351+00:00"
+    },
+    {
+      "id": "3cdcb7d5-690a-419d-8cc8-a2c54ccc6690",
+      "code": "admission.payments.record",
+      "description": "Allows posting payment transactions and waivers",
+      "created_at": "2026-06-29T10:49:22.858351+00:00"
+    },
+    {
+      "id": "d5b94ac0-59bd-492f-95c6-63f81cd3bc2e",
+      "code": "admission.confirm.enroll",
+      "description": "Allows running final student creation ERP integrations",
+      "created_at": "2026-06-29T10:49:22.858351+00:00"
+    },
+    {
+      "id": "1d65c129-8f71-43ce-9ff9-deb3a2ca0040",
+      "code": "student.create",
+      "description": "Allows registering student master details",
+      "created_at": "2026-06-29T10:56:25.375142+00:00"
+    },
+    {
+      "id": "a409d7d3-935f-4d0d-9ea5-77165101392f",
+      "code": "student.view",
+      "description": "Allows viewing student information pages",
+      "created_at": "2026-06-29T10:56:25.375142+00:00"
+    },
+    {
+      "id": "e6ad6733-c28c-4587-9cb3-d5ac800d03d7",
+      "code": "student.delete",
+      "description": "Allows soft-deleting student records",
+      "created_at": "2026-06-29T10:56:25.375142+00:00"
+    },
+    {
+      "id": "00d9bdfe-11c2-43c0-9f16-8ce034d78ffc",
+      "code": "student.promote",
+      "description": "Allows executing grade promotion sequences",
+      "created_at": "2026-06-29T10:56:25.375142+00:00"
+    },
+    {
+      "id": "532645b2-dca4-4ebd-807f-64462aece4d9",
+      "code": "student.transfer",
+      "description": "Allows approving transfer out certificates",
+      "created_at": "2026-06-29T10:56:25.375142+00:00"
+    },
+    {
+      "id": "545fd070-d48b-4616-83a7-4b7ea29c1f99",
+      "code": "student.identity.generate",
+      "description": "Allows printing school ID cards and generating barcodes",
+      "created_at": "2026-06-29T10:56:25.375142+00:00"
+    },
+    {
+      "id": "39508a10-edfe-4a99-9e3e-9a0bba5a045c",
+      "code": "admission.fees.view",
+      "description": "View admission fee summary for own application",
+      "created_at": "2026-07-05T11:10:02.576133+00:00"
+    },
+    {
+      "id": "2296f8b0-e8a5-41bc-9597-70b200835a48",
+      "code": "admission.enrollment.view",
+      "description": "View enrollment status for own application",
+      "created_at": "2026-07-05T11:10:02.576133+00:00"
+    },
+    {
+      "id": "ddf57b35-9e58-4486-b540-24e293621e9d",
+      "code": "fees.structure.view",
+      "description": "View school fee structures list",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "3277bcdc-cc66-46d3-983a-da1605ca1567",
+      "code": "fees.structure.manage",
+      "description": "Create, edit, and delete school fee structures",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "cac7c048-22d0-476f-9588-e22c2dc9acd0",
+      "code": "fees.demand.view",
+      "description": "View allocated fee demands",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "bfb9ccb1-a7b7-4f32-95a1-67833954c64e",
+      "code": "fees.demand.generate",
+      "description": "Generate and assign student fee demands",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "32f4bc88-1d08-4209-9b31-2662074fc72b",
+      "code": "fees.payment.view",
+      "description": "View payment transaction logs",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "c164283b-01a6-42f6-af98-ab848ea2f8dc",
+      "code": "fees.payment.collect",
+      "description": "Collect fees and record payments",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "76460872-f3ed-4d46-acff-ae0728d2f3f2",
+      "code": "fees.receipt.generate",
+      "description": "Generate payment receipts",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "a077f2e2-1936-4c1e-8934-921903c772f8",
+      "code": "fees.waiver.approve",
+      "description": "Approve and record concessions/waivers",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "b9a89545-3e46-4060-a118-cdd0e214c37e",
+      "code": "fees.refund.process",
+      "description": "Process fee refunds",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "5900ace4-1086-4b30-8ba2-6fcd62f4f84c",
+      "code": "fees.view",
+      "description": "General dashboard and ledger view permission",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "fcd7f122-0be9-4f5f-aafa-bfd2b552f0d7",
+      "code": "admission.fees.initialize",
+      "description": "Allows initialization of billing structures on applications",
+      "created_at": "2026-07-07T01:41:34.196853+00:00"
+    },
+    {
+      "id": "82b6bf1d-e00f-4075-9a5c-32a0bf8966ff",
+      "code": "admission.assessment.manage",
+      "description": "Allows configuring subjects, templates, and scheduling for assessments",
+      "created_at": "2026-07-07T09:31:57.986426+00:00"
+    },
+    {
+      "id": "c306228a-80d5-4278-acbd-0219aac8905f",
+      "code": "admission.assessment.evaluate",
+      "description": "Allows grading and publishing results in evaluation pipeline",
+      "created_at": "2026-07-07T09:31:57.986426+00:00"
+    },
+    {
+      "id": "7b286790-149d-43b5-9ec5-5b6c50308d0e",
+      "code": "admission.assessment.write",
+      "description": "Allows taking pre-admission online assessments",
+      "created_at": "2026-07-07T09:31:57.986426+00:00"
+    },
+    {
+      "id": "ff97b00e-13ce-41ab-8b96-ca35d9d67f84",
+      "code": "assessment.config.view",
+      "description": "View Assessment Platform configuration and workflow settings",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "2823f484-b0b4-43e7-b927-2dc1d32f31ca",
+      "code": "assessment.config.manage",
+      "description": "Create and update Assessment Platform configuration",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "be3e986b-d95e-43c7-83ae-32a490160eb5",
+      "code": "assessment.workflow.manage",
+      "description": "Create, update, and publish assessment workflow definitions",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "9601a0d6-c25b-4521-8a52-ecad8c76025e",
+      "code": "assessment.question.view",
+      "description": "View questions in the Question Bank",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "88041cf2-a241-4a15-96a2-3e4e7aa0f870",
+      "code": "assessment.question.manage",
+      "description": "Create, edit, and delete questions in the Question Bank",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "534f4454-2a1d-423b-9a2d-092abf978493",
+      "code": "assessment.question.import",
+      "description": "Import questions in bulk via CSV into the Question Bank",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "0ec8eecc-34d5-45d3-8057-f40b80c9f77f",
+      "code": "assessment.template.view",
+      "description": "View assessment templates",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "a9ee2065-5315-4547-9101-da91df8e0645",
+      "code": "assessment.template.manage",
+      "description": "Create and update assessment templates",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    },
+    {
+      "id": "7bc2b8be-6e14-49f2-8bfa-6e926f3d71a4",
+      "code": "assessment.template.publish",
+      "description": "Publish and version-lock assessment templates",
+      "created_at": "2026-07-08T09:56:38.56895+00:00"
+    }
+  ]
+}

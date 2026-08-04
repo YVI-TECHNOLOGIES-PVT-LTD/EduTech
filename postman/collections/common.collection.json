@@ -1,0 +1,57 @@
+{
+  "info": {
+    "name": "EduTrack Common API Collection",
+    "version": "1.0.0",
+    "description": "Postman API Collection for Common Endpoints (Health Check, Pagination, Envelope Verification)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API Health Check - Success",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Response Time SLA < 500ms', function () { pm.expect(pm.response.responseTime).to.be.below(500); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid Route - Negative: 404 Not Found",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/non-existent-endpoint",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "non-existent-endpoint"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 404 Not Found', function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

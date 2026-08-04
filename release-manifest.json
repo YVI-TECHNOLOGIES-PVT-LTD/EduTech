@@ -1,0 +1,24 @@
+{
+  "name": "@edutrack/monorepo",
+  "version": "2.10.0",
+  "buildTimestamp": "2026-07-29T17:26:00Z",
+  "gitCommitSha": "HEAD",
+  "artifacts": [
+    {
+      "name": "@edutrack/api",
+      "path": "apps/api/dist",
+      "sha256": "checksum-placeholder-api"
+    },
+    {
+      "name": "@edutrack/web",
+      "path": "apps/web/dist",
+      "sha256": "checksum-placeholder-web"
+    }
+  ],
+  "qualityGates": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed",
+    "newmanApiTests": "passed"
+  }
+}

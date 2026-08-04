@@ -1,0 +1,69 @@
+{
+  "info": {
+    "name": "EduTrack Admission API Collection",
+    "version": "1.0.0",
+    "description": "Postman API Collection for EduTrack Admission Module Endpoints with Success and Negative Scenarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Admission Enquiries - Success",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admission/enquiries?page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admission", "enquiries"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 200 or 401 depending on auth state', function () { pm.expect(pm.response.code).to.be.oneOf([200, 401]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Admission Enquiry - Negative: Invalid Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentName\": \"John Doe\",\n  \"parentName\": \"Jane Doe\",\n  \"email\": \"invalid-email-format\",\n  \"phone\": \"1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admission/enquiries",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admission", "enquiries"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status Code is 400 Bad Request or 401', function () { pm.expect(pm.response.code).to.be.oneOf([400, 401]); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

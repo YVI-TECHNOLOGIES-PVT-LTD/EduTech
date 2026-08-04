@@ -1,0 +1,124 @@
+{
+  "timestamp": "202607051026",
+  "applicationId": "f7c15cd2-0fa8-4fa1-befc-4096919cac04",
+  "enquiryId": "836df261-ff02-42bf-80be-eb85e0d98f26",
+  "leadId": "836df261-ff02-42bf-80be-eb85e0d98f26",
+  "log": [
+    {
+      "step": "2",
+      "status": "PASS",
+      "msg": "Application created",
+      "detail": {
+        "applicationId": "f7c15cd2-0fa8-4fa1-befc-4096919cac04",
+        "leadId": "836df261-ff02-42bf-80be-eb85e0d98f26"
+      }
+    },
+    {
+      "step": "3",
+      "status": "PASS",
+      "msg": "Application submitted",
+      "detail": {
+        "status": "SUBMITTED"
+      }
+    },
+    {
+      "step": "4",
+      "status": "PASS",
+      "msg": "Mandatory documents uploaded",
+      "detail": {
+        "count": 3
+      }
+    },
+    {
+      "step": "5",
+      "status": "PASS",
+      "msg": "Documents verified",
+      "detail": {
+        "status": "DOCUMENT_VERIFIED"
+      }
+    },
+    {
+      "step": "6",
+      "status": "PASS",
+      "msg": "Interview scheduled",
+      "detail": {
+        "interviewId": "800b9430-80a3-4e62-ad95-4fa17bbd6486",
+        "status": "INTERVIEW"
+      }
+    },
+    {
+      "step": "7",
+      "status": "PASS",
+      "msg": "Interview completed",
+      "detail": {
+        "status": "EXAM"
+      }
+    },
+    {
+      "step": "8",
+      "status": "PASS",
+      "msg": "Exam completed",
+      "detail": {
+        "status": "FEE_PENDING"
+      }
+    },
+    {
+      "step": "9",
+      "status": "PASS",
+      "msg": "Fee paid",
+      "detail": {
+        "status": "FEE_VERIFIED"
+      }
+    },
+    {
+      "step": "10",
+      "status": "PASS",
+      "msg": "Review and approval complete",
+      "detail": {
+        "status": "FEE_VERIFIED"
+      }
+    },
+    {
+      "step": "11",
+      "status": "PASS",
+      "msg": "ERP student provisioned",
+      "detail": {
+        "id": "88190f64-6f40-4292-8296-ea190037048e",
+        "applicationId": "f7c15cd2-0fa8-4fa1-befc-4096919cac04",
+        "studentId": "f993d8a7-b2f0-4126-a847-a20fb1eb8d39",
+        "admissionNumber": "SCH-2026-000003",
+        "enrolledAt": "2026-07-05T10:27:51.189Z",
+        "enrolledBy": "8c6a0659-762b-47b0-ac74-43b912593cff"
+      }
+    },
+    {
+      "step": "12",
+      "status": "PASS",
+      "msg": "Database integrity verified",
+      "detail": {
+        "finalStatus": "ENROLLED",
+        "student": {
+          "id": "f993d8a7-b2f0-4126-a847-a20fb1eb8d39",
+          "first_name": "Aarav",
+          "status": "active"
+        },
+        "confirmation": {
+          "student_id": "f993d8a7-b2f0-4126-a847-a20fb1eb8d39",
+          "admission_number": "SCH-2026-000003"
+        }
+      }
+    },
+    {
+      "step": "13",
+      "status": "PASS",
+      "msg": "Progress API",
+      "detail": {
+        "progressPercent": 100
+      }
+    }
+  ],
+  "finalStatus": "ENROLLED",
+  "studentId": "f993d8a7-b2f0-4126-a847-a20fb1eb8d39",
+  "admissionNumber": "SCH-2026-000003",
+  "status": "PASS"
+}

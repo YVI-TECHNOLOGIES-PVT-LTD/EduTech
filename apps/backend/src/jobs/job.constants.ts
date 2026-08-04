@@ -1,0 +1,60 @@
+import { QueueConfig, QueueName } from './job.types';
+
+export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
+  'email-queue': {
+    name: 'email-queue',
+    dlqName: 'email-dlq',
+    concurrency: 5,
+    maxRetries: 3,
+    backoffMs: 5000,
+    timeoutMs: 30000,
+  },
+  'sms-queue': {
+    name: 'sms-queue',
+    dlqName: 'sms-dlq',
+    concurrency: 5,
+    maxRetries: 3,
+    backoffMs: 5000,
+    timeoutMs: 15000,
+  },
+  'push-queue': {
+    name: 'push-queue',
+    dlqName: 'push-dlq',
+    concurrency: 10,
+    maxRetries: 3,
+    backoffMs: 3000,
+    timeoutMs: 15000,
+  },
+  'report-queue': {
+    name: 'report-queue',
+    dlqName: 'report-dlq',
+    concurrency: 2,
+    maxRetries: 2,
+    backoffMs: 10000,
+    timeoutMs: 120000,
+  },
+  'export-queue': {
+    name: 'export-queue',
+    dlqName: 'export-dlq',
+    concurrency: 2,
+    maxRetries: 2,
+    backoffMs: 10000,
+    timeoutMs: 120000,
+  },
+  'import-queue': {
+    name: 'import-queue',
+    dlqName: 'import-dlq',
+    concurrency: 2,
+    maxRetries: 2,
+    backoffMs: 10000,
+    timeoutMs: 120000,
+  },
+  'audit-queue': {
+    name: 'audit-queue',
+    dlqName: 'audit-dlq',
+    concurrency: 5,
+    maxRetries: 3,
+    backoffMs: 5000,
+    timeoutMs: 30000,
+  },
+};

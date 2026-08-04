@@ -1,0 +1,41 @@
+export const PERMISSIONS = {
+    DASHBOARD: {
+        VIEW_ADMIN: 'DASHBOARD_VIEW_ADMIN',
+        VIEW_STAFF: 'DASHBOARD_VIEW_STAFF',
+        VIEW_STUDENT: 'DASHBOARD_VIEW_STUDENT',
+    },
+    ADMISSION: {
+        CREATE: 'admission.create',
+        VIEW_OWN: 'admission.view_own',
+        VIEW_ALL: 'admission.view_all',
+        REVIEW: 'admission.review',
+        ENQUIRY_CREATE: 'admission.enquiry.create',
+        ENQUIRY_VIEW: 'admission.enquiry.view',
+        LEADS_MANAGE: 'admission.leads.manage',
+        VISITORS_MANAGE: 'admission.visitors.manage',
+        VERIFY_DOCUMENTS: 'admission.verify_documents',
+        MARK_EXAM: 'admission.exam.mark',
+        MARK_INTERVIEW: 'admission.interview.mark',
+        MERIT_GENERATE: 'admission.merit.generate',
+        ENROLL: 'admission.enroll',
+    },
+    STUDENT: {
+        CREATE: 'STUDENT_CREATE',
+        VIEW: 'STUDENT_VIEW',
+        VIEW_SELF: 'STUDENT_VIEW_SELF',
+        UPDATE: 'STUDENT_UPDATE',
+        DELETE: 'STUDENT_DELETE',
+        ALLOCATE: 'STUDENT_ALLOCATE',
+        PROMOTE: 'STUDENT_PROMOTE',
+        TRANSFER: 'STUDENT_TRANSFER',
+        ASSIGN_SECTION: 'STUDENT_ASSIGN_SECTION',
+    },
+    ATTENDANCE: {
+        MARK: 'attendance.mark',
+        VERIFY: 'attendance.verify',
+        LEAVE_APPLY: 'attendance.leave.apply',
+        LEAVE_APPROVE: 'attendance.leave.approve',
+        CORRECTION_APPROVE: 'attendance.correction.approve',
+        SYNC: 'attendance.sync',
+    }
+};

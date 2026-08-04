@@ -1,0 +1,19 @@
+{
+  "id": "globals-template-id",
+  "name": "EduTrack Global Variables (Template)",
+  "values": [
+    {
+      "key": "appName",
+      "value": "EduTrack Enterprise Platform",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "apiVersion",
+      "value": "v1.0.0",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "globals"
+}

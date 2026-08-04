@@ -1,0 +1,28 @@
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.env*
+!.env.example
+
+# Expo & Mobile
+.expo/
+.expo-shared/
+
+# MacOS & Windows
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Verification & Temporary Artifacts
+verification-report.json
+migration-backup/
+*.tmp
+*.log
+npm-debug.log*
+yarn-debug.log*
+logs/

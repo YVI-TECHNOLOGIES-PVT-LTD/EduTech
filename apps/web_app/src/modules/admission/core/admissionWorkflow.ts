@@ -1,0 +1,175 @@
+import {
+    FileText,
+    Search,
+    ClipboardList,
+    GraduationCap,
+    Users,
+    Trophy,
+    Send,
+    CreditCard,
+    Award,
+    ShieldCheck,
+    XCircle,
+    type LucideIcon,
+} from 'lucide-react';
+
+export interface WorkflowStage {
+    id: string;
+    order: number;
+    displayName: string;
+    isOptional: boolean;
+    responsibleRoles: string[];
+    slaHours: number;
+    icon: LucideIcon;
+    legacyStatuses: string[];
+    allowedTransitions: string[];
+    nextAction: string;
+}
+
+export const ADMISSION_WORKFLOW: Record<string, WorkflowStage> = {
+    RECEIVED: {
+        id: 'RECEIVED',
+        order: 1,
+        displayName: 'Application Received',
+        isOptional: false,
+        responsibleRoles: ['ADMISSION_OFFICER', 'ADMIN', 'RECEPTIONIST'],
+        slaHours: 24,
+        icon: FileText,
+        legacyStatuses: ['draft', 'submitted'],
+        allowedTransitions: ['UNDER_REVIEW', 'REJECTED'],
+        nextAction: 'Review Application Profile',
+    },
+    UNDER_REVIEW: {
+        id: 'UNDER_REVIEW',
+        order: 2,
+        displayName: 'Under Review',
+        isOptional: false,
+        responsibleRoles: ['ADMISSION_OFFICER', 'ADMIN'],
+        slaHours: 48,
+        icon: Search,
+        legacyStatuses: ['under_review'],
+        allowedTransitions: ['DOCUMENT_VERIFICATION', 'REJECTED'],
+        nextAction: 'Start Document Verification',
+    },
+    DOCUMENT_VERIFICATION: {
+        id: 'DOCUMENT_VERIFICATION',
+        order: 3,
+        displayName: 'Document Verification',
+        isOptional: false,
+        responsibleRoles: ['ADMISSION_OFFICER', 'ADMIN'],
+        slaHours: 24,
+        icon: ClipboardList,
+        legacyStatuses: ['docs_pending', 'docs_verified', 'document_verified'],
+        allowedTransitions: ['ENTRANCE_EXAMINATION', 'INTERVIEW_PANEL', 'MERIT_LIST', 'REJECTED'],
+        nextAction: 'Verify Uploaded Documents',
+    },
+    ENTRANCE_EXAMINATION: {
+        id: 'ENTRANCE_EXAMINATION',
+        order: 4,
+        displayName: 'Entrance Examination',
+        isOptional: true,
+        responsibleRoles: ['EXAM_CELL', 'ADMIN'],
+        slaHours: 72,
+        icon: GraduationCap,
+        legacyStatuses: ['exam', 'exam_completed'],
+        allowedTransitions: ['INTERVIEW_PANEL', 'MERIT_LIST', 'REJECTED'],
+        nextAction: 'Record Exam Marks',
+    },
+    INTERVIEW_PANEL: {
+        id: 'INTERVIEW_PANEL',
+        order: 5,
+        displayName: 'Interview Panel',
+        isOptional: true,
+        responsibleRoles: ['COUNSELOR', 'ADMIN'],
+        slaHours: 48,
+        icon: Users,
+        legacyStatuses: ['interview', 'interview_completed'],
+        allowedTransitions: ['MERIT_LIST', 'REJECTED'],
+        nextAction: 'Conduct Panel & Log Recommendation',
+    },
+    MERIT_LIST: {
+        id: 'MERIT_LIST',
+        order: 6,
+        displayName: 'Merit List',
+        isOptional: false,
+        responsibleRoles: ['EXAM_CELL', 'ADMIN', 'PRINCIPAL'],
+        slaHours: 24,
+        icon: Trophy,
+        legacyStatuses: ['merit_generated', 'merit', 'recommended'],
+        allowedTransitions: ['OFFER_LETTER', 'REJECTED'],
+        nextAction: 'Validate and Compile Merit List',
+    },
+    OFFER_LETTER: {
+        id: 'OFFER_LETTER',
+        order: 7,
+        displayName: 'Offer Letter',
+        isOptional: false,
+        responsibleRoles: ['PRINCIPAL', 'ADMIN'],
+        slaHours: 48,
+        icon: Send,
+        legacyStatuses: ['offered', 'approved'],
+        allowedTransitions: ['FEE_VERIFICATION', 'REJECTED'],
+        nextAction: 'Release Offer & Await Parent Action',
+    },
+    FEE_VERIFICATION: {
+        id: 'FEE_VERIFICATION',
+        order: 8,
+        displayName: 'Fee Verification',
+        isOptional: false,
+        responsibleRoles: ['FINANCE', 'ADMIN'],
+        slaHours: 72,
+        icon: CreditCard,
+        legacyStatuses: ['fee_pending', 'fee_verified', 'payment_pending', 'payment_submitted', 'payment_verified', 'payment_correction'],
+        allowedTransitions: ['ENROLLMENT_PROCESSING', 'REJECTED'],
+        nextAction: 'Collect and Reconcile Fee Payment',
+    },
+    ENROLLMENT_PROCESSING: {
+        id: 'ENROLLMENT_PROCESSING',
+        order: 9,
+        displayName: 'Enrollment Processing',
+        isOptional: false,
+        responsibleRoles: ['ADMISSION_OFFICER', 'ADMIN', 'PRINCIPAL'],
+        slaHours: 24,
+        icon: Award,
+        legacyStatuses: ['enrollment_pending'],
+        allowedTransitions: ['ENROLLED', 'REJECTED'],
+        nextAction: 'Confirm Details & Provision to SIS',
+    },
+    ENROLLED: {
+        id: 'ENROLLED',
+        order: 10,
+        displayName: 'Enrolled',
+        isOptional: false,
+        responsibleRoles: ['SYSTEM'],
+        slaHours: 0,
+        icon: ShieldCheck,
+        legacyStatuses: ['enrolled'],
+        allowedTransitions: [],
+        nextAction: 'ERP Handoff Complete',
+    },
+    REJECTED: {
+        id: 'REJECTED',
+        order: 11,
+        displayName: 'Rejected',
+        isOptional: false,
+        responsibleRoles: ['ADMISSION_OFFICER', 'ADMIN'],
+        slaHours: 0,
+        icon: XCircle,
+        legacyStatuses: ['rejected', 'cancelled'],
+        allowedTransitions: ['RECEIVED'],
+        nextAction: 'Reopen Application',
+    }
+};
+
+export const WORKFLOW_STAGES_ORDER = [
+    'RECEIVED',
+    'UNDER_REVIEW',
+    'DOCUMENT_VERIFICATION',
+    'ENTRANCE_EXAMINATION',
+    'INTERVIEW_PANEL',
+    'MERIT_LIST',
+    'OFFER_LETTER',
+    'FEE_VERIFICATION',
+    'ENROLLMENT_PROCESSING',
+    'ENROLLED'
+];
