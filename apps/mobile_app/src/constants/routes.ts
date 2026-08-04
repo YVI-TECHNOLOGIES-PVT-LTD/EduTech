@@ -20,7 +20,5 @@ export const ROUTES = {
   MODULES: {
     ADMISSION: '/(admission)',
     STUDENT: '/(student)',
-    TEACHER: '/(teacher)',
-    PARENT: '/(parent)',
   },
 } as const;

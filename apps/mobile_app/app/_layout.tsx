@@ -12,8 +12,6 @@ export default function RootLayout() {
         <Stack.Screen name="(common)" />
         <Stack.Screen name="(admission)" />
         <Stack.Screen name="(student)" />
-        <Stack.Screen name="(teacher)" />
-        <Stack.Screen name="(parent)" />
       </Stack>
     </AppProvider>
   );

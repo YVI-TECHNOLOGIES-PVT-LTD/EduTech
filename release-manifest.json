@@ -1,23 +1,30 @@
 {
   "name": "@edutrack/monorepo",
-  "version": "2.10.0",
-  "buildTimestamp": "2026-07-29T17:26:00Z",
+  "version": "1.0.0-stage1-release-candidate",
+  "stageBaseline": "Foundation + Core + Stage-1 Admission",
+  "buildTimestamp": "2026-08-04T10:20:00Z",
   "gitCommitSha": "HEAD",
+  "status": {
+    "database": "FROZEN",
+    "backend": "FROZEN",
+    "api": "FROZEN",
+    "moduleGovernance": "FROZEN",
+    "frontend": "FROZEN"
+  },
   "artifacts": [
     {
       "name": "@edutrack/api",
-      "path": "apps/api/dist",
-      "sha256": "checksum-placeholder-api"
+      "path": "apps/api/dist"
     },
     {
       "name": "@edutrack/web",
-      "path": "apps/web/dist",
-      "sha256": "checksum-placeholder-web"
+      "path": "apps/web_app/dist"
     }
   ],
   "qualityGates": {
+    "frontendGovernanceAudit": "passed",
+    "frontendSafeCleanup": "passed",
     "typecheck": "passed",
-    "lint": "passed",
     "build": "passed",
     "newmanApiTests": "passed"
   }
