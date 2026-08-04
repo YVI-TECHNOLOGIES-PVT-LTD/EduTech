@@ -7,6 +7,12 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@edutrack/types": ["../../types/src/index.ts"],
+      "@edutrack/ui": ["../../ui/src/index.ts"],
+      "@edutrack/validation": ["../../validation/src/index.ts"]
+    }
   }
 }

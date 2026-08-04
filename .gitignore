@@ -1,1 +1,21 @@
+# Dependencies
 node_modules
+
+# Build & Compiled Output
+dist
+build
+coverage
+.turbo
+.next
+.expo
+expo-env.d.ts
+
+# Environment Files
+.env
+.env.*
+
+# Logs
+*.log
+
+# IDE
+.vscode/settings.json

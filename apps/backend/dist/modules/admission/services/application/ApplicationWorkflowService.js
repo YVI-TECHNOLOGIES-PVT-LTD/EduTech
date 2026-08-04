@@ -69,7 +69,7 @@ class ApplicationWorkflowService extends BaseService_1.BaseService {
             compatibility_notification_1.AdmissionNotificationService.notifyPipelineEvent(notificationEvent, applicationId, {
                 parentUserId: application.createdBy,
                 reason: notes || undefined
-            }).catch(err => {
+            }).catch((err) => {
                 console.error('[ApplicationWorkflowService] Notification trigger failed:', err);
             });
         }

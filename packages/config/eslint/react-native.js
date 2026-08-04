@@ -1,10 +1,17 @@
 module.exports = {
-  extends: ['expo', 'prettier'],
-  plugins: ['@typescript-eslint'],
-  parser: '@typescript-eslint/parser',
+  extends: [require.resolve('./base.js')],
+  env: {
+    browser: true,
+    node: true,
+    es2022: true,
+  },
+  globals: {
+    __DEV__: 'readonly',
+    fetch: 'readonly',
+    FormData: 'readonly',
+    window: 'readonly',
+  },
   rules: {
-    'no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-    'react-hooks/exhaustive-deps': 'warn',
+    'no-console': 'warn',
   },
 };

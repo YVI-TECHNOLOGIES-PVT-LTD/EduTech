@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireRole = exports.requirePermission = exports.checkRole = exports.checkPermission = exports.getEffectiveRoles = void 0;
+const logger_1 = require("../utils/logger");
 const ROLE_ALIASES = {
     'HEAD_OF_INSTITUTE': ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
     'HOI': ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
@@ -64,130 +65,23 @@ const checkPermission = (requiredPermission) => {
         if (roles.includes('SUPERADMIN')) {
             return next();
         }
-        // 2b. Admission Officer Bypass for all admission module actions
-        if (roles.includes('ADMISSION_OFFICER') && requiredPermission.startsWith('admission.')) {
+        // 3. Dynamic Permission Hierarchy Evaluation
+        // Allow higher-level permission hierarchies (e.g., view_all grants view_own)
+        if (permissions.includes(requiredPermission) ||
+            (requiredPermission === 'admission.view_own' &&
+                (permissions.includes('admission.view_all') || permissions.includes('admission.review')))) {
             return next();
         }
-        // 2c. Accountant Bypass for fee setup and payment collections
-        if (roles.includes('ACCOUNTANT') &&
-            (requiredPermission === 'admission.fees.initialize' ||
-                requiredPermission === 'fees.demand.generate' ||
-                requiredPermission === 'fees.payment.collect' ||
-                requiredPermission === 'fees.receipt.generate' ||
-                requiredPermission === 'fees.structure.manage' ||
-                requiredPermission === 'fees.waiver.approve' ||
-                requiredPermission === 'fees.view')) {
-            return next();
-        }
-        // 2d. HOI Bypass for offer approval and final enrollment confirmations
-        if (roles.includes('HOI') &&
-            (requiredPermission === 'admission.approve' ||
-                requiredPermission === 'admission.reject' ||
-                requiredPermission === 'admission.confirm.enroll')) {
-            return next();
-        }
-        // 2e. Parent / Applicant Bypass for own application lifecycle actions
-        if (roles.includes('PARENT') &&
-            (requiredPermission === 'admission.view_own' ||
-                requiredPermission === 'admission.create' ||
-                requiredPermission === 'admission.update' ||
-                requiredPermission === 'admission.application.view' ||
-                requiredPermission === 'admission.application.update' ||
-                requiredPermission === 'admission.application.submit' ||
-                requiredPermission === 'admission.document.upload' ||
-                requiredPermission === 'admission.document.download' ||
-                requiredPermission === 'admission.document.view' ||
-                requiredPermission === 'admission.document.delete' ||
-                requiredPermission === 'admission.document.checklist' ||
-                requiredPermission === 'admission.fees.view' ||
-                requiredPermission === 'admission.enrollment.view')) {
-            return next();
-        }
-        // 2f. View Own / View All hierarchy fallback
-        if (requiredPermission === 'admission.view_own' &&
-            (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) {
-            return next();
-        }
-        // 2g. Admission Desk Bypass for viewing classes (needed for enrollment section provisioning)
-        if (requiredPermission === 'CLASS_VIEW' &&
-            (permissions.includes('admission.enquiry.view') ||
-                permissions.includes('admission.review') ||
-                permissions.includes('admission.view_all') ||
-                roles.includes('ADMISSION_OFFICER') ||
-                roles.includes('RECEPTIONIST') ||
-                roles.includes('COUNSELOR'))) {
-            return next();
-        }
-        // 2h. Receptionist Bypass for counselor assignment
-        if (requiredPermission === 'admission.leads.manage' &&
-            req.originalUrl.endsWith('/assign') &&
-            (permissions.includes('admission.visitors.manage') || roles.includes('RECEPTIONIST'))) {
-            return next();
-        }
-        // 2i. Receptionist Bypass for enquiry conversion (creates lead + application)
-        if (requiredPermission === 'admission.leads.manage' &&
-            req.originalUrl.endsWith('/convert') &&
-            (permissions.includes('admission.enquiry.create') || roles.includes('RECEPTIONIST'))) {
-            return next();
-        }
-        // 2j. Counselor bypass for viewing CRM applications and uploading documents
-        if ((requiredPermission === 'admission.application.view' ||
-            requiredPermission === 'admission.document.view' ||
-            requiredPermission === 'admission.document.upload') &&
-            roles.includes('COUNSELOR')) {
-            return next();
-        }
-        // 2l. Accountant Bypass for listing and viewing applications (needed for payments collection dashboard)
-        if ((requiredPermission === 'admission.view_all' ||
-            requiredPermission === 'admission.application.view') &&
-            roles.includes('ACCOUNTANT')) {
-            return next();
-        }
-        // 2m. Exam Cell Bypass for listing and viewing applications (needed for exam evaluation dashboard)
-        if ((requiredPermission === 'admission.view_all' ||
-            requiredPermission === 'admission.application.view') &&
-            roles.includes('EXAM_CELL')) {
-            return next();
-        }
-        // 2n. Exam Cell Bypass for merit generation and offer management (Merit Desk & Offer Letters pages)
-        if ((requiredPermission === 'admission.merit.generate' ||
-            requiredPermission === 'admission.offer.manage') &&
-            roles.includes('EXAM_CELL')) {
-            return next();
-        }
-        // 2o. Exam Cell Bypass for general exams, marks entry, and student lists
-        if ((requiredPermission === 'EXAM_VIEW' ||
-            requiredPermission === 'EXAM_CREATE' ||
-            requiredPermission === 'MARKS_ENTER' ||
-            requiredPermission === 'MARKS_VIEW' ||
-            requiredPermission === 'SUBJECT_VIEW' ||
-            requiredPermission === 'student.view' ||
-            requiredPermission === 'student.read' ||
-            requiredPermission === 'STUDENT_VIEW') &&
-            roles.includes('EXAM_CELL')) {
-            return next();
-        }
-        // 2k. Applicant360 read enrichment — GET only, mirrors admission.application.view access
-        if (req.method === 'GET' &&
-            APPLICANT360_READ_GET_PERMISSIONS.has(requiredPermission) &&
-            canViewAdmissionApplication(permissions, roles)) {
-            return next();
-        }
-        // 3. Check Permission
-        // 4. Check Role
-        if (permissions.includes(requiredPermission)) {
-            return next();
-        }
-        if (!permissions.includes(requiredPermission)) {
-            console.error(`[RBAC] Denied. User ${req.context.user.email} (Roles: ${req.context.user.roles}) needs ${requiredPermission}. Has: ${permissions}`);
-            return res.status(403).json({
-                error: 'Forbidden: Insufficient Permissions',
-                required: requiredPermission,
-                has: permissions,
-                user: req.context.user.email,
-                roles: req.context.user.roles
-            });
-        }
+        // 4. Deny Access — Dynamic RBAC Enforcement
+        logger_1.logger.warn(`[RBAC Access Denied] User ${req.context.user.email} (Roles: ${roles.join(',')}) missing required permission: ${requiredPermission}`);
+        return res.status(403).json({
+            success: false,
+            error: 'FORBIDDEN',
+            message: `Forbidden: Insufficient permissions for ${requiredPermission}`,
+            requiredPermission,
+            timestamp: new Date().toISOString(),
+            requestId: req.id || 'req-unknown'
+        });
     };
 };
 exports.checkPermission = checkPermission;

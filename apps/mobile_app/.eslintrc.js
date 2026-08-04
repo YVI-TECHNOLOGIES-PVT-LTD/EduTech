@@ -1,3 +1,3 @@
 module.exports = {
-  extends: ['@edutrack/config/eslint/react-native'],
+  extends: [require.resolve('@edutrack/config/eslint/react-native')],
 };

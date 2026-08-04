@@ -14,9 +14,18 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^19.6.0
         version: 19.8.1
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.0.0
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.3.3))(eslint@8.57.1)(typescript@5.3.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.0.0
+        version: 7.18.0(eslint@8.57.1)(typescript@5.3.3)
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -92,6 +101,9 @@ importers:
       puppeteer:
         specifier: ^24.37.2
         version: 24.43.1(typescript@5.3.3)
+      uuid:
+        specifier: ^9.0.1
+        version: 9.0.1
       xlsx:
         specifier: ^0.18.5
         version: 0.18.5
@@ -99,6 +111,9 @@ importers:
         specifier: ^3.22.4
         version: 3.25.76
     devDependencies:
+      '@edutrack/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@types/archiver':
         specifier: ^7.0.0
         version: 7.0.0
@@ -129,6 +144,9 @@ importers:
       '@types/readdir-glob':
         specifier: ^1.1.5
         version: 1.1.5
+      '@types/uuid':
+        specifier: ^9.0.8
+        version: 9.0.8
       nodemon:
         specifier: ^3.1.11
         version: 3.1.14
@@ -156,12 +174,18 @@ importers:
       '@edutrack/validation':
         specifier: workspace:*
         version: link:../../packages/validation
+      '@expo/vector-icons':
+        specifier: ^14.0.2
+        version: 14.1.0(expo-font@12.0.10(expo@51.0.39(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.10.0(react-hook-form@7.84.0(react@18.2.0))
       '@react-native-async-storage/async-storage':
         specifier: 1.23.1
         version: 1.23.1(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))
+      '@react-navigation/native':
+        specifier: ^6.1.18
+        version: 6.1.18(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
       '@tanstack/react-query':
         specifier: ^5.28.9
         version: 5.101.4(react@18.2.0)
@@ -250,6 +274,9 @@ importers:
       '@babel/core':
         specifier: ^7.24.0
         version: 7.29.7
+      '@edutrack/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.14
@@ -470,6 +497,9 @@ importers:
         specifier: ^4.4.0
         version: 4.5.7(@types/react@18.2.79)(immer@11.1.15)(react@18.2.0)
     devDependencies:
+      '@edutrack/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@types/leaflet':
         specifier: ^1.9.21
         version: 1.9.22
@@ -505,6 +535,9 @@ importers:
 
   packages/types:
     devDependencies:
+      '@edutrack/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: ^5.3.2
         version: 5.3.3
@@ -515,6 +548,9 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@edutrack/config':
+        specifier: workspace:*
+        version: link:../config
       '@types/react':
         specifier: ^18.2.0
         version: 18.2.79
@@ -534,6 +570,9 @@ importers:
         specifier: ^3.22.4
         version: 3.25.76
     devDependencies:
+      '@edutrack/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: ^5.3.2
         version: 5.3.3
@@ -1570,7 +1609,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.18.31':
     resolution: {integrity: sha512-v9llw9fT3Uv+TCM6Xllo54t672CuYtinEQZ2LPJ2EJsCwuTc4Cd2gXQaouuIVD21VoeGQnr5JtJuWbF97sBKzQ==}
@@ -3291,6 +3330,9 @@ packages:
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
+
+  '@types/uuid@9.0.8':
+    resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -12233,6 +12275,8 @@ snapshots:
   '@types/strip-json-comments@0.0.30': {}
 
   '@types/use-sync-external-store@0.0.6': {}
+
+  '@types/uuid@9.0.8': {}
 
   '@types/yargs-parser@21.0.3': {}
 

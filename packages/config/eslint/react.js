@@ -1,8 +1,15 @@
 module.exports = {
-  extends: ['./base.js'],
+  extends: [require.resolve('./base.js')],
   env: {
     browser: true,
     es2022: true,
   },
-  rules: {},
+  rules: {
+    'no-console': 'warn',
+    'no-empty': 'warn',
+    'no-extra-boolean-cast': 'warn',
+    'no-useless-escape': 'warn',
+    'no-case-declarations': 'warn',
+    'no-control-regex': 'warn',
+  },
 };

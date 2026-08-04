@@ -9,7 +9,6 @@ const auth_middleware_1 = require("./auth/auth.middleware");
 const rbac_middleware_1 = require("./rbac/rbac.middleware");
 const permissions_1 = require("./rbac/permissions");
 const supabase_1 = require("./config/supabase");
-const compatibility_routes_1 = require("./modules/compatibility/compatibility.routes");
 const crm_routes_1 = require("./modules/admission/crm.routes");
 const application_routes_1 = require("./modules/admission/application.routes");
 const document_routes_1 = require("./modules/admission/document.routes");
@@ -18,8 +17,6 @@ const assessment_routes_1 = require("./modules/admission/assessment.routes");
 const enrollment_routes_1 = require("./modules/admission/enrollment.routes");
 const admission_controller_1 = require("./modules/admission/admission.controller");
 const index_1 = require("./modules/admission/index");
-const academic_routes_1 = require("./modules/academic/academic.routes");
-const exam_routes_1 = require("./modules/exam/exam.routes");
 const dashboard_routes_1 = require("./modules/dashboard/dashboard.routes");
 const import_routes_1 = require("./modules/import/import.routes");
 const department_routes_1 = __importDefault(require("./modules/departments/department.routes"));
@@ -27,15 +24,6 @@ const admin_routes_1 = require("./modules/admin/admin.routes");
 const bulk_routes_1 = require("./modules/admin/bulk.routes");
 const workflow_routes_1 = require("./workflows/workflow.routes");
 const task_routes_1 = require("./workflows/task.routes");
-const foundation_1 = require("./modules/assessment/foundation");
-const question_bank_1 = require("./modules/assessment/question-bank");
-const routes_1 = require("./modules/assessment/template-builder/routes");
-const routes_2 = require("./modules/assessment/blueprint-builder/routes");
-const routes_3 = require("./modules/assessment/paper-generator/routes");
-const routes_4 = require("./modules/assessment/evaluation/routes");
-const routes_5 = require("./modules/assessment/result-engine/routes");
-const routes_6 = require("./modules/assessment/analytics/routes");
-const routes_7 = require("./modules/assessment/academic-records/routes");
 const env_1 = require("./config/env");
 exports.router = (0, express_1.Router)();
 // ======================================
@@ -421,22 +409,10 @@ exports.router.use('/v1/admission/evaluation', evaluation_routes_1.evaluationRou
 exports.router.use('/v1/admission/assessment', assessment_routes_1.assessmentRouter);
 exports.router.use('/v1/admission/enrollment', enrollment_routes_1.enrollmentRouter);
 exports.router.use('/v1/admission/application', application_routes_1.applicationRouter);
-exports.router.use(compatibility_routes_1.compatibilityRouter);
-exports.router.use('/academic', academic_routes_1.academicRouter);
-exports.router.use('/exams', exam_routes_1.examRouter);
 exports.router.use('/dashboard', dashboard_routes_1.dashboardRouter);
 exports.router.use('/import', import_routes_1.importRouter);
 exports.router.use('/v1/workflows', workflow_routes_1.workflowRouter);
 exports.router.use('/v1/tasks', task_routes_1.taskRouter);
-exports.router.use('/v1/assessment', foundation_1.assessmentCoreRouter);
-exports.router.use('/v1/assessment/questions', question_bank_1.questionBankRouter);
-exports.router.use('/v1/assessment/templates', routes_1.templateBuilderRouter);
-exports.router.use('/v1/assessment/blueprints', routes_2.blueprintRouter);
-exports.router.use('/v1/assessment/papers', routes_3.paperGeneratorRouter);
-exports.router.use('/v1/assessment/evaluations', routes_4.evaluationRouter);
-exports.router.use('/v1/assessment/results', routes_5.resultEngineRouter);
-exports.router.use('/v1/assessment/analytics', routes_6.analyticsRouter);
-exports.router.use('/v1/assessment/academic-records', routes_7.academicRecordsRouter);
 // System RBAC Audit Endpoint
 exports.router.get('/system/rbac/audit', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMIN_DASHBOARD_VIEW), async (req, res) => {
     try {

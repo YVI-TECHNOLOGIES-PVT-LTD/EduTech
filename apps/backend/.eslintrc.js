@@ -1,3 +1,3 @@
 module.exports = {
-  extends: ['@edutrack/config/eslint/node'],
+  extends: [require.resolve('@edutrack/config/eslint/node')],
 };
