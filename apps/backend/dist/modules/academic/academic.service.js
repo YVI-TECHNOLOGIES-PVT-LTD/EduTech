@@ -42,7 +42,12 @@ class AcademicAssignmentService {
         const { error: mapError } = await supabase_1.supabase
             .from('student_faculty_assignments')
             .update({ status: 'INACTIVE' })
-            .match({ section_id: sectionId, faculty_id: facultyId, academic_year_id: academicYearId, source: 'SECTION_AUTO' });
+            .match({
+            section_id: sectionId,
+            faculty_id: facultyId,
+            academic_year_id: academicYearId,
+            source: 'SECTION_AUTO',
+        });
         if (mapError)
             throw mapError;
         await supabase_1.supabase.from('academic_automation_logs').insert({

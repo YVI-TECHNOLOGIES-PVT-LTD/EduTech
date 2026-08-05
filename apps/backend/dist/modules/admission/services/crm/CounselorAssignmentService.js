@@ -102,7 +102,9 @@ class CounselorAssignmentService extends BaseService_1.BaseService {
                 oldStatus: prevLead.status,
                 newStatus: savedLead.status,
                 changedBy: userId || null,
-                reason: strategyParams.reassign ? 'Counselor reassigned' : `Counselor assigned via strategy: ${strategyType}`,
+                reason: strategyParams.reassign
+                    ? 'Counselor reassigned'
+                    : `Counselor assigned via strategy: ${strategyType}`,
                 metadata: {
                     assigned_by: userId || null,
                     assigned_to: counselorId,
@@ -111,7 +113,7 @@ class CounselorAssignmentService extends BaseService_1.BaseService {
                     academic_year_id: academicYearId,
                     correlation_id: correlationId || null,
                     ip: strategyParams.ip || null,
-                    browser: strategyParams.browser || null
+                    browser: strategyParams.browser || null,
                 },
                 correlationId,
                 eventName: 'LeadCounselorAssigned',
