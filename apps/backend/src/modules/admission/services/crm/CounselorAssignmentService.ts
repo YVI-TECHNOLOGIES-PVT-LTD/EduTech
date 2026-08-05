@@ -100,8 +100,14 @@ export class CounselorAssignmentService extends BaseService {
     const counselorId = await strategy.assign(lead);
 
     const logAssignmentAudit = async (savedLead: AdmissionLead, prevLead: AdmissionLead) => {
+<<<<<<< HEAD
       const enquiryId = savedLead.enquiryId || prevLead.enquiryId;
       const enquiry = enquiryId ? await this.enquiryRepo.findById(enquiryId) : null;
+=======
+      const enquiry = savedLead.enquiryId
+        ? await this.enquiryRepo.findById(savedLead.enquiryId)
+        : null;
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
       const schoolId = enquiry?.schoolId || null;
       const academicYearId = enquiry?.academicYearId || null;
 

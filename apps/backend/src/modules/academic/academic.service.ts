@@ -11,7 +11,11 @@ export class AcademicAssignmentService {
   /**
    * Assigns a faculty to a section and automatically maps all active students in that section to the faculty.
    */
+<<<<<<< HEAD
   static async assignFacultyToSection(params: AssignFacultyParams) {
+=======
+  static async assignFacultyToSection(params: AssignFacultyParams): Promise<void> {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     const { sectionId, facultyId, academicYearId, assignedBy } = params;
     const { error } = await supabase.rpc('fn_assign_faculty_to_section', {
       p_section_id: sectionId,
@@ -29,7 +33,11 @@ export class AcademicAssignmentService {
     studentId: string,
     sectionId: string,
     academicYearId: string,
+<<<<<<< HEAD
   ) {
+=======
+  ): Promise<void> {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     const { error } = await supabase.rpc('fn_sync_student_with_faculty', {
       p_student_id: studentId,
       p_section_id: sectionId,
@@ -45,8 +53,13 @@ export class AcademicAssignmentService {
     sectionId: string,
     facultyId: string,
     academicYearId: string,
+<<<<<<< HEAD
     performedBy: string,
   ) {
+=======
+    performedBy?: string,
+  ): Promise<void> {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     const { error: assignError } = await supabase
       .from('section_faculty_assignments')
       .update({ status: 'INACTIVE' })

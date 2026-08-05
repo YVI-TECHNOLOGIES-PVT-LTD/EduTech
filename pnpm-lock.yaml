@@ -102,8 +102,13 @@ importers:
         specifier: ^24.37.2
         version: 24.43.1(typescript@5.3.3)
       uuid:
+<<<<<<< HEAD
         specifier: ^9.0.1
         version: 9.0.1
+=======
+        specifier: ^14.0.1
+        version: 14.0.1
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
       xlsx:
         specifier: ^0.18.5
         version: 0.18.5
@@ -145,8 +150,13 @@ importers:
         specifier: ^1.1.5
         version: 1.1.5
       '@types/uuid':
+<<<<<<< HEAD
         specifier: ^9.0.8
         version: 9.0.8
+=======
+        specifier: ^11.0.0
+        version: 11.0.0
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
       nodemon:
         specifier: ^3.1.11
         version: 3.1.14
@@ -3331,8 +3341,14 @@ packages:
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
 
+<<<<<<< HEAD
   '@types/uuid@9.0.8':
     resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
+=======
+  '@types/uuid@11.0.0':
+    resolution: {integrity: sha512-HVyk8nj2m+jcFRNazzqyVKiZezyhDKrGUA3jlEcg/nZ6Ms+qHwocba1Y/AaVaznJTAM9xpdFSh+ptbNrhOGvZA==}
+    deprecated: This is a stub types definition. uuid provides its own type definitions, so you do not need this installed.
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -8520,6 +8536,10 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
+  uuid@14.0.1:
+    resolution: {integrity: sha512-6ZxzVpzDXDa3bJWaHilVayA+BH/1zmxCJoVgvmqJnid/gPoKHxUrS/aC/T6LGQtNHT+XHG9fXPJB4d+IrU30Ew==}
+    hasBin: true
+
   uuid@3.4.0:
     resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
@@ -12276,7 +12296,13 @@ snapshots:
 
   '@types/use-sync-external-store@0.0.6': {}
 
+<<<<<<< HEAD
   '@types/uuid@9.0.8': {}
+=======
+  '@types/uuid@11.0.0':
+    dependencies:
+      uuid: 14.0.1
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -18290,6 +18316,8 @@ snapshots:
       which-typed-array: 1.1.22
 
   utils-merge@1.0.1: {}
+
+  uuid@14.0.1: {}
 
   uuid@3.4.0: {}
 

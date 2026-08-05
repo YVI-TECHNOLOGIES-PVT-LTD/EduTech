@@ -1,6 +1,16 @@
 import { supabase } from '../../config/supabase';
 import { NotificationService } from '../../workflows/NotificationService';
 
+<<<<<<< HEAD
+=======
+export interface PipelineNotificationContext {
+  counselorUserId?: string;
+  parentUserId?: string;
+  reason?: string;
+  appCode?: string;
+}
+
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
 export class AdmissionNotificationService {
   /**
    * Resolves all user IDs associated with a specific role.
@@ -10,7 +20,10 @@ export class AdmissionNotificationService {
       .from('user_roles')
       .select('user_id, roles(name)')
       .eq('roles.name', roleName);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     if (error || !data) return [];
     return data.map((d: any) => d.user_id).filter(Boolean);
   }
@@ -21,8 +34,13 @@ export class AdmissionNotificationService {
   static async notifyPipelineEvent(
     event: string,
     applicationId: string,
+<<<<<<< HEAD
     context: Record<string, any> = {},
   ) {
+=======
+    context: PipelineNotificationContext = {},
+  ): Promise<void> {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     try {
       switch (event) {
         case 'INQUIRY_CREATED': {

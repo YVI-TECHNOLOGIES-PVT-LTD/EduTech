@@ -92,9 +92,15 @@ export class ApplicationWorkflowService extends BaseService {
     const notificationEvent = eventMap[newStatus];
     if (notificationEvent) {
       AdmissionNotificationService.notifyPipelineEvent(notificationEvent, applicationId, {
+<<<<<<< HEAD
         parentUserId: application.createdBy,
         reason: notes || undefined,
       }).catch((err: unknown) => {
+=======
+        parentUserId: application.createdBy || undefined,
+        reason: notes || undefined,
+      }).catch((err: any) => {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
         console.error('[ApplicationWorkflowService] Notification trigger failed:', err);
       });
     }

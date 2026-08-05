@@ -4,7 +4,11 @@ export class CompatibilityRepository {
   /**
    * Dual-writes an attendance session to both new and legacy tables atomically.
    */
+<<<<<<< HEAD
   static async syncSaveSession(session: any) {
+=======
+  static async syncSaveSession(session: any): Promise<void> {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     // 1. Write to student_attendance_sessions (New)
     const { error: newErr } = await supabase.from('student_attendance_sessions').upsert({
       id: session.id,
@@ -33,12 +37,20 @@ export class CompatibilityRepository {
   /**
    * Dual-writes attendance records to both new and legacy tables atomically.
    */
+<<<<<<< HEAD
   static async syncSaveRecords(sessionId: string, records: any[]) {
+=======
+  static async syncSaveRecords(sessionId: string, records: any[]): Promise<void> {
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
     if (records.length === 0) return;
 
     // 1. Map to new format (student_attendance)
     const newRecords = records.map((r) => {
+<<<<<<< HEAD
       const statusUpper = r.status.toUpperCase();
+=======
+      const statusUpper = (r.status || '').toUpperCase();
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
       const validStatus = ['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY'].includes(statusUpper)
         ? statusUpper
         : 'PRESENT';
@@ -55,7 +67,11 @@ export class CompatibilityRepository {
 
     // 2. Map to legacy format (attendance_records)
     const legacyRecords = records.map((r) => {
+<<<<<<< HEAD
       let statusLower = r.status.toLowerCase();
+=======
+      let statusLower = (r.status || '').toLowerCase();
+>>>>>>> 1aa9036f75652ce732d16bb174924a1b72dd0b83
       if (statusLower === 'half_day') statusLower = 'present'; // Map check constraint compatibility
       const validLegacyStatus = ['present', 'absent', 'late', 'excused'].includes(statusLower)
         ? statusLower
