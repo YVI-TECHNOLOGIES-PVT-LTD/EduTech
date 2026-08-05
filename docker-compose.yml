@@ -1,37 +1,80 @@
-version: '3.8'
+# =======================================================
+# EduTrack Enterprise SaaS ERP — Docker Compose Specification
+# Architecture: 2 Containers (Backend API + Frontend SPA) -> Supabase Cloud
+# Target Environment: Enterprise Monorepo Docker Orchestration
+# =======================================================
 
-services:
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    image: ghcr.io/edutrack/api:2.11.0
-    container_name: edutrack-api
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-    restart: unless-stopped
-    networks:
-      - edutrack-network
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    image: ghcr.io/edutrack/web:2.11.0
-    container_name: edutrack-web
-    ports:
-      - "80:80"
-    depends_on:
-      - api
-    restart: unless-stopped
-    networks:
-      - edutrack-network
+name: edutrack-erp
 
 networks:
   edutrack-network:
+    name: edutrack-network
     driver: bridge
+
+services:
+  # -------------------------------------------------------
+  # Container 1: Backend API Microservice (@edutrack/api)
+  # Express API + Prisma ORM + Worker + Scheduler + Puppeteer
+  # -------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: edutrack-backend
+    image: ghcr.io/edutrack/backend:2.12.0
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    networks:
+      edutrack-network:
+        aliases:
+          - api
+          - backend
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:3000/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # -------------------------------------------------------
+  # Container 2: Frontend Web Application (@edutrack/web)
+  # React 18 + Vite SPA Build + Nginx 1.25 Runner
+  # -------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web_app/Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://umvbyywkojuxnxgkuwbt.supabase.co}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtdmJ5eXdrb2p1eG54Z2t1d2J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyOTkwNjQsImV4cCI6MjA5NTg3NTA2NH0.t9mzbmb3VVuvnKKeahH8aaalTGgoBR18TTsiVGd-cPc}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    container_name: edutrack-frontend
+    image: ghcr.io/edutrack/frontend:2.12.0
+    ports:
+      - '80:80'
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      edutrack-network:
+        aliases:
+          - web
+          - frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:80/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

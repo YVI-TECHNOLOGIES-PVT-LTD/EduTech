@@ -50,6 +50,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@edutrack/config": "workspace:*",
     "@types/archiver": "^7.0.0",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
