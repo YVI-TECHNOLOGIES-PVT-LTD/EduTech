@@ -8,9 +8,7 @@ class CompatibilityRepository {
      */
     static async syncSaveSession(session) {
         // 1. Write to student_attendance_sessions (New)
-        const { error: newErr } = await supabase_1.supabase
-            .from('student_attendance_sessions')
-            .upsert({
+        const { error: newErr } = await supabase_1.supabase.from('student_attendance_sessions').upsert({
             id: session.id,
             school_id: session.school_id,
             academic_year_id: session.academic_year_id,
@@ -23,9 +21,7 @@ class CompatibilityRepository {
         if (newErr)
             throw newErr;
         // 2. Write to attendance_sessions (Legacy)
-        const { error: legacyErr } = await supabase_1.supabase
-            .from('attendance_sessions')
-            .upsert({
+        const { error: legacyErr } = await supabase_1.supabase.from('attendance_sessions').upsert({
             id: session.id,
             school_id: session.school_id,
             academic_year_id: session.academic_year_id,

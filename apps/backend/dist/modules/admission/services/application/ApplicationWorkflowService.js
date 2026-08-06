@@ -32,16 +32,14 @@ class ApplicationWorkflowService extends BaseService_1.BaseService {
         // Track timeline history log
         await this.appRepo.logWorkflow(applicationId, `STATUS_TRANSITION`, oldStatus, newStatus, performedBy, notes);
         // Track status_history details record
-        await supabase_1.supabase
-            .from('status_history')
-            .insert({
+        await supabase_1.supabase.from('status_history').insert({
             entity_name: 'admission_applications',
             entity_id: applicationId,
             old_status: oldStatus,
             new_status: newStatus,
             reason: notes || `State transition to ${newStatus}`,
             correlation_id: correlationId,
-            event_name: `ApplicationStateChanged`
+            event_name: `ApplicationStateChanged`,
         });
         // Audit log trigger
         await this.auditService.logAudit({
@@ -51,24 +49,24 @@ class ApplicationWorkflowService extends BaseService_1.BaseService {
             beforeState: { status: oldStatus },
             afterState: { status: newStatus, notes },
             userId: performedBy,
-            correlationId
+            correlationId,
         });
         // Pipeline notification trigger
         const eventMap = {
-            'SUBMITTED': 'APPLICATION_SUBMITTED',
-            'DOCS_PENDING': 'DOCUMENT_REJECTED',
-            'EXAM': 'EXAM_SCHEDULED',
-            'MERIT': 'MERIT_PUBLISHED',
-            'OFFERED': 'OFFER_SENT',
-            'FEE_PENDING': 'PAYMENT_PENDING',
-            'FEE_VERIFIED': 'PAYMENT_VERIFIED',
-            'ENROLLED': 'ENROLLMENT_COMPLETE'
+            SUBMITTED: 'APPLICATION_SUBMITTED',
+            DOCS_PENDING: 'DOCUMENT_REJECTED',
+            EXAM: 'EXAM_SCHEDULED',
+            MERIT: 'MERIT_PUBLISHED',
+            OFFERED: 'OFFER_SENT',
+            FEE_PENDING: 'PAYMENT_PENDING',
+            FEE_VERIFIED: 'PAYMENT_VERIFIED',
+            ENROLLED: 'ENROLLMENT_COMPLETE',
         };
         const notificationEvent = eventMap[newStatus];
         if (notificationEvent) {
             compatibility_notification_1.AdmissionNotificationService.notifyPipelineEvent(notificationEvent, applicationId, {
                 parentUserId: application.createdBy,
-                reason: notes || undefined
+                reason: notes || undefined,
             }).catch((err) => {
                 console.error('[ApplicationWorkflowService] Notification trigger failed:', err);
             });
