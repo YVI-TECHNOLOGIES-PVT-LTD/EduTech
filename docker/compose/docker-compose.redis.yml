@@ -1,0 +1,23 @@
+# ==============================================================================
+# EduTrack Enterprise ERP — Reserved Redis Service Specification
+# Status: RESERVED (Not active in Phase 2)
+# Purpose: Future Redis Cache, Session Store, & BullMQ Broker Integration
+# ==============================================================================
+version: '3.8'
+
+# services:
+#   redis:
+#     image: redis:7.2-alpine
+#     container_name: edutrack-redis
+#     command: redis-server --appendonly yes
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis-data:/data
+#     networks:
+#       - internal-network
+#     restart: unless-stopped
+
+# volumes:
+#   redis-data:
+#     name: edutrack-redis-data

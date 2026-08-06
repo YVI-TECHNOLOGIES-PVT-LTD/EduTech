@@ -1,0 +1,19 @@
+# ==============================================================================
+# EduTrack Enterprise ERP — Development Override Specification
+# Usage: docker-compose -f docker/compose/docker-compose.yml -f docker/compose/docker-compose.dev.yml up --build
+# ==============================================================================
+version: '3.8'
+
+services:
+  api:
+    env_file:
+      - ../../apps/backend/.env
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ../../apps/backend/logs:/app/apps/backend/logs
+      - ../../apps/backend/reports:/app/apps/backend/reports
+
+  web:
+    environment:
+      - VITE_API_URL=http://localhost:3000/api

@@ -1,0 +1,27 @@
+# ==============================================================================
+# EduTrack Enterprise ERP — Reserved Asynchronous Worker Stack Specification
+# Status: RESERVED (Not active in Phase 2)
+# Purpose: Future Dedicated Queue Workers & Cron Schedulers
+# ==============================================================================
+version: '3.8'
+
+# services:
+#   worker:
+#     build:
+#       context: ../..
+#       dockerfile: apps/backend/Dockerfile
+#     container_name: edutrack-worker
+#     command: node dist/jobs/worker.runner.js
+#     networks:
+#       - backend-network
+#       - internal-network
+#
+#   scheduler:
+#     build:
+#       context: ../..
+#       dockerfile: apps/backend/Dockerfile
+#     container_name: edutrack-scheduler
+#     command: node dist/jobs/scheduler.runner.js
+#     networks:
+#       - backend-network
+#       - internal-network

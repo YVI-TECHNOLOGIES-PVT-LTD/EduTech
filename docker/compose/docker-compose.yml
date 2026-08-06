@@ -1,19 +1,19 @@
 # ==============================================================================
-# EduTrack Enterprise ERP — Root Production Docker Compose Specification
+# EduTrack Enterprise ERP — Primary Compose Specification
 # ==============================================================================
 version: '3.8'
 
 services:
   api:
     build:
-      context: .
+      context: ../..
       dockerfile: apps/backend/Dockerfile
     image: ghcr.io/edutrack/api:2.11.0
     container_name: edutrack-api
     ports:
       - '3000:3000'
     env_file:
-      - ./apps/backend/.env
+      - ../../apps/backend/.env
     environment:
       - PORT=3000
       - NODE_ENV=production
@@ -50,7 +50,7 @@ services:
 
   web:
     build:
-      context: .
+      context: ../..
       dockerfile: apps/web_app/Dockerfile
     image: ghcr.io/edutrack/web:2.11.0
     container_name: edutrack-web
@@ -90,7 +90,7 @@ services:
       - frontend-network
 
 # ==============================================================================
-# Enterprise Network Definitions
+# Logical Network Architecture
 # ==============================================================================
 networks:
   frontend-network:
@@ -107,7 +107,7 @@ networks:
     driver: bridge
 
 # ==============================================================================
-# Named Persistent Storage Volumes
+# Persistent Storage Volumes Architecture
 # ==============================================================================
 volumes:
   api-logs:

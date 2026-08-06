@@ -1,0 +1,25 @@
+# ==============================================================================
+# EduTrack Enterprise ERP — Reserved Monitoring Stack Specification
+# Status: RESERVED (Not active in Phase 2)
+# Purpose: Future Prometheus, Grafana, & Telemetry Infrastructure
+# ==============================================================================
+version: '3.8'
+
+# services:
+#   prometheus:
+#     image: prom/prometheus:v2.48.0
+#     container_name: edutrack-prometheus
+#     volumes:
+#       - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#     ports:
+#       - "9090:9090"
+#     networks:
+#       - monitor-network
+#
+#   grafana:
+#     image: grafana/grafana:10.2.0
+#     container_name: edutrack-grafana
+#     ports:
+#       - "3001:3000"
+#     networks:
+#       - monitor-network
