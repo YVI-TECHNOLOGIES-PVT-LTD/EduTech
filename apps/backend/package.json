@@ -6,8 +6,9 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon",
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "prisma generate && tsc",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "postinstall": "prisma generate",
     "lint": "eslint . --ext .ts",
     "test": "echo \"[Backend Test Platform] Standard tests passed\"",
     "check-port": "netstat -ano | findstr :3000",

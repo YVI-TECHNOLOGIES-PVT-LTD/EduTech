@@ -263,3 +263,25 @@ ON student_enrollments(section_id);
 
 CREATE INDEX ix_student_enrollments_status
 ON student_enrollments(status);
+
+-- ----------------------------------------------------------------------------
+-- CHATBOT SESSIONS 
+-- ----------------------------------------------------------------------------
+
+CREATE INDEX ix_chatbot_sessions_org
+ON chatbot_sessions(org_id);
+
+CREATE INDEX ix_chatbot_sessions_lead
+ON chatbot_sessions(lead_id);
+
+CREATE INDEX ix_chatbot_sessions_status
+ON chatbot_sessions(org_id, status);
+
+CREATE INDEX ix_chatbot_sessions_started
+ON chatbot_sessions(started_at DESC);
+
+CREATE INDEX ix_chatbot_sessions_lead_activity
+ON chatbot_sessions(lead_activity_id);
+
+CREATE INDEX ix_chatbot_messages_session
+ON chatbot_messages(session_id, created_at);
