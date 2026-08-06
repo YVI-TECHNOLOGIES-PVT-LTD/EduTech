@@ -19,3 +19,10 @@ expo-env.d.ts
 
 # IDE
 .vscode/settings.json
+
+trace/
+*.trace
+trace.json
+.eslintcache
+
+.eslintcache

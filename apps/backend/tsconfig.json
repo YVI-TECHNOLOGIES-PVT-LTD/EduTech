@@ -2,13 +2,17 @@
   "extends": "../../packages/config/tsconfig/node.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true
   },
   "include": [
     "src/**/*"
   ],
   "exclude": [
     "node_modules",
+    "dist",
+    "apps",
     "**/*.test.ts"
   ]
 }

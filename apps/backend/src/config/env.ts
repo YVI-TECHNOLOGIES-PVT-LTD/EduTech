@@ -24,12 +24,14 @@ const parseResult = envSchema.safeParse({
 });
 
 if (!parseResult.success) {
-  console.error('🚨 [Fatal] Configuration validation failed on startup:');
+  console.error('❌ [Fatal] Configuration validation failed on startup:');
   console.error(parseResult.error.format());
-  process.exit(1);
+  throw new Error('Configuration validation failed');
 }
 
+const validEnv = parseResult.data;
+
 export const env = {
-  ...parseResult.data,
-  SUPABASE_KEY: parseResult.data.SUPABASE_KEY,
+  ...validEnv,
+  SUPABASE_KEY: validEnv.SUPABASE_KEY,
 };

@@ -1,13 +1,9 @@
 import { QueueName, JobPayload } from './job.types';
-import { queueAdapter } from './queue.adapter';
-import { logger } from '../utils/logger';
+import { queueManager } from '../queue/manager/queue.manager';
+import { QueueHealthService } from '../queue/health/queue.health';
 
 export class JobService {
   private static instance: JobService;
-
-  private constructor() {
-    logger.info('[JobService] Initialized JobService abstraction layer');
-  }
 
   public static getInstance(): JobService {
     if (!JobService.instance) {
@@ -17,11 +13,28 @@ export class JobService {
   }
 
   async enqueue<T>(queueName: QueueName, type: string, data: T): Promise<JobPayload<T>> {
-    return queueAdapter.enqueue<T>(queueName, type, data);
+    const job = await queueManager.enqueue<T>(queueName, type, data);
+    return {
+      id: job.id,
+      queueName,
+      type,
+      data: job.data,
+      status: job.state as any,
+      createdAt:
+        typeof job.metadata.createdAt === 'string'
+          ? job.metadata.createdAt
+          : job.metadata.createdAt.toISOString(),
+    };
   }
 
   async getMetrics() {
-    return queueAdapter.getMetrics();
+    const health = await QueueHealthService.getStatus();
+    return {
+      provider: health.provider,
+      status: health.status,
+      activeSchedulers: health.activeSchedulers,
+      latencyMs: health.latencyMs,
+    };
   }
 }
 

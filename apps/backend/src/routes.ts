@@ -20,9 +20,17 @@ import { bulkRouter } from './modules/admin/bulk.routes';
 import { workflowRouter } from './workflows/workflow.routes';
 import { taskRouter } from './workflows/task.routes';
 
+import { authRouter } from './routes/auth.routes';
+import { docsRouter } from './routes/docs.routes';
 import { env } from './config/env';
 
 export const router = Router();
+
+// Enterprise Docs & Auth Endpoints
+router.use(docsRouter);
+router.use('/auth', authRouter);
+
+
 
 // ======================================
 // PUBLIC
@@ -171,7 +179,8 @@ router.get('/public/admission/grades', async (req: Request, res: Response) => {
 
         if (error) throw error;
         // Return mapped list of grades/classes (just id and grade_name)
-        res.json(data?.map(c => ({ id: c.id, grade_name: c.name })) || []);
+        res.json(data?.map((c: any) => ({ id: c.id, grade_name: c.name })) || []);
+
     } catch (error: any) {
         res.status(200).json([]);
     }
@@ -219,7 +228,8 @@ router.get('/public/admission/config', async (req: Request, res: Response) => {
                 .eq('school_id', school_id)
                 .order('name');
             if (classesError) throw classesError;
-            gradesList = classes?.map(c => ({ id: c.id, grade_name: c.name })) || [];
+            gradesList = classes?.map((c: any) => ({ id: c.id, grade_name: c.name })) || [];
+
         }
 
         // Dynamically compute the version based on max updated_at of the configurations
@@ -315,24 +325,27 @@ router.post('/v1/admission/apply',
 // 1. GET /me
 router.get('/me', async (req: Request, res: Response) => {
     try {
-        const userObj = req.context!.user;
+        const userObj = req.context?.user || (req as any).user;
+        if (!userObj) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
         let entranceExamEnabled = false;
 
-        if (userObj.roles.includes('PARENT')) {
+        if (userObj.roles?.includes('PARENT')) {
             const { data: apps } = await supabase
                 .from('admission_applications')
                 .select('id')
                 .eq('created_by', userObj.id)
                 .is('deleted_at', null);
 
-            const appIds = apps?.map(a => a.id) || [];
+            const appIds = apps?.map((a: any) => a.id) || [];
             if (appIds.length > 0) {
                 const { data: candidates } = await supabase
                     .from('admission_exam_session_candidates')
                     .select('id')
                     .in('application_id', appIds);
 
-                const candidateIds = candidates?.map(c => c.id) || [];
+                const candidateIds = candidates?.map((c: any) => c.id) || [];
                 if (candidateIds.length > 0) {
                     const { data: activeSessions } = await supabase
                         .from('admission_assessment_sessions')
@@ -349,8 +362,8 @@ router.get('/me', async (req: Request, res: Response) => {
 
         const enabledFeatures = {
             dashboard: true,
-            finance: userObj.roles.some(r => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
-            entrance_exam: userObj.roles.some(r => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) || entranceExamEnabled,
+            finance: userObj.roles?.some((r: string) => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
+            entrance_exam: userObj.roles?.some((r: string) => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) || entranceExamEnabled,
             hostel: false
         };
 
@@ -365,10 +378,10 @@ router.get('/me', async (req: Request, res: Response) => {
     }
 });
 
-// 2. GET /schools/current
+
 // 2. GET /schools/current
 router.get('/schools/current', async (req: Request, res: Response) => {
-    const school_id = req.context!.user.school_id;
+    const school_id = req.context?.user?.school_id || (req as any).user?.school_id || (req as any).user?.orgId;
     if (!school_id) return res.status(404).json({ error: 'User not assigned to a school' });
 
     const { data, error } = await supabase.from('schools').select('*').eq('id', school_id).single();
@@ -377,9 +390,8 @@ router.get('/schools/current', async (req: Request, res: Response) => {
 });
 
 // 3. GET /academic-years/current
-// 3. GET /academic-years/current
 router.get('/academic-years/current', async (req: Request, res: Response) => {
-    const school_id = req.context!.user.school_id;
+    const school_id = req.context?.user?.school_id || (req as any).user?.school_id || (req as any).user?.orgId;
     const { data, error } = await supabase.from('academic_years').select('*').eq('school_id', school_id).eq('is_active', true).maybeSingle();
 
     if (error) return res.status(500).json({ error: error.message });
@@ -387,9 +399,8 @@ router.get('/academic-years/current', async (req: Request, res: Response) => {
 });
 
 // 3b. GET /academic-years (All)
-// 3b. GET /academic-years (All)
 router.get('/academic-years', async (req: Request, res: Response) => {
-    const school_id = req.context!.user.school_id;
+    const school_id = req.context?.user?.school_id || (req as any).user?.school_id || (req as any).user?.orgId;
     const { data, error } = await supabase
         .from('academic_years')
         .select('*')
@@ -401,9 +412,8 @@ router.get('/academic-years', async (req: Request, res: Response) => {
 });
 
 // 4. POST /academic-years
-// 4. POST /academic-years
 router.post('/academic-years', async (req: Request, res: Response) => {
-    const school_id = req.context!.user.school_id;
+    const school_id = req.context?.user?.school_id || (req as any).user?.school_id || (req as any).user?.orgId;
     const { year_label, is_active } = req.body;
 
     if (!year_label) return res.status(400).json({ error: "Year label is required" });
@@ -422,6 +432,7 @@ router.post('/academic-years', async (req: Request, res: Response) => {
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
+
 
 // ======================================
 // MODULE ROUTES
@@ -456,16 +467,16 @@ router.get('/system/rbac/audit', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIE
 
         // 2. Perform Checks
         const registeredPermsInCode = Object.values(PERMISSIONS);
-        const dbPermCodes = dbPerms.map(p => p.code);
+        const dbPermCodes = dbPerms.map((p: any) => p.code);
 
         // Dangling Permissions (DB but not in code definitions, and vice versa)
-        const missingInDb = registeredPermsInCode.filter(p => !dbPermCodes.includes(p));
-        const unregisteredInCode = dbPermCodes.filter(p => !registeredPermsInCode.includes(p));
+        const missingInDb = registeredPermsInCode.filter((p: string) => !dbPermCodes.includes(p));
+        const unregisteredInCode = dbPermCodes.filter((p: string) => !registeredPermsInCode.includes(p));
 
         // Duplicate Mappings check in role_permissions
         const pairingCounts = new Map<string, number>();
         const duplicateMappings: any[] = [];
-        dbRolePerms.forEach(rp => {
+        dbRolePerms.forEach((rp: any) => {
             const key = `${rp.role_id}:${rp.permission_id}`;
             const count = pairingCounts.get(key) || 0;
             pairingCounts.set(key, count + 1);
@@ -475,8 +486,8 @@ router.get('/system/rbac/audit', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIE
         });
 
         // Statistics
-        const activeUsers = dbUsers.filter(u => u.status === 'active');
-        const pendingApprovals = dbUsers.filter(u => u.login_status === 'PENDING');
+        const activeUsers = dbUsers.filter((u: any) => u.status === 'active');
+        const pendingApprovals = dbUsers.filter((u: any) => u.login_status === 'PENDING');
 
         res.json({
             timestamp: new Date().toISOString(),
@@ -496,14 +507,15 @@ router.get('/system/rbac/audit', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIE
             integrity: {
                 duplicate_role_permission_mappings: duplicateMappings.length,
                 duplicate_mappings_details: duplicateMappings,
-                unassigned_roles: dbRoles.filter(r => !dbUserRoles.some(ur => ur.role_id === r.id)).map(r => r.name)
+                unassigned_roles: dbRoles.filter((r: any) => !dbUserRoles.some((ur: any) => ur.role_id === r.id)).map((r: any) => r.name)
             },
-            roles_list: dbRoles.map(r => ({
+            roles_list: dbRoles.map((r: any) => ({
                 id: r.id,
                 name: r.name,
-                mapped_permissions_count: dbRolePerms.filter(rp => rp.role_id === r.id).length
+                mapped_permissions_count: dbRolePerms.filter((rp: any) => rp.role_id === r.id).length
             }))
         });
+
     } catch (err: any) {
         console.error("[RBAC Audit Error]:", err);
         res.status(500).json({ error: 'RBAC Audit Failed', message: err.message });

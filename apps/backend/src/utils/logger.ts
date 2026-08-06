@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { CorrelatedRequest } from '../middlewares/request-id.middleware';
 
 const SENSITIVE_KEYS = ['password', 'token', 'secret', 'authorization', 'refreshtoken', 'creditcard'];
