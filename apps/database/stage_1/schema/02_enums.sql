@@ -296,3 +296,24 @@ CREATE TYPE scholarship_type AS ENUM (
     'government',
     'management'
 );
+
+
+CREATE TYPE chatbot_channel AS ENUM (
+    'web_widget',
+    'whatsapp',
+    'ivr',
+    'mobile_app'
+);
+
+CREATE TYPE chatbot_status AS ENUM (
+    'active',
+    'completed',
+    'escalated',
+    'abandoned'
+);
+
+CREATE TYPE chatbot_sender AS ENUM (
+    'user',
+    'bot',
+    'staff'
+);
