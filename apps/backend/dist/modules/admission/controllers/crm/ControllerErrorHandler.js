@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleControllerError = handleControllerError;
+exports.handleControllerError = void 0;
 const AdmissionError_1 = require("../../errors/AdmissionError");
 const ValidationError_1 = require("../../errors/ValidationError");
 const NotFoundError_1 = require("../../errors/NotFoundError");
@@ -31,3 +31,4 @@ function handleControllerError(res, err) {
     }
     return res.status(500).json({ error: err.message || 'Internal Server Error' });
 }
+exports.handleControllerError = handleControllerError;

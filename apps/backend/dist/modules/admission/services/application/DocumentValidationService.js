@@ -26,8 +26,8 @@ class DocumentValidationService {
         if (!docType) {
             throw new NotFoundError_1.NotFoundError(`Document Type with code "${docTypeCode}" not found or inactive`);
         }
-        // 3. Verify Mime Type
-        this.mimeVal.validate(mimeType, docType.allowed_mime_types);
+        // 3. Verify Mime Type & Magic Bytes Binary Signature
+        this.mimeVal.validate(mimeType, docType.allowed_mime_types, fileBuffer);
         // 4. Verify Extension
         const extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
         this.extVal.validate(extension, docType.allowed_extensions);

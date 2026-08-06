@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
+    "build": "tsc --noEmit",
     "start": "expo start",
     "start:lan": "expo start --host lan",
     "start:tunnel": "expo start --tunnel",
@@ -19,8 +20,10 @@
   "dependencies": {
     "@edutrack/types": "workspace:*",
     "@edutrack/validation": "workspace:*",
+    "@expo/vector-icons": "^14.0.2",
     "@hookform/resolvers": "^3.3.4",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-navigation/native": "^6.1.18",
     "@tanstack/react-query": "^5.28.9",
     "axios": "^1.6.8",
     "clsx": "^2.1.0",
@@ -51,6 +54,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@edutrack/config": "workspace:*",
     "@babel/core": "^7.24.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.9",

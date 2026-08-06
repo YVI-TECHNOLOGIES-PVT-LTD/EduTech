@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ['./base.js'],
+  extends: [require.resolve('./base.js')],
   env: {
     node: true,
     jest: true,
