@@ -1,0 +1,48 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { API_CONFIG } from '@/config/api';
+
+export interface TenantState {
+  activeTenantId: string | null;
+  tenantName: string | null;
+}
+
+const getStoredTenantId = (): string | null => {
+  try {
+    return localStorage.getItem(API_CONFIG.tokenKeys.tenantId);
+  } catch {
+    return null;
+  }
+};
+
+const initialState: TenantState = {
+  activeTenantId: getStoredTenantId(),
+  tenantName: null,
+};
+
+export const tenantSlice = createSlice({
+  name: 'tenant',
+  initialState,
+  reducers: {
+    setActiveTenant: (state, action: PayloadAction<{ id: string; name?: string }>) => {
+      state.activeTenantId = action.payload.id;
+      if (action.payload.name) state.tenantName = action.payload.name;
+      try {
+        localStorage.setItem(API_CONFIG.tokenKeys.tenantId, action.payload.id);
+      } catch (err) {
+        console.error('Failed to persist tenant ID', err);
+      }
+    },
+    clearTenant: (state) => {
+      state.activeTenantId = null;
+      state.tenantName = null;
+      try {
+        localStorage.removeItem(API_CONFIG.tokenKeys.tenantId);
+      } catch (err) {
+        console.error('Failed to clear stored tenant ID', err);
+      }
+    },
+  },
+});
+
+export const { setActiveTenant, clearTenant } = tenantSlice.actions;
+export default tenantSlice.reducer;
