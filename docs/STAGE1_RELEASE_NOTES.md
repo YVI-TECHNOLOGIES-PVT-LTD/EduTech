@@ -8,7 +8,8 @@
 ## 1. What's Included in Stage-1 v1.0.0
 
 - **Stage-0 Platform Core**: Authentication, JWT refresh rotation, multi-tenant isolation, geography masters, file storage gateway, system health probes.
-- **Enterprise Web Admin Portal**: Built with React 19, TypeScript, Redux Toolkit, RTK Query, TanStack Table, React Hook Form + Zod, and full code-splitting across 13 feature modules.
+- **Enterprise Web Admin Portal**: Built
+  with React 19, TypeScript, Redux Toolkit, RTK Query, TanStack Table, React Hook Form + Zod, and full code-splitting across 13 feature modules.
 - **Stage-1 Business Modules**:
   - CRM & Inbound Lead Pipeline (with AI conversion scoring)
   - Campus Visit Appointments
