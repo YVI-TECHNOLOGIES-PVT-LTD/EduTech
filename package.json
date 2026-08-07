@@ -23,6 +23,9 @@
     "format:check": "prettier --check .",
     "clean": "turbo run clean",
     "prepare": "husky",
+    "prisma:generate": "pnpm --filter @edutrack/api run db:generate",
+    "prisma:validate": "pnpm --filter @edutrack/api run db:validate",
+    "prisma:pull": "pnpm --filter @edutrack/api run db:pull",
     "verify": "pnpm run lint && pnpm run typecheck && pnpm run build"
   },
   "devDependencies": {

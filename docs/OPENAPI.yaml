@@ -1,0 +1,47 @@
+openapi: 3.0.3
+info:
+  title: EduTrack ERP Stage-1 REST API
+  description: OpenAPI 3.0 specification for EduTrack ERP Stage-1 Backend Services.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development Gateway
+paths:
+  /auth/login:
+    post:
+      summary: User Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                passwordHash:
+                  type: string
+      responses:
+        '200':
+          description: Successful authentication
+  /leads:
+    get:
+      summary: List Prospective Leads
+      responses:
+        '200':
+          description: List of leads
+    post:
+      summary: Capture Inbound Lead
+      responses:
+        '201':
+          description: Lead created successfully
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    tenantHeader:
+      type: apiKey
+      in: header
+      name: x-tenant-id

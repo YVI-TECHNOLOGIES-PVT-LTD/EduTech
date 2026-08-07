@@ -1,0 +1,48 @@
+export const ROUTES = {
+  AUTH: {
+    LOGIN: '/login',
+    FORGOT_PASSWORD: '/forgot-password',
+    RESET_PASSWORD: '/reset-password',
+    SESSION_EXPIRED: '/session-expired',
+  },
+  APP: {
+    ROOT: '/app',
+    DASHBOARD: '/app/dashboard',
+    ORGANIZATION: '/app/organization',
+    USERS: '/app/users',
+    ROLES: '/app/roles',
+    HR: {
+      ROOT: '/app/hr',
+      DEPARTMENTS: '/app/hr/departments',
+      DESIGNATIONS: '/app/hr/designations',
+      STAFF: '/app/hr/staff',
+    },
+    ACADEMICS: {
+      ROOT: '/app/academics',
+      YEARS: '/app/academics/years',
+      GRADES: '/app/academics/grades',
+      SECTIONS: '/app/academics/sections',
+    },
+    CRM: {
+      ROOT: '/app/crm',
+      LEADS: '/app/crm/leads',
+      CAMPUS_VISITS: '/app/crm/campus-visits',
+    },
+    ADMISSIONS: {
+      ROOT: '/app/admissions',
+      APPLICATIONS: '/app/admissions/applications',
+      ASSESSMENTS: '/app/admissions/assessments',
+      FEES: '/app/admissions/fees',
+    },
+    STUDENTS: {
+      ROOT: '/app/students',
+      DIRECTORY: '/app/students/directory',
+      PARENTS: '/app/students/parents',
+      ENROLLMENT: '/app/students/enrollment',
+    },
+    SETTINGS: '/app/settings',
+    REPORTS: '/app/reports',
+    AUDIT: '/app/audit',
+    UNAUTHORIZED: '/app/unauthorized',
+  },
+} as const;
