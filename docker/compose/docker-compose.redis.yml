@@ -1,23 +1,48 @@
 # ==============================================================================
-# EduTrack Enterprise ERP — Reserved Redis Service Specification
-# Status: RESERVED (Not active in Phase 2)
-# Purpose: Future Redis Cache, Session Store, & BullMQ Broker Integration
+# EduTrack Enterprise ERP — Redis Cache Service Specification
+# Status: ACTIVE (Caching Foundation) — opt-in overlay, not part of the base stack
+# Purpose: Redis Cache backing for CacheService (ADR-009). Session Store &
+#          BullMQ Broker integration remain reserved for a later phase.
+# Usage: docker-compose -f docker/compose/docker-compose.yml -f docker/compose/docker-compose.redis.yml up -d
+#
+# This overlay only adds the `redis` service — it does not modify the `api`
+# or `web` service definitions from the base specification. To make the API
+# container use Redis, set CACHE_PROVIDER=redis and REDIS_URL=redis://redis:6379
+# in apps/backend/.env (see docs/caching.md).
 # ==============================================================================
 version: '3.8'
 
-# services:
-#   redis:
-#     image: redis:7.2-alpine
-#     container_name: edutrack-redis
-#     command: redis-server --appendonly yes
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis-data:/data
-#     networks:
-#       - internal-network
-#     restart: unless-stopped
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: edutrack-redis
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal-network
+      - backend-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      org.opencontainers.image.title: 'EduTrack Redis Cache'
+      org.opencontainers.image.description: 'Redis cache backing CacheService (ADR-009)'
+      org.opencontainers.image.vendor: 'EduTrack Enterprise'
 
-# volumes:
-#   redis-data:
-#     name: edutrack-redis-data
+volumes:
+  redis-data:
+    name: edutrack-redis-data

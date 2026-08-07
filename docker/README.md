@@ -71,6 +71,6 @@ docker-compose down
 
 The multi-network bridge layout allows expanding services without altering existing container definitions:
 
-- **Redis Cache & Queue Broker:** `docker-compose -f docker/compose/docker-compose.yml -f docker/compose/docker-compose.redis.yml up -d`
+- **Redis Cache (foundation active — see `docs/caching.md`):** `docker-compose -f docker/compose/docker-compose.yml -f docker/compose/docker-compose.redis.yml up -d`. The API opts in via `CACHE_PROVIDER=redis` / `REDIS_URL` in `apps/backend/.env`; the Queue Broker role remains reserved.
 - **Prometheus & Grafana Telemetry:** `docker-compose -f docker/compose/docker-compose.yml -f docker/compose/docker-compose.monitoring.yml up -d`
 - **Dedicated Queue Workers:** `docker-compose -f docker/compose/docker-compose.yml -f docker/compose/docker-compose.workers.yml up -d`
