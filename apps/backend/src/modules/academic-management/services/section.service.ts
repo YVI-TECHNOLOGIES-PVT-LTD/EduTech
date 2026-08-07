@@ -1,7 +1,11 @@
 import { SectionRepository } from '../repositories/section.repository';
 import { AcademicYearGradeRepository } from '../repositories/academic-year-grade.repository';
 import { AcademicValidator } from '../validators/academic.validator';
-import { SectionNotFoundError, AcademicYearGradeNotFoundError, DuplicateSectionError } from '../errors/academic.errors';
+import {
+  SectionNotFoundError,
+  AcademicYearGradeNotFoundError,
+  DuplicateSectionError,
+} from '../errors/academic.errors';
 import { CreateSectionDto } from '../dto/request/create-section.dto';
 import { UpdateSectionDto } from '../dto/request/update-section.dto';
 import { SectionResponseDto } from '../dto/response/section.response.dto';
@@ -10,7 +14,10 @@ import { AcademicEvents, AcademicEventType } from '../events/academic.events';
 import { logger } from '../../../utils/logger';
 
 export class SectionService {
-  static async createSection(dto: CreateSectionDto, performedBy?: string | null): Promise<SectionResponseDto> {
+  static async createSection(
+    dto: CreateSectionDto,
+    performedBy?: string | null,
+  ): Promise<SectionResponseDto> {
     AcademicValidator.validateCreateSection(dto);
 
     const parentMapping = await AcademicYearGradeRepository.findById(dto.academic_year_grade_id);
@@ -18,7 +25,10 @@ export class SectionService {
       throw new AcademicYearGradeNotFoundError(dto.academic_year_grade_id);
     }
 
-    const existing = await SectionRepository.findByName(dto.academic_year_grade_id, dto.section_name);
+    const existing = await SectionRepository.findByName(
+      dto.academic_year_grade_id,
+      dto.section_name,
+    );
     if (existing) {
       throw new DuplicateSectionError(dto.section_name);
     }
@@ -50,7 +60,11 @@ export class SectionService {
     return AcademicMapper.toSectionResponseDto(section);
   }
 
-  static async updateSection(id: string, dto: UpdateSectionDto, performedBy?: string | null): Promise<SectionResponseDto> {
+  static async updateSection(
+    id: string,
+    dto: UpdateSectionDto,
+    performedBy?: string | null,
+  ): Promise<SectionResponseDto> {
     const existing = await SectionRepository.findById(id);
     if (!existing) {
       throw new SectionNotFoundError(id);
@@ -71,7 +85,9 @@ export class SectionService {
     return AcademicMapper.toSectionResponseDto(updated);
   }
 
-  static async getSectionsByAcademicYearGrade(academicYearGradeId: string): Promise<SectionResponseDto[]> {
+  static async getSectionsByAcademicYearGrade(
+    academicYearGradeId: string,
+  ): Promise<SectionResponseDto[]> {
     const sections = await SectionRepository.findByAcademicYearGrade(academicYearGradeId);
     return sections.map(AcademicMapper.toSectionResponseDto);
   }

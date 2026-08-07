@@ -6,7 +6,11 @@ import { AdmissionEvents, ApplicationEventType } from '../events/admission.event
 import { logger } from '../../../utils/logger';
 
 export class AdmissionAssessmentService {
-  static async recordAssessment(applicationId: string, createdBy: string | null, dto: RecordAssessmentDto) {
+  static async recordAssessment(
+    applicationId: string,
+    createdBy: string | null,
+    dto: RecordAssessmentDto,
+  ) {
     const app = await AdmissionRepository.findById(applicationId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);

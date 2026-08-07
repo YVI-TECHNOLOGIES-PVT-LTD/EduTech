@@ -29,7 +29,10 @@ export class AdmissionEvents {
   /**
    * Publishes domain event strictly post-commit.
    */
-  static async publish(eventType: ApplicationEventType, payload: ApplicationEventPayload): Promise<void> {
+  static async publish(
+    eventType: ApplicationEventType,
+    payload: ApplicationEventPayload,
+  ): Promise<void> {
     await EventBus.publish(eventType, payload);
   }
 }

@@ -53,7 +53,11 @@ export class DuplicateGradeError extends AcademicError {
 
 export class DuplicateSectionError extends AcademicError {
   constructor(sectionName: string) {
-    super(`Section '${sectionName}' already exists in this grade mapping`, 409, 'DUPLICATE_SECTION');
+    super(
+      `Section '${sectionName}' already exists in this grade mapping`,
+      409,
+      'DUPLICATE_SECTION',
+    );
   }
 }
 

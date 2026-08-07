@@ -100,9 +100,7 @@ export const ALLOWED_APPLICATION_STATUS_TRANSITIONS: Record<string, string[]> = 
     application_status.rejected,
     application_status.withdrawn,
   ],
-  [application_status.approved]: [
-    application_status.withdrawn,
-  ],
+  [application_status.approved]: [application_status.withdrawn],
   [application_status.waitlisted]: [
     application_status.approved,
     application_status.rejected,

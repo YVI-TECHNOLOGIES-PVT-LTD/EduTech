@@ -19,7 +19,9 @@ export class StaffTimelineQuery {
 
     const timeline: StaffTimelineEventDto[] = [];
     const staffName = staff.users_staff_user_idTousers
-      ? [staff.users_staff_user_idTousers.first_name, staff.users_staff_user_idTousers.last_name].filter(Boolean).join(' ')
+      ? [staff.users_staff_user_idTousers.first_name, staff.users_staff_user_idTousers.last_name]
+          .filter(Boolean)
+          .join(' ')
       : staff.employee_code;
 
     // 1. Staff Record Creation

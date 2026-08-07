@@ -26,20 +26,28 @@ export class InvalidStudentStatusTransitionError extends StudentError {
     super(
       `Cannot transition student enrollment status from '${currentStatus}' to '${targetStatus}'`,
       422,
-      'INVALID_STATUS_TRANSITION'
+      'INVALID_STATUS_TRANSITION',
     );
   }
 }
 
 export class DuplicateAdmissionNumberError extends StudentError {
   constructor(admissionNo: string) {
-    super(`Student with admission number '${admissionNo}' already exists in organization`, 409, 'DUPLICATE_ADMISSION_NUMBER');
+    super(
+      `Student with admission number '${admissionNo}' already exists in organization`,
+      409,
+      'DUPLICATE_ADMISSION_NUMBER',
+    );
   }
 }
 
 export class DuplicateApplicationStudentError extends StudentError {
   constructor(applicationId: string) {
-    super(`Student profile already exists for application '${applicationId}'`, 409, 'DUPLICATE_APPLICATION_STUDENT');
+    super(
+      `Student profile already exists for application '${applicationId}'`,
+      409,
+      'DUPLICATE_APPLICATION_STUDENT',
+    );
   }
 }
 

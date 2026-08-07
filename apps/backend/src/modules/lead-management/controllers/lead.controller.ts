@@ -107,7 +107,12 @@ export class LeadController {
       }
 
       const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadLifecycleService.updateStatus(id, stageInput as lead_stage, userId, remarks);
+      const result = await LeadLifecycleService.updateStatus(
+        id,
+        stageInput as lead_stage,
+        userId,
+        remarks,
+      );
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -130,7 +135,7 @@ export class LeadController {
         id,
         counselorId,
         userId,
-        req.body.remarks
+        req.body.remarks,
       );
       return res.json(result);
     } catch (error: any) {
@@ -156,7 +161,7 @@ export class LeadController {
         parsed.data.lead_ids,
         parsed.data.assigned_counsellor_id,
         userId,
-        parsed.data.remarks
+        parsed.data.remarks,
       );
       return res.json(result);
     } catch (error: any) {

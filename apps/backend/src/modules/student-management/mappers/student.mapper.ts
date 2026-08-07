@@ -9,17 +9,21 @@ export class StudentMapper {
   static toResponseDto(record: any): StudentResponseDto {
     const studentFullName = [record.first_name, record.last_name].filter(Boolean).join(' ');
 
-    const enrollments: EnrollmentResponseDto[] = (record.student_enrollments || []).map((e: any) => ({
-      enrollment_id: e.enrollment_id,
-      academic_year_grade_id: e.academic_year_grade_id,
-      section_id: e.section_id || null,
-      roll_number: e.roll_number || null,
-      enrollment_date: e.enrollment_date ? new Date(e.enrollment_date).toISOString() : new Date().toISOString(),
-      exit_date: e.exit_date ? new Date(e.exit_date).toISOString() : null,
-      status: e.status,
-      remarks: e.remarks || null,
-      section_name: e.sections?.section_name || null,
-    }));
+    const enrollments: EnrollmentResponseDto[] = (record.student_enrollments || []).map(
+      (e: any) => ({
+        enrollment_id: e.enrollment_id,
+        academic_year_grade_id: e.academic_year_grade_id,
+        section_id: e.section_id || null,
+        roll_number: e.roll_number || null,
+        enrollment_date: e.enrollment_date
+          ? new Date(e.enrollment_date).toISOString()
+          : new Date().toISOString(),
+        exit_date: e.exit_date ? new Date(e.exit_date).toISOString() : null,
+        status: e.status,
+        remarks: e.remarks || null,
+        section_name: e.sections?.section_name || null,
+      }),
+    );
 
     const parents: StudentParentResponseDto[] = (record.student_parents || []).map((sp: any) => ({
       parent_id: sp.parent_id,
@@ -45,8 +49,12 @@ export class StudentMapper {
       gender: record.gender || null,
       admission_date: record.admission_date ? new Date(record.admission_date).toISOString() : null,
       status: record.status,
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
-      updated_at: record.updated_at ? new Date(record.updated_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
+      updated_at: record.updated_at
+        ? new Date(record.updated_at).toISOString()
+        : new Date().toISOString(),
       enrollments,
       parents,
     };
@@ -62,7 +70,9 @@ export class StudentMapper {
       student_name: studentFullName || 'N/A',
       status: record.status,
       admission_date: record.admission_date ? new Date(record.admission_date).toISOString() : null,
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 }

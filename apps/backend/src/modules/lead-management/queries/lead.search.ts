@@ -58,7 +58,12 @@ export class LeadSearchQuery {
 
     const skip = (q.page - 1) * q.pageSize;
 
-    const sortKey = (q.sort as string) === 'student_name' ? 'student_first_name' : (q.sort as string) === 'status' ? 'stage' : (q.sort as string);
+    const sortKey =
+      (q.sort as string) === 'student_name'
+        ? 'student_first_name'
+        : (q.sort as string) === 'status'
+          ? 'stage'
+          : (q.sort as string);
 
     const items = await db.leads.findMany({
       where: whereClause,

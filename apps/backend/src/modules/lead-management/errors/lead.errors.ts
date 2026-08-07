@@ -26,7 +26,7 @@ export class InvalidLeadStatusTransitionError extends LeadError {
     super(
       `Cannot transition lead status from '${currentStatus}' to '${targetStatus}'`,
       422,
-      'INVALID_STATUS_TRANSITION'
+      'INVALID_STATUS_TRANSITION',
     );
   }
 }

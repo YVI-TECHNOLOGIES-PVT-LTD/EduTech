@@ -22,7 +22,7 @@ export async function runParentModuleTests() {
   test('ParentValidator validates mandatory create fields', () => {
     assert.throws(
       () => ParentValidator.validateCreate({ org_id: '', first_name: '', phone: '' }),
-      Error
+      Error,
     );
   });
 
@@ -36,8 +36,13 @@ export async function runParentModuleTests() {
 
   test('ParentValidator validates link student input', () => {
     assert.throws(
-      () => ParentValidator.validateLinkStudent({ student_id: '', relationship: relationship_type.father as any, is_primary_contact: false }),
-      Error
+      () =>
+        ParentValidator.validateLinkStudent({
+          student_id: '',
+          relationship: relationship_type.father as any,
+          is_primary_contact: false,
+        }),
+      Error,
     );
   });
 

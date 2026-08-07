@@ -7,11 +7,7 @@ export class StudentAnalyticsRepository {
     const whereBase: any = {};
     if (orgId) whereBase.org_id = orgId;
 
-    const [
-      totalStudents,
-      statusCounts,
-      genderCounts,
-    ] = await Promise.all([
+    const [totalStudents, statusCounts, genderCounts] = await Promise.all([
       db.students.count({ where: whereBase }),
       db.students.groupBy({
         by: ['status'],

@@ -21,8 +21,15 @@ export async function runUserModuleTests() {
   // Validator tests
   test('UserValidator validates mandatory create user fields', () => {
     assert.throws(
-      () => UserValidator.validateCreate({ org_id: '', first_name: '', email: '', phone: '', status: user_status.active as any }),
-      Error
+      () =>
+        UserValidator.validateCreate({
+          org_id: '',
+          first_name: '',
+          email: '',
+          phone: '',
+          status: user_status.active as any,
+        }),
+      Error,
     );
   });
 
@@ -39,7 +46,7 @@ export async function runUserModuleTests() {
   test('UserValidator validates mandatory role input', () => {
     assert.throws(
       () => UserValidator.validateCreateRole({ org_id: '', role_name: '', is_active: true }),
-      Error
+      Error,
     );
   });
 

@@ -1,6 +1,9 @@
 import { application_status } from '@prisma/client';
 import { ALLOWED_APPLICATION_STATUS_TRANSITIONS } from '../constants/admission.constants';
-import { InvalidApplicationStatusTransitionError, ApplicationValidationError } from '../errors/admission.errors';
+import {
+  InvalidApplicationStatusTransitionError,
+  ApplicationValidationError,
+} from '../errors/admission.errors';
 import { CreateApplicationDto } from '../dto/request/create-application.dto';
 
 export class ApplicationValidator {
@@ -16,7 +19,10 @@ export class ApplicationValidator {
     }
   }
 
-  static validateStatusTransition(currentStatus: application_status, targetStatus: application_status): void {
+  static validateStatusTransition(
+    currentStatus: application_status,
+    targetStatus: application_status,
+  ): void {
     if (currentStatus === targetStatus) return;
 
     const allowed = ALLOWED_APPLICATION_STATUS_TRANSITIONS[currentStatus] || [];

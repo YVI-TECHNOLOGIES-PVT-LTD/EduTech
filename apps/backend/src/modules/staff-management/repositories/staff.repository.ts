@@ -58,7 +58,8 @@ export class StaffRepository {
     if (dto.employee_code !== undefined) data.employee_code = dto.employee_code;
     if (dto.designation_id !== undefined) data.designation_id = dto.designation_id;
     if (dto.department_id !== undefined) data.department_id = dto.department_id;
-    if (dto.joining_date !== undefined) data.joining_date = dto.joining_date ? new Date(dto.joining_date) : null;
+    if (dto.joining_date !== undefined)
+      data.joining_date = dto.joining_date ? new Date(dto.joining_date) : null;
     if (dto.is_active !== undefined) data.is_active = dto.is_active;
     if (updatedBy) data.updated_by = updatedBy;
 
@@ -73,7 +74,11 @@ export class StaffRepository {
     });
   }
 
-  static async assignDesignation(staff_id: string, designation_id: string, updatedBy?: string | null) {
+  static async assignDesignation(
+    staff_id: string,
+    designation_id: string,
+    updatedBy?: string | null,
+  ) {
     return db.staff.update({
       where: { staff_id },
       data: {

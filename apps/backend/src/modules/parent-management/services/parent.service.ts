@@ -11,7 +11,10 @@ import { ParentEvents, ParentEventType } from '../events/parent.events';
 import { logger } from '../../../utils/logger';
 
 export class ParentService {
-  static async createParent(dto: CreateParentDto, performedBy?: string | null): Promise<ParentResponseDto> {
+  static async createParent(
+    dto: CreateParentDto,
+    performedBy?: string | null,
+  ): Promise<ParentResponseDto> {
     ParentValidator.validateCreate(dto);
 
     const existingPhone = await ParentRepository.findByPhone(dto.org_id, dto.phone);
@@ -46,7 +49,11 @@ export class ParentService {
     return ParentMapper.toResponseDto(parent);
   }
 
-  static async updateParent(id: string, dto: UpdateParentDto, performedBy?: string | null): Promise<ParentResponseDto> {
+  static async updateParent(
+    id: string,
+    dto: UpdateParentDto,
+    performedBy?: string | null,
+  ): Promise<ParentResponseDto> {
     const existing = await ParentRepository.findById(id);
     if (!existing) {
       throw new ParentNotFoundError(id);
@@ -67,7 +74,10 @@ export class ParentService {
     return ParentMapper.toResponseDto(updated);
   }
 
-  static async deleteParent(id: string, performedBy?: string | null): Promise<{ success: boolean }> {
+  static async deleteParent(
+    id: string,
+    performedBy?: string | null,
+  ): Promise<{ success: boolean }> {
     const existing = await ParentRepository.findById(id);
     if (!existing) {
       throw new ParentNotFoundError(id);
@@ -88,7 +98,9 @@ export class ParentService {
     return { success: true };
   }
 
-  static async searchParents(params: SearchParentDto): Promise<PaginatedResponse<ParentResponseDto>> {
+  static async searchParents(
+    params: SearchParentDto,
+  ): Promise<PaginatedResponse<ParentResponseDto>> {
     const result = await ParentSearchRepository.search(params);
 
     return {

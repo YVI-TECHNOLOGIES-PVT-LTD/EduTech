@@ -39,7 +39,11 @@ export class DesignationRepository {
     });
   }
 
-  static async update(designation_id: string, dto: UpdateDesignationDto, updatedBy?: string | null) {
+  static async update(
+    designation_id: string,
+    dto: UpdateDesignationDto,
+    updatedBy?: string | null,
+  ) {
     const data: any = { updated_at: new Date() };
     if (dto.designation_name !== undefined) data.designation_name = dto.designation_name;
     if (dto.description !== undefined) data.description = dto.description;

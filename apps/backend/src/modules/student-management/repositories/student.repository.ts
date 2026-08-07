@@ -73,7 +73,8 @@ export class StudentRepository {
     if (dto.last_name !== undefined) data.last_name = dto.last_name;
     if (dto.dob !== undefined) data.dob = dto.dob ? new Date(dto.dob) : null;
     if (dto.gender !== undefined) data.gender = dto.gender;
-    if (dto.admission_date !== undefined) data.admission_date = dto.admission_date ? new Date(dto.admission_date) : null;
+    if (dto.admission_date !== undefined)
+      data.admission_date = dto.admission_date ? new Date(dto.admission_date) : null;
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.user_id !== undefined) data.user_id = dto.user_id;
 

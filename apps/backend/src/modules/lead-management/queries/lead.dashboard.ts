@@ -11,31 +11,33 @@ export class LeadDashboardQuery {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [totalLeads, todayLeads, stageCounts, sourceCounts, pendingFollowups] = await Promise.all([
-      prisma.leads.count({ where: whereBase }),
-      prisma.leads.count({
-        where: {
-          ...whereBase,
-          created_at: { gte: todayStart },
-        },
-      }),
-      prisma.leads.groupBy({
-        by: ['stage'],
-        where: whereBase,
-        _count: { stage: true },
-      }),
-      prisma.leads.groupBy({
-        by: ['source'],
-        where: whereBase,
-        _count: { source: true },
-      }),
-      prisma.lead_activities.count({
-        where: {
-          status: 'scheduled',
-          leads: whereBase,
-        },
-      }),
-    ]);
+    const [totalLeads, todayLeads, stageCounts, sourceCounts, pendingFollowups] = await Promise.all(
+      [
+        prisma.leads.count({ where: whereBase }),
+        prisma.leads.count({
+          where: {
+            ...whereBase,
+            created_at: { gte: todayStart },
+          },
+        }),
+        prisma.leads.groupBy({
+          by: ['stage'],
+          where: whereBase,
+          _count: { stage: true },
+        }),
+        prisma.leads.groupBy({
+          by: ['source'],
+          where: whereBase,
+          _count: { source: true },
+        }),
+        prisma.lead_activities.count({
+          where: {
+            status: 'scheduled',
+            leads: whereBase,
+          },
+        }),
+      ],
+    );
 
     const leadsByStatus: Record<string, number> = {};
     for (const item of stageCounts) {

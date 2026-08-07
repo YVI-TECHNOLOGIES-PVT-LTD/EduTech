@@ -16,7 +16,11 @@ export class LeadValidator {
     }
   }
 
-  static validateStatusTransition(currentStage: lead_stage, targetStage: lead_stage, remarks?: string | null): void {
+  static validateStatusTransition(
+    currentStage: lead_stage,
+    targetStage: lead_stage,
+    remarks?: string | null,
+  ): void {
     if (currentStage === targetStage) return;
 
     const allowed = ALLOWED_STATUS_TRANSITIONS[currentStage] || [];

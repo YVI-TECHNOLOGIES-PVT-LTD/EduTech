@@ -7,11 +7,7 @@ export class ParentAnalyticsRepository {
     const whereBase: any = {};
     if (orgId) whereBase.org_id = orgId;
 
-    const [
-      totalParents,
-      parentsWithStudentsCount,
-      relationshipCounts,
-    ] = await Promise.all([
+    const [totalParents, parentsWithStudentsCount, relationshipCounts] = await Promise.all([
       db.parents.count({ where: whereBase }),
       db.parents.count({
         where: {

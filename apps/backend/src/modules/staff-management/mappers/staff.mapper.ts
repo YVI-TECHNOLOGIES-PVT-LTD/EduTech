@@ -25,8 +25,12 @@ export class StaffMapper {
       department_id: record.department_id || null,
       joining_date: record.joining_date ? new Date(record.joining_date).toISOString() : null,
       is_active: Boolean(record.is_active),
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
-      updated_at: record.updated_at ? new Date(record.updated_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
+      updated_at: record.updated_at
+        ? new Date(record.updated_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 
@@ -38,8 +42,12 @@ export class StaffMapper {
       designation_name: record.designation_name,
       description: record.description || null,
       is_active: Boolean(record.is_active),
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
-      updated_at: record.updated_at ? new Date(record.updated_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
+      updated_at: record.updated_at
+        ? new Date(record.updated_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 
@@ -58,7 +66,9 @@ export class StaffMapper {
       designation_name: record.designations?.designation_name || null,
       is_active: Boolean(record.is_active),
       joining_date: record.joining_date ? new Date(record.joining_date).toISOString() : null,
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 }

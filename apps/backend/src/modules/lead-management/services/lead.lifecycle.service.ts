@@ -12,7 +12,7 @@ export class LeadLifecycleService {
     id: string,
     targetStage: lead_stage,
     performedBy?: string | null,
-    remarks?: string | null
+    remarks?: string | null,
   ): Promise<LeadResponseDto> {
     const existing = await LeadRepository.findById(id);
     if (!existing) {

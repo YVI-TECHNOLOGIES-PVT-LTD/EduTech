@@ -28,15 +28,21 @@ export async function runLeadModuleTests() {
 
   test('LeadValidator rejects invalid stage transitions', () => {
     assert.throws(
-      () => LeadValidator.validateStatusTransition(lead_stage.enrolled, lead_stage.enquiry_received),
-      InvalidLeadStatusTransitionError
+      () =>
+        LeadValidator.validateStatusTransition(lead_stage.enrolled, lead_stage.enquiry_received),
+      InvalidLeadStatusTransitionError,
     );
   });
 
   test('LeadValidator requires remarks/reason for REJECTED stage', () => {
     assert.throws(
-      () => LeadValidator.validateStatusTransition(lead_stage.enquiry_received, lead_stage.rejected, ''),
-      Error
+      () =>
+        LeadValidator.validateStatusTransition(
+          lead_stage.enquiry_received,
+          lead_stage.rejected,
+          '',
+        ),
+      Error,
     );
   });
 

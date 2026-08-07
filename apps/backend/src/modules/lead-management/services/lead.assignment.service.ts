@@ -10,7 +10,7 @@ export class LeadAssignmentService {
     id: string,
     counselorId: string,
     performedBy?: string | null,
-    remarks?: string
+    remarks?: string,
   ): Promise<LeadResponseDto> {
     const existing = await LeadRepository.findById(id);
     if (!existing) {
@@ -41,7 +41,7 @@ export class LeadAssignmentService {
     leadIds: string[],
     counselorId: string,
     performedBy?: string | null,
-    remarks?: string
+    remarks?: string,
   ): Promise<{ updatedCount: number }> {
     const result = await LeadRepository.bulkAssignCounselor(leadIds, counselorId);
 

@@ -30,7 +30,10 @@ export class StudentEnrollmentService {
       admissionNo: student.admission_no,
       performedBy: createdBy ? String(createdBy) : undefined,
       timestamp: new Date().toISOString(),
-      metadata: { enrollmentId: enrollment.enrollment_id, academicYearGradeId: dto.academic_year_grade_id },
+      metadata: {
+        enrollmentId: enrollment.enrollment_id,
+        academicYearGradeId: dto.academic_year_grade_id,
+      },
     });
 
     return enrollment;
@@ -45,7 +48,11 @@ export class StudentEnrollmentService {
     return StudentEnrollmentRepository.findByStudentId(studentId);
   }
 
-  static async assignSection(enrollmentId: string, performedBy: string | null, dto: AssignSectionDto) {
+  static async assignSection(
+    enrollmentId: string,
+    performedBy: string | null,
+    dto: AssignSectionDto,
+  ) {
     const existing = await StudentEnrollmentRepository.findById(enrollmentId);
     if (!existing) {
       throw new EnrollmentNotFoundError(enrollmentId);

@@ -31,7 +31,8 @@ export class AcademicValidator {
   }
 
   static validateCreateSection(dto: CreateSectionDto): void {
-    if (!dto.academic_year_grade_id) throw new AcademicValidationError('Academic year grade ID is required');
+    if (!dto.academic_year_grade_id)
+      throw new AcademicValidationError('Academic year grade ID is required');
     if (!dto.section_name || dto.section_name.trim().length === 0) {
       throw new AcademicValidationError('Section name is required');
     }

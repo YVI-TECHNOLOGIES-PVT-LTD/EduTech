@@ -11,23 +11,18 @@ export class AcademicAnalyticsRepository {
       gradeWhere.org_id = orgId;
     }
 
-    const [
-      totalYears,
-      totalGrades,
-      totalSections,
-      totalYearGrades,
-      yearStatusCounts,
-    ] = await Promise.all([
-      db.academic_years.count({ where: yearWhere }),
-      db.grades.count({ where: gradeWhere }),
-      db.sections.count(),
-      db.academic_year_grades.count(),
-      db.academic_years.groupBy({
-        by: ['status'],
-        where: yearWhere,
-        _count: { status: true },
-      }),
-    ]);
+    const [totalYears, totalGrades, totalSections, totalYearGrades, yearStatusCounts] =
+      await Promise.all([
+        db.academic_years.count({ where: yearWhere }),
+        db.grades.count({ where: gradeWhere }),
+        db.sections.count(),
+        db.academic_year_grades.count(),
+        db.academic_years.groupBy({
+          by: ['status'],
+          where: yearWhere,
+          _count: { status: true },
+        }),
+      ]);
 
     const academicYearsByStatus: Record<string, number> = {};
     for (const item of yearStatusCounts) {

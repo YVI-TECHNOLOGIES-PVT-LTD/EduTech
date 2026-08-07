@@ -8,12 +8,14 @@ export class LeadMapper {
       .join(' ');
 
     const counselorStaff = leadRecord.staff || null;
-    const counselorUser = counselorStaff?.users_staff_user_idTousers || counselorStaff?.user || null;
+    const counselorUser =
+      counselorStaff?.users_staff_user_idTousers || counselorStaff?.user || null;
     const counselorName = counselorUser
-      ? [counselorUser.first_name, counselorUser.last_name].filter(Boolean).join(' ') || counselorUser.email
+      ? [counselorUser.first_name, counselorUser.last_name].filter(Boolean).join(' ') ||
+        counselorUser.email
       : counselorStaff?.employee_code
-      ? `Staff (${counselorStaff.employee_code})`
-      : null;
+        ? `Staff (${counselorStaff.employee_code})`
+        : null;
 
     return {
       lead_id: leadRecord.lead_id,
@@ -69,12 +71,14 @@ export class LeadMapper {
       .join(' ');
 
     const counselorStaff = leadRecord.staff || null;
-    const counselorUser = counselorStaff?.users_staff_user_idTousers || counselorStaff?.user || null;
+    const counselorUser =
+      counselorStaff?.users_staff_user_idTousers || counselorStaff?.user || null;
     const counselorName = counselorUser
-      ? [counselorUser.first_name, counselorUser.last_name].filter(Boolean).join(' ') || counselorUser.email
+      ? [counselorUser.first_name, counselorUser.last_name].filter(Boolean).join(' ') ||
+        counselorUser.email
       : counselorStaff?.employee_code
-      ? `Staff (${counselorStaff.employee_code})`
-      : null;
+        ? `Staff (${counselorStaff.employee_code})`
+        : null;
 
     return {
       lead_id: leadRecord.lead_id,

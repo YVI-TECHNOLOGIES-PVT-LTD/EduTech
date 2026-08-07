@@ -5,13 +5,13 @@ const zlib = require('zlib');
 function makePng(width, height, color) {
   const rowSize = 1 + width * 4;
   const rawData = Buffer.alloc(rowSize * height);
-  
+
   for (let y = 0; y < height; y++) {
     const offset = y * rowSize;
     rawData[offset] = 0; // Filter type 0
     for (let x = 0; x < width; x++) {
       const pixelOffset = offset + 1 + x * 4;
-      rawData[pixelOffset] = color[0];     // R
+      rawData[pixelOffset] = color[0]; // R
       rawData[pixelOffset + 1] = color[1]; // G
       rawData[pixelOffset + 2] = color[2]; // B
       rawData[pixelOffset + 3] = color[3]; // A
@@ -26,7 +26,7 @@ function makePng(width, height, color) {
     for (let n = 0; n < 256; n++) {
       let curr = n;
       for (let k = 0; k < 8; k++) {
-        curr = (curr & 1) ? (0xedb88320 ^ (curr >>> 1)) : (curr >>> 1);
+        curr = curr & 1 ? 0xedb88320 ^ (curr >>> 1) : curr >>> 1;
       }
       table[n] = curr;
     }

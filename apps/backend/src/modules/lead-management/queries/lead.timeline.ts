@@ -42,7 +42,8 @@ export class LeadTimelineQuery {
         id: `created-${lead.lead_id}`,
         type: 'CREATED',
         title: 'Lead Created',
-        description: `Lead registered for ${lead.student_first_name} ${lead.student_last_name || ''}`.trim(),
+        description:
+          `Lead registered for ${lead.student_first_name} ${lead.student_last_name || ''}`.trim(),
         performed_by: lead.created_by || null,
         performed_by_name: 'System / Public',
         timestamp: new Date(lead.created_at).toISOString(),
@@ -81,11 +82,15 @@ export class LeadTimelineQuery {
         description: act.notes || `${act.activity_type} logged`,
         performed_by: act.created_by,
         performed_by_name: userName,
-        timestamp: act.created_at ? new Date(act.created_at).toISOString() : new Date().toISOString(),
+        timestamp: act.created_at
+          ? new Date(act.created_at).toISOString()
+          : new Date().toISOString(),
         metadata: {
           activity_type: act.activity_type,
           activity_date: act.activity_date ? new Date(act.activity_date).toISOString() : null,
-          next_followup_date: act.next_followup_date ? new Date(act.next_followup_date).toISOString() : null,
+          next_followup_date: act.next_followup_date
+            ? new Date(act.next_followup_date).toISOString()
+            : null,
           status: act.status,
         },
       });
@@ -95,7 +100,8 @@ export class LeadTimelineQuery {
     for (const visit of lead.lead_visits || []) {
       const visitStaffUser = visit.staff?.users_staff_user_idTousers;
       const visitStaffName = visitStaffUser
-        ? [visitStaffUser.first_name, visitStaffUser.last_name].filter(Boolean).join(' ') || visitStaffUser.email
+        ? [visitStaffUser.first_name, visitStaffUser.last_name].filter(Boolean).join(' ') ||
+          visitStaffUser.email
         : 'Staff';
 
       timeline.push({
@@ -105,7 +111,9 @@ export class LeadTimelineQuery {
         description: visit.remarks || `${visit.visit_type} scheduled`,
         performed_by: visit.staff_id,
         performed_by_name: visitStaffName,
-        timestamp: visit.scheduled_at ? new Date(visit.scheduled_at).toISOString() : new Date().toISOString(),
+        timestamp: visit.scheduled_at
+          ? new Date(visit.scheduled_at).toISOString()
+          : new Date().toISOString(),
         metadata: {
           visit_type: visit.visit_type,
           scheduled_at: visit.scheduled_at ? new Date(visit.scheduled_at).toISOString() : null,

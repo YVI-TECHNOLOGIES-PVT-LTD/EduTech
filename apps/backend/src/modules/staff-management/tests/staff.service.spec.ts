@@ -20,8 +20,14 @@ export async function runStaffModuleTests() {
   // Validator tests
   test('StaffValidator validates mandatory create staff fields', () => {
     assert.throws(
-      () => StaffValidator.validateCreate({ org_id: '', user_id: '', employee_code: '', is_active: true }),
-      Error
+      () =>
+        StaffValidator.validateCreate({
+          org_id: '',
+          user_id: '',
+          employee_code: '',
+          is_active: true,
+        }),
+      Error,
     );
   });
 
@@ -36,8 +42,13 @@ export async function runStaffModuleTests() {
 
   test('StaffValidator validates mandatory designation input', () => {
     assert.throws(
-      () => StaffValidator.validateCreateDesignation({ org_id: '', designation_name: '', is_active: true }),
-      Error
+      () =>
+        StaffValidator.validateCreateDesignation({
+          org_id: '',
+          designation_name: '',
+          is_active: true,
+        }),
+      Error,
     );
   });
 

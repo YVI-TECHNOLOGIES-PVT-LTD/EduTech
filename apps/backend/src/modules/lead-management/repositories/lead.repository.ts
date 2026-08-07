@@ -117,12 +117,15 @@ export class LeadRepository {
     if ((dto as any).status !== undefined) data.stage = (dto as any).status;
 
     if (dto.priority !== undefined) data.priority = dto.priority;
-    if (dto.assigned_counsellor_id !== undefined) data.assigned_counsellor_id = dto.assigned_counsellor_id;
+    if (dto.assigned_counsellor_id !== undefined)
+      data.assigned_counsellor_id = dto.assigned_counsellor_id;
     if (dto.dob !== undefined) data.dob = dto.dob ? new Date(dto.dob as string) : null;
 
     if (dto.gender !== undefined) data.gender = dto.gender;
-    if (dto.curriculum_preference !== undefined) data.curriculum_preference = dto.curriculum_preference;
-    if (dto.scholarship_interest !== undefined) data.scholarship_interest = dto.scholarship_interest;
+    if (dto.curriculum_preference !== undefined)
+      data.curriculum_preference = dto.curriculum_preference;
+    if (dto.scholarship_interest !== undefined)
+      data.scholarship_interest = dto.scholarship_interest;
     if (dto.remarks !== undefined) data.remarks = dto.remarks;
 
     return db.leads.update({
@@ -153,7 +156,6 @@ export class LeadRepository {
     if (remarks !== undefined) {
       data.remarks = remarks;
     }
-
 
     return db.leads.update({
       where: { lead_id },

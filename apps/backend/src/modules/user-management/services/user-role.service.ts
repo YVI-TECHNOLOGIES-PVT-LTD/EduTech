@@ -9,7 +9,11 @@ import { UserEvents, UserEventType } from '../events/user.events';
 import { logger } from '../../../utils/logger';
 
 export class UserRoleService {
-  static async assignRole(userId: string, dto: AssignRoleDto, performedBy?: string | null): Promise<UserResponseDto> {
+  static async assignRole(
+    userId: string,
+    dto: AssignRoleDto,
+    performedBy?: string | null,
+  ): Promise<UserResponseDto> {
     const user = await UserRepository.findById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
@@ -19,7 +23,11 @@ export class UserRoleService {
     const existing = await UserRoleRepository.find(userId, dto.role_id);
     if (!existing) {
       await UserRoleRepository.assign(userId, dto.role_id, performedBy);
-      logger.info(`Role ${dto.role_id} assigned to user ${userId}`, { userId, roleId: dto.role_id, performedBy });
+      logger.info(`Role ${dto.role_id} assigned to user ${userId}`, {
+        userId,
+        roleId: dto.role_id,
+        performedBy,
+      });
 
       // Post-commit event emission
       await UserEvents.publish(UserEventType.ROLE_ASSIGNED, {
@@ -34,7 +42,11 @@ export class UserRoleService {
     return UserMapper.toUserResponseDto(updatedUser);
   }
 
-  static async removeRole(userId: string, roleId: string, performedBy?: string | null): Promise<UserResponseDto> {
+  static async removeRole(
+    userId: string,
+    roleId: string,
+    performedBy?: string | null,
+  ): Promise<UserResponseDto> {
     const user = await UserRepository.findById(userId);
     if (!user) throw new UserNotFoundError(userId);
 

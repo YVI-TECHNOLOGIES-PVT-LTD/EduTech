@@ -55,7 +55,12 @@ export class StudentEnrollmentRepository {
     });
   }
 
-  static async updateStatus(enrollment_id: string, status: enrollment_status, exitDate?: string | null, remarks?: string | null) {
+  static async updateStatus(
+    enrollment_id: string,
+    status: enrollment_status,
+    exitDate?: string | null,
+    remarks?: string | null,
+  ) {
     const data: any = {
       status,
       updated_at: new Date(),

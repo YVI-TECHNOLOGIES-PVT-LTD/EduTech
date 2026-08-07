@@ -1,5 +1,8 @@
 import { ALLOWED_ENROLLMENT_STATUS_TRANSITIONS } from '../constants/student.constants';
-import { InvalidStudentStatusTransitionError, StudentValidationError } from '../errors/student.errors';
+import {
+  InvalidStudentStatusTransitionError,
+  StudentValidationError,
+} from '../errors/student.errors';
 import { CreateStudentDto } from '../dto/request/create-student.dto';
 
 export class StudentValidator {

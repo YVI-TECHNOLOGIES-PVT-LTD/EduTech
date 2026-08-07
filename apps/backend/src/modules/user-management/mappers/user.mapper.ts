@@ -35,8 +35,12 @@ export class UserMapper {
       status: (record.status as user_status) || user_status.active,
       last_login_at: record.last_login_at ? new Date(record.last_login_at).toISOString() : null,
       roles,
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
-      updated_at: record.updated_at ? new Date(record.updated_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
+      updated_at: record.updated_at
+        ? new Date(record.updated_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 
@@ -48,14 +52,20 @@ export class UserMapper {
       role_name: record.role_name,
       description: record.description || null,
       is_active: Boolean(record.is_active),
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
-      updated_at: record.updated_at ? new Date(record.updated_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
+      updated_at: record.updated_at
+        ? new Date(record.updated_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 
   static toUserSummaryDto(record: any): UserSummaryDto {
     const fullName = [record.first_name, record.last_name].filter(Boolean).join(' ');
-    const rolesCount = Array.isArray(record.user_roles_user_idTousers) ? record.user_roles_user_idTousers.length : 0;
+    const rolesCount = Array.isArray(record.user_roles_user_idTousers)
+      ? record.user_roles_user_idTousers.length
+      : 0;
 
     return {
       user_id: record.user_id,
@@ -65,7 +75,9 @@ export class UserMapper {
       phone: record.phone,
       status: (record.status as user_status) || user_status.active,
       roles_count: rolesCount,
-      created_at: record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString(),
+      created_at: record.created_at
+        ? new Date(record.created_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 }

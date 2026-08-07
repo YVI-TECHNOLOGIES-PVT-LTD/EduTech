@@ -77,7 +77,9 @@ export class UserController {
     try {
       const parsed = searchUserSchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Invalid search parameters', details: parsed.error.format() });
+        return res
+          .status(400)
+          .json({ error: 'Invalid search parameters', details: parsed.error.format() });
       }
       const result = await UserService.searchUsers(parsed.data);
       return res.json(result);

@@ -8,22 +8,17 @@ export class UserAnalyticsRepository {
     const whereBase: any = {};
     if (orgId) whereBase.org_id = orgId;
 
-    const [
-      totalUsers,
-      activeUsers,
-      inactiveUsers,
-      suspendedUsers,
-      usersPerRoleRaw,
-    ] = await Promise.all([
-      db.users.count({ where: whereBase }),
-      db.users.count({ where: { ...whereBase, status: user_status.active } }),
-      db.users.count({ where: { ...whereBase, status: user_status.inactive } }),
-      db.users.count({ where: { ...whereBase, status: user_status.suspended } }),
-      db.user_roles.groupBy({
-        by: ['role_id'],
-        _count: { role_id: true },
-      }),
-    ]);
+    const [totalUsers, activeUsers, inactiveUsers, suspendedUsers, usersPerRoleRaw] =
+      await Promise.all([
+        db.users.count({ where: whereBase }),
+        db.users.count({ where: { ...whereBase, status: user_status.active } }),
+        db.users.count({ where: { ...whereBase, status: user_status.inactive } }),
+        db.users.count({ where: { ...whereBase, status: user_status.suspended } }),
+        db.user_roles.groupBy({
+          by: ['role_id'],
+          _count: { role_id: true },
+        }),
+      ]);
 
     const usersPerRole: Record<string, number> = {};
     for (const item of usersPerRoleRaw) {

@@ -91,10 +91,7 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
     lead_stage.application_submitted,
     lead_stage.rejected,
   ],
-  [lead_stage.campus_visit]: [
-    lead_stage.application_submitted,
-    lead_stage.rejected,
-  ],
+  [lead_stage.campus_visit]: [lead_stage.application_submitted, lead_stage.rejected],
   [lead_stage.application_submitted]: [
     lead_stage.document_verification,
     lead_stage.assessment,
@@ -115,14 +112,8 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
     lead_stage.enrolled,
     lead_stage.rejected,
   ],
-  [lead_stage.waitlisted]: [
-    lead_stage.admission_approved,
-    lead_stage.rejected,
-  ],
-  [lead_stage.fee_payment_pending]: [
-    lead_stage.enrolled,
-    lead_stage.rejected,
-  ],
+  [lead_stage.waitlisted]: [lead_stage.admission_approved, lead_stage.rejected],
+  [lead_stage.fee_payment_pending]: [lead_stage.enrolled, lead_stage.rejected],
   [lead_stage.rejected]: [
     lead_stage.enquiry_received, // Allows reopening
   ],

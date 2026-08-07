@@ -22,25 +22,37 @@ export async function runAdmissionModuleTests() {
 
   // 1. Validator tests
   test('ApplicationValidator allows valid status transitions', () => {
-    ApplicationValidator.validateStatusTransition(application_status.submitted, application_status.documents_pending);
-    ApplicationValidator.validateStatusTransition(application_status.assessment_pending, application_status.approved);
+    ApplicationValidator.validateStatusTransition(
+      application_status.submitted,
+      application_status.documents_pending,
+    );
+    ApplicationValidator.validateStatusTransition(
+      application_status.assessment_pending,
+      application_status.approved,
+    );
   });
 
   test('ApplicationValidator rejects invalid status transitions', () => {
     assert.throws(
-      () => ApplicationValidator.validateStatusTransition(application_status.withdrawn, application_status.submitted),
-      InvalidApplicationStatusTransitionError
+      () =>
+        ApplicationValidator.validateStatusTransition(
+          application_status.withdrawn,
+          application_status.submitted,
+        ),
+      InvalidApplicationStatusTransitionError,
     );
   });
 
   test('DocumentValidator validates mandatory upload inputs', () => {
     assert.throws(
       () => DocumentValidator.validateUpload({ document_type_id: '', file_path: '' }),
-      Error
+      Error,
     );
   });
 
-  console.log(`[Admission Application Management] Tests finished: ${passed} passed, ${failed} failed.`);
+  console.log(
+    `[Admission Application Management] Tests finished: ${passed} passed, ${failed} failed.`,
+  );
   if (failed > 0) {
     process.exit(1);
   }

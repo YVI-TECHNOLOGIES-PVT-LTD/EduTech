@@ -7,12 +7,18 @@ import { CreateApplicationDto } from '../dto/request/create-application.dto';
 import { UpdateApplicationDto } from '../dto/request/update-application.dto';
 import { SearchApplicationDto } from '../dto/request/search-application.dto';
 import { AdmissionMapper } from '../mappers/admission.mapper';
-import { ApplicationResponseDto, PaginatedResponse } from '../dto/response/application.response.dto';
+import {
+  ApplicationResponseDto,
+  PaginatedResponse,
+} from '../dto/response/application.response.dto';
 import { AdmissionEvents, ApplicationEventType } from '../events/admission.events';
 import { logger } from '../../../utils/logger';
 
 export class AdmissionService {
-  static async createApplication(dto: CreateApplicationDto, performedBy?: string | null): Promise<ApplicationResponseDto> {
+  static async createApplication(
+    dto: CreateApplicationDto,
+    performedBy?: string | null,
+  ): Promise<ApplicationResponseDto> {
     ApplicationValidator.validateCreate(dto);
 
     const existingLeadApp = await AdmissionRepository.findByLeadId(dto.lead_id);
@@ -49,7 +55,11 @@ export class AdmissionService {
     return AdmissionMapper.toResponseDto(app);
   }
 
-  static async updateApplication(id: string, dto: UpdateApplicationDto, performedBy?: string | null): Promise<ApplicationResponseDto> {
+  static async updateApplication(
+    id: string,
+    dto: UpdateApplicationDto,
+    performedBy?: string | null,
+  ): Promise<ApplicationResponseDto> {
     const existing = await AdmissionRepository.findById(id);
     if (!existing) {
       throw new ApplicationNotFoundError(id);
@@ -75,7 +85,11 @@ export class AdmissionService {
     return AdmissionMapper.toResponseDto(updated);
   }
 
-  static async updateStatus(id: string, targetStatus: application_status, performedBy?: string | null): Promise<ApplicationResponseDto> {
+  static async updateStatus(
+    id: string,
+    targetStatus: application_status,
+    performedBy?: string | null,
+  ): Promise<ApplicationResponseDto> {
     const existing = await AdmissionRepository.findById(id);
     if (!existing) {
       throw new ApplicationNotFoundError(id);
@@ -85,12 +99,15 @@ export class AdmissionService {
 
     const updated = await AdmissionRepository.updateStatus(id, targetStatus);
 
-    logger.info(`Admission application status changed: ${id} (${existing.status} -> ${targetStatus})`, {
-      applicationId: id,
-      previousStatus: existing.status,
-      newStatus: targetStatus,
-      performedBy,
-    });
+    logger.info(
+      `Admission application status changed: ${id} (${existing.status} -> ${targetStatus})`,
+      {
+        applicationId: id,
+        previousStatus: existing.status,
+        newStatus: targetStatus,
+        performedBy,
+      },
+    );
 
     // Post-commit event emission
     await AdmissionEvents.publish(ApplicationEventType.STATUS_CHANGED, {
@@ -104,7 +121,10 @@ export class AdmissionService {
     return AdmissionMapper.toResponseDto(updated);
   }
 
-  static async deleteApplication(id: string, performedBy?: string | null): Promise<{ success: boolean }> {
+  static async deleteApplication(
+    id: string,
+    performedBy?: string | null,
+  ): Promise<{ success: boolean }> {
     const existing = await AdmissionRepository.findById(id);
     if (!existing) {
       throw new ApplicationNotFoundError(id);
@@ -124,7 +144,9 @@ export class AdmissionService {
     return { success: true };
   }
 
-  static async searchApplications(params: SearchApplicationDto): Promise<PaginatedResponse<ApplicationResponseDto>> {
+  static async searchApplications(
+    params: SearchApplicationDto,
+  ): Promise<PaginatedResponse<ApplicationResponseDto>> {
     const result = await AdmissionSearchRepository.search(params);
 
     return {

@@ -21,14 +21,15 @@ export async function runAcademicModuleTests() {
   // Validator tests
   test('AcademicValidator rejects academic year when end_date <= start_date', () => {
     assert.throws(
-      () => AcademicValidator.validateCreateAcademicYear({
-        org_id: '123e4567-e89b-12d3-a456-426614174000',
-        academic_year_name: '2026-2027',
-        start_date: '2026-12-31',
-        end_date: '2026-01-01',
-        status: academic_year_status.planning as any,
-      }),
-      Error
+      () =>
+        AcademicValidator.validateCreateAcademicYear({
+          org_id: '123e4567-e89b-12d3-a456-426614174000',
+          academic_year_name: '2026-2027',
+          start_date: '2026-12-31',
+          end_date: '2026-01-01',
+          status: academic_year_status.planning as any,
+        }),
+      Error,
     );
   });
 
@@ -44,14 +45,15 @@ export async function runAcademicModuleTests() {
 
   test('AcademicValidator validates mandatory grade input', () => {
     assert.throws(
-      () => AcademicValidator.validateCreateGrade({
-        org_id: '',
-        grade_code: '',
-        grade_name: '',
-        display_order: 1,
-        is_active: true,
-      }),
-      Error
+      () =>
+        AcademicValidator.validateCreateGrade({
+          org_id: '',
+          grade_code: '',
+          grade_name: '',
+          display_order: 1,
+          is_active: true,
+        }),
+      Error,
     );
   });
 

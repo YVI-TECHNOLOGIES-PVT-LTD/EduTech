@@ -9,7 +9,10 @@ import { AcademicEvents, AcademicEventType } from '../events/academic.events';
 import { logger } from '../../../utils/logger';
 
 export class AcademicYearService {
-  static async createAcademicYear(dto: CreateAcademicYearDto, performedBy?: string | null): Promise<AcademicYearResponseDto> {
+  static async createAcademicYear(
+    dto: CreateAcademicYearDto,
+    performedBy?: string | null,
+  ): Promise<AcademicYearResponseDto> {
     AcademicValidator.validateCreateAcademicYear(dto);
 
     const existing = await AcademicYearRepository.findByName(dto.org_id, dto.academic_year_name);
@@ -44,7 +47,11 @@ export class AcademicYearService {
     return AcademicMapper.toAcademicYearResponseDto(year);
   }
 
-  static async updateAcademicYear(id: string, dto: UpdateAcademicYearDto, performedBy?: string | null): Promise<AcademicYearResponseDto> {
+  static async updateAcademicYear(
+    id: string,
+    dto: UpdateAcademicYearDto,
+    performedBy?: string | null,
+  ): Promise<AcademicYearResponseDto> {
     const existing = await AcademicYearRepository.findById(id);
     if (!existing) {
       throw new AcademicYearNotFoundError(id);

@@ -1,5 +1,8 @@
 import prisma from '../../../lib/prismaClient';
-import { ApplicationTimelineDto, ApplicationTimelineEventDto } from '../dto/response/application-timeline.dto';
+import {
+  ApplicationTimelineDto,
+  ApplicationTimelineEventDto,
+} from '../dto/response/application-timeline.dto';
 
 export class AdmissionTimelineQuery {
   static async execute(applicationId: string): Promise<ApplicationTimelineDto> {
@@ -26,7 +29,8 @@ export class AdmissionTimelineQuery {
         id: `created-${app.application_id}`,
         type: 'APPLICATION_CREATED',
         title: 'Application Created',
-        description: `Application ${app.application_number} submitted for lead ${app.leads?.student_first_name || ''}`.trim(),
+        description:
+          `Application ${app.application_number} submitted for lead ${app.leads?.student_first_name || ''}`.trim(),
         performed_by: app.created_by || null,
         timestamp: new Date(app.created_at).toISOString(),
       });
@@ -49,7 +53,8 @@ export class AdmissionTimelineQuery {
           id: `doc-verify-${doc.document_id}`,
           type: 'DOCUMENT_VERIFIED',
           title: `Document ${doc.verify_status.toUpperCase()}`,
-          description: doc.verification_remarks || `Document status updated to ${doc.verify_status}`,
+          description:
+            doc.verification_remarks || `Document status updated to ${doc.verify_status}`,
           performed_by: doc.verified_by || null,
           timestamp: new Date(doc.verified_at).toISOString(),
         });
@@ -63,7 +68,9 @@ export class AdmissionTimelineQuery {
         id: `assessment-${ass.assessment_id}`,
         type: 'ASSESSMENT_RECORDED',
         title: `Assessment Recorded (${ass.result || 'PENDING'})`,
-        description: ass.remarks || `Marks obtained: ${ass.marks_obtained || 'N/A'}/${ass.maximum_marks || 'N/A'}`,
+        description:
+          ass.remarks ||
+          `Marks obtained: ${ass.marks_obtained || 'N/A'}/${ass.maximum_marks || 'N/A'}`,
         performed_by: ass.assessed_by || ass.created_by || null,
         timestamp: new Date(ass.created_at || ass.assessment_date).toISOString(),
       });

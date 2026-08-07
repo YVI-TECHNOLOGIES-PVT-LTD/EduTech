@@ -26,14 +26,19 @@ export class ParentTimelineQuery {
         id: `created-${parent.parent_id}`,
         type: 'PARENT_CREATED',
         title: 'Parent Profile Created',
-        description: `Name: ${parent.first_name} ${parent.last_name || ''} | Phone: ${parent.phone}`.trim(),
+        description:
+          `Name: ${parent.first_name} ${parent.last_name || ''} | Phone: ${parent.phone}`.trim(),
         performed_by: parent.created_by || null,
         timestamp: new Date(parent.created_at).toISOString(),
       });
     }
 
     // 2. Parent Profile Updates
-    if (parent.updated_at && parent.created_at && new Date(parent.updated_at).getTime() > new Date(parent.created_at).getTime() + 1000) {
+    if (
+      parent.updated_at &&
+      parent.created_at &&
+      new Date(parent.updated_at).getTime() > new Date(parent.created_at).getTime() + 1000
+    ) {
       timeline.push({
         id: `updated-${parent.parent_id}-${new Date(parent.updated_at).getTime()}`,
         type: 'PARENT_UPDATED',

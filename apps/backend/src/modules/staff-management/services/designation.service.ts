@@ -8,7 +8,10 @@ import { StaffMapper } from '../mappers/staff.mapper';
 import { logger } from '../../../utils/logger';
 
 export class DesignationService {
-  static async createDesignation(dto: CreateDesignationDto, performedBy?: string | null): Promise<DesignationResponseDto> {
+  static async createDesignation(
+    dto: CreateDesignationDto,
+    performedBy?: string | null,
+  ): Promise<DesignationResponseDto> {
     StaffValidator.validateCreateDesignation(dto);
 
     const existing = await DesignationRepository.findByName(dto.org_id, dto.designation_name);
@@ -18,11 +21,14 @@ export class DesignationService {
 
     const designation = await DesignationRepository.create(dto, performedBy);
 
-    logger.info(`Designation created: ${designation.designation_id} (${designation.designation_name})`, {
-      designationId: designation.designation_id,
-      name: designation.designation_name,
-      performedBy,
-    });
+    logger.info(
+      `Designation created: ${designation.designation_id} (${designation.designation_name})`,
+      {
+        designationId: designation.designation_id,
+        name: designation.designation_name,
+        performedBy,
+      },
+    );
 
     return StaffMapper.toDesignationResponseDto(designation);
   }
@@ -35,7 +41,11 @@ export class DesignationService {
     return StaffMapper.toDesignationResponseDto(designation);
   }
 
-  static async updateDesignation(id: string, dto: UpdateDesignationDto, performedBy?: string | null): Promise<DesignationResponseDto> {
+  static async updateDesignation(
+    id: string,
+    dto: UpdateDesignationDto,
+    performedBy?: string | null,
+  ): Promise<DesignationResponseDto> {
     const existing = await DesignationRepository.findById(id);
     if (!existing) {
       throw new DesignationNotFoundError(id);

@@ -61,7 +61,11 @@ export class AcademicYearGradeRepository {
     });
   }
 
-  static async update(academic_year_grade_id: string, dto: UpdateAcademicYearGradeDto, updatedBy?: string | null) {
+  static async update(
+    academic_year_grade_id: string,
+    dto: UpdateAcademicYearGradeDto,
+    updatedBy?: string | null,
+  ) {
     const data: any = { updated_at: new Date() };
     if (dto.intake_capacity !== undefined) data.intake_capacity = dto.intake_capacity;
     if (dto.is_active !== undefined) data.is_active = dto.is_active;

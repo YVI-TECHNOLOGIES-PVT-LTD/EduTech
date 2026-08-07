@@ -1,13 +1,17 @@
 # ADR 0001: EduTrack Monorepo Layout
 
 ## Status
+
 Accepted
 
 ## Context
+
 EduTrack ERP was organized into standalone top-level folders (`backend/`, `frontend/`, `mobile-app/`). To scale the solution to an enterprise level while enabling shared tooling and clear project boundaries, a structured monorepo layout is required.
 
 ## Decision
+
 Adopt the enterprise monorepo layout:
+
 - `apps/api/`: Express.js + TypeScript Backend API.
 - `apps/web/`: React + Vite Frontend Web App.
 - `apps/mobile/`: React Native Expo Mobile App.
@@ -16,6 +20,7 @@ Adopt the enterprise monorepo layout:
 - `docs/`: Centralized documentation and Architecture Decision Records.
 
 ## Consequences
+
 - Clean separation of workspace concerns.
 - Unified scripts at root workspace level.
 - Unchanged internal code paths or business logic.

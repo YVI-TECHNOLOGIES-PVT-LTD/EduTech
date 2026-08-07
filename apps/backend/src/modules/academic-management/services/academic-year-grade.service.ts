@@ -2,7 +2,11 @@ import { AcademicYearGradeRepository } from '../repositories/academic-year-grade
 import { AcademicYearRepository } from '../repositories/academic-year.repository';
 import { GradeRepository } from '../repositories/grade.repository';
 import { AcademicValidator } from '../validators/academic.validator';
-import { AcademicYearGradeNotFoundError, AcademicYearNotFoundError, GradeNotFoundError } from '../errors/academic.errors';
+import {
+  AcademicYearGradeNotFoundError,
+  AcademicYearNotFoundError,
+  GradeNotFoundError,
+} from '../errors/academic.errors';
 import { CreateAcademicYearGradeDto } from '../dto/request/create-academic-year-grade.dto';
 import { UpdateAcademicYearGradeDto } from '../dto/request/update-academic-year-grade.dto';
 import { AcademicYearGradeResponseDto } from '../dto/response/academic-year-grade.response.dto';
@@ -11,7 +15,10 @@ import { AcademicEvents, AcademicEventType } from '../events/academic.events';
 import { logger } from '../../../utils/logger';
 
 export class AcademicYearGradeService {
-  static async createAcademicYearGrade(dto: CreateAcademicYearGradeDto, performedBy?: string | null): Promise<AcademicYearGradeResponseDto> {
+  static async createAcademicYearGrade(
+    dto: CreateAcademicYearGradeDto,
+    performedBy?: string | null,
+  ): Promise<AcademicYearGradeResponseDto> {
     AcademicValidator.validateCreateAcademicYearGrade(dto);
 
     const year = await AcademicYearRepository.findById(dto.academic_year_id);
@@ -20,7 +27,10 @@ export class AcademicYearGradeService {
     const grade = await GradeRepository.findById(dto.grade_id);
     if (!grade) throw new GradeNotFoundError(dto.grade_id);
 
-    const existing = await AcademicYearGradeRepository.findByYearAndGrade(dto.academic_year_id, dto.grade_id);
+    const existing = await AcademicYearGradeRepository.findByYearAndGrade(
+      dto.academic_year_id,
+      dto.grade_id,
+    );
     if (existing) return AcademicMapper.toAcademicYearGradeResponseDto(existing);
 
     const mapping = await AcademicYearGradeRepository.create(dto, performedBy);
@@ -48,7 +58,11 @@ export class AcademicYearGradeService {
     return AcademicMapper.toAcademicYearGradeResponseDto(mapping);
   }
 
-  static async updateAcademicYearGrade(id: string, dto: UpdateAcademicYearGradeDto, performedBy?: string | null): Promise<AcademicYearGradeResponseDto> {
+  static async updateAcademicYearGrade(
+    id: string,
+    dto: UpdateAcademicYearGradeDto,
+    performedBy?: string | null,
+  ): Promise<AcademicYearGradeResponseDto> {
     const existing = await AcademicYearGradeRepository.findById(id);
     if (!existing) throw new AcademicYearGradeNotFoundError(id);
 
@@ -66,7 +80,9 @@ export class AcademicYearGradeService {
     return AcademicMapper.toAcademicYearGradeResponseDto(updated);
   }
 
-  static async getAcademicYearGradesByYear(academicYearId: string): Promise<AcademicYearGradeResponseDto[]> {
+  static async getAcademicYearGradesByYear(
+    academicYearId: string,
+  ): Promise<AcademicYearGradeResponseDto[]> {
     const mappings = await AcademicYearGradeRepository.findByAcademicYear(academicYearId);
     return mappings.map(AcademicMapper.toAcademicYearGradeResponseDto);
   }

@@ -13,9 +13,7 @@ export class AcademicSearchQuery {
 
     if (q.searchText && q.searchText.trim() !== '') {
       const text = q.searchText.trim();
-      whereClause.OR = [
-        { academic_year_name: { contains: text, mode: 'insensitive' } },
-      ];
+      whereClause.OR = [{ academic_year_name: { contains: text, mode: 'insensitive' } }];
     }
 
     const total = await db.academic_years.count({ where: whereClause });

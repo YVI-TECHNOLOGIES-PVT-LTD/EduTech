@@ -44,7 +44,11 @@ export class ParentStudentService {
 
     const result = await ParentStudentRepository.unlinkStudent(parentId, studentId);
 
-    logger.info(`Student ${studentId} unlinked from parent ${parentId}`, { parentId, studentId, performedBy });
+    logger.info(`Student ${studentId} unlinked from parent ${parentId}`, {
+      parentId,
+      studentId,
+      performedBy,
+    });
 
     // Post-commit event emission
     await ParentEvents.publish(ParentEventType.STUDENT_UNLINKED, {

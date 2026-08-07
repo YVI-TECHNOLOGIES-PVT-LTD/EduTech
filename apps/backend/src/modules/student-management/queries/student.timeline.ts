@@ -33,7 +33,8 @@ export class StudentTimelineQuery {
         id: `created-${student.student_id}`,
         type: 'STUDENT_CREATED',
         title: 'Student Profile Created',
-        description: `Admission No: ${student.admission_no} (${student.first_name} ${student.last_name || ''})`.trim(),
+        description:
+          `Admission No: ${student.admission_no} (${student.first_name} ${student.last_name || ''})`.trim(),
         performed_by: student.created_by || null,
         timestamp: new Date(student.created_at).toISOString(),
       });
@@ -66,7 +67,12 @@ export class StudentTimelineQuery {
     // 3. Parent Linkage
     for (const sp of student.student_parents || []) {
       if (sp.created_at) {
-        const parentName = [sp.parents?.users_parents_user_idTousers?.first_name, sp.parents?.users_parents_user_idTousers?.last_name].filter(Boolean).join(' ');
+        const parentName = [
+          sp.parents?.users_parents_user_idTousers?.first_name,
+          sp.parents?.users_parents_user_idTousers?.last_name,
+        ]
+          .filter(Boolean)
+          .join(' ');
         timeline.push({
           id: `parent-${sp.parent_id}`,
           type: 'PARENT_LINKED',

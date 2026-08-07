@@ -110,7 +110,9 @@ export class StaffController {
     try {
       const parsed = searchStaffSchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Invalid search parameters', details: parsed.error.format() });
+        return res
+          .status(400)
+          .json({ error: 'Invalid search parameters', details: parsed.error.format() });
       }
       const result = await StaffService.searchStaff(parsed.data);
       return res.json(result);

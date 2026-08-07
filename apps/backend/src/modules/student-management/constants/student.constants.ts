@@ -41,11 +41,7 @@ export const ALLOWED_ENROLLMENT_STATUS_TRANSITIONS: Record<string, string[]> = {
     enrollment_status.graduated,
     enrollment_status.withdrawn,
   ],
-  [enrollment_status.transferred_out]: [
-    enrollment_status.active,
-  ],
+  [enrollment_status.transferred_out]: [enrollment_status.active],
   [enrollment_status.graduated]: [],
-  [enrollment_status.withdrawn]: [
-    enrollment_status.active,
-  ],
+  [enrollment_status.withdrawn]: [enrollment_status.active],
 };

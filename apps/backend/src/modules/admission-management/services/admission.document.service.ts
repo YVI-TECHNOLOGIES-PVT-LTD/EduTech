@@ -8,7 +8,11 @@ import { AdmissionEvents, ApplicationEventType } from '../events/admission.event
 import { logger } from '../../../utils/logger';
 
 export class AdmissionDocumentService {
-  static async uploadDocument(applicationId: string, createdBy: string | null, dto: UploadDocumentDto) {
+  static async uploadDocument(
+    applicationId: string,
+    createdBy: string | null,
+    dto: UploadDocumentDto,
+  ) {
     const app = await AdmissionRepository.findById(applicationId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
@@ -44,7 +48,11 @@ export class AdmissionDocumentService {
     return AdmissionDocumentRepository.findByApplicationId(applicationId);
   }
 
-  static async verifyDocument(documentId: string, verifiedBy: string | null, dto: VerifyDocumentDto) {
+  static async verifyDocument(
+    documentId: string,
+    verifiedBy: string | null,
+    dto: VerifyDocumentDto,
+  ) {
     const existing = await AdmissionDocumentRepository.findById(documentId);
     if (!existing) {
       throw new DocumentNotFoundError(documentId);

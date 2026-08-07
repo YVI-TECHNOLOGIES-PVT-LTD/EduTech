@@ -7,12 +7,7 @@ export class StaffAnalyticsRepository {
     const whereBase: any = {};
     if (orgId) whereBase.org_id = orgId;
 
-    const [
-      totalStaff,
-      activeStaff,
-      inactiveStaff,
-      designationCountsRaw,
-    ] = await Promise.all([
+    const [totalStaff, activeStaff, inactiveStaff, designationCountsRaw] = await Promise.all([
       db.staff.count({ where: whereBase }),
       db.staff.count({ where: { ...whereBase, is_active: true } }),
       db.staff.count({ where: { ...whereBase, is_active: false } }),

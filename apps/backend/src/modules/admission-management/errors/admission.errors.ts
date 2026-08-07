@@ -26,7 +26,7 @@ export class InvalidApplicationStatusTransitionError extends ApplicationError {
     super(
       `Cannot transition application status from '${currentStatus}' to '${targetStatus}'`,
       422,
-      'INVALID_STATUS_TRANSITION'
+      'INVALID_STATUS_TRANSITION',
     );
   }
 }

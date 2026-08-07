@@ -1,5 +1,7 @@
 # EduTrack ERP
+
 # Admission Module Database Design
+
 Version: 1.0
 Status: Design Freeze
 
@@ -44,13 +46,13 @@ Organization is the root of the database hierarchy.
 Example:
 
 Organization
-  ↓
+↓
 Users
-  ↓
+↓
 Staff
-  ↓
+↓
 Leads
-  ↓
+↓
 Applications
 
 ---

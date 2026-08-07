@@ -2,7 +2,12 @@ import { StaffRepository } from '../repositories/staff.repository';
 import { StaffSearchRepository } from '../repositories/staff.search.repository';
 import { DesignationRepository } from '../repositories/designation.repository';
 import { StaffValidator } from '../validators/staff.validator';
-import { StaffNotFoundError, DesignationNotFoundError, DuplicateEmployeeCodeError, DuplicateUserStaffError } from '../errors/staff.errors';
+import {
+  StaffNotFoundError,
+  DesignationNotFoundError,
+  DuplicateEmployeeCodeError,
+  DuplicateUserStaffError,
+} from '../errors/staff.errors';
 import { CreateStaffDto } from '../dto/request/create-staff.dto';
 import { UpdateStaffDto } from '../dto/request/update-staff.dto';
 import { AssignDesignationDto } from '../dto/request/assign-designation.dto';
@@ -14,7 +19,10 @@ import { StaffEvents, StaffEventType } from '../events/staff.events';
 import { logger } from '../../../utils/logger';
 
 export class StaffService {
-  static async createStaff(dto: CreateStaffDto, performedBy?: string | null): Promise<StaffResponseDto> {
+  static async createStaff(
+    dto: CreateStaffDto,
+    performedBy?: string | null,
+  ): Promise<StaffResponseDto> {
     StaffValidator.validateCreate(dto);
 
     const existingCode = await StaffRepository.findByEmployeeCode(dto.org_id, dto.employee_code);
@@ -60,7 +68,11 @@ export class StaffService {
     return StaffMapper.toStaffResponseDto(staff);
   }
 
-  static async updateStaff(id: string, dto: UpdateStaffDto, performedBy?: string | null): Promise<StaffResponseDto> {
+  static async updateStaff(
+    id: string,
+    dto: UpdateStaffDto,
+    performedBy?: string | null,
+  ): Promise<StaffResponseDto> {
     const existing = await StaffRepository.findById(id);
     if (!existing) {
       throw new StaffNotFoundError(id);
@@ -86,7 +98,11 @@ export class StaffService {
     return StaffMapper.toStaffResponseDto(updated);
   }
 
-  static async assignDesignation(id: string, dto: AssignDesignationDto, performedBy?: string | null): Promise<StaffResponseDto> {
+  static async assignDesignation(
+    id: string,
+    dto: AssignDesignationDto,
+    performedBy?: string | null,
+  ): Promise<StaffResponseDto> {
     const existing = await StaffRepository.findById(id);
     if (!existing) {
       throw new StaffNotFoundError(id);
@@ -97,7 +113,11 @@ export class StaffService {
 
     const updated = await StaffRepository.assignDesignation(id, dto.designation_id, performedBy);
 
-    logger.info(`Designation assigned to staff ${id}: ${dto.designation_id}`, { staffId: id, designationId: dto.designation_id, performedBy });
+    logger.info(`Designation assigned to staff ${id}: ${dto.designation_id}`, {
+      staffId: id,
+      designationId: dto.designation_id,
+      performedBy,
+    });
 
     // Post-commit event emission
     await StaffEvents.publish(StaffEventType.DESIGNATION_ASSIGNED, {
@@ -110,7 +130,11 @@ export class StaffService {
     return StaffMapper.toStaffResponseDto(updated);
   }
 
-  static async assignUser(id: string, dto: AssignUserDto, performedBy?: string | null): Promise<StaffResponseDto> {
+  static async assignUser(
+    id: string,
+    dto: AssignUserDto,
+    performedBy?: string | null,
+  ): Promise<StaffResponseDto> {
     const existing = await StaffRepository.findById(id);
     if (!existing) {
       throw new StaffNotFoundError(id);
@@ -118,7 +142,11 @@ export class StaffService {
 
     const updated = await StaffRepository.assignUser(id, dto.user_id, performedBy);
 
-    logger.info(`User assigned to staff ${id}: ${dto.user_id}`, { staffId: id, userId: dto.user_id, performedBy });
+    logger.info(`User assigned to staff ${id}: ${dto.user_id}`, {
+      staffId: id,
+      userId: dto.user_id,
+      performedBy,
+    });
 
     // Post-commit event emission
     await StaffEvents.publish(StaffEventType.USER_LINKED, {

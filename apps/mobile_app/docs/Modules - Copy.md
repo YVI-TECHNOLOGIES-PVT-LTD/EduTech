@@ -1,6 +1,7 @@
 # EduTrack ERP Modules
 
 The mobile application foundation is prepared for 21 modules:
+
 1. Admission
 2. Student Information System (SIS)
 3. Teacher Management

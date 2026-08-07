@@ -2,7 +2,11 @@ import { enrollment_status } from '../constants/student.constants';
 import { StudentRepository } from '../repositories/student.repository';
 import { StudentSearchRepository } from '../repositories/student.search.repository';
 import { StudentValidator } from '../validators/student.validator';
-import { StudentNotFoundError, DuplicateAdmissionNumberError, DuplicateApplicationStudentError } from '../errors/student.errors';
+import {
+  StudentNotFoundError,
+  DuplicateAdmissionNumberError,
+  DuplicateApplicationStudentError,
+} from '../errors/student.errors';
 import { CreateStudentDto } from '../dto/request/create-student.dto';
 import { UpdateStudentDto } from '../dto/request/update-student.dto';
 import { UpdateStudentStatusDto } from '../dto/request/update-status.dto';
@@ -13,7 +17,10 @@ import { StudentEvents, StudentEventType } from '../events/student.events';
 import { logger } from '../../../utils/logger';
 
 export class StudentService {
-  static async createStudent(dto: CreateStudentDto, performedBy?: string | null): Promise<StudentResponseDto> {
+  static async createStudent(
+    dto: CreateStudentDto,
+    performedBy?: string | null,
+  ): Promise<StudentResponseDto> {
     StudentValidator.validateCreate(dto);
 
     const existingApp = await StudentRepository.findByApplicationId(dto.application_id);
@@ -57,7 +64,11 @@ export class StudentService {
     return StudentMapper.toResponseDto(student);
   }
 
-  static async updateStudent(id: string, dto: UpdateStudentDto, performedBy?: string | null): Promise<StudentResponseDto> {
+  static async updateStudent(
+    id: string,
+    dto: UpdateStudentDto,
+    performedBy?: string | null,
+  ): Promise<StudentResponseDto> {
     const existing = await StudentRepository.findById(id);
     if (!existing) {
       throw new StudentNotFoundError(id);
@@ -84,7 +95,11 @@ export class StudentService {
     return StudentMapper.toResponseDto(updated);
   }
 
-  static async updateStatus(id: string, dto: UpdateStudentStatusDto, performedBy?: string | null): Promise<StudentResponseDto> {
+  static async updateStatus(
+    id: string,
+    dto: UpdateStudentStatusDto,
+    performedBy?: string | null,
+  ): Promise<StudentResponseDto> {
     const existing = await StudentRepository.findById(id);
     if (!existing) {
       throw new StudentNotFoundError(id);
@@ -114,7 +129,10 @@ export class StudentService {
     return StudentMapper.toResponseDto(updated);
   }
 
-  static async deleteStudent(id: string, performedBy?: string | null): Promise<{ success: boolean }> {
+  static async deleteStudent(
+    id: string,
+    performedBy?: string | null,
+  ): Promise<{ success: boolean }> {
     const existing = await StudentRepository.findById(id);
     if (!existing) {
       throw new StudentNotFoundError(id);
@@ -135,7 +153,9 @@ export class StudentService {
     return { success: true };
   }
 
-  static async searchStudents(params: SearchStudentDto): Promise<PaginatedResponse<StudentResponseDto>> {
+  static async searchStudents(
+    params: SearchStudentDto,
+  ): Promise<PaginatedResponse<StudentResponseDto>> {
     const result = await StudentSearchRepository.search(params);
 
     return {

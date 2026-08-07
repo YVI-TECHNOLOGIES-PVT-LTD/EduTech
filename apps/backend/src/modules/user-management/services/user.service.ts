@@ -12,7 +12,10 @@ import { UserEvents, UserEventType } from '../events/user.events';
 import { logger } from '../../../utils/logger';
 
 export class UserService {
-  static async createUser(dto: CreateUserDto, performedBy?: string | null): Promise<UserResponseDto> {
+  static async createUser(
+    dto: CreateUserDto,
+    performedBy?: string | null,
+  ): Promise<UserResponseDto> {
     UserValidator.validateCreate(dto);
 
     const existingEmail = await UserRepository.findByEmail(dto.email);
@@ -48,7 +51,11 @@ export class UserService {
     return UserMapper.toUserResponseDto(user);
   }
 
-  static async updateUser(id: string, dto: UpdateUserDto, performedBy?: string | null): Promise<UserResponseDto> {
+  static async updateUser(
+    id: string,
+    dto: UpdateUserDto,
+    performedBy?: string | null,
+  ): Promise<UserResponseDto> {
     const existing = await UserRepository.findById(id);
     if (!existing) {
       throw new UserNotFoundError(id);
@@ -74,7 +81,11 @@ export class UserService {
     return UserMapper.toUserResponseDto(updated);
   }
 
-  static async updateUserStatus(id: string, dto: UpdateUserStatusDto, performedBy?: string | null): Promise<UserResponseDto> {
+  static async updateUserStatus(
+    id: string,
+    dto: UpdateUserStatusDto,
+    performedBy?: string | null,
+  ): Promise<UserResponseDto> {
     const existing = await UserRepository.findById(id);
     if (!existing) {
       throw new UserNotFoundError(id);
@@ -82,7 +93,11 @@ export class UserService {
 
     const updated = await UserRepository.updateStatus(id, dto.status, performedBy);
 
-    logger.info(`User status updated: ${id} -> ${dto.status}`, { userId: id, status: dto.status, performedBy });
+    logger.info(`User status updated: ${id} -> ${dto.status}`, {
+      userId: id,
+      status: dto.status,
+      performedBy,
+    });
 
     // Post-commit event emission
     await UserEvents.publish(UserEventType.STATUS_CHANGED, {

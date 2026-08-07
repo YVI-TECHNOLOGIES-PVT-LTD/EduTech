@@ -51,7 +51,11 @@ export class AcademicYearRepository {
     });
   }
 
-  static async update(academic_year_id: string, dto: UpdateAcademicYearDto, updatedBy?: string | null) {
+  static async update(
+    academic_year_id: string,
+    dto: UpdateAcademicYearDto,
+    updatedBy?: string | null,
+  ) {
     const data: any = { updated_at: new Date() };
     if (dto.academic_year_name !== undefined) data.academic_year_name = dto.academic_year_name;
     if (dto.start_date !== undefined) data.start_date = new Date(dto.start_date);

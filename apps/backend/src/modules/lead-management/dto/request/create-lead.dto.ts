@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { lead_source, lead_stage, lead_priority, gender_type, relationship_type } from '@prisma/client';
+import {
+  lead_source,
+  lead_stage,
+  lead_priority,
+  gender_type,
+  relationship_type,
+} from '@prisma/client';
 
 export const createLeadSchema = z.object({
   org_id: z.string().uuid('Invalid organization ID'),

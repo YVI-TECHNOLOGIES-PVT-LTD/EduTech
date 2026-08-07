@@ -6,7 +6,11 @@ import { AdmissionEvents, ApplicationEventType } from '../events/admission.event
 import { logger } from '../../../utils/logger';
 
 export class AdmissionPaymentService {
-  static async recordPayment(applicationId: string, createdBy: string | null, dto: RecordPaymentDto) {
+  static async recordPayment(
+    applicationId: string,
+    createdBy: string | null,
+    dto: RecordPaymentDto,
+  ) {
     const app = await AdmissionRepository.findById(applicationId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
@@ -27,7 +31,11 @@ export class AdmissionPaymentService {
       applicationId,
       performedBy: createdBy,
       timestamp: new Date().toISOString(),
-      metadata: { paymentId: payment.payment_id, amount: Number(payment.amount), paymentStatus: payment.payment_status },
+      metadata: {
+        paymentId: payment.payment_id,
+        amount: Number(payment.amount),
+        paymentStatus: payment.payment_status,
+      },
     });
 
     return payment;

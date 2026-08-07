@@ -8,7 +8,10 @@ import { UserMapper } from '../mappers/user.mapper';
 import { logger } from '../../../utils/logger';
 
 export class RoleService {
-  static async createRole(dto: CreateRoleDto, performedBy?: string | null): Promise<RoleResponseDto> {
+  static async createRole(
+    dto: CreateRoleDto,
+    performedBy?: string | null,
+  ): Promise<RoleResponseDto> {
     UserValidator.validateCreateRole(dto);
 
     const existing = await RoleRepository.findByName(dto.org_id, dto.role_name);
@@ -35,7 +38,11 @@ export class RoleService {
     return UserMapper.toRoleResponseDto(role);
   }
 
-  static async updateRole(id: string, dto: UpdateRoleDto, performedBy?: string | null): Promise<RoleResponseDto> {
+  static async updateRole(
+    id: string,
+    dto: UpdateRoleDto,
+    performedBy?: string | null,
+  ): Promise<RoleResponseDto> {
     const existing = await RoleRepository.findById(id);
     if (!existing) {
       throw new RoleNotFoundError(id);

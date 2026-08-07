@@ -9,10 +9,17 @@ import { AcademicEvents, AcademicEventType } from '../events/academic.events';
 import { logger } from '../../../utils/logger';
 
 export class GradeService {
-  static async createGrade(dto: CreateGradeDto, performedBy?: string | null): Promise<GradeResponseDto> {
+  static async createGrade(
+    dto: CreateGradeDto,
+    performedBy?: string | null,
+  ): Promise<GradeResponseDto> {
     AcademicValidator.validateCreateGrade(dto);
 
-    const existing = await GradeRepository.findByCodeOrName(dto.org_id, dto.grade_code, dto.grade_name);
+    const existing = await GradeRepository.findByCodeOrName(
+      dto.org_id,
+      dto.grade_code,
+      dto.grade_name,
+    );
     if (existing) {
       throw new DuplicateGradeError(dto.grade_code);
     }
@@ -45,7 +52,11 @@ export class GradeService {
     return AcademicMapper.toGradeResponseDto(grade);
   }
 
-  static async updateGrade(id: string, dto: UpdateGradeDto, performedBy?: string | null): Promise<GradeResponseDto> {
+  static async updateGrade(
+    id: string,
+    dto: UpdateGradeDto,
+    performedBy?: string | null,
+  ): Promise<GradeResponseDto> {
     const existing = await GradeRepository.findById(id);
     if (!existing) {
       throw new GradeNotFoundError(id);

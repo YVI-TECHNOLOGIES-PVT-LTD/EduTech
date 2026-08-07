@@ -29,7 +29,11 @@ export class DesignationNotFoundError extends StaffError {
 
 export class DuplicateEmployeeCodeError extends StaffError {
   constructor(code: string) {
-    super(`Staff with employee code '${code}' already exists in organization`, 409, 'DUPLICATE_EMPLOYEE_CODE');
+    super(
+      `Staff with employee code '${code}' already exists in organization`,
+      409,
+      'DUPLICATE_EMPLOYEE_CODE',
+    );
   }
 }
 
@@ -41,7 +45,11 @@ export class DuplicateUserStaffError extends StaffError {
 
 export class DuplicateDesignationNameError extends StaffError {
   constructor(name: string) {
-    super(`Designation with name '${name}' already exists in organization`, 409, 'DUPLICATE_DESIGNATION_NAME');
+    super(
+      `Designation with name '${name}' already exists in organization`,
+      409,
+      'DUPLICATE_DESIGNATION_NAME',
+    );
   }
 }
 

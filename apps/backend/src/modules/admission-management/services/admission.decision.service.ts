@@ -7,7 +7,11 @@ import { AdmissionEvents, ApplicationEventType } from '../events/admission.event
 import { logger } from '../../../utils/logger';
 
 export class AdmissionDecisionService {
-  static async recordDecision(applicationId: string, createdBy: string | null, dto: RecordDecisionDto) {
+  static async recordDecision(
+    applicationId: string,
+    createdBy: string | null,
+    dto: RecordDecisionDto,
+  ) {
     const app = await AdmissionRepository.findById(applicationId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);

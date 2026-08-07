@@ -13,14 +13,17 @@ import { LeadEvents, LeadEventType } from '../events/lead.events';
 import { logger } from '../../../utils/logger';
 
 export class LeadService {
-  static async createLead(dto: CreateLeadDto, performedBy?: string | null): Promise<LeadResponseDto> {
+  static async createLead(
+    dto: CreateLeadDto,
+    performedBy?: string | null,
+  ): Promise<LeadResponseDto> {
     LeadValidator.validateCreate(dto);
 
     // Duplicate Check
     const duplicates = await LeadRepository.findDuplicates(
       String(dto.contact_phone),
       dto.contact_email ? String(dto.contact_email) : undefined,
-      dto.contact_name ? String(dto.contact_name) : undefined
+      dto.contact_name ? String(dto.contact_name) : undefined,
     );
     if (duplicates.length > 0) {
       logger.warn(`Potential duplicate lead detected for phone ${dto.contact_phone}`, {
@@ -47,9 +50,6 @@ export class LeadService {
       metadata: { leadNumber: lead.lead_number },
     });
 
-
-
-
     return LeadMapper.toResponseDto(lead);
   }
 
@@ -61,7 +61,11 @@ export class LeadService {
     return LeadMapper.toResponseDto(lead);
   }
 
-  static async updateLead(id: string, dto: UpdateLeadDto, performedBy?: string | null): Promise<LeadResponseDto> {
+  static async updateLead(
+    id: string,
+    dto: UpdateLeadDto,
+    performedBy?: string | null,
+  ): Promise<LeadResponseDto> {
     const existing = await LeadRepository.findById(id);
     if (!existing) {
       throw new LeadNotFoundError(id);
