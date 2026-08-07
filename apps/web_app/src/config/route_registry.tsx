@@ -19,6 +19,9 @@ import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 
+import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
+import { ParentPortal } from '../pages/ParentPortal';
+
 export interface RouteConfig {
   path: string;
   element: React.ReactNode;
@@ -29,8 +32,26 @@ export interface RouteConfig {
 }
 
 export const ROUTE_REGISTRY: RouteConfig[] = [
+  // SCHOOL OPERATIONS WORKSPACE (CONSOLIDATED INTERNAL STAFF)
+  { path: 'workspace', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'people', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'people/students', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'people/parents', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'people/staff', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'school', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'school/academics', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+
+  // PARENT PORTAL (ISOLATED PARENT PERSONA)
+  { path: 'parent/dashboard', element: <ParentPortal />, layout: 'dashboard' },
+  { path: 'parent/applications', element: <ParentPortal />, layout: 'dashboard' },
+  { path: 'parent/documents', element: <ParentPortal />, layout: 'dashboard' },
+  { path: 'parent/my-child', element: <ParentPortal />, layout: 'dashboard' },
+  { path: 'parent/notifications', element: <ParentPortal />, layout: 'dashboard' },
+  { path: 'parent/profile', element: <ParentPortal />, layout: 'dashboard' },
+
   // CORE DASHBOARDS
-  { path: 'dashboard', element: <Dashboard />, layout: 'dashboard' },
+  { path: 'dashboard', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+
   {
     path: 'student/dashboard',
     element: <StudentDashboard />,

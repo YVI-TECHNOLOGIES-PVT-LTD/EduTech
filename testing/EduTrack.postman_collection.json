@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "EduTrack ERP Complete Master API Collection",
-    "description": "Complete Postman v2.1 collection for EduTrack ERP Stage-0 and Stage-1 REST APIs with automated test scripts and variable chaining.",
+    "description": "Complete Postman v2.1 collection for EduTrack ERP Stage-0 and Stage-1 REST APIs with Native Prisma Authentication, automated test scripts, and variable chaining.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -9,16 +9,30 @@
       "name": "1. Authentication",
       "item": [
         {
-          "name": "User Login",
+          "name": "User Login (Native Prisma Auth)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) { pm.environment.set('token', jsonData.accessToken); }",
-                  "if (jsonData.refreshToken) { pm.environment.set('refreshToken', jsonData.refreshToken); }"
+                  "var response = pm.response.json();",
+                  "if (response.accessToken) {",
+                  "    pm.environment.set('accessToken', response.accessToken);",
+                  "    pm.environment.set('token', response.accessToken);",
+                  "}",
+                  "if (response.refreshToken) {",
+                  "    pm.environment.set('refreshToken', response.refreshToken);",
+                  "}",
+                  "if (response.user) {",
+                  "    if (response.user.id) pm.environment.set('userId', response.user.id);",
+                  "    if (response.user.email) pm.environment.set('email', response.user.email);",
+                  "    if (response.user.school_id) {",
+                  "        pm.environment.set('schoolId', response.user.school_id);",
+                  "        pm.environment.set('organizationId', response.user.school_id);",
+                  "        pm.environment.set('orgId', response.user.school_id);",
+                  "    }",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -29,7 +43,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@apexacademy.edu\",\n  \"password\": \"Pass123!\"\n}"
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -46,9 +60,14 @@
               "script": {
                 "exec": [
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) { pm.environment.set('token', jsonData.accessToken); }",
-                  "if (jsonData.refreshToken) { pm.environment.set('refreshToken', jsonData.refreshToken); }"
+                  "var response = pm.response.json();",
+                  "if (response.accessToken) {",
+                  "    pm.environment.set('accessToken', response.accessToken);",
+                  "    pm.environment.set('token', response.accessToken);",
+                  "}",
+                  "if (response.refreshToken) {",
+                  "    pm.environment.set('refreshToken', response.refreshToken);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -85,8 +104,8 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "x-tenant-id", "value": "{{orgId}}" }
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-tenant-id", "value": "{{schoolId}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/me",
@@ -111,8 +130,8 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "x-tenant-id", "value": "{{orgId}}" }
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-tenant-id", "value": "{{schoolId}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
@@ -137,8 +156,8 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "x-tenant-id", "value": "{{orgId}}" }
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-tenant-id", "value": "{{schoolId}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
@@ -156,7 +175,7 @@
           "name": "List Organizations",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/organizations",
               "host": ["{{baseUrl}}"],
@@ -173,7 +192,7 @@
                 "exec": [
                   "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
                   "var jsonData = pm.response.json();",
-                  "if (jsonData.id) { pm.environment.set('orgId', jsonData.id); }"
+                  "if (jsonData.id) { pm.environment.set('orgId', jsonData.id); pm.environment.set('schoolId', jsonData.id); }"
                 ],
                 "type": "text/javascript"
               }
@@ -182,7 +201,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
@@ -219,8 +238,8 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "x-tenant-id", "value": "{{orgId}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-tenant-id", "value": "{{schoolId}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
@@ -253,8 +272,8 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "x-tenant-id", "value": "{{orgId}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-tenant-id", "value": "{{schoolId}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
@@ -291,8 +310,8 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "x-tenant-id", "value": "{{orgId}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-tenant-id", "value": "{{schoolId}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {

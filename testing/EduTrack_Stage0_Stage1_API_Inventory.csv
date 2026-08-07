@@ -1,0 +1,62 @@
+S.No,Module,Method,Endpoint,Authentication,Request Body (POST/PUT/PATCH),Query Params,Path Params,Success Response,Status Codes,Front Office,Parent,SuperAdmin,Remarks
+1,System,GET,/health,Public,-,-,-,"{ status: ""ok"" }",200,Yes,Yes,Yes,Health probe
+2,System,GET,/health/liveness,Public,-,-,-,"{ status: ""alive"" }",200,No,No,Yes,K8s liveness probe
+3,System,GET,/health/readiness,Public,-,-,-,"{ status: ""ready"" }","200, 503",No,No,Yes,DB readiness probe
+4,System,GET,/system/info,Public,-,-,-,"{ mode: ""production"" }",200,Yes,Yes,Yes,System metadata
+5,Auth,POST,/auth/login,Public,"LoginDto { email, password }",-,-,"{ accessToken, refreshToken, user }","200, 401",Yes,Yes,Yes,Issues JWT session
+6,Auth,POST,/auth/refresh,Public,"RefreshDto { refreshToken }",-,-,"{ accessToken }","200, 401",Yes,Yes,Yes,Rotates session token
+7,Auth,POST,/auth/logout,Bearer JWT,-,-,-,"{ status: ""ok"" }",200,Yes,Yes,Yes,Invalidates session
+8,Admissions,POST,/v1/admission/public-apply,Public,PublicApplyDto (FormData),-,-,{ application_id },"201, 400",No,Yes,No,Public application submission
+9,Org,GET,/schools,Public,-,-,-,School[],200,Yes,Yes,Yes,Schools directory lookup
+10,Academics,GET,/public/academic-year,Public,-,-,-,AcademicYear,200,Yes,Yes,Yes,Active academic session
+11,Academics,GET,/public/classes,Public,-,school_id,-,Class[],200,Yes,Yes,Yes,Grade level lookup
+12,Admissions,GET,/public/admission/config,Public,-,school_id,-,Config Object,200,Yes,Yes,Yes,Form schema & version
+13,Admissions,GET,/v1/admission/my,Bearer JWT,-,-,-,Admission[],200,No,Yes,No,Parent self-service roster
+14,Admissions,POST,/v1/admission/apply,Bearer JWT,ApplyDto,-,-,{ application_id },201,No,Yes,No,Parent logged-in application
+15,Auth,GET,/v1/auth/me,Bearer JWT,-,-,-,EnrichedUser,200,Yes,Yes,Yes,Active session user profile
+16,Org,GET,/schools/current,Bearer JWT,-,-,-,School,"200, 404",Yes,No,Yes,Active tenant school metadata
+17,Academics,GET,/academic-years/current,Bearer JWT,-,-,-,AcademicYear,200,Yes,No,Yes,Current active school year
+18,Academics,POST,/academic-years,Bearer JWT,"CreateYearDto { year_label, is_active }",-,-,AcademicYear,"201, 400",Yes,No,Yes,Create academic session
+19,CRM,POST,/v1/admission/crm/enquiries,Bearer JWT,CreateEnquiryDto,-,-,{ id },201,Yes,No,No,Log prospective inquiry
+20,CRM,GET,/v1/admission/crm/enquiries,Bearer JWT,-,"page, limit, status",-,Enquiry[],200,Yes,No,No,Inquiries roster
+21,CRM,GET,/v1/admission/crm/enquiries/:id,Bearer JWT,-,-,id,Enquiry,"200, 404",Yes,No,No,Inquiry details
+22,CRM,PUT,/v1/admission/crm/enquiries/:id,Bearer JWT,UpdateEnquiryDto,-,id,{ id },200,Yes,No,No,Update inquiry record
+23,CRM,DELETE,/v1/admission/crm/enquiries/:id,Bearer JWT,-,-,id,"{ status: ""deleted"" }",200,Yes,No,No,Soft delete inquiry
+24,CRM,POST,/v1/admission/crm/enquiries/:id/convert,Bearer JWT,-,-,id,{ lead_id },200,Yes,No,No,Convert inquiry to lead
+25,CRM,GET,/v1/admission/crm/leads,Bearer JWT,-,"page, search, status",-,Lead[],200,Yes,No,No,Leads desk roster
+26,CRM,GET,/v1/admission/crm/leads/:id,Bearer JWT,-,-,id,Lead,"200, 404",Yes,No,No,Lead details 360 view
+27,CRM,PUT,/v1/admission/crm/leads/:id,Bearer JWT,UpdateLeadDto,-,id,{ id },200,Yes,No,No,Update lead status/notes
+28,CRM,PUT,/v1/admission/crm/leads/:id/assign,Bearer JWT,"AssignLeadDto { counselor_id }",-,id,{ id },200,Yes,No,No,Assign counselor to lead
+29,CRM,POST,/v1/admission/crm/followups,Bearer JWT,CreateFollowupDto,-,-,{ id },201,Yes,No,No,Log counseling followup
+30,CRM,GET,/v1/admission/crm/followups,Bearer JWT,-,lead_id,-,Followup[],200,Yes,No,No,Followup interaction logs
+31,CRM,POST,/v1/admission/crm/visitors,Bearer JWT,CreateVisitorDto,-,-,{ id },201,Yes,No,No,Issue gate pass visitor log
+32,CRM,GET,/v1/admission/crm/visitors,Bearer JWT,-,"date, search",-,Visitor[],200,Yes,No,No,Visitor gate pass log
+33,CRM,GET,/v1/admission/crm/counselors,Bearer JWT,-,-,-,Counselor[],200,Yes,No,No,Available counselors list
+34,Admissions,POST,/v1/admission/application/documents/upload,Bearer JWT,Multipart File,-,-,{ document_id },201,Yes,Yes,No,Upload verification document
+35,Admissions,POST,/v1/admission/application/documents/upload/bulk,Bearer JWT,Multipart Files,-,-,Document[],201,Yes,No,No,Batch document upload
+36,Admissions,GET,/v1/admission/application/documents/:id,Bearer JWT,-,-,id,Document,"200, 404",Yes,Yes,No,View document metadata
+37,Admissions,POST,/v1/admission/application/documents/:id/verify,Bearer JWT,"VerifyDocDto { status, remarks }",-,id,{ id },200,Yes,No,No,Verify/reject application doc
+38,Admissions,GET,/v1/admission/application/documents/checklist/:grade,Bearer JWT,-,-,grade,Checklist[],200,Yes,Yes,No,Required document checklist
+39,Admissions,POST,/v1/admission/enrollment/fees/assign,Bearer JWT,"AssignFeeDto { structure_id }",-,-,{ id },200,Yes,No,No,Assign fee structure to app
+40,Admissions,POST,/v1/admission/enrollment/payments,Bearer JWT,CollectPaymentDto,-,-,{ payment_id },201,Yes,No,No,Collect admission deposit
+41,Admissions,GET,/v1/admission/enrollment/payments/:paymentId/receipt,Bearer JWT,-,-,paymentId,Receipt,200,Yes,Yes,No,Generate payment receipt
+42,Admissions,POST,/v1/admission/enrollment/enroll,Bearer JWT,"EnrollStudentDto { application_id }",-,-,{ student_id },200,Yes,No,No,Finalize SIS student enrollment
+43,Dashboard,GET,/dashboard/admin/overview,Bearer JWT,-,-,-,Overview Object,200,Yes,No,Yes,Staff operational inbox overview
+44,Dashboard,GET,/dashboard/parent/overview,Bearer JWT,-,-,-,Parent Overview,200,No,Yes,No,Parent portal dashboard widgets
+45,Dashboard,GET,/dashboard/timeline,Bearer JWT,-,-,-,TimelineEvent[],200,Yes,No,No,School activity event stream
+46,People,GET,/v1/students,Bearer JWT,-,"search, status, grade",-,Student[],200,Yes,No,No,Student directory search
+47,People,POST,/v1/students,Bearer JWT,CreateStudentDto,-,-,{ id },201,Yes,No,No,Manual student profile creation
+48,People,GET,/v1/students/:id,Bearer JWT,-,-,id,Student,"200, 404",Yes,No,No,Student 360 profile details
+49,People,PATCH,/v1/students/:id,Bearer JWT,UpdateStudentDto,-,id,{ id },200,Yes,No,No,Update student demographics
+50,People,PATCH,/v1/students/:id/status,Bearer JWT,{ status },-,id,{ id },200,Yes,No,No,Toggle student active status
+51,People,GET,/v1/parents,Bearer JWT,-,"search, student_id",-,Parent[],200,Yes,No,No,Parent/guardian directory
+52,People,GET,/v1/parents/:id,Bearer JWT,-,-,id,Parent,"200, 404",Yes,No,No,Parent profile & linked students
+53,People,GET,/v1/staff,Bearer JWT,-,"search, department",-,Staff[],200,Yes,No,Yes,Staff directory roster
+54,People,POST,/v1/staff,Bearer JWT,CreateStaffDto,-,-,{ id },201,Yes,No,Yes,Onboard staff member
+55,Settings,GET,/v1/users,Bearer JWT,-,"search, role",-,User[],200,Yes,No,Yes,User accounts administration
+56,Settings,POST,/v1/users,Bearer JWT,CreateUserDto,-,-,{ id },201,Yes,No,Yes,Create user access account
+57,Settings,GET,/v1/users/:id,Bearer JWT,-,-,id,User,"200, 404",Yes,No,Yes,User account details
+58,Settings,PATCH,/v1/users/:id/status,Bearer JWT,{ status },-,id,{ id },200,Yes,No,Yes,Lock/unlock user access
+59,Settings,GET,/v1/users/roles,Bearer JWT,-,-,-,Role[],200,Yes,No,Yes,System roles & permissions
+60,Academics,GET,/v1/academic/sections,Bearer JWT,-,"academic_year_id, grade_id",-,Section[],200,Yes,No,Yes,Class section lookup
+61,System,GET,/system/rbac/audit,Public,-,-,-,"{ rbac: ""ok"" }",200,No,No,Yes,RBAC inspection probe
