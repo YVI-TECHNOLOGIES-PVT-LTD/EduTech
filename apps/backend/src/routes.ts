@@ -19,6 +19,19 @@ import { adminRouter } from './modules/admin/admin.routes';
 import { bulkRouter } from './modules/admin/bulk.routes';
 import { workflowRouter } from './workflows/workflow.routes';
 import { taskRouter } from './workflows/task.routes';
+import { leadRouter } from './modules/lead-management/routes/lead.routes';
+import { admissionRouter as admissionManagementRouter } from './modules/admission-management/routes/admission.routes';
+import { studentRouter as studentManagementRouter } from './modules/student-management/routes/student.routes';
+import { parentRouter as parentManagementRouter } from './modules/parent-management/routes/parent.routes';
+import { academicRouter as academicManagementRouter } from './modules/academic-management/routes/academic.routes';
+import { staffRouter as staffManagementRouter } from './modules/staff-management/routes/staff.routes';
+import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
+
+
+
+
+
+
 
 import { env } from './config/env';
 
@@ -515,4 +528,38 @@ router.use('/admin', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW));
 router.use('/admin', adminRouter);
 router.use('/admin/bulk', bulkRouter);
 router.use('/admin/departments', departmentRouter);
+
+// Lead Management Module (Phase 3.1)
+router.use('/v1/leads', authenticate, leadRouter);
+router.use('/leads', authenticate, leadRouter);
+
+// Admission Application Management Module (Phase 3.2)
+router.use('/v1/applications', authenticate, admissionManagementRouter);
+router.use('/applications', authenticate, admissionManagementRouter);
+
+// Student Management Module (Phase 3.3)
+router.use('/v1/students', authenticate, studentManagementRouter);
+router.use('/students', authenticate, studentManagementRouter);
+
+// Parent Management Module (Phase 3.4)
+router.use('/v1/parents', authenticate, parentManagementRouter);
+router.use('/parents', authenticate, parentManagementRouter);
+
+// Academic Structure Management Module (Phase 3.5)
+router.use('/v1/academic', authenticate, academicManagementRouter);
+router.use('/academic', authenticate, academicManagementRouter);
+
+// Staff Management Module (Phase 3.6)
+router.use('/v1/staff', authenticate, staffManagementRouter);
+router.use('/staff', authenticate, staffManagementRouter);
+
+// User & Role Administration Module (Phase 3.7)
+router.use('/v1/users', authenticate, userManagementRouter);
+router.use('/users', authenticate, userManagementRouter);
+
+
+
+
+
+
 

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@edutrack/types": ["../../types/src/index.ts"],
+      "@edutrack/ui": ["../../ui/src/index.ts"],
+      "@edutrack/validation": ["../../validation/src/index.ts"]
+    }
+  }
+}

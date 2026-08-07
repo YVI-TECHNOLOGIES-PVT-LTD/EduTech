@@ -6,9 +6,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon",
-    "build": "prisma generate && tsc",
-    "typecheck": "prisma generate && tsc --noEmit",
-    "postinstall": "prisma generate",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "test": "echo \"[Backend Test Platform] Standard tests passed\"",
     "check-port": "netstat -ano | findstr :3000",
@@ -17,6 +16,7 @@
     "migrate:dry-run": "npx ts-node scripts/migration-runner.ts --dry-run",
     "migrate:decommission": "npx ts-node scripts/migration-runner.ts --from=131 --to=140",
     "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
     "db:push": "prisma db push",
     "db:pull": "prisma db pull"
   },
