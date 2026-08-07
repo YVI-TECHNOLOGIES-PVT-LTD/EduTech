@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authenticateOptional, checkLoginApproval } from './auth/auth.middleware';
+import { publicAuthRouter, protectedAuthRouter } from './auth/auth.routes';
 import { checkPermission } from './rbac/rbac.middleware';
 import { PERMISSIONS } from './rbac/permissions';
 import { supabase } from './config/supabase';
@@ -32,7 +33,7 @@ import { env } from './config/env';
 export const router = Router();
 
 // ======================================
-// PUBLIC
+// PUBLIC SYSTEM PROBES
 // ======================================
 router.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -66,12 +67,18 @@ router.get('/system/info', (req: Request, res: Response) => {
   res.json({ mode: env.SYSTEM_MODE });
 });
 
+// ======================================
+// PUBLIC AUTHENTICATION ROUTER (Before Global Auth Middleware)
+// Handles: /auth/login, /v1/auth/login, /auth/refresh, /v1/auth/refresh
+// ======================================
+router.use('/auth', publicAuthRouter);
+router.use('/v1/auth', publicAuthRouter);
+
 // Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
 router.post('/v1/admission/public-apply', publicApplicationController.apply);
 router.post('/admissions/public-apply', publicApplicationController.apply);
 router.post('/admissions', authenticateOptional, AdmissionController.create);
 
-// Public lookup for schools
 // Public lookup for schools
 router.get('/schools', async (req: Request, res: Response) => {
   try {
@@ -83,7 +90,6 @@ router.get('/schools', async (req: Request, res: Response) => {
   }
 });
 
-// Public lookup for current year (required for registration if not hardcoded)
 // Public lookup for current year (required for registration if not hardcoded)
 router.get('/public/academic-year', async (req: Request, res: Response) => {
   try {
@@ -342,6 +348,10 @@ router.get('/public/inspect-rbac', async (req: Request, res: Response) => {
 router.use(authenticate);
 router.use(checkLoginApproval);
 
+// Protected Auth Router
+router.use('/auth', protectedAuthRouter);
+router.use('/v1/auth', protectedAuthRouter);
+
 // Parent CRM applications (alias for /v1/admission/application/my)
 router.get(
   '/v1/admission/my',
@@ -355,9 +365,8 @@ router.post(
   applicationController.parentApply,
 );
 
-// 1. GET /me
-// 1. GET /me
-router.get('/me', async (req: Request, res: Response) => {
+// 1. GET /me & GET /auth/me
+const handleMe = async (req: Request, res: Response) => {
   try {
     const userObj = req.context!.user;
     let entranceExamEnabled = false;
@@ -409,9 +418,12 @@ router.get('/me', async (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
-});
+};
 
-// 2. GET /schools/current
+router.get('/me', handleMe);
+router.get('/auth/me', handleMe);
+router.get('/v1/auth/me', handleMe);
+
 // 2. GET /schools/current
 router.get('/schools/current', async (req: Request, res: Response) => {
   const school_id = req.context!.user.school_id;
@@ -422,7 +434,6 @@ router.get('/schools/current', async (req: Request, res: Response) => {
   res.json(data);
 });
 
-// 3. GET /academic-years/current
 // 3. GET /academic-years/current
 router.get('/academic-years/current', async (req: Request, res: Response) => {
   const school_id = req.context!.user.school_id;
@@ -438,7 +449,6 @@ router.get('/academic-years/current', async (req: Request, res: Response) => {
 });
 
 // 3b. GET /academic-years (All)
-// 3b. GET /academic-years (All)
 router.get('/academic-years', async (req: Request, res: Response) => {
   const school_id = req.context!.user.school_id;
   const { data, error } = await supabase
@@ -451,7 +461,6 @@ router.get('/academic-years', async (req: Request, res: Response) => {
   res.json(data);
 });
 
-// 4. POST /academic-years
 // 4. POST /academic-years
 router.post('/academic-years', async (req: Request, res: Response) => {
   const school_id = req.context!.user.school_id;

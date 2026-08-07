@@ -17,7 +17,8 @@
                 "exec": [
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                   "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) { pm.environment.set('token', jsonData.accessToken); }"
+                  "if (jsonData.accessToken) { pm.environment.set('token', jsonData.accessToken); }",
+                  "if (jsonData.refreshToken) { pm.environment.set('refreshToken', jsonData.refreshToken); }"
                 ],
                 "type": "text/javascript"
               }
@@ -28,7 +29,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@apexacademy.edu\",\n  \"passwordHash\": \"Pass123!\"\n}"
+              "raw": "{\n  \"email\": \"admin@apexacademy.edu\",\n  \"password\": \"Pass123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -38,7 +39,64 @@
           }
         },
         {
-          "name": "Get Current User Profile",
+          "name": "Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) { pm.environment.set('token', jsonData.accessToken); }",
+                  "if (jsonData.refreshToken) { pm.environment.set('refreshToken', jsonData.refreshToken); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Contains user object', function () { var data = pm.response.json(); pm.expect(data.user).to.exist; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "x-tenant-id", "value": "{{orgId}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["me"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile (/auth/me)",
           "event": [
             {
               "listen": "test",
@@ -56,7 +114,37 @@
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "x-tenant-id", "value": "{{orgId}}" }
             ],
-            "url": { "raw": "{{baseUrl}}/me", "host": ["{{baseUrl}}"], "path": ["me"] }
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "User Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "x-tenant-id", "value": "{{orgId}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
           }
         }
       ]
