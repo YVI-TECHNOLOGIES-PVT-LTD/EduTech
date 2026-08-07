@@ -24,6 +24,13 @@ const admin_routes_1 = require("./modules/admin/admin.routes");
 const bulk_routes_1 = require("./modules/admin/bulk.routes");
 const workflow_routes_1 = require("./workflows/workflow.routes");
 const task_routes_1 = require("./workflows/task.routes");
+const lead_routes_1 = require("./modules/lead-management/routes/lead.routes");
+const admission_routes_1 = require("./modules/admission-management/routes/admission.routes");
+const student_routes_1 = require("./modules/student-management/routes/student.routes");
+const parent_routes_1 = require("./modules/parent-management/routes/parent.routes");
+const academic_routes_1 = require("./modules/academic-management/routes/academic.routes");
+const staff_routes_1 = require("./modules/staff-management/routes/staff.routes");
+const user_routes_1 = require("./modules/user-management/routes/user.routes");
 const env_1 = require("./config/env");
 exports.router = (0, express_1.Router)();
 // ======================================
@@ -483,3 +490,24 @@ exports.router.use('/admin', (0, rbac_middleware_1.checkPermission)(permissions_
 exports.router.use('/admin', admin_routes_1.adminRouter);
 exports.router.use('/admin/bulk', bulk_routes_1.bulkRouter);
 exports.router.use('/admin/departments', department_routes_1.default);
+// Lead Management Module (Phase 3.1)
+exports.router.use('/v1/leads', auth_middleware_1.authenticate, lead_routes_1.leadRouter);
+exports.router.use('/leads', auth_middleware_1.authenticate, lead_routes_1.leadRouter);
+// Admission Application Management Module (Phase 3.2)
+exports.router.use('/v1/applications', auth_middleware_1.authenticate, admission_routes_1.admissionRouter);
+exports.router.use('/applications', auth_middleware_1.authenticate, admission_routes_1.admissionRouter);
+// Student Management Module (Phase 3.3)
+exports.router.use('/v1/students', auth_middleware_1.authenticate, student_routes_1.studentRouter);
+exports.router.use('/students', auth_middleware_1.authenticate, student_routes_1.studentRouter);
+// Parent Management Module (Phase 3.4)
+exports.router.use('/v1/parents', auth_middleware_1.authenticate, parent_routes_1.parentRouter);
+exports.router.use('/parents', auth_middleware_1.authenticate, parent_routes_1.parentRouter);
+// Academic Structure Management Module (Phase 3.5)
+exports.router.use('/v1/academic', auth_middleware_1.authenticate, academic_routes_1.academicRouter);
+exports.router.use('/academic', auth_middleware_1.authenticate, academic_routes_1.academicRouter);
+// Staff Management Module (Phase 3.6)
+exports.router.use('/v1/staff', auth_middleware_1.authenticate, staff_routes_1.staffRouter);
+exports.router.use('/staff', auth_middleware_1.authenticate, staff_routes_1.staffRouter);
+// User & Role Administration Module (Phase 3.7)
+exports.router.use('/v1/users', auth_middleware_1.authenticate, user_routes_1.userRouter);
+exports.router.use('/users', auth_middleware_1.authenticate, user_routes_1.userRouter);

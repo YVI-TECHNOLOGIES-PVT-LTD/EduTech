@@ -19,3 +19,5 @@ expo-env.d.ts
 
 # IDE
 .vscode/settings.json
+
+.eslintcache
