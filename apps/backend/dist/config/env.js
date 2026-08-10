@@ -14,6 +14,8 @@ const envSchema = zod_1.z.object({
     SUPABASE_KEY: zod_1.z.string().min(1, 'SUPABASE_KEY or SUPABASE_SERVICE_ROLE_KEY is required'),
     SYSTEM_MODE: zod_1.z.enum(['UAT', 'PRODUCTION']).default('UAT'),
     FRONTEND_URL: zod_1.z.string().optional(),
+    JWT_SECRET: zod_1.z.string().default('edutrack-enterprise-jwt-secret-2026'),
+    JWT_REFRESH_SECRET: zod_1.z.string().default('edutrack-enterprise-jwt-refresh-secret-2026'),
 });
 const rawSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const parseResult = envSchema.safeParse({
@@ -23,6 +25,8 @@ const parseResult = envSchema.safeParse({
     SUPABASE_KEY: rawSupabaseKey,
     SYSTEM_MODE: process.env.SYSTEM_MODE,
     FRONTEND_URL: process.env.FRONTEND_URL,
+    JWT_SECRET: process.env.JWT_SECRET || 'edutrack-enterprise-jwt-secret-2026',
+    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'edutrack-enterprise-jwt-refresh-secret-2026',
 });
 if (!parseResult.success) {
     console.error('🚨 [Fatal] Configuration validation failed on startup:');

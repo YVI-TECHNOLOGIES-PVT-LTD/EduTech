@@ -1,25 +1,27 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../../auth/auth.service';
 
 export const useLogout = () => {
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const [isPending, setIsPending] = useState(false);
 
-    return useMutation({
-        mutationFn: () => AuthService.logout(),
+  const mutateAsync = async () => {
+    setIsPending(true);
+    try {
+      await AuthService.logout();
+    } catch (error: any) {
+      console.error('[useLogout] Logout failed:', error.message);
+    } finally {
+      setIsPending(false);
+      navigate('/login');
+    }
+  };
 
-        onSuccess: () => {
-            // Clear all cached queries on logout to prevent data leakage
-            queryClient.clear();
-            navigate('/login');
-        },
-
-        onError: (error: Error) => {
-            console.error('[useLogout] Logout failed:', error.message);
-            // Force clear even on error
-            queryClient.clear();
-            navigate('/login');
-        },
-    });
+  return {
+    mutateAsync,
+    mutate: mutateAsync,
+    isPending,
+    isLoading: isPending,
+  };
 };

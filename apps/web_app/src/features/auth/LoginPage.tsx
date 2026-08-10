@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
+import type { EnrichedUser } from '@/types/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, Mail, Eye, EyeOff, Building2, AlertCircle } from 'lucide-react';
@@ -57,18 +58,29 @@ export const LoginPage: React.FC = () => {
       }).unwrap();
 
       if (result.accessToken && result.user) {
+        const rawUser = result.user as any;
+        const enrichedUser: EnrichedUser = {
+          id: rawUser.id,
+          email: rawUser.email,
+          school_id: rawUser.school_id || rawUser.organizationId || 'org-main',
+          roles: rawUser.roles || [rawUser.role || 'ADMIN'],
+          permissions: rawUser.permissions || [],
+          full_name: `${rawUser.firstName || ''} ${rawUser.lastName || ''}`.trim(),
+          login_status: 'APPROVED',
+        };
+
         dispatch(
           setCredentials({
-            user: result.user,
+            user: enrichedUser,
             accessToken: result.accessToken,
             refreshToken: result.refreshToken,
           }),
         );
 
-        if (data.tenantId || result.user.organizationId) {
+        if (data.tenantId || enrichedUser.school_id) {
           dispatch(
             setActiveTenant({
-              id: data.tenantId || result.user.organizationId || 'tenant-main',
+              id: data.tenantId || enrichedUser.school_id || 'tenant-main',
             }),
           );
         }
@@ -177,15 +189,21 @@ export const LoginPage: React.FC = () => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold h-10 shadow-lg shadow-blue-600/30"
+            className="w-full bg-[#FF6A00] hover:bg-[#e55f00] text-white text-xs font-bold h-11 rounded-full shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.01] cursor-pointer"
           >
             {isLoading ? <ButtonLoader className="mr-2" /> : null}
             Sign In to Enterprise Portal
           </Button>
         </form>
 
-        <div className="border-t border-slate-800 pt-4 text-center text-[11px] text-slate-500">
-          {APP_CONFIG.copyright}
+        <div className="border-t border-slate-800 pt-4 text-center text-xs text-slate-300 space-y-2">
+          <div>
+            Don't have an admission account yet?{' '}
+            <Link to="/admission/register" className="font-bold text-amber-300 hover:text-amber-200 underline">
+              Register Parent Account
+            </Link>
+          </div>
+          <div className="text-[11px] text-slate-500">{APP_CONFIG.copyright}</div>
         </div>
       </div>
     </div>

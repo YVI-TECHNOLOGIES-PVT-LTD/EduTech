@@ -8,12 +8,12 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "http://localhost:3000/api/v1",
       "type": "string"
     },
     {
       "key": "schoolId",
-      "value": "org-apex-001",
+      "value": "5205f1f3-4e31-42d9-9b53-77fc84ad40df",
       "type": "string"
     },
     {
@@ -103,9 +103,22 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                   "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) { pm.environment.set('accessToken', jsonData.accessToken); }",
-                  "if (jsonData.refreshToken) { pm.environment.set('refreshToken', jsonData.refreshToken); }"
+                  "if (jsonData.accessToken) {",
+                  "    pm.environment.set('accessToken', jsonData.accessToken);",
+                  "    pm.environment.set('token', jsonData.accessToken);",
+                  "}",
+                  "if (jsonData.refreshToken) {",
+                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
+                  "}",
+                  "if (jsonData.user) {",
+                  "    if (jsonData.user.user_id || jsonData.user.id) { pm.environment.set('userId', jsonData.user.user_id || jsonData.user.id); }",
+                  "    if (jsonData.user.org_id || jsonData.user.organization_id) {",
+                  "        pm.environment.set('organizationId', jsonData.user.org_id || jsonData.user.organization_id);",
+                  "        pm.environment.set('orgId', jsonData.user.org_id || jsonData.user.organization_id);",
+                  "    }",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -121,7 +134,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"student.manbir.agate114@nationalahmedabad.edu.in\",\n  \"password\": \"Welcome#321\"\n}"
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -132,6 +145,25 @@
         },
         {
           "name": "2.2 Token Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) {",
+                  "    pm.environment.set('accessToken', jsonData.accessToken);",
+                  "    pm.environment.set('token', jsonData.accessToken);",
+                  "}",
+                  "if (jsonData.refreshToken) {",
+                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -170,6 +202,26 @@
         },
         {
           "name": "2.4 User Profile (Me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.user || jsonData.data) {",
+                  "    var u = jsonData.user || jsonData.data;",
+                  "    if (u.user_id || u.id) { pm.environment.set('userId', u.user_id || u.id); }",
+                  "    if (u.org_id || u.organization_id) {",
+                  "        pm.environment.set('organizationId', u.org_id || u.organization_id);",
+                  "        pm.environment.set('orgId', u.org_id || u.organization_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -179,9 +231,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/auth/me",
+              "raw": "{{baseUrl}}/auth/me",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "auth", "me"]
+              "path": ["auth", "me"]
             }
           }
         }
@@ -192,6 +244,26 @@
       "item": [
         {
           "name": "3.1 List Schools",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array', function () { pm.expect(Array.isArray(jsonData)).to.be.true; });",
+                  "if (Array.isArray(jsonData) && jsonData.length > 0) {",
+                  "    var candidate = jsonData[0].id;",
+                  "    var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "    if (candidate && uuidRegex.test(candidate)) {",
+                  "        pm.environment.set('schoolId', candidate);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -204,6 +276,21 @@
         },
         {
           "name": "3.2 Public Academic Year",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.id) {",
+                  "    pm.environment.set('academicYearId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -234,6 +321,23 @@
         },
         {
           "name": "3.4 Public Admission Config",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && Array.isArray(jsonData.grades) && jsonData.grades.length > 0) {",
+                  "    var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "    var g = jsonData.grades[0];",
+                  "    if (g && g.id && uuidRegex.test(g.id)) { pm.environment.set('gradeId', g.id); }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -257,6 +361,21 @@
       "item": [
         {
           "name": "4.1 Create Inquiry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.id || jsonData.enquiry_id || jsonData.lead_id || (jsonData.data && (jsonData.data.id || jsonData.data.enquiry_id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('enquiryId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -274,9 +393,9 @@
               "raw": "{\n  \"name\": \"Aarav Sharma\",\n  \"email\": \"aarav@example.com\",\n  \"phone\": \"+919876543210\",\n  \"grade_applying\": \"Grade 9\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/enquiries",
+              "raw": "{{baseUrl}}/admission/crm/enquiries",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "enquiries"]
+              "path": ["admission", "crm", "enquiries"]
             }
           }
         },
@@ -291,9 +410,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/enquiries?page=1&limit=10",
+              "raw": "{{baseUrl}}/admission/crm/enquiries?page=1&limit=10",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "enquiries"],
+              "path": ["admission", "crm", "enquiries"],
               "query": [
                 {
                   "key": "page",
@@ -318,9 +437,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/enquiries/{{enquiryId}}",
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "enquiries", "{{enquiryId}}"]
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}"]
             }
           }
         },
@@ -343,9 +462,9 @@
               "raw": "{\n  \"status\": \"CONTACTED\",\n  \"remarks\": \"Parent called desk\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/enquiries/{{enquiryId}}",
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "enquiries", "{{enquiryId}}"]
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}"]
             }
           }
         },
@@ -360,14 +479,29 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/enquiries/{{enquiryId}}",
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "enquiries", "{{enquiryId}}"]
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}"]
             }
           }
         },
         {
           "name": "4.6 Convert Inquiry to Lead",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.id || jsonData.lead_id || (jsonData.lead && (jsonData.lead.id || jsonData.lead.lead_id)) || (jsonData.data && (jsonData.data.id || jsonData.data.lead_id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('leadId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -377,9 +511,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/enquiries/{{enquiryId}}/convert",
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}/convert",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "enquiries", "{{enquiryId}}", "convert"]
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}", "convert"]
             }
           }
         },
@@ -394,9 +528,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/leads",
+              "raw": "{{baseUrl}}/admission/crm/leads",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "leads"]
+              "path": ["admission", "crm", "leads"]
             }
           }
         },
@@ -411,9 +545,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/leads/{{leadId}}",
+              "raw": "{{baseUrl}}/admission/crm/leads/{{leadId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "leads", "{{leadId}}"]
+              "path": ["admission", "crm", "leads", "{{leadId}}"]
             }
           }
         },
@@ -436,9 +570,9 @@
               "raw": "{\n  \"status\": \"QUALIFIED\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/leads/{{leadId}}",
+              "raw": "{{baseUrl}}/admission/crm/leads/{{leadId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "leads", "{{leadId}}"]
+              "path": ["admission", "crm", "leads", "{{leadId}}"]
             }
           }
         },
@@ -461,9 +595,9 @@
               "raw": "{\n  \"counselor_id\": \"{{counselorId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/leads/{{leadId}}/assign",
+              "raw": "{{baseUrl}}/admission/crm/leads/{{leadId}}/assign",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "leads", "{{leadId}}", "assign"]
+              "path": ["admission", "crm", "leads", "{{leadId}}", "assign"]
             }
           }
         },
@@ -486,9 +620,9 @@
               "raw": "{\n  \"lead_id\": \"{{leadId}}\",\n  \"remarks\": \"Discussed fee structure\",\n  \"next_followup\": \"2026-08-10\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/followups",
+              "raw": "{{baseUrl}}/admission/crm/followups",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "followups"]
+              "path": ["admission", "crm", "followups"]
             }
           }
         },
@@ -503,9 +637,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/followups?lead_id={{leadId}}",
+              "raw": "{{baseUrl}}/admission/crm/followups?lead_id={{leadId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "followups"],
+              "path": ["admission", "crm", "followups"],
               "query": [
                 {
                   "key": "lead_id",
@@ -534,9 +668,9 @@
               "raw": "{\n  \"visitor_name\": \"Rajesh Kumar\",\n  \"purpose\": \"Campus Tour\",\n  \"phone\": \"+919876543211\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/visitors",
+              "raw": "{{baseUrl}}/admission/crm/visitors",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "visitors"]
+              "path": ["admission", "crm", "visitors"]
             }
           }
         },
@@ -551,9 +685,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/visitors",
+              "raw": "{{baseUrl}}/admission/crm/visitors",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "visitors"]
+              "path": ["admission", "crm", "visitors"]
             }
           }
         },
@@ -568,9 +702,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/crm/counselors",
+              "raw": "{{baseUrl}}/admission/crm/counselors",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "crm", "counselors"]
+              "path": ["admission", "crm", "counselors"]
             }
           }
         }
@@ -581,6 +715,21 @@
       "item": [
         {
           "name": "5.1 Public Application Submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.application_id || jsonData.id || (jsonData.data && (jsonData.data.application_id || jsonData.data.id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('applicationId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -594,9 +743,9 @@
               "raw": "{\n  \"student_name\": \"Rohan Verma\",\n  \"grade\": \"Grade 10\",\n  \"parent_email\": \"verma@example.com\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/public-apply",
+              "raw": "{{baseUrl}}/admission/public-apply",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "public-apply"]
+              "path": ["admission", "public-apply"]
             }
           }
         },
@@ -611,9 +760,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/my",
+              "raw": "{{baseUrl}}/admission/my",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "my"]
+              "path": ["admission", "my"]
             }
           }
         },
@@ -636,9 +785,9 @@
               "raw": "{\n  \"student_name\": \"Ananya Gupta\",\n  \"grade\": \"Grade 6\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/apply",
+              "raw": "{{baseUrl}}/admission/apply",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "apply"]
+              "path": ["admission", "apply"]
             }
           }
         }
@@ -649,6 +798,21 @@
       "item": [
         {
           "name": "6.1 Upload Verification Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.document_id || jsonData.id || (jsonData.data && (jsonData.data.document_id || jsonData.data.id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('documentId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -658,9 +822,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/application/documents/upload",
+              "raw": "{{baseUrl}}/admission/application/documents/upload",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "application", "documents", "upload"]
+              "path": ["admission", "application", "documents", "upload"]
             }
           }
         },
@@ -675,9 +839,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/application/documents/upload/bulk",
+              "raw": "{{baseUrl}}/admission/application/documents/upload/bulk",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "application", "documents", "upload", "bulk"]
+              "path": ["admission", "application", "documents", "upload", "bulk"]
             }
           }
         },
@@ -692,9 +856,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/application/documents/{{documentId}}",
+              "raw": "{{baseUrl}}/admission/application/documents/{{documentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "application", "documents", "{{documentId}}"]
+              "path": ["admission", "application", "documents", "{{documentId}}"]
             }
           }
         },
@@ -717,9 +881,9 @@
               "raw": "{\n  \"status\": \"VERIFIED\",\n  \"remarks\": \"All documents valid\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/application/documents/{{documentId}}/verify",
+              "raw": "{{baseUrl}}/admission/application/documents/{{documentId}}/verify",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "application", "documents", "{{documentId}}", "verify"]
+              "path": ["admission", "application", "documents", "{{documentId}}", "verify"]
             }
           }
         },
@@ -734,9 +898,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/application/documents/checklist/Grade9",
+              "raw": "{{baseUrl}}/admission/application/documents/checklist/Grade9",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "application", "documents", "checklist", "Grade9"]
+              "path": ["admission", "application", "documents", "checklist", "Grade9"]
             }
           }
         }
@@ -764,9 +928,9 @@
               "raw": "{\n  \"structure_id\": \"fee-struct-001\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/enrollment/fees/assign",
+              "raw": "{{baseUrl}}/admission/enrollment/fees/assign",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "enrollment", "fees", "assign"]
+              "path": ["admission", "enrollment", "fees", "assign"]
             }
           }
         },
@@ -789,9 +953,9 @@
               "raw": "{\n  \"application_id\": \"{{applicationId}}\",\n  \"amount\": 15000,\n  \"payment_mode\": \"UPI\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/enrollment/payments",
+              "raw": "{{baseUrl}}/admission/enrollment/payments",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "enrollment", "payments"]
+              "path": ["admission", "enrollment", "payments"]
             }
           }
         },
@@ -806,9 +970,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/enrollment/payments/{{paymentId}}/receipt",
+              "raw": "{{baseUrl}}/admission/enrollment/payments/{{paymentId}}/receipt",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "enrollment", "payments", "{{paymentId}}", "receipt"]
+              "path": ["admission", "enrollment", "payments", "{{paymentId}}", "receipt"]
             }
           }
         },
@@ -831,9 +995,9 @@
               "raw": "{\n  \"application_id\": \"{{applicationId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/admission/enrollment/enroll",
+              "raw": "{{baseUrl}}/admission/enrollment/enroll",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "admission", "enrollment", "enroll"]
+              "path": ["admission", "enrollment", "enroll"]
             }
           }
         }
@@ -909,9 +1073,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/students?search=Aarav",
+              "raw": "{{baseUrl}}/students?search=Aarav",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "students"],
+              "path": ["students"],
               "query": [
                 {
                   "key": "search",
@@ -940,9 +1104,9 @@
               "raw": "{\n  \"first_name\": \"Priya\",\n  \"last_name\": \"Singh\",\n  \"grade\": \"Grade 8\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/students",
+              "raw": "{{baseUrl}}/students",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "students"]
+              "path": ["students"]
             }
           }
         },
@@ -957,9 +1121,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/students/{{studentId}}",
+              "raw": "{{baseUrl}}/students/{{studentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "students", "{{studentId}}"]
+              "path": ["students", "{{studentId}}"]
             }
           }
         },
@@ -982,9 +1146,9 @@
               "raw": "{\n  \"phone\": \"+919876543212\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/students/{{studentId}}",
+              "raw": "{{baseUrl}}/students/{{studentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "students", "{{studentId}}"]
+              "path": ["students", "{{studentId}}"]
             }
           }
         },
@@ -1007,9 +1171,9 @@
               "raw": "{\n  \"status\": \"ACTIVE\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/students/{{studentId}}/status",
+              "raw": "{{baseUrl}}/students/{{studentId}}/status",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "students", "{{studentId}}", "status"]
+              "path": ["students", "{{studentId}}", "status"]
             }
           }
         },
@@ -1024,9 +1188,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/parents",
+              "raw": "{{baseUrl}}/parents",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "parents"]
+              "path": ["parents"]
             }
           }
         },
@@ -1041,9 +1205,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/parents/{{parentId}}",
+              "raw": "{{baseUrl}}/parents/{{parentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "parents", "{{parentId}}"]
+              "path": ["parents", "{{parentId}}"]
             }
           }
         },
@@ -1058,9 +1222,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/staff",
+              "raw": "{{baseUrl}}/staff",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "staff"]
+              "path": ["staff"]
             }
           }
         },
@@ -1083,9 +1247,9 @@
               "raw": "{\n  \"first_name\": \"Sunita\",\n  \"last_name\": \"Deshmukh\",\n  \"email\": \"sunita@nationalahmedabad.edu.in\",\n  \"designation\": \"Counselor\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/staff",
+              "raw": "{{baseUrl}}/staff",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "staff"]
+              "path": ["staff"]
             }
           }
         }
@@ -1105,9 +1269,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users",
+              "raw": "{{baseUrl}}/users",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "users"]
+              "path": ["users"]
             }
           }
         },
@@ -1130,9 +1294,9 @@
               "raw": "{\n  \"email\": \"newuser@nationalahmedabad.edu.in\",\n  \"role\": \"STAFF\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/users",
+              "raw": "{{baseUrl}}/users",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "users"]
+              "path": ["users"]
             }
           }
         },
@@ -1147,9 +1311,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{userId}}",
+              "raw": "{{baseUrl}}/users/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "{{userId}}"]
+              "path": ["users", "{{userId}}"]
             }
           }
         },
@@ -1172,9 +1336,9 @@
               "raw": "{\n  \"status\": \"ACTIVE\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{userId}}/status",
+              "raw": "{{baseUrl}}/users/{{userId}}/status",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "{{userId}}", "status"]
+              "path": ["users", "{{userId}}", "status"]
             }
           }
         },
@@ -1189,9 +1353,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/roles",
+              "raw": "{{baseUrl}}/users/roles",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "roles"]
+              "path": ["users", "roles"]
             }
           }
         }
@@ -1270,9 +1434,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/academic/sections",
+              "raw": "{{baseUrl}}/academic/sections",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "academic", "sections"]
+              "path": ["academic", "sections"]
             }
           }
         }

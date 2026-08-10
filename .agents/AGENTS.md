@@ -1,8 +1,20 @@
-# EduTrack ERP Workspace Rules
+# EduTrack ERP Workspace Rules & Source of Truth Hierarchy
 
-## Phase 3 Business Module Rules
+## Primary Governing Constraints
 
-> **Never assume database objects. Every repository, DTO mapper, validator, service, and query must use only models, relations, enums, and fields that exist in the current generated Prisma Client. If a required business feature cannot be implemented because the finalized schema lacks the necessary table or column, document it as a recommendation instead of inventing it.**
+1. **`schema.prisma` (`apps/backend/prisma/schema.prisma`) is the SOLE Source of Truth for Database Models**.
+   - Every repository, service, controller, DTO mapper, validator, and query MUST use only models, relations, enums, and fields that exist in `apps/backend/prisma/schema.prisma`.
+   - Never invent fields, relations, enums, tables, or assumptions from older SQL scripts, planning documents, or reports.
+   - If older design docs, reports, or SQL files conflict with `schema.prisma`, **`schema.prisma` wins without exception**.
+
+2. **Existing Backend API Implementation Contract**:
+   - Backend APIs must be built strictly against `schema.prisma`.
+   - Existing backend controller/service implementations are the authoritative contract unless an explicit defect is identified.
+   - Frontend RTK Query endpoints must consume existing backend API endpoints rather than creating parallel API contracts.
+
+3. **Stage-1 & Implementation Freeze**:
+   - Absolutely ZERO database DDL, SQL, or Prisma schema changes allowed during frontend or business module implementation.
+   - If a required feature cannot be implemented because `schema.prisma` lacks the necessary table or column, document it as a recommendation instead of modifying the schema or inventing fields.
 
 ---
 
@@ -16,5 +28,22 @@
    - Encapsulate complex read aggregations, searches, and metrics inside dedicated `queries/` objects.
    - Keep transactional writes and state transitions inside dedicated services.
 
-3. **Stage-1 Constraints**:
-   - Absolutely ZERO database DDL, SQL, or Prisma schema changes allowed during business module implementation.
+3. **Working Source-of-Truth Hierarchy**:
+   ```text
+   FINALIZED DATABASE
+          │
+          ▼
+   apps/backend/prisma/schema.prisma
+          │
+          ▼
+   Existing Backend API Implementation
+          │
+          ▼
+   Backend Routes / Controllers / Services
+          │
+          ▼
+   RTK Query API Layer
+          │
+          ▼
+   Web Application UI
+   ```

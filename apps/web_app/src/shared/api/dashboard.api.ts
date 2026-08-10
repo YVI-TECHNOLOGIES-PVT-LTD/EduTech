@@ -1,5 +1,4 @@
 import { apiSlice } from '@/app/store/apiSlice';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface DashboardSummary {
   kpis: {
@@ -28,10 +27,17 @@ export interface DashboardSummary {
     dueDate: string;
     priority: 'HIGH' | 'MEDIUM' | 'LOW';
   }[];
+  admissions?: any[];
+  children?: any[];
+  pendingAdmissions?: number;
+  students?: number;
+  feeCollection?: number;
+  totalApplications?: number;
+  [key: string]: any;
 }
 
 export const dashboardApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     getDashboardSummary: builder.query<DashboardSummary, void>({
       query: () => '/dashboard/summary',
       providesTags: ['Lead', 'Application', 'Student', 'FeePayment'],

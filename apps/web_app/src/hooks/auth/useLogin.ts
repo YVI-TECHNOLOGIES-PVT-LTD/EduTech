@@ -1,30 +1,35 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../../auth/auth.service';
-import { QUERY_KEYS } from '../../lib/queryKeys';
 
 interface LoginCredentials {
-    email: string;
-    password: string;
-    redirectTo?: string;
+  email: string;
+  password: string;
+  redirectTo?: string;
 }
 
 export const useLogin = () => {
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const [isPending, setIsPending] = useState(false);
 
-    return useMutation({
-        mutationFn: ({ email, password }: LoginCredentials) =>
-            AuthService.login(email, password),
+  const mutateAsync = async ({ email, password, redirectTo }: LoginCredentials) => {
+    setIsPending(true);
+    try {
+      const data = await AuthService.login(email, password);
+      navigate(redirectTo ?? '/app/dashboard');
+      return data;
+    } catch (error: any) {
+      console.error('[useLogin] Login failed:', error.message);
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-        onSuccess: (_data, variables) => {
-            // Invalidate current user query so AuthContext refetches enriched profile
-            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STUDENT.ALL });
-            navigate(variables.redirectTo ?? '/app/dashboard');
-        },
-
-        onError: (error: Error) => {
-            console.error('[useLogin] Login failed:', error.message);
-        },
-    });
+  return {
+    mutateAsync,
+    mutate: mutateAsync,
+    isPending,
+    isLoading: isPending,
+  };
 };

@@ -89,26 +89,32 @@ Root Router (apps/backend/src/routes.ts)
 
 ## 05 Complete API Inventory
 
-| #   | Method | Path                                             | Router File               | Controller Handler                    | Permission Guard            |  Auth  | Tenant Scoped |   Status    |
+> [!NOTE]
+> **Base URL & Route Resolution**:
+> All public lookup endpoints (`/schools`, `/public/academic-year`, `/public/classes`, `/public/admission/config`) are registered in `apps/backend/src/routes.ts` with dual route path aliases supporting BOTH `http://localhost:3000/api` AND `http://localhost:3000/api/v1` seamlessly.
+
+| #   | Method | Path                                             | Express Route Line        | Controller Handler                    | Permission Guard            |  Auth  | Tenant Scoped |   Status    |
 | :-- | :----- | :----------------------------------------------- | :------------------------ | :------------------------------------ | :-------------------------- | :----: | :-----------: | :---------: |
 | 1   | `GET`  | `/health`                                        | `routes.ts:38`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
 | 2   | `GET`  | `/health/liveness`                               | `routes.ts:42`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
-| 3   | `GET`  | `/health/readiness`                              | `routes.ts:46`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
-| 4   | `GET`  | `/system/info`                                   | `routes.ts:66`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
-| 5   | `POST` | `/login`                                         | `auth/auth.routes.ts:9`   | `AuthController.login`                | Public                      |  None  |      Yes      | Implemented |
-| 6   | `POST` | `/refresh`                                       | `auth/auth.routes.ts:10`  | `AuthController.refresh`              | Public                      |  None  |      Yes      | Implemented |
-| 7   | `POST` | `/logout`                                        | `auth/auth.routes.ts:13`  | `AuthController.logout`               | `authenticate`              | Bearer |      Yes      | Implemented |
-| 8   | `POST` | `/v1/admission/public-apply`                     | `routes.ts:78`            | `publicApplicationController.apply`   | Public                      |  None  |      Yes      | Implemented |
-| 9   | `GET`  | `/schools`                                       | `routes.ts:83`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
-| 10  | `GET`  | `/public/academic-year`                          | `routes.ts:94`            | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
-| 11  | `GET`  | `/public/classes`                                | `routes.ts:129`           | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
-| 12  | `GET`  | `/public/admission/config`                       | `routes.ts:202`           | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
-| 13  | `GET`  | `/v1/admission/my`                               | `routes.ts:356`           | `applicationController.listMine`      | `admission.view_self`       | Bearer |      Yes      | Implemented |
-| 14  | `POST` | `/v1/admission/apply`                            | `routes.ts:362`           | `applicationController.parentApply`   | `admission.create`          | Bearer |      Yes      | Implemented |
-| 15  | `GET`  | `/v1/auth/me`                                    | `routes.ts:425`           | `handleMe`                            | Authenticated               | Bearer |      Yes      | Implemented |
-| 16  | `GET`  | `/schools/current`                               | `routes.ts:428`           | Inline Handler                        | Authenticated               | Bearer |      Yes      | Implemented |
-| 17  | `GET`  | `/academic-years/current`                        | `routes.ts:438`           | Inline Handler                        | Authenticated               | Bearer |      Yes      | Implemented |
-| 18  | `POST` | `/academic-years`                                | `routes.ts:465`           | Inline Handler                        | `ACADEMIC_SETUP`            | Bearer |      Yes      | Implemented |
+| 3   | `GET`  | `/health/readiness`                              | `routes.ts:48`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
+| 4   | `GET`  | `/system/info`                                   | `routes.ts:67`            | Inline Handler                        | Public                      |  None  |      No       | Implemented |
+| 5   | `POST` | `/auth/login` & `/v1/auth/login`                 | `auth/auth.routes.ts:9`   | `AuthController.login`                | Public                      |  None  |      Yes      | Implemented |
+| 6   | `POST` | `/auth/refresh` & `/v1/auth/refresh`             | `auth/auth.routes.ts:10`  | `AuthController.refresh`              | Public                      |  None  |      Yes      | Implemented |
+| 7   | `POST` | `/auth/logout` & `/v1/auth/logout`               | `auth/auth.routes.ts:13`  | `AuthController.logout`               | `authenticate`              | Bearer |      Yes      | Implemented |
+| 8   | `POST` | `/v1/admission/public-apply`                     | `routes.ts:79`            | `publicApplicationController.apply`   | Public                      |  None  |      Yes      | Implemented |
+| 9   | `GET`  | `/schools` & `/v1/schools`                       | `routes.ts:84`            | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
+| 10  | `GET`  | `/public/academic-year` & `/v1/public/...`       | `routes.ts:98`            | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
+| 10b | `GET`  | `/public/academic-years` & `/v1/public/...`      | `routes.ts:112`           | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
+| 11  | `GET`  | `/public/classes` & `/v1/public/classes`         | `routes.ts:138`           | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
+| 11b | `GET`  | `/public/admission/grades`                       | `routes.ts:220`           | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
+| 12  | `GET`  | `/public/admission/config`                       | `routes.ts:265`           | Inline Handler                        | Public                      |  None  |      Yes      | Implemented |
+| 13  | `GET`  | `/v1/admission/my`                               | `routes.ts:425`           | `applicationController.listMine`      | `admission.view_self`       | Bearer |      Yes      | Implemented |
+| 14  | `POST` | `/v1/admission/apply`                            | `routes.ts:431`           | `applicationController.parentApply`   | `admission.create`          | Bearer |      Yes      | Implemented |
+| 15  | `GET`  | `/v1/auth/me`                                    | `routes.ts:494`           | `handleMe`                            | Authenticated               | Bearer |      Yes      | Implemented |
+| 16  | `GET`  | `/schools/current`                               | `routes.ts:497`           | Inline Handler                        | Authenticated               | Bearer |      Yes      | Implemented |
+| 17  | `GET`  | `/academic-years/current`                        | `routes.ts:507`           | Inline Handler                        | Authenticated               | Bearer |      Yes      | Implemented |
+| 18  | `POST` | `/academic-years`                                | `routes.ts:534`           | Inline Handler                        | `ACADEMIC_SETUP`            | Bearer |      Yes      | Implemented |
 | 19  | `POST` | `/v1/admission/crm/enquiries`                    | `crm.routes.ts:18`        | `enquiryController.create`            | `admission.enquiry.create`  | Bearer |      Yes      | Implemented |
 | 20  | `GET`  | `/v1/admission/crm/enquiries`                    | `crm.routes.ts:23`        | `enquiryController.list`              | `admission.enquiry.view`    | Bearer |      Yes      | Implemented |
 | 21  | `POST` | `/v1/admission/crm/enquiries/:id/convert`        | `crm.routes.ts:43`        | `enquiryController.convert`           | `admission.leads.manage`    | Bearer |      Yes      | Implemented |

@@ -40,16 +40,20 @@ export class EnquiryService extends BaseService {
         }
 
         const id = crypto.randomUUID();
+        const studentName = (validated.student_name && validated.student_name.trim()) 
+            ? validated.student_name.trim() 
+            : `${validated.parent_name.trim()}'s Ward`;
+
         const enquiry = new AdmissionEnquiry(
             id,
             schoolId,
             academicYearId,
-            validated.student_name,
+            studentName,
             validated.grade_applied_for,
             validated.parent_name,
             validated.parent_email,
             validated.parent_phone,
-            validated.source as EnquirySource,
+            (validated.source || 'Website') as EnquirySource,
             'new',
             new Date(),
             new Date(),
@@ -89,7 +93,7 @@ export class EnquiryService extends BaseService {
             existing.id,
             existing.schoolId,
             existing.academicYearId,
-            validated.student_name !== undefined ? validated.student_name : existing.studentName,
+            validated.student_name ? validated.student_name : (existing.studentName || `${existing.parentName}'s Ward`),
             validated.grade_applied_for !== undefined ? validated.grade_applied_for : existing.gradeAppliedFor,
             validated.parent_name !== undefined ? validated.parent_name : existing.parentName,
             validated.parent_email !== undefined ? validated.parent_email : existing.parentEmail,

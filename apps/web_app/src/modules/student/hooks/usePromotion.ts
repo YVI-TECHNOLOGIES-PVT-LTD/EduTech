@@ -1,29 +1,24 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { studentApi } from '../services/student.api';
+import {
+  usePromoteStudentMutation,
+  useBulkPromoteStudentsMutation,
+} from '@/shared/api/student.api';
 
 export function usePromotion() {
-    const queryClient = useQueryClient();
+  const [promoteTrigger, promoteState] = usePromoteStudentMutation();
+  const [bulkPromoteTrigger, bulkPromoteState] = useBulkPromoteStudentsMutation();
 
-    const promoteMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: { to_academic_year_id: string; to_grade: string; to_section_id?: string; promotion_reason: string } }) =>
-            studentApi.promote(id, data),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-            queryClient.invalidateQueries({ queryKey: ['student', variables.id] });
-        },
-    });
+  const promoteStudent = async ({ id, data }: { id: string; data: any }) => {
+    return promoteTrigger({ id, data }).unwrap();
+  };
 
-    const bulkPromoteMutation = useMutation({
-        mutationFn: studentApi.bulkPromote,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-        },
-    });
+  const bulkPromote = async (data: any) => {
+    return bulkPromoteTrigger(data).unwrap();
+  };
 
-    return {
-        promoteStudent: promoteMutation.mutateAsync,
-        isPromoting: promoteMutation.isPending,
-        bulkPromote: bulkPromoteMutation.mutateAsync,
-        isBulkPromoting: bulkPromoteMutation.isPending,
-    };
+  return {
+    promoteStudent,
+    isPromoting: promoteState.isLoading,
+    bulkPromote,
+    isBulkPromoting: bulkPromoteState.isLoading,
+  };
 }

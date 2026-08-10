@@ -1,21 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { API_CONFIG } from '@/config/api';
+import type { EnrichedUser } from '@/types/auth';
 
-export interface UserPermissions {
-  roles: string[];
-  permissions: string[];
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  organizationId?: string;
-  tenantId?: string;
-  permissions?: string[];
-}
+export type UserProfile = EnrichedUser;
 
 export interface AuthState {
   user: UserProfile | null;
@@ -23,6 +10,7 @@ export interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isInitializing: boolean;
+  systemMode: 'UAT' | 'PRODUCTION';
 }
 
 const getStoredItem = (key: string): string | null => {
@@ -50,8 +38,9 @@ const initialState: AuthState = {
   user: initialUser,
   accessToken: initialAccessToken,
   refreshToken: initialRefreshToken,
-  isAuthenticated: Boolean(initialAccessToken && initialUser),
+  isAuthenticated: Boolean(initialUser),
   isInitializing: false,
+  systemMode: 'UAT',
 };
 
 export const authSlice = createSlice({
@@ -62,30 +51,35 @@ export const authSlice = createSlice({
       state,
       action: PayloadAction<{
         user: UserProfile;
-        accessToken: string;
-        refreshToken?: string;
+        accessToken?: string | null;
+        refreshToken?: string | null;
+        systemMode?: 'UAT' | 'PRODUCTION';
       }>,
     ) => {
-      const { user, accessToken, refreshToken } = action.payload;
+      const { user, accessToken, refreshToken, systemMode } = action.payload;
       state.user = user;
-      state.accessToken = accessToken;
-      if (refreshToken) state.refreshToken = refreshToken;
-      state.isAuthenticated = true;
+      if (accessToken !== undefined) state.accessToken = accessToken;
+      if (refreshToken !== undefined) state.refreshToken = refreshToken;
+      if (systemMode) state.systemMode = systemMode;
+      state.isAuthenticated = Boolean(user);
 
       try {
-        localStorage.setItem(API_CONFIG.tokenKeys.accessToken, accessToken);
-        if (refreshToken) {
-          localStorage.setItem(API_CONFIG.tokenKeys.refreshToken, refreshToken);
-        }
         localStorage.setItem(API_CONFIG.tokenKeys.userProfile, JSON.stringify(user));
-        if (user.organizationId || user.tenantId) {
-          localStorage.setItem(
-            API_CONFIG.tokenKeys.tenantId,
-            user.tenantId || user.organizationId || '',
-          );
+      } catch (err) {
+        console.error('Failed to persist user profile in authSlice', err);
+      }
+    },
+    setUser: (state, action: PayloadAction<UserProfile | null>) => {
+      state.user = action.payload;
+      state.isAuthenticated = Boolean(action.payload);
+      try {
+        if (action.payload) {
+          localStorage.setItem(API_CONFIG.tokenKeys.userProfile, JSON.stringify(action.payload));
+        } else {
+          localStorage.removeItem(API_CONFIG.tokenKeys.userProfile);
         }
       } catch (err) {
-        console.error('Failed to persist auth credentials', err);
+        console.error('Failed to update user profile in authSlice', err);
       }
     },
     updateUser: (state, action: PayloadAction<Partial<UserProfile>>) => {
@@ -105,19 +99,20 @@ export const authSlice = createSlice({
       state.isAuthenticated = false;
 
       try {
-        localStorage.removeItem(API_CONFIG.tokenKeys.accessToken);
-        localStorage.removeItem(API_CONFIG.tokenKeys.refreshToken);
         localStorage.removeItem(API_CONFIG.tokenKeys.userProfile);
-        localStorage.removeItem(API_CONFIG.tokenKeys.tenantId);
       } catch (err) {
-        console.error('Failed to clear stored auth credentials', err);
+        console.error('Failed to clear stored auth profile', err);
       }
     },
     setInitializing: (state, action: PayloadAction<boolean>) => {
       state.isInitializing = action.payload;
     },
+    setSystemMode: (state, action: PayloadAction<'UAT' | 'PRODUCTION'>) => {
+      state.systemMode = action.payload;
+    },
   },
 });
 
-export const { setCredentials, updateUser, logout, setInitializing } = authSlice.actions;
+export const { setCredentials, setUser, updateUser, logout, setInitializing, setSystemMode } =
+  authSlice.actions;
 export default authSlice.reducer;

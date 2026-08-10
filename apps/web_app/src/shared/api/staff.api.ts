@@ -1,6 +1,5 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface DepartmentRecord {
   id: string;
@@ -30,7 +29,7 @@ export interface StaffRecord {
 }
 
 export const staffApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     getDepartments: builder.query<DepartmentRecord[], void>({
       query: () => ENDPOINTS.HR.DEPARTMENTS,
       providesTags: ['Department'],

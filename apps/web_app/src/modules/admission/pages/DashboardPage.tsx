@@ -589,7 +589,7 @@ function DashboardPageInner() {
     },
     {
       title: 'Total Applications',
-      value: getKPIValue('admissions.kpi.total', stats?.total || '86'),
+      value: getKPIValue('admissions.kpi.total', stats?.totalApplications || '86'),
       sub: 'Parent submissions',
       icon: FileText,
       color: 'bg-purple-100 text-purple-600',
@@ -612,7 +612,7 @@ function DashboardPageInner() {
 
   const chartData = [
     { name: 'Inquiry', count: Number(getKPIValue('reception.kpi.walkins', 142)) },
-    { name: 'Application', count: Number(getKPIValue('admissions.kpi.total', stats?.total || 86)) },
+    { name: 'Application', count: Number(getKPIValue('admissions.kpi.total', stats?.totalApplications || 86)) },
     { name: 'Doc Verified', count: Number(getKPIValue('admissions.kpi.verified', 72)) },
     { name: 'Exam', count: 65 },
     { name: 'Interview', count: 58 },

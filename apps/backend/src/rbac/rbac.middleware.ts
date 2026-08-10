@@ -64,8 +64,11 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
       `[RBAC] User: ${req.context.user.email}, Required: ${requiredPermission}, Has: ${permissions.length} perms`,
     );
 
-    // 2. Super Admin Bypass
+    // 2. Super Admin & Parent Self-Service Bypass
     if (roles.includes('SUPERADMIN')) {
+      return next();
+    }
+    if (roles.includes('PARENT') && requiredPermission.startsWith('admission.')) {
       return next();
     }
 

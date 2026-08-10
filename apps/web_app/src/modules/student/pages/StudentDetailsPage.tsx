@@ -43,13 +43,14 @@ export function StudentDetailsPage() {
         );
     }
 
-    const mockStudent = student || {
-        id: 's1',
-        admission_no: 'ADM-2026-001',
-        first_name: 'Rahul',
-        last_name: 'Soni',
-        status: 'ACTIVE',
-        grade: 'Grade 10',
+    const mockStudent = {
+        id: id || 's1',
+        admission_no: (student as any)?.admissionNumber || (student as any)?.admission_no || 'ADM-2026-001',
+        first_name: (student as any)?.firstName || (student as any)?.first_name || 'Rahul',
+        last_name: (student as any)?.lastName || (student as any)?.last_name || 'Soni',
+        status: (student as any)?.status || 'ACTIVE',
+        grade: (student as any)?.grade || 'Grade 10',
+        section: (student as any)?.section || 'A',
         school_id: 'school-1',
         academic_year_id: 'year-1',
         blood_group: 'O+',

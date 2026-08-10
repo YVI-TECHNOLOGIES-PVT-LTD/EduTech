@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useProfileStore } from '../store/profile.store';
 import { useSettingsStore } from '../store/settings.store';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProfileService } from '../services/auth/ProfileService';
 import { ChangePasswordForm } from '../features/auth/ChangePasswordPage';
 import { motion, AnimatePresence } from 'framer-motion';

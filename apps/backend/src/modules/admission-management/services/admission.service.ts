@@ -47,8 +47,8 @@ export class AdmissionService {
     return AdmissionMapper.toResponseDto(application);
   }
 
-  static async getApplicationById(id: string): Promise<ApplicationResponseDto> {
-    const app = await AdmissionRepository.findById(id);
+  static async getApplicationById(id: string, orgId?: string, parentUserId?: string): Promise<ApplicationResponseDto> {
+    const app = await AdmissionRepository.findById(id, orgId, parentUserId);
     if (!app) {
       throw new ApplicationNotFoundError(id);
     }
@@ -59,8 +59,9 @@ export class AdmissionService {
     id: string,
     dto: UpdateApplicationDto,
     performedBy?: string | null,
+    orgId?: string,
   ): Promise<ApplicationResponseDto> {
-    const existing = await AdmissionRepository.findById(id);
+    const existing = await AdmissionRepository.findById(id, orgId);
     if (!existing) {
       throw new ApplicationNotFoundError(id);
     }

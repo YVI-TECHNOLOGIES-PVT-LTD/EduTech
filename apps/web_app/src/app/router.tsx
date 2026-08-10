@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceShell } from '../modules/common/workspace/WorkspaceShell';
-import LoginPage from '../pages/Login';
+import { LoginPage } from '../features/auth/LoginPage';
 import UnauthorizedPage from '../pages/Unauthorized';
 import {
   ProtectedRoute,
@@ -27,6 +27,11 @@ import Achievements from '../pages/Achievements';
 import Events from '../pages/Events';
 import Contact from '../pages/Contact';
 import Notifications from '../pages/Notifications';
+import EnquiryPage from '../features/landing/pages/EnquiryPage';
+import EnquirySuccessPage from '../features/admission-portal/pages/EnquirySuccessPage';
+import RegistrationPage from '../features/admission-portal/pages/RegistrationPage';
+import OtpVerificationPage from '../features/admission-portal/pages/OtpVerificationPage';
+import RegistrationSuccessPage from '../features/admission-portal/pages/RegistrationSuccessPage';
 import ForgotPasswordPage from '../features/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../features/auth/ResetPasswordPage';
 import SessionExpiredPage from '../features/auth/SessionExpiredPage';
@@ -77,6 +82,13 @@ export const AppRouter = () => {
                 <Route path="/admissions" element={<Admissions />} />
                 <Route path="/admission-process" element={<AdmissionProcess />} />
                 <Route path="/admissions/apply" element={<AdmissionForm />} />
+                <Route path="/enquiry" element={<EnquiryPage />} />
+                <Route path="/admissions/enquiry-form" element={<EnquiryPage />} />
+                <Route path="/admission/enquiry" element={<EnquiryPage />} />
+                <Route path="/admission/enquiry/success" element={<EnquirySuccessPage />} />
+                <Route path="/admission/register" element={<RegistrationPage />} />
+                <Route path="/admission/register/otp" element={<OtpVerificationPage />} />
+                <Route path="/admission/register/success" element={<RegistrationSuccessPage />} />
                 <Route path="/campus" element={<Campus />} />
                 <Route path="/student-life" element={<StudentLife />} />
                 <Route path="/achievements" element={<Achievements />} />

@@ -10,7 +10,16 @@ export type AdmissionStatus =
     | 'recommended'
     | 'approved'
     | 'rejected'
-    | 'enrolled';
+    | 'enrolled'
+    | 'DRAFT'
+    | 'SUBMITTED'
+    | 'UNDER_REVIEW'
+    | 'DOCS_VERIFIED'
+    | 'DOCUMENT_VERIFIED'
+    | 'PAYMENT_PENDING'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'ENROLLED';
 
 export interface AdmissionDocument {
     id: string;

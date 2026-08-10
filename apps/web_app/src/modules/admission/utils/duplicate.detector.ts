@@ -21,7 +21,7 @@ export interface DuplicateCheckInput {
 
 export function findDuplicates(
     input: DuplicateCheckInput,
-    records: AdmissionInquiry[],
+    records: any[],
     excludeId?: string,
 ): DuplicateMatch[] {
     const matches: DuplicateMatch[] = [];
@@ -36,25 +36,25 @@ export function findDuplicates(
         const matchFields: string[] = [];
         let score = 0;
 
-        const recordPhone = normalizePhone(record.phone ?? record.parent_phone);
+        const recordPhone = normalizePhone(record.phone ?? record.parent_phone ?? record.parentPhone);
         if (inputPhone.length >= 10 && recordPhone === inputPhone) {
             matchFields.push('phone');
             score += 40;
         }
 
-        const recordEmail = normalizeEmail(record.email ?? record.parent_email);
+        const recordEmail = normalizeEmail(record.email ?? record.parent_email ?? record.parentEmail);
         if (inputEmail && recordEmail && recordEmail === inputEmail) {
             matchFields.push('email');
             score += 35;
         }
 
-        const recordParent = normalizeName(record.parent_name);
+        const recordParent = normalizeName(record.parent_name ?? record.parentName);
         if (inputParent.length >= 2 && recordParent === inputParent) {
             matchFields.push('parent_name');
             score += 15;
         }
 
-        const recordStudent = normalizeName(record.student_name);
+        const recordStudent = normalizeName(record.student_name ?? record.studentName);
         if (inputStudent.length >= 2 && recordStudent === inputStudent) {
             matchFields.push('student_name');
             score += 10;
@@ -63,10 +63,10 @@ export function findDuplicates(
         if (matchFields.length >= 1 && score >= 25) {
             matches.push({
                 id: record.id,
-                student_name: record.student_name,
-                parent_name: record.parent_name,
-                phone: record.phone ?? record.parent_phone,
-                email: record.email ?? record.parent_email,
+                student_name: record.student_name ?? record.studentName ?? '',
+                parent_name: record.parent_name ?? record.parentName ?? '',
+                phone: record.phone ?? record.parent_phone ?? record.parentPhone,
+                email: record.email ?? record.parent_email ?? record.parentEmail,
                 matchFields,
                 score,
             });

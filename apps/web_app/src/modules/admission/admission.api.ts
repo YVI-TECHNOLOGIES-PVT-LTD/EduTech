@@ -23,10 +23,10 @@ export const admissionApi = {
         apiClient.post<any>('/v1/admission/apply', data),
 
     listMyApplications: () =>
-        apiClient.get<{ data: Admission[]; total: number }>('/v1/admission/my'),
+        apiClient.get<any>('/v1/applications', { params: { mine: true } }),
 
     listCrmApplications: (params?: { status?: string, school_id?: string, page?: number, limit?: number, search?: string }) =>
-        apiClient.get<any>('/v1/admission/application', { params }),
+        apiClient.get<any>('/v1/applications', { params }),
 
     getCrmStats: (school_id?: string) =>
         apiClient.get<any>('/v1/admission/application/stats', { params: { school_id } }),
@@ -123,7 +123,7 @@ export const admissionApi = {
         apiClient.get(`/v1/admission/crm/enquiries/${id}`),
 
     createEnquiry: (data: any) =>
-        apiClient.post('/v1/admission/crm/enquiries', data),
+        apiClient.post('/v1/admission/crm/enquiries', data, { silent: true } as any),
 
     updateEnquiry: (id: string, data: any) =>
         apiClient.put(`/v1/admission/crm/enquiries/${id}`, data),
@@ -167,11 +167,11 @@ export const admissionApi = {
     // ==========================================
     // CRM APPLICATION (New /v1/admission/application path)
     // ==========================================
-    createCrmApplication: (data: { lead_id: string; grade: string; date_of_birth: string; gender?: string; blood_group?: string; [key: string]: any }) =>
-        apiClient.post('/v1/admission/application', data),
+    createCrmApplication: (data: { lead_id?: string; grade: string; date_of_birth: string; gender?: string; blood_group?: string; [key: string]: any }) =>
+        apiClient.post('/v1/applications', data),
 
     getCrmApplication: (id: string) =>
-        apiClient.get(`/v1/admission/application/${id}`),
+        apiClient.get(`/v1/applications/${id}`),
 
     patchCrmApplicationProfile: (id: string, data: any, expectedUpdatedAt: string) =>
         apiClient.patch(`/v1/admission/application/${id}/profile`, data, {
@@ -183,8 +183,8 @@ export const admissionApi = {
             headers: { 'x-expected-updated-at': expectedUpdatedAt }
         }),
 
-    submitCrmApplication: (id: string, payload: any) =>
-        apiClient.post(`/v1/admission/application/${id}/submit`, payload),
+    submitCrmApplication: (id: string, payload?: any) =>
+        apiClient.post(`/v1/admission/application/${id}/submit`, payload ?? {}),
 
     reviewCrmApplication: (id: string, remark: string) =>
         apiClient.post(`/v1/admission/application/${id}/review`, { remark }),
@@ -277,32 +277,29 @@ export const admissionApi = {
     // DOCUMENTS (Sprint 4 / Stage 3)
     // ==========================================
     listCrmDocuments: (applicationId: string) =>
-        apiClient.get(`/v1/admission/application/documents/application/${applicationId}`),
+        apiClient.get(`/v1/applications/${applicationId}/documents`),
 
-    uploadCrmDocument: (applicationId: string, documentTypeCode: string, file: File) => {
-        const form = new FormData();
-        form.append('file', file);
-        form.append('application_id', applicationId);
-        form.append('document_type_code', documentTypeCode);
-        return apiClient.post('/v1/admission/application/documents/upload', form, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+    uploadCrmDocument: (applicationId: string, documentTypeId: string, filePath: string) => {
+        return apiClient.post(`/v1/applications/${applicationId}/documents`, {
+            document_type_id: documentTypeId,
+            file_path: filePath,
         });
     },
 
     deleteCrmDocument: (documentId: string) =>
-        apiClient.delete(`/v1/admission/application/documents/${documentId}`),
+        apiClient.delete(`/v1/applications/documents/${documentId}`),
 
     getCrmDocumentDownloadUrl: (documentId: string) =>
-        apiClient.get(`/v1/admission/application/documents/${documentId}/download-url`),
+        apiClient.get(`/v1/applications/documents/${documentId}/download-url`),
 
     verifyCrmDocument: (documentId: string, remarks?: string) =>
-        apiClient.post(`/v1/admission/application/documents/${documentId}/verify`, { remarks }),
+        apiClient.patch(`/v1/applications/documents/${documentId}/verify`, { verify_status: 'verified', verification_remarks: remarks }),
 
     rejectCrmDocument: (documentId: string, rejectionReason: string) =>
-        apiClient.post(`/v1/admission/application/documents/${documentId}/reject`, { rejection_reason: rejectionReason }),
+        apiClient.patch(`/v1/applications/documents/${documentId}/verify`, { verify_status: 'rejected', verification_remarks: rejectionReason }),
 
     requestCrmDocumentCorrection: (documentId: string, remarks: string) =>
-        apiClient.post(`/v1/admission/application/documents/${documentId}/request-correction`, { remarks }),
+        apiClient.patch(`/v1/applications/documents/${documentId}/verify`, { verify_status: 'resubmission_requested', verification_remarks: remarks }),
 
     getApplicationProgress: (applicationId: string) =>
         apiClient.get(`/v1/admission/application/${applicationId}/progress`),

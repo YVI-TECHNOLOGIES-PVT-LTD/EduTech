@@ -1,6 +1,5 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface LoginRequest {
   email: string;
@@ -32,7 +31,7 @@ export interface ResetPasswordRequest {
 }
 
 export const authApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginRequest>({
       query: (credentials: LoginRequest) => ({
         url: ENDPOINTS.AUTH.LOGIN,

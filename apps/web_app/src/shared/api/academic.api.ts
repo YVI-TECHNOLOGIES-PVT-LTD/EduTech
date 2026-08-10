@@ -1,6 +1,5 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface AcademicYearRecord {
   id: string;
@@ -26,7 +25,7 @@ export interface SectionRecord {
 }
 
 export const academicApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     getAcademicYears: builder.query<AcademicYearRecord[], void>({
       query: () => ENDPOINTS.ACADEMICS.YEARS,
       providesTags: ['AcademicYear'],

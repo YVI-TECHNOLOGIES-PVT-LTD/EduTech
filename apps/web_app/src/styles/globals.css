@@ -177,6 +177,17 @@ body {
 }
 
 /* Accessibility: Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
+}
+
 [data-reduced-motion="true"] * {
   animation-delay: 0s !important;
   animation-duration: 0s !important;
@@ -184,4 +195,20 @@ body {
   transition-duration: 0s !important;
   scroll-behavior: auto !important;
   transform: none !important;
+}
+
+/* Fluid Page Container & Responsive Shell */
+.landing-container {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+}
+
+/* Mobile Safe-Area Padding Support */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 1rem);
 }

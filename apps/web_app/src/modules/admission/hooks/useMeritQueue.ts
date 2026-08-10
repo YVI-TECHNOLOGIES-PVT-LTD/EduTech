@@ -33,7 +33,7 @@ export function useMeritQueue(search = '') {
         [...recommended.applications, ...approved.applications, ...underReview.applications].forEach(app => {
             const ui = mapUIStatus(app.status);
             const hasMeritLog = app.admission_audit_logs?.some(
-                l => l.action.includes('MERIT') || l.remarks?.includes('Merit'),
+                (l: any) => l.action.includes('MERIT') || l.remarks?.includes('Merit'),
             );
             if (MERIT_UI_STATUSES.has(ui) || app.status === 'recommended' || hasMeritLog) {
                 merged.set(app.id, app);

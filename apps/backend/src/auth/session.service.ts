@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 export interface UserProfile {
   id: string;
   email: string;
+  org_id: string;
   school_id: string;
   full_name: string;
   roles: string[];
@@ -82,6 +83,7 @@ export class SessionService {
       const profile: UserProfile = {
         id: user.user_id,
         email: user.email,
+        org_id: user.org_id,
         school_id: user.org_id,
         full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
         roles,

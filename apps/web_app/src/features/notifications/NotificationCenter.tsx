@@ -1,13 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QUERY_KEYS } from '../../lib/queryKeys';
 import {
   NotificationService,
   ErpNotification,
   NotificationCategory,
 } from '../../services/dashboard/NotificationService';
-import { useNotificationStore } from '../../store/notification.store';
 import {
   Bell,
   X,
@@ -124,56 +121,72 @@ function NotificationItem({
   );
 }
 
+import { useAppDispatch, useAppSelector } from '../../app/store';
+import {
+  closePanel as closePanelAction,
+  setFilter as setFilterAction,
+  setUnreadCount as setUnreadCountAction,
+} from '../../shared/store/notificationSlice';
+
 export function NotificationCenter() {
-  const {
-    isOpen,
-    activeFilter,
-    closePanel,
-    setFilter,
-    markRead,
-    markAllRead,
-    removeNotification,
-    setUnreadCount,
-  } = useNotificationStore();
-  const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
+  const isOpen = useAppSelector((state) => state.notification.isOpen);
+  const activeFilter = useAppSelector((state) => state.notification.activeFilter);
 
-  const { data, isLoading } = useQuery({
-    queryKey: QUERY_KEYS.NOTIFICATIONS.LIST(activeFilter),
-    queryFn: () =>
-      NotificationService.getNotifications(
+  const closePanel = useCallback(() => dispatch(closePanelAction()), [dispatch]);
+  const setFilter = useCallback((filter: string) => dispatch(setFilterAction(filter)), [dispatch]);
+  const setUnreadCount = useCallback((count: number) => dispatch(setUnreadCountAction(count)), [dispatch]);
+
+  const [notifications, setNotifications] = useState<ErpNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!isOpen) return;
+    setIsLoading(true);
+    try {
+      const res = await NotificationService.getNotifications(
         activeFilter === 'all' ? 'all' : (activeFilter as NotificationCategory),
-      ),
-    refetchInterval: 60_000, // Poll every 60s
-    enabled: isOpen,
-  });
+      );
+      setNotifications(res.notifications || []);
+      setUnreadCount(res.unreadCount || 0);
+    } catch (e) {
+      console.error('Failed to load notifications', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isOpen, activeFilter, setUnreadCount]);
 
-  const notifications = data?.notifications ?? [];
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
-  const markReadMutation = useMutation({
-    mutationFn: NotificationService.markRead,
-    onSuccess: (_, id) => {
-      markRead(id);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS.LIST() });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS.UNREAD_COUNT() });
-    },
-  });
+  const handleMarkRead = async (id: string) => {
+    try {
+      await NotificationService.markRead(id);
+      fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-  const markAllMutation = useMutation({
-    mutationFn: NotificationService.markAllRead,
-    onSuccess: () => {
-      markAllRead();
+  const handleMarkAllRead = async () => {
+    try {
+      await NotificationService.markAllRead();
       setUnreadCount(0);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS.LIST() });
-    },
-  });
+      fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-  const removeMutation = useMutation({
-    mutationFn: NotificationService.deleteNotification,
-    onSuccess: (_, id) => {
-      removeNotification(id);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS.LIST() });
-    },
-  });
+  const handleRemove = async (id: string) => {
+    try {
+      await NotificationService.deleteNotification(id);
+      fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
@@ -214,7 +227,7 @@ export function NotificationCenter() {
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
                   <button
-                    onClick={() => markAllMutation.mutate()}
+                    onClick={handleMarkAllRead}
                     title="Mark all as read"
                     className="p-2 text-gray-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/5"
                   >
@@ -243,20 +256,22 @@ export function NotificationCenter() {
               ))}
             </div>
 
-            {/* Notification List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
               {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center justify-center p-8 text-gray-400 text-xs font-medium">
+                  Loading notifications...
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-                  <Bell className="w-10 h-10 text-gray-200 mb-3" />
-                  <p className="text-sm font-bold text-gray-500">No notifications</p>
-                  <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-3">
+                    <Bell className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-bold text-gray-700">No notifications</p>
+                  <p className="text-[11px] text-gray-400 mt-1">You're all caught up!</p>
                 </div>
               ) : (
-                <div className="space-y-4 pb-4">
+                <div className="divide-y divide-gray-50">
                   {(() => {
                     const now = new Date();
                     const startOfToday = new Date(
@@ -264,7 +279,7 @@ export function NotificationCenter() {
                       now.getMonth(),
                       now.getDate(),
                     ).getTime();
-                    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+                    const startOfYesterday = startOfToday - 86400000;
 
                     const todayList = notifications.filter(
                       (n: any) => new Date(n.createdAt).getTime() >= startOfToday,
@@ -289,8 +304,8 @@ export function NotificationCenter() {
                               <NotificationItem
                                 key={notification.id}
                                 notification={notification}
-                                onMarkRead={(id) => markReadMutation.mutate(id)}
-                                onRemove={(id) => removeMutation.mutate(id)}
+                                onMarkRead={handleMarkRead}
+                                onRemove={handleRemove}
                               />
                             ))}
                           </AnimatePresence>

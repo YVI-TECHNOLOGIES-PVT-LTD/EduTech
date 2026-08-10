@@ -3,8 +3,9 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { admissionApi } from '../admission.api';
 import { useAuth } from '../../../context/AuthContext';
 import { apiClient } from '../../../lib/api-client';
-import { ArrowLeft, Save, Send, User, Phone, Clock, AlertCircle, CheckCircle, Building, MapPin, ShieldAlert, Award } from 'lucide-react';
+import { ArrowLeft, Save, Send, User, Clock, AlertCircle, CheckCircle, Building, ShieldAlert, Award } from 'lucide-react';
 import { MasterDataService } from '../services/MasterDataService';
+import { ApplicationFeedbackModal } from '../components/ApplicationFeedbackModal';
 
 export const AdmissionForm = () => {
     const { id } = useParams();
@@ -13,59 +14,56 @@ export const AdmissionForm = () => {
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('draft');
     const [submitted, setSubmitted] = useState(false);
+    const [submittedResult, setSubmittedResult] = useState<any>(null);
     const location = useLocation();
     const isPublicRoute = location.pathname.includes('/admissions/apply');
     const treatAsGuest = !isAuthenticated || (isPublicRoute && !user?.roles?.includes('PARENT'));
 
-    // Dynamic Lists State
+    // Feedback Modal State
+    const [feedbackModal, setFeedbackModal] = useState<{
+        isOpen: boolean;
+        type: 'success' | 'error' | 'warning' | 'validation';
+        title: string;
+        message: string;
+        details?: string;
+        applicationNumber?: string;
+        invalidCount?: number;
+    }>({
+        isOpen: false,
+        type: 'validation',
+        title: '',
+        message: '',
+    });
+
+    // Dynamic Metadata Lists State
     const [schoolsList, setSchoolsList] = useState<any[]>([]);
     const [academicYearsList, setAcademicYearsList] = useState<any[]>([]);
     const [gradesList, setGradesList] = useState<any[]>([]);
-    const [transportRoutesList, setTransportRoutesList] = useState<any[]>([]);
-    const [feeStructuresList, setFeeStructuresList] = useState<any[]>([]);
 
-    // Static Lookups from MasterDataService
-    const boards = MasterDataService.getBoards();
-    const quotas = MasterDataService.getQuotas();
-    const categories = MasterDataService.getCategories();
-    const bloodGroups = MasterDataService.getBloodGroups();
-    const religions = MasterDataService.getReligions();
-    const occupations = MasterDataService.getOccupations();
+    // Static Relationships Lookup
     const relationships = MasterDataService.getRelationships();
-    const countries = MasterDataService.getCountries();
-    const states = MasterDataService.getStates();
-    const cities = MasterDataService.getCities();
-    const hostelRoomTypes = MasterDataService.getHostelRoomTypes();
 
+    // Canonical Form State
     const [formData, setFormData] = useState<any>({
         school_id: '',
         academic_year_id: '',
+        academic_year_grade_id: '',
+        grade_id: '',
         grade_applied_for: '',
-        board: 'CBSE',
-        quota: 'Regular',
-        fee_structure_id: '',
-        
-        student_name: '',
+        curriculum_preference: 'CBSE',
+
+        student_first_name: '',
+        student_last_name: '',
         date_of_birth: '',
-        gender: 'Male',
-        parent_name: '',
-        relationship: 'Father',
-        occupation: 'Salaried',
-        phone: '',
-        email: '',
-        
-        religion: 'Hindu',
-        category: 'General',
-        blood_group: 'A+',
-        country: 'India',
-        state: 'Telangana',
-        city: 'Hyderabad',
-        previous_school: '',
-        last_grade_completed: '',
-        address: '',
-        
-        transport_route_id: '',
-        hostel_room_type: 'Single (Non-AC)',
+        gender: 'male',
+        scholarship_interest: false,
+        remarks: '',
+
+        parent_first_name: '',
+        parent_last_name: '',
+        contact_relationship: 'father',
+        contact_phone: '',
+        contact_email: '',
         parent_password: ''
     });
 
@@ -75,7 +73,7 @@ export const AdmissionForm = () => {
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // 1. Initial Load of Schools
+    // 1. Load active schools metadata
     useEffect(() => {
         const fetchSchools = async () => {
             try {
@@ -91,49 +89,64 @@ export const AdmissionForm = () => {
         fetchSchools();
     }, []);
 
-    // 2. Fetch Dependent Metadata when selected school_id changes
+    // 2. Fetch dependent academic years & deduplicated grades when selected school_id or academic_year_id changes
     useEffect(() => {
         if (!formData.school_id) return;
         const fetchSchoolDependentData = async () => {
             try {
-                // Fetch public academic years
+                // Fetch public academic years for selected school
                 const yearsRes = await apiClient.get('/public/academic-years', { params: { school_id: formData.school_id } });
                 setAcademicYearsList(yearsRes.data || []);
-                const activeYear = yearsRes.data?.find((y: any) => y.is_active);
-                if (activeYear && !formData.academic_year_id) {
-                    setFormData((prev: any) => ({ ...prev, academic_year_id: activeYear.id }));
-                } else if (yearsRes.data?.length > 0 && !formData.academic_year_id) {
-                    setFormData((prev: any) => ({ ...prev, academic_year_id: yearsRes.data[0].id }));
+                
+                const activeYear = yearsRes.data?.find((y: any) => y.is_active) || yearsRes.data?.[0];
+                const targetYearId = activeYear?.id || '';
+
+                if (targetYearId && !formData.academic_year_id) {
+                    setFormData((prev: any) => ({ ...prev, academic_year_id: targetYearId }));
                 }
 
-                // Fetch public classes/grades
-                const gradesRes = await apiClient.get('/public/classes', { params: { school_id: formData.school_id } });
-                setGradesList(gradesRes.data || []);
-                if (gradesRes.data?.length > 0 && !formData.grade_applied_for) {
-                    setFormData((prev: any) => ({ ...prev, grade_applied_for: gradesRes.data[0].name }));
+                // Fetch public classes/grades scoped to academic_year_id (returns deduplicated academic_year_grades)
+                const effectiveYearId = targetYearId || formData.academic_year_id;
+                const gradesRes = await apiClient.get('/public/classes', {
+                    params: {
+                        school_id: formData.school_id,
+                        academic_year_id: effectiveYearId,
+                    }
+                });
+
+                const loadedGrades: any[] = gradesRes.data || [];
+                const seenAyg = new Set<string>();
+                const deduplicatedGrades: any[] = [];
+                for (const g of loadedGrades) {
+                    const aygId = g.academic_year_grade_id || g.id || g.grade_id;
+                    const gradeKey = `${g.grade_name || g.name}_${g.board || ''}`;
+                    if (aygId && !seenAyg.has(aygId) && !seenAyg.has(gradeKey)) {
+                        seenAyg.add(aygId);
+                        seenAyg.add(gradeKey);
+                        deduplicatedGrades.push(g);
+                    }
                 }
 
-                // Fetch public transport routes
-                const transportRes = await apiClient.get('/public/transport-routes', { params: { school_id: formData.school_id } });
-                setTransportRoutesList(transportRes.data || []);
-                if (transportRes.data?.length > 0 && !formData.transport_route_id) {
-                    setFormData((prev: any) => ({ ...prev, transport_route_id: transportRes.data[0].id }));
-                }
+                setGradesList(deduplicatedGrades);
 
-                // Fetch public fee structures
-                const feesRes = await apiClient.get('/public/fee-structures', { params: { school_id: formData.school_id } });
-                setFeeStructuresList(feesRes.data || []);
-                if (feesRes.data?.length > 0 && !formData.fee_structure_id) {
-                    setFormData((prev: any) => ({ ...prev, fee_structure_id: feesRes.data[0].id }));
+                if (deduplicatedGrades.length > 0 && !formData.academic_year_grade_id) {
+                    const first = deduplicatedGrades[0];
+                    setFormData((prev: any) => ({
+                        ...prev,
+                        academic_year_grade_id: first.academic_year_grade_id || first.id,
+                        grade_id: first.grade_id || first.id,
+                        grade_applied_for: first.grade_name || first.name,
+                        curriculum_preference: first.board || 'CBSE',
+                    }));
                 }
             } catch (err) {
                 console.error('Failed to load school dependent public metadata:', err);
             }
         };
         fetchSchoolDependentData();
-    }, [formData.school_id]);
+    }, [formData.school_id, formData.academic_year_id]);
 
-    // 3. Load Existing CRM Application details if editing (for authenticated staff/parents)
+    // 3. Load existing application details if editing in CRM
     useEffect(() => {
         if (authLoading) return;
         if (!id || !user) return;
@@ -144,41 +157,38 @@ export const AdmissionForm = () => {
                 const { data } = await admissionApi.getCrmApplication(id);
                 const mapped = data?.application ?? data;
                 const enquiry = data?.enquiry ?? {};
-                const profile = data?.profile ?? {};
-                const parents = data?.parents ?? {};
-                const education = data?.previous_education ?? {};
-                const remarksObj = enquiry.remarks ? JSON.parse(enquiry.remarks) : {};
+
+                const sName = enquiry.student_name || '';
+                const sParts = sName.split(' ');
+                const sFirst = enquiry.student_first_name || sParts[0] || '';
+                const sLast = enquiry.student_last_name || sParts.slice(1).join(' ') || '';
+
+                const pName = enquiry.parent_name || '';
+                const pParts = pName.split(' ');
+                const pFirst = enquiry.parent_first_name || pParts[0] || '';
+                const pLast = enquiry.parent_last_name || pParts.slice(1).join(' ') || '';
 
                 setStatus((mapped?.status ?? 'draft').toLowerCase());
                 setFormData({
                     school_id: mapped.school_id ?? user?.school_id ?? '',
                     academic_year_id: mapped.academic_year_id ?? '',
+                    academic_year_grade_id: enquiry.academic_year_grade_id ?? '',
+                    grade_id: mapped.grade_id ?? '',
                     grade_applied_for: enquiry.grade_applied_for ?? '',
-                    board: remarksObj.board ?? 'CBSE',
-                    quota: remarksObj.quota ?? 'Regular',
-                    fee_structure_id: remarksObj.fee_structure_id ?? '',
-                    
-                    student_name: enquiry.student_name ?? '',
-                    date_of_birth: profile.date_of_birth ?? enquiry.date_of_birth ?? '',
-                    gender: profile.gender ?? enquiry.gender ?? 'Male',
-                    parent_name: enquiry.parent_name ?? (parents.father_name || parents.mother_name || ''),
-                    relationship: remarksObj.relationship ?? 'Father',
-                    occupation: remarksObj.occupation ?? 'Salaried',
-                    phone: enquiry.parent_phone ?? (parents.father_phone || parents.mother_phone || ''),
-                    email: enquiry.parent_email ?? (parents.father_email || parents.mother_email || ''),
-                    
-                    religion: remarksObj.religion ?? 'Hindu',
-                    category: remarksObj.category ?? 'General',
-                    blood_group: remarksObj.blood_group ?? 'A+',
-                    country: remarksObj.country ?? 'India',
-                    state: remarksObj.state ?? 'Telangana',
-                    city: remarksObj.city ?? 'Hyderabad',
-                    previous_school: education.school_name ?? enquiry.current_school ?? '',
-                    last_grade_completed: education.last_class ?? '',
-                    address: enquiry.address ?? '',
-                    
-                    transport_route_id: remarksObj.transport_route_id ?? '',
-                    hostel_room_type: remarksObj.hostel_room_type ?? 'Single (Non-AC)',
+                    curriculum_preference: enquiry.curriculum_preference ?? 'CBSE',
+
+                    student_first_name: sFirst,
+                    student_last_name: sLast,
+                    date_of_birth: enquiry.dob ? enquiry.dob.split('T')[0] : '',
+                    gender: (enquiry.gender || 'male').toLowerCase(),
+                    scholarship_interest: Boolean(enquiry.scholarship_interest),
+                    remarks: enquiry.remarks ?? '',
+
+                    parent_first_name: pFirst,
+                    parent_last_name: pLast,
+                    contact_relationship: (enquiry.contact_relationship || 'father').toLowerCase(),
+                    contact_phone: enquiry.contact_phone || enquiry.parent_phone || '',
+                    contact_email: enquiry.contact_email || enquiry.parent_email || '',
                     parent_password: ''
                 });
             } catch (err) {
@@ -194,37 +204,94 @@ export const AdmissionForm = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         if (isReadOnly) return;
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value, type } = e.target;
+        if (type === 'checkbox') {
+            const checked = (e.target as HTMLInputElement).checked;
+            setFormData((prev: any) => ({ ...prev, [name]: checked }));
+        } else {
+            setFormData((prev: any) => ({ ...prev, [name]: value }));
+        }
+        if (errors[name]) {
+            setErrors((prev) => {
+                const updated = { ...prev };
+                delete updated[name];
+                return updated;
+            });
+        }
+    };
+
+    const handleGradeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (isReadOnly) return;
+        const selectedAygId = e.target.value;
+        const matched = gradesList.find((g) => (g.academic_year_grade_id || g.id) === selectedAygId);
+        setFormData((prev: any) => ({
+            ...prev,
+            academic_year_grade_id: selectedAygId,
+            grade_id: matched?.grade_id || selectedAygId,
+            grade_applied_for: matched?.grade_name || matched?.name || '',
+            curriculum_preference: matched?.board || 'CBSE',
+        }));
     };
 
     const handleRegChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.name === 'confirmPassword') {
-            setRegData({ confirmPassword: e.target.value });
-        } else {
-            setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'parent_password') {
+            setFormData((prev: any) => ({ ...prev, parent_password: value }));
+        } else if (name === 'confirmPassword') {
+            setRegData({ confirmPassword: value });
+        }
+        if (errors[name] || errors.parent_password) {
+            setErrors((prev) => {
+                const updated = { ...prev };
+                delete updated.parent_password;
+                delete updated.confirmPassword;
+                return updated;
+            });
         }
     };
 
-    const handleSave = async (isSubmit = false) => {
-        if (isReadOnly) return;
+    const handleSave = async (submitNow = false) => {
+        if (isReadOnly || loading) return;
 
         // Front-end Validation
         const newErrors: Record<string, string> = {};
-        if (formData.student_name.trim().length < 2) newErrors.student_name = 'Required (min 2 chars)';
-        if (formData.parent_name.trim().length < 2) newErrors.parent_name = 'Required (min 2 chars)';
-        if (!/^\+?[0-9]{10,15}$/.test(formData.phone.trim())) newErrors.phone = 'Invalid phone number';
-        if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
-        if (!formData.email.trim()) newErrors.email = 'Email is required';
+        if (!formData.student_first_name.trim()) newErrors.student_first_name = 'Student first name is required.';
+        if (!formData.parent_first_name.trim()) newErrors.parent_first_name = 'Parent first name is required.';
+        if (!formData.contact_phone.trim()) {
+            newErrors.contact_phone = 'Phone number is required.';
+        } else if (!/^\+?[0-9]{10,15}$/.test(formData.contact_phone.trim())) {
+            newErrors.contact_phone = 'Valid phone number (10-15 digits) required.';
+        }
+        if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required.';
+        if (!formData.contact_email.trim()) {
+            newErrors.contact_email = 'Email address is required.';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email.trim())) {
+            newErrors.contact_email = 'Please enter a valid email address.';
+        }
 
         if (treatAsGuest) {
-            if (!formData.parent_password || formData.parent_password !== regData.confirmPassword) {
-                newErrors.parent_password = 'Passwords must match for account registration';
+            if (!formData.parent_password || formData.parent_password.length < 6) {
+                newErrors.parent_password = 'Password must be at least 6 characters.';
+            }
+            if (formData.parent_password !== regData.confirmPassword) {
+                newErrors.parent_password = 'Passwords must match for account registration.';
             }
         }
 
-        if (Object.keys(newErrors).length) {
+        if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            alert('Please fix the errors before submitting the application.');
+            const firstKey = Object.keys(newErrors)[0];
+            const elem = document.querySelector(`[name="${firstKey}"]`);
+            if (elem) {
+                elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            setFeedbackModal({
+                isOpen: true,
+                type: 'validation',
+                title: 'Please Complete Required Fields',
+                message: 'Some mandatory fields require your attention before submission.',
+                invalidCount: Object.keys(newErrors).length,
+            });
             return;
         }
 
@@ -233,27 +300,69 @@ export const AdmissionForm = () => {
 
         try {
             if (treatAsGuest) {
-                // Public Guest Application Submission
-                const payload = {
-                    ...formData,
-                    parent_email: formData.email.trim(),
-                    parent_name: formData.parent_name.trim(),
-                    parent_phone: formData.phone.trim(),
+                // Public Guest Application Submission — Canonical DTO Contract
+                const canonicalPayload = {
+                    school_id: formData.school_id,
+                    academic_year_id: formData.academic_year_id,
+                    academic_year_grade_id: formData.academic_year_grade_id,
+                    grade_id: formData.grade_id,
+                    student_first_name: formData.student_first_name.trim(),
+                    student_last_name: formData.student_last_name.trim() || undefined,
+                    date_of_birth: formData.date_of_birth,
+                    gender: (formData.gender || 'male').toLowerCase(),
+                    parent_first_name: formData.parent_first_name.trim(),
+                    parent_last_name: formData.parent_last_name.trim() || undefined,
+                    contact_phone: formData.contact_phone.trim(),
+                    contact_email: formData.contact_email.trim().toLowerCase(),
+                    contact_relationship: (formData.contact_relationship || 'father').toLowerCase(),
+                    parent_password: formData.parent_password,
+                    curriculum_preference: formData.curriculum_preference || 'CBSE',
+                    scholarship_interest: Boolean(formData.scholarship_interest),
+                    remarks: formData.remarks?.trim() || undefined,
                 };
-                console.log('[ADMISSION] Calling publicApply...', payload);
-                await admissionApi.publicApply(payload);
+
+                console.log('[ADMISSION] Submitting public application', {
+                    school_id: canonicalPayload.school_id,
+                    academic_year_id: canonicalPayload.academic_year_id,
+                    academic_year_grade_id: canonicalPayload.academic_year_grade_id,
+                    grade_id: canonicalPayload.grade_id,
+                });
+                const res = await admissionApi.publicApply(canonicalPayload);
+                const resultData = res.data?.application_number ? res.data : (res.data?.data || res.data || {});
+                const appNum = resultData?.application_number || resultData?.applicationNumber || 'APP-2026-00001';
+
+                setSubmittedResult(resultData);
                 setSubmitted(true);
+                setFeedbackModal({
+                    isOpen: true,
+                    type: 'success',
+                    title: 'Application Submitted Successfully!',
+                    message: 'Your admission application has been logged into the portal.',
+                    applicationNumber: appNum,
+                });
             } else {
-                // Logged-in parent/staff application
+                // Authenticated Parent/Staff Submission
                 const isParent = user?.roles?.includes('PARENT');
                 if (!id && isParent) {
-                    const payload = {
-                        ...formData,
-                        parent_email: formData.email.trim(),
-                        parent_name: formData.parent_name.trim(),
-                        parent_phone: formData.phone.trim(),
+                    const canonicalPayload = {
+                        school_id: formData.school_id,
+                        academic_year_id: formData.academic_year_id,
+                        academic_year_grade_id: formData.academic_year_grade_id,
+                        grade_id: formData.grade_id,
+                        student_first_name: formData.student_first_name.trim(),
+                        student_last_name: formData.student_last_name.trim() || undefined,
+                        date_of_birth: formData.date_of_birth,
+                        gender: (formData.gender || 'male').toLowerCase(),
+                        parent_first_name: formData.parent_first_name.trim(),
+                        parent_last_name: formData.parent_last_name.trim() || undefined,
+                        contact_phone: formData.contact_phone.trim(),
+                        contact_email: formData.contact_email.trim().toLowerCase(),
+                        contact_relationship: (formData.contact_relationship || 'father').toLowerCase(),
+                        curriculum_preference: formData.curriculum_preference || 'CBSE',
+                        scholarship_interest: Boolean(formData.scholarship_interest),
+                        remarks: formData.remarks?.trim() || undefined,
                     };
-                    await admissionApi.parentApply(payload);
+                    await admissionApi.parentApply(canonicalPayload);
                     navigate('/app/admissions/my');
                     return;
                 }
@@ -261,27 +370,70 @@ export const AdmissionForm = () => {
                 let applicationId = id;
                 if (!applicationId) {
                     const createRes = await admissionApi.createCrmApplication({
-                        lead_id: formData.lead_id,
                         grade: formData.grade_applied_for,
                         date_of_birth: formData.date_of_birth,
                         gender: formData.gender,
-                        student_name: formData.student_name,
+                        student_name: `${formData.student_first_name} ${formData.student_last_name}`.trim(),
                         academic_year_id: formData.academic_year_id,
                     });
                     applicationId = createRes.data?.id ?? createRes.data?.application?.id;
                 }
 
-                if (isSubmit && applicationId) {
-                    await admissionApi.submitCrmApplication(applicationId, {
-                        change_reason: 'Application submitted via portal',
-                    });
+                if (submitNow && applicationId) {
+                    await admissionApi.submitCrmApplication(applicationId);
                 }
-                navigate('/app/admissions/my');
+
+                navigate('/app/workspace');
             }
         } catch (err: any) {
-            console.error('[ADMISSION] Application submit error:', err);
-            const errMsg = err.response?.data?.error || err.message || 'Failed to submit application';
-            alert(errMsg);
+            console.error('[ADMISSION] Submission failed:', err);
+
+            let errorTitle = 'Application Not Submitted';
+            let errorMessage = 'Something went wrong while submitting the application. Please try again.';
+            let errorDetails: string | undefined = undefined;
+
+            if (err?.code === 'ERR_NETWORK') {
+                errorTitle = 'Connection Error';
+                errorMessage = 'Unable to connect to the server. Please check your connection and try again.';
+            } else if (err?.code === 'ECONNABORTED') {
+                errorTitle = 'Request Timeout';
+                errorMessage = 'The request timed out. Please try again.';
+            } else if (err?.response) {
+                const status = err.response.status;
+                const backendMsg = err.response.data?.message || err.response.data?.error || err.response.data?.details;
+
+                if (status === 409) {
+                    errorTitle = 'Application Not Submitted';
+                    errorMessage = typeof backendMsg === 'string' ? backendMsg : 'Admissions have closed for this academic year.';
+                    errorDetails = 'Please contact the school office for further assistance.';
+                } else if (status === 400) {
+                    errorTitle = 'Invalid Application Information';
+                    errorMessage = typeof backendMsg === 'string' ? backendMsg : 'Please check the information entered and try again.';
+                } else if (status === 401) {
+                    errorTitle = 'Session Expired';
+                    errorMessage = 'Your session has expired. Please sign in again.';
+                } else if (status === 403) {
+                    errorTitle = 'Permission Denied';
+                    errorMessage = typeof backendMsg === 'string' ? backendMsg : 'Online applications are currently disabled for this academic year.';
+                } else if (status === 404) {
+                    errorTitle = 'Resource Not Found';
+                    errorMessage = 'The requested school or academic year resource could not be found.';
+                } else if (status === 422) {
+                    errorTitle = 'Validation Error';
+                    errorMessage = typeof backendMsg === 'string' ? backendMsg : 'Invalid application details provided.';
+                } else if (status >= 500) {
+                    errorTitle = 'Server Exception';
+                    errorMessage = 'Something went wrong while processing your application on the server. Please try again.';
+                }
+            }
+
+            setFeedbackModal({
+                isOpen: true,
+                type: 'error',
+                title: errorTitle,
+                message: errorMessage,
+                details: errorDetails,
+            });
         } finally {
             setLoading(false);
         }
@@ -289,27 +441,51 @@ export const AdmissionForm = () => {
 
     if (submitted) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-                <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-blue-100 p-10 text-center transform animate-in fade-in zoom-in duration-700">
-                    <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-200 animate-bounce">
-                        <CheckCircle className="w-14 h-14 text-white" strokeWidth={2.5} />
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-24 pb-12 px-4 flex items-center justify-center">
+                <div className="max-w-xl w-full bg-white rounded-3xl shadow-2xl p-10 text-center space-y-6 border border-blue-100">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 shadow-inner">
+                        <CheckCircle className="w-12 h-12" />
                     </div>
-                    <h2 className="text-4xl font-black text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        Application Received!
-                    </h2>
-                    <div className="space-y-4 text-gray-600 mb-10">
-                        <p className="text-lg font-semibold text-green-600">✅ Successfully Submitted</p>
-                        <p className="leading-relaxed font-medium">Our admissions team will review your application. An active lead is automatically converted in the Inquiry Desk.</p>
-                        <p className="font-medium text-blue-600 bg-blue-50 py-2 px-4 rounded-lg">
-                            Log in using your registered parent email to track progress
-                        </p>
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
+                        <p className="text-gray-600">Your application has been logged into the admissions portal.</p>
                     </div>
-                    <button
-                        onClick={() => navigate('/login')}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 rounded-xl font-bold shadow-xl shadow-blue-200 transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95"
-                    >
-                        Go to Login Portal
-                    </button>
+
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border-2 border-blue-100 space-y-3 text-left">
+                        <div className="flex justify-between items-center pb-2 border-b border-blue-200">
+                            <span className="text-xs font-bold uppercase text-gray-500">Application Number</span>
+                            <span className="text-lg font-black text-blue-700 tracking-wide">
+                                {submittedResult?.application_number || submittedResult?.applicationNumber || 'APP-2026-PENDING'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">Applicant Student</span>
+                            <span className="font-bold text-gray-900">{formData.student_first_name} {formData.student_last_name}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">Parent Email</span>
+                            <span className="font-bold text-gray-900">{formData.contact_email}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">Status</span>
+                            <span className="px-3 py-1 bg-green-100 text-green-800 font-extrabold rounded-full text-xs uppercase">Submitted</span>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all hover:scale-105"
+                        >
+                            Log In to Parent Portal
+                        </button>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full sm:w-auto px-8 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all"
+                        >
+                            Submit Another Application
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -317,7 +493,7 @@ export const AdmissionForm = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate(-1)}
@@ -331,7 +507,7 @@ export const AdmissionForm = () => {
 
                 {/* Read-Only Alert */}
                 {isReadOnly && (
-                    <div className="mb-8 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-amber-100 animate-in slide-in-from-top duration-500">
+                    <div className="mb-8 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-amber-100">
                         <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <AlertCircle className="w-6 h-6 text-amber-600" />
                         </div>
@@ -345,36 +521,35 @@ export const AdmissionForm = () => {
                 )}
 
                 {/* Main Form Card */}
-                <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-500 hover:shadow-3xl">
+                <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-500">
                     
                     {/* Header Banner */}
                     <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-10 text-white overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 blur-2xl"></div>
                         <div className="relative z-10">
                             <h1 className="text-2xl md:text-3xl lg:text-4xl font-black mb-2 flex items-center gap-3">
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                                     <User className="w-7 h-7" />
                                 </div>
-                                {id ? 'Edit' : 'New'} Admissions Application
+                                Public Admission Application
                             </h1>
-                            <p className="text-blue-100 text-lg font-medium">Capture comprehensive student details mapped directly to the CRM Workspace.</p>
+                            <p className="text-blue-100 text-base md:text-lg font-medium">Apply for student admission under the certified Stage-1 EduTrack platform.</p>
                         </div>
                     </div>
 
                     {/* Form Layout Container */}
                     <div className="p-8 sm:p-12 space-y-10">
                         
-                        {/* Section 1: Institution & Academic Details */}
+                        {/* Section 1: School & Academic Selection */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 pb-3 border-b-2 border-blue-100">
                                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
                                     <Building className="w-5 h-5 text-white" />
                                 </div>
-                                <h2 className="text-xl font-bold text-gray-900">1. Institution & Academic Details</h2>
+                                <h2 className="text-xl font-bold text-gray-900">1. School & Academic Selection</h2>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">School *</label>
                                     <select
@@ -410,89 +585,73 @@ export const AdmissionForm = () => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Applying Grade *</label>
                                     <select
-                                        name="grade_applied_for"
-                                        value={formData.grade_applied_for}
-                                        onChange={handleChange}
+                                        name="academic_year_grade_id"
+                                        value={formData.academic_year_grade_id}
+                                        onChange={handleGradeSelect}
                                         disabled={isReadOnly}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
                                         required
                                     >
-                                        {gradesList.map(g => (
-                                            <option key={g.id} value={g.name}>{g.name}</option>
+                                        {gradesList.map((g) => (
+                                            <option key={g.academic_year_grade_id || g.id} value={g.academic_year_grade_id || g.id}>
+                                                {g.grade_name || g.name} {g.board ? `(${g.board})` : ''}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Board *</label>
-                                    <select
-                                        name="board"
-                                        value={formData.board}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {boards.map(b => (
-                                            <option key={b} value={b}>{b}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Quota *</label>
-                                    <select
-                                        name="quota"
-                                        value={formData.quota}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {quotas.map(q => (
-                                            <option key={q} value={q}>{q}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Fee Category / Structure *</label>
-                                    <select
-                                        name="fee_structure_id"
-                                        value={formData.fee_structure_id}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {feeStructuresList.map(f => (
-                                            <option key={f.id} value={f.id}>{f.name} {f.amount ? `(₹${f.amount})` : ''}</option>
-                                        ))}
-                                    </select>
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Curriculum / Board (Derived)</label>
+                                    <input
+                                        type="text"
+                                        name="curriculum_preference"
+                                        value={formData.curriculum_preference}
+                                        readOnly
+                                        disabled
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-700 font-semibold outline-none cursor-not-allowed"
+                                    />
                                 </div>
                             </div>
                         </section>
 
-                        {/* Section 2: Candidate & Parent Information */}
+                        {/* Section 2: Student Information & Admission Preferences */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 pb-3 border-b-2 border-green-100">
                                 <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
                                     <User className="w-5 h-5 text-white" />
                                 </div>
-                                <h2 className="text-xl font-bold text-gray-900">2. Candidate & Parent Information</h2>
+                                <h2 className="text-xl font-bold text-gray-900">2. Student Details & Preferences</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Student Name *</label>
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Student First Name *</label>
                                     <input
                                         type="text"
-                                        name="student_name"
-                                        value={formData.student_name}
+                                        name="student_first_name"
+                                        value={formData.student_first_name}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.student_name ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="Enter student's full name"
+                                        aria-invalid={!!errors.student_first_name}
+                                        aria-describedby={errors.student_first_name ? 'student_first_name-error' : undefined}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.student_first_name ? 'border-red-500 bg-red-50/20' : 'border-gray-200'}`}
+                                        placeholder="First name"
                                         required
                                     />
-                                    {errors.student_name && <p className="text-xs text-red-500">{errors.student_name}</p>}
+                                    {errors.student_first_name && <p id="student_first_name-error" className="text-xs text-red-600 font-medium">{errors.student_first_name}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Student Last Name</label>
+                                    <input
+                                        type="text"
+                                        name="student_last_name"
+                                        value={formData.student_last_name}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                                        placeholder="Last name"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -503,10 +662,12 @@ export const AdmissionForm = () => {
                                         value={formData.date_of_birth}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.date_of_birth ? 'border-red-500' : 'border-gray-200'}`}
+                                        aria-invalid={!!errors.date_of_birth}
+                                        aria-describedby={errors.date_of_birth ? 'date_of_birth-error' : undefined}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.date_of_birth ? 'border-red-500 bg-red-50/20' : 'border-gray-200'}`}
                                         required
                                     />
-                                    {errors.date_of_birth && <p className="text-xs text-red-500">{errors.date_of_birth}</p>}
+                                    {errors.date_of_birth && <p id="date_of_birth-error" className="text-xs text-red-600 font-medium">{errors.date_of_birth}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -518,54 +679,95 @@ export const AdmissionForm = () => {
                                         disabled={isReadOnly}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
                                     >
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Parent / Guardian Name *</label>
+                                <div className="space-y-2 md:col-span-2 flex items-center gap-3 pt-2">
                                     <input
-                                        type="text"
-                                        name="parent_name"
-                                        value={formData.parent_name}
+                                        type="checkbox"
+                                        id="scholarship_interest"
+                                        name="scholarship_interest"
+                                        checked={Boolean(formData.scholarship_interest)}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_name ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="Enter parent's full name"
+                                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="scholarship_interest" className="text-sm font-bold text-gray-800 cursor-pointer">
+                                        Interested in Merit / Need-Based Financial Scholarship Assistance
+                                    </label>
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Remarks / Special Notes</label>
+                                    <textarea
+                                        name="remarks"
+                                        value={formData.remarks}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        rows={2}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                                        placeholder="Any additional notes or requests"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 3: Parent / Guardian Information & Account Credentials */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3 pb-3 border-b-2 border-purple-100">
+                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-200">
+                                    <Award className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">3. Parent / Guardian Details</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Parent First Name *</label>
+                                    <input
+                                        type="text"
+                                        name="parent_first_name"
+                                        value={formData.parent_first_name}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        aria-invalid={!!errors.parent_first_name}
+                                        aria-describedby={errors.parent_first_name ? 'parent_first_name-error' : undefined}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_first_name ? 'border-red-500 bg-red-50/20' : 'border-gray-200'}`}
+                                        placeholder="First name"
                                         required
                                     />
-                                    {errors.parent_name && <p className="text-xs text-red-500">{errors.parent_name}</p>}
+                                    {errors.parent_first_name && <p id="parent_first_name-error" className="text-xs text-red-600 font-medium">{errors.parent_first_name}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Parent Last Name</label>
+                                    <input
+                                        type="text"
+                                        name="parent_last_name"
+                                        value={formData.parent_last_name}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                                        placeholder="Last name"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Relationship *</label>
                                     <select
-                                        name="relationship"
-                                        value={formData.relationship}
+                                        name="contact_relationship"
+                                        value={formData.contact_relationship}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
                                     >
-                                        {relationships.map(r => (
-                                            <option key={r} value={r}>{r}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Parent Occupation</label>
-                                    <select
-                                        name="occupation"
-                                        value={formData.occupation}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {occupations.map(o => (
-                                            <option key={o} value={o}>{o}</option>
-                                        ))}
+                                        <option value="father">Father</option>
+                                        <option value="mother">Mother</option>
+                                        <option value="guardian">Guardian</option>
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
 
@@ -573,232 +775,51 @@ export const AdmissionForm = () => {
                                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Phone Number *</label>
                                     <input
                                         type="tel"
-                                        name="phone"
-                                        value={formData.phone}
+                                        name="contact_phone"
+                                        value={formData.contact_phone}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.phone ? 'border-red-500' : 'border-gray-200'}`}
+                                        aria-invalid={!!errors.contact_phone}
+                                        aria-describedby={errors.contact_phone ? 'contact_phone-error' : undefined}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.contact_phone ? 'border-red-500 bg-red-50/20' : 'border-gray-200'}`}
                                         placeholder="e.g. +919876543210"
                                         required
                                     />
-                                    {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Email Address *</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="e.g. parent@example.com"
-                                        required
-                                    />
-                                    {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Section 3: Demographics & Contact */}
-                        <section className="space-y-6">
-                            <div className="flex items-center gap-3 pb-3 border-b-2 border-purple-100">
-                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-200">
-                                    <MapPin className="w-5 h-5 text-white" />
-                                </div>
-                                <h2 className="text-xl font-bold text-gray-900">3. Demographics & Contact</h2>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Religion</label>
-                                    <select
-                                        name="religion"
-                                        value={formData.religion}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {religions.map(r => (
-                                            <option key={r} value={r}>{r}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Category</label>
-                                    <select
-                                        name="category"
-                                        value={formData.category}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {categories.map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Blood Group</label>
-                                    <select
-                                        name="blood_group"
-                                        value={formData.blood_group}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {bloodGroups.map(b => (
-                                            <option key={b} value={b}>{b}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Country</label>
-                                    <select
-                                        name="country"
-                                        value={formData.country}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {countries.map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">State</label>
-                                    <select
-                                        name="state"
-                                        value={formData.state}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {states.map(s => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">City</label>
-                                    <select
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        {cities.map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
+                                    {errors.contact_phone && <p id="contact_phone-error" className="text-xs text-red-600 font-medium">{errors.contact_phone}</p>}
                                 </div>
 
                                 <div className="space-y-2 md:col-span-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Current / Previous School</label>
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Email Address *</label>
                                     <input
-                                        type="text"
-                                        name="previous_school"
-                                        value={formData.previous_school}
+                                        type="email"
+                                        name="contact_email"
+                                        value={formData.contact_email}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
-                                        placeholder="Last school attended"
+                                        aria-invalid={!!errors.contact_email}
+                                        aria-describedby={errors.contact_email ? 'contact_email-error' : undefined}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.contact_email ? 'border-red-500 bg-red-50/20' : 'border-gray-200'}`}
+                                        placeholder="e.g. parent@example.com"
+                                        required
                                     />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Last Grade Completed</label>
-                                    <input
-                                        type="text"
-                                        name="last_grade_completed"
-                                        value={formData.last_grade_completed}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
-                                        placeholder="e.g. Class 5"
-                                    />
-                                </div>
-
-                                <div className="space-y-2 md:col-span-3">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Full Contact Address</label>
-                                    <textarea
-                                        name="address"
-                                        value={formData.address}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        rows={3}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
-                                        placeholder="Enter permanent residential address details"
-                                    />
+                                    {errors.contact_email && <p id="contact_email-error" className="text-xs text-red-600 font-medium">{errors.contact_email}</p>}
                                 </div>
                             </div>
                         </section>
 
-                        {/* Section 4: Logistics Preferences */}
-                        <section className="space-y-6">
-                            <div className="flex items-center gap-3 pb-3 border-b-2 border-amber-100">
-                                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-200">
-                                    <Award className="w-5 h-5 text-white" />
-                                </div>
-                                <h2 className="text-xl font-bold text-gray-900">4. Logistics Preferences</h2>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Transport Route Preference</label>
-                                    <select
-                                        name="transport_route_id"
-                                        value={formData.transport_route_id}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        <option value="">None (Self Transport)</option>
-                                        {transportRoutesList.map(r => (
-                                            <option key={r.id} value={r.id}>{r.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Hostel Room Type Preference</label>
-                                    <select
-                                        name="hostel_room_type"
-                                        value={formData.hostel_room_type}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
-                                    >
-                                        <option value="None">None (Day Scholar)</option>
-                                        {hostelRoomTypes.map(h => (
-                                            <option key={h} value={h}>{h}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Section 5: Account Password (Only for guest applicants) */}
+                        {/* Account Password Registration Section (Only for Guest applicants) */}
                         {treatAsGuest && !id && (
                             <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-2xl border-2 border-blue-100 shadow-inner space-y-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
                                         <Clock className="w-5 h-5 text-white" />
                                     </div>
-                                    <h2 className="text-xl font-bold text-gray-900">5. Account Registration</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">4. Account Registration</h2>
                                 </div>
 
                                 <div className="p-4 bg-blue-100/50 border border-blue-200 rounded-xl text-sm text-blue-800 font-medium flex items-center gap-2">
                                     <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-                                    <span>Create a parent portal account password. You will use this password alongside your primary email to track the application workflow.</span>
+                                    <span>Create a parent portal password to track your application status.</span>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -809,8 +830,10 @@ export const AdmissionForm = () => {
                                             name="parent_password"
                                             value={formData.parent_password}
                                             onChange={handleRegChange}
-                                            className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_password ? 'border-red-500' : 'border-blue-200'}`}
-                                            placeholder="Enter secure password"
+                                            aria-invalid={!!errors.parent_password}
+                                            aria-describedby={errors.parent_password ? 'parent_password-error' : undefined}
+                                            className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_password ? 'border-red-500 bg-red-50/20' : 'border-blue-200'}`}
+                                            placeholder="Enter password (min 6 chars)"
                                             required
                                         />
                                     </div>
@@ -822,13 +845,15 @@ export const AdmissionForm = () => {
                                             name="confirmPassword"
                                             value={regData.confirmPassword}
                                             onChange={handleRegChange}
-                                            className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_password ? 'border-red-500' : 'border-blue-200'}`}
-                                            placeholder="Confirm secure password"
+                                            aria-invalid={!!errors.parent_password}
+                                            aria-describedby={errors.parent_password ? 'parent_password-error' : undefined}
+                                            className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_password ? 'border-red-500 bg-red-50/20' : 'border-blue-200'}`}
+                                            placeholder="Confirm password"
                                             required
                                         />
                                     </div>
                                 </div>
-                                {errors.parent_password && <p className="text-xs text-red-500">{errors.parent_password}</p>}
+                                {errors.parent_password && <p id="parent_password-error" className="text-xs text-red-600 font-medium">{errors.parent_password}</p>}
                             </section>
                         )}
                     </div>
@@ -867,6 +892,18 @@ export const AdmissionForm = () => {
                     )}
                 </div>
             </div>
+
+            {/* User Feedback Modal */}
+            <ApplicationFeedbackModal
+                isOpen={feedbackModal.isOpen}
+                onClose={() => setFeedbackModal((prev) => ({ ...prev, isOpen: false }))}
+                type={feedbackModal.type}
+                title={feedbackModal.title}
+                message={feedbackModal.message}
+                details={feedbackModal.details}
+                applicationNumber={feedbackModal.applicationNumber}
+                invalidCount={feedbackModal.invalidCount}
+            />
         </div>
     );
 };

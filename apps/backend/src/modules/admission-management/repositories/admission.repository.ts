@@ -4,9 +4,13 @@ import { CreateApplicationDto } from '../dto/request/create-application.dto';
 import { UpdateApplicationDto } from '../dto/request/update-application.dto';
 
 export class AdmissionRepository {
-  static async findById(application_id: string) {
-    return prisma.admissions_applications.findUnique({
-      where: { application_id },
+  static async findById(application_id: string, org_id?: string, parentUserId?: string) {
+    const where: any = { application_id };
+    if (org_id) where.org_id = org_id;
+    if (parentUserId) where.created_by = parentUserId;
+
+    return prisma.admissions_applications.findFirst({
+      where,
       include: {
         leads: true,
         academic_years: true,
@@ -20,9 +24,12 @@ export class AdmissionRepository {
     });
   }
 
-  static async findByLeadId(lead_id: string) {
-    return prisma.admissions_applications.findUnique({
-      where: { lead_id },
+  static async findByLeadId(lead_id: string, org_id?: string) {
+    const where: any = { lead_id };
+    if (org_id) where.org_id = org_id;
+
+    return prisma.admissions_applications.findFirst({
+      where,
       include: {
         leads: true,
         academic_years: true,

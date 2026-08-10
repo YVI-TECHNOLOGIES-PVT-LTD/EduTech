@@ -1,18 +1,46 @@
-import { Outlet } from "react-router-dom";
-import Navbar from "../components/layout/Navbar";
-import Footer from "../components/layout/Footer";
-import "../styles/landing.css";
+import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { AnnouncementBar } from '@/features/landing/components/AnnouncementBar';
+import { Navbar } from '@/features/landing/components/Navbar';
+import { Footer } from '@/features/landing/components/Footer';
+import { EduAIAssistant } from '@/features/landing/components/EduAIAssistant';
+import { QuickEnquiryModal } from '@/features/landing/components/QuickEnquiryModal';
 
 export function PublicLayout() {
+  const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
+  const [isEduAIOpen, setIsEduAIOpen] = useState(false);
+
+  const handleOpenEnquiry = () => setIsEnquiryOpen(true);
+  const handleCloseEnquiry = () => setIsEnquiryOpen(false);
+
+  const handleOpenEduAI = () => setIsEduAIOpen(true);
+  const handleCloseEduAI = () => setIsEduAIOpen(false);
+
   return (
-    <div className="campus-connect-wrap">
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-        <Footer />
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-400 selection:text-slate-950 flex flex-col overflow-x-hidden relative">
+      {/* Canonical Top Announcement & Floating Pill Navbar Shell */}
+      <div className="bg-slate-950 text-white relative z-40">
+        <AnnouncementBar onApplyClick={handleOpenEnquiry} />
+        <Navbar onEnquireClick={handleOpenEnquiry} />
       </div>
+
+      {/* Main Page Route Content */}
+      <main className="flex-1 flex flex-col">
+        <Outlet context={{ onOpenEnquiry: handleOpenEnquiry, onOpenEduAI: handleOpenEduAI }} />
+      </main>
+
+      {/* Canonical Footer */}
+      <Footer />
+
+      {/* Quick Enquiry Modal */}
+      <QuickEnquiryModal isOpen={isEnquiryOpen} onClose={handleCloseEnquiry} />
+
+      {/* Global Floating EduAI Assistant Concierge */}
+      <EduAIAssistant
+        isOpen={isEduAIOpen}
+        onOpen={handleOpenEduAI}
+        onClose={handleCloseEduAI}
+      />
     </div>
   );
 }

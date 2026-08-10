@@ -16,7 +16,7 @@ export const OrganizationSwitcher: React.FC = () => {
   const { tenantName } = useAppSelector((state: RootState) => state.tenant);
   const user = useAppSelector((state: RootState) => state.auth.user);
 
-  const displayTenant = tenantName || user?.organizationId || 'Main Campus';
+  const displayTenant = tenantName || user?.school_id || 'Main Campus';
 
   return (
     <DropdownMenu>

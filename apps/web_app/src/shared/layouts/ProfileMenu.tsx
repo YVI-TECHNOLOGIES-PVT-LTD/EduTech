@@ -23,7 +23,9 @@ export const ProfileMenu: React.FC = () => {
     navigate(ROUTES.AUTH.LOGIN, { replace: true });
   };
 
-  const initials = `${user?.firstName?.[0] || 'A'}${user?.lastName?.[0] || 'U'}`;
+  const firstName = (user as any)?.first_name || (user as any)?.firstName || 'A';
+  const lastName = (user as any)?.last_name || (user as any)?.lastName || 'U';
+  const initials = `${firstName[0]}${lastName[0]}`;
 
   return (
     <DropdownMenu>
@@ -38,11 +40,11 @@ export const ProfileMenu: React.FC = () => {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-xs font-bold text-slate-900 dark:text-white">
-              {user?.firstName} {user?.lastName}
+              {user?.full_name || `${firstName} ${lastName}`}
             </p>
             <p className="text-[11px] text-slate-500">{user?.email}</p>
             <span className="inline-block text-[10px] font-semibold text-blue-600 uppercase tracking-wide">
-              {user?.role || 'Administrator'}
+              {user?.roles?.[0] || 'Administrator'}
             </span>
           </div>
         </DropdownMenuLabel>

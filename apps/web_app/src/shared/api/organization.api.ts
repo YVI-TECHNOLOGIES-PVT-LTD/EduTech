@@ -1,6 +1,5 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface OrganizationProfile {
   id: string;
@@ -39,7 +38,7 @@ export interface UpdateOrganizationRequest {
 }
 
 export const organizationApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     getOrganizationProfile: builder.query<OrganizationProfile, void>({
       query: () => ENDPOINTS.ORGANIZATION.PROFILE,
       providesTags: ['Organization'],

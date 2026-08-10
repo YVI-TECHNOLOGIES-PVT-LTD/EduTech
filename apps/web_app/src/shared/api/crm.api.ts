@@ -1,6 +1,5 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface LeadRecord {
   id: string;
@@ -14,6 +13,13 @@ export interface LeadRecord {
   source: string;
   aiScore?: number;
   createdAt: string;
+  student_name?: string;
+  inquiry_number?: string;
+  grade_applied_for?: string;
+  assigned_counselor_id?: string;
+  assigned_counselor?: string;
+  priority?: string;
+  score?: number;
 }
 
 export interface CampusVisitRecord {
@@ -36,7 +42,7 @@ export interface CreateLeadPayload {
 }
 
 export const crmApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     getLeads: builder.query<LeadRecord[], void>({
       query: () => ENDPOINTS.CRM.LEADS,
       providesTags: ['Lead'],

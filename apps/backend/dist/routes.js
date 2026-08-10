@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.router = void 0;
 const express_1 = require("express");
 const auth_middleware_1 = require("./auth/auth.middleware");
+const auth_routes_1 = require("./auth/auth.routes");
 const rbac_middleware_1 = require("./rbac/rbac.middleware");
 const permissions_1 = require("./rbac/permissions");
 const supabase_1 = require("./config/supabase");
@@ -34,7 +35,7 @@ const user_routes_1 = require("./modules/user-management/routes/user.routes");
 const env_1 = require("./config/env");
 exports.router = (0, express_1.Router)();
 // ======================================
-// PUBLIC
+// PUBLIC SYSTEM PROBES
 // ======================================
 exports.router.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -47,20 +48,35 @@ exports.router.get('/health/readiness', async (req, res) => {
         const { data, error } = await supabase_1.supabase.from('schools').select('id').limit(1);
         if (error)
             throw error;
-        res.json({ status: 'ready', service: 'edutrack-api', database: 'connected', timestamp: new Date().toISOString() });
+        res.json({
+            status: 'ready',
+            service: 'edutrack-api',
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+        });
     }
     catch (err) {
-        res.status(503).json({ status: 'unhealthy', service: 'edutrack-api', database: 'disconnected', error: err.message });
+        res.status(503).json({
+            status: 'unhealthy',
+            service: 'edutrack-api',
+            database: 'disconnected',
+            error: err.message,
+        });
     }
 });
 exports.router.get('/system/info', (req, res) => {
     res.json({ mode: env_1.env.SYSTEM_MODE });
 });
+// ======================================
+// PUBLIC AUTHENTICATION ROUTER (Before Global Auth Middleware)
+// Handles: /auth/login, /v1/auth/login, /auth/refresh, /v1/auth/refresh
+// ======================================
+exports.router.use('/auth', auth_routes_1.publicAuthRouter);
+exports.router.use('/v1/auth', auth_routes_1.publicAuthRouter);
 // Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
 exports.router.post('/v1/admission/public-apply', index_1.publicApplicationController.apply);
 exports.router.post('/admissions/public-apply', index_1.publicApplicationController.apply);
 exports.router.post('/admissions', auth_middleware_1.authenticateOptional, admission_controller_1.AdmissionController.create);
-// Public lookup for schools
 // Public lookup for schools
 exports.router.get('/schools', async (req, res) => {
     try {
@@ -73,7 +89,6 @@ exports.router.get('/schools', async (req, res) => {
         res.status(200).json([]); // Suppress error for public view
     }
 });
-// Public lookup for current year (required for registration if not hardcoded)
 // Public lookup for current year (required for registration if not hardcoded)
 exports.router.get('/public/academic-year', async (req, res) => {
     try {
@@ -181,7 +196,7 @@ exports.router.get('/public/admission/grades', async (req, res) => {
         if (error)
             throw error;
         // Return mapped list of grades/classes (just id and grade_name)
-        res.json(data?.map(c => ({ id: c.id, grade_name: c.name })) || []);
+        res.json(data?.map((c) => ({ id: c.id, grade_name: c.name })) || []);
     }
     catch (error) {
         res.status(200).json([]);
@@ -228,16 +243,31 @@ exports.router.get('/public/admission/config', async (req, res) => {
                 .order('name');
             if (classesError)
                 throw classesError;
-            gradesList = classes?.map(c => ({ id: c.id, grade_name: c.name })) || [];
+            gradesList = classes?.map((c) => ({ id: c.id, grade_name: c.name })) || [];
         }
         // Dynamically compute the version based on max updated_at of the configurations
-        const { data: schoolMax } = await supabase_1.supabase.from('schools').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
-        const { data: yearMax } = await supabase_1.supabase.from('academic_years').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
-        const { data: classMax } = await supabase_1.supabase.from('classes').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+        const { data: schoolMax } = await supabase_1.supabase
+            .from('schools')
+            .select('updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        const { data: yearMax } = await supabase_1.supabase
+            .from('academic_years')
+            .select('updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        const { data: classMax } = await supabase_1.supabase
+            .from('classes')
+            .select('updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
         const times = [
             schoolMax?.updated_at ? new Date(schoolMax.updated_at).getTime() : 0,
             yearMax?.updated_at ? new Date(yearMax.updated_at).getTime() : 0,
-            classMax?.updated_at ? new Date(classMax.updated_at).getTime() : 0
+            classMax?.updated_at ? new Date(classMax.updated_at).getTime() : 0,
         ];
         const version = new Date(Math.max(...times, Date.now() - 3600000)).toISOString();
         res.json({
@@ -251,17 +281,17 @@ exports.router.get('/public/admission/config', async (req, res) => {
                 { type: 'transfer_certificate', label: 'Transfer Certificate', required: false },
                 { type: 'previous_marksheet', label: 'Previous Academic Report Card', required: false },
                 { type: 'parent_id', label: 'Parent ID Proof (Aadhaar/Passport)', required: true },
-                { type: 'photo', label: 'Student Passport Photo', required: true }
+                { type: 'photo', label: 'Student Passport Photo', required: true },
             ],
             admissionCalendar: {
                 opens: '2026-10-01',
                 closes: '2026-12-15',
-                classStarts: '2026-08-15'
+                classStarts: '2026-08-15',
             },
             brochure: {
                 url: '/brochure.pdf',
-                title: 'Greenwood High Admission Brochure'
-            }
+                title: 'Greenwood High Admission Brochure',
+            },
         });
     }
     catch (error) {
@@ -271,13 +301,22 @@ exports.router.get('/public/admission/config', async (req, res) => {
 // Temporary RBAC debug endpoint
 exports.router.get('/public/inspect-rbac', async (req, res) => {
     try {
-        const { data: users } = await supabase_1.supabase.from('users').select('*').eq('email', 'examplatform@edu.in');
+        const { data: users } = await supabase_1.supabase
+            .from('users')
+            .select('*')
+            .eq('email', 'examplatform@edu.in');
         let userRoles = [];
         let permissions = [];
         if (users && users.length > 0) {
-            const { data: ur } = await supabase_1.supabase.from('user_roles').select('*, roles(*)').eq('user_id', users[0].id);
+            const { data: ur } = await supabase_1.supabase
+                .from('user_roles')
+                .select('*, roles(*)')
+                .eq('user_id', users[0].id);
             userRoles = ur || [];
-            const { data: rp } = await supabase_1.supabase.from('role_permissions').select('*, roles(*), permissions(*)').in('role_id', userRoles.map(u => u.role_id));
+            const { data: rp } = await supabase_1.supabase
+                .from('role_permissions')
+                .select('*, roles(*), permissions(*)')
+                .in('role_id', userRoles.map((u) => u.role_id));
             permissions = rp || [];
         }
         const { data: allRoles } = await supabase_1.supabase.from('roles').select('*');
@@ -285,13 +324,13 @@ exports.router.get('/public/inspect-rbac', async (req, res) => {
         res.json({
             user: users?.[0] || null,
             userRoles,
-            permissions: permissions.map(p => ({
+            permissions: permissions.map((p) => ({
                 role: p.roles?.name,
                 permissionCode: p.permissions?.code,
-                permissionName: p.permissions?.name
+                permissionName: p.permissions?.name,
             })),
             allRoles,
-            allPermsCount: allPerms?.length || 0
+            allPermsCount: allPerms?.length || 0,
         });
     }
     catch (err) {
@@ -303,12 +342,14 @@ exports.router.get('/public/inspect-rbac', async (req, res) => {
 // ======================================
 exports.router.use(auth_middleware_1.authenticate);
 exports.router.use(auth_middleware_1.checkLoginApproval);
+// Protected Auth Router
+exports.router.use('/auth', auth_routes_1.protectedAuthRouter);
+exports.router.use('/v1/auth', auth_routes_1.protectedAuthRouter);
 // Parent CRM applications (alias for /v1/admission/application/my)
 exports.router.get('/v1/admission/my', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_VIEW_SELF), index_1.applicationController.listMine);
 exports.router.post('/v1/admission/apply', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_CREATE), index_1.applicationController.parentApply);
-// 1. GET /me
-// 1. GET /me
-exports.router.get('/me', async (req, res) => {
+// 1. GET /me & GET /auth/me
+const handleMe = async (req, res) => {
     try {
         const userObj = req.context.user;
         let entranceExamEnabled = false;
@@ -318,13 +359,13 @@ exports.router.get('/me', async (req, res) => {
                 .select('id')
                 .eq('created_by', userObj.id)
                 .is('deleted_at', null);
-            const appIds = apps?.map(a => a.id) || [];
+            const appIds = apps?.map((a) => a.id) || [];
             if (appIds.length > 0) {
                 const { data: candidates } = await supabase_1.supabase
                     .from('admission_exam_session_candidates')
                     .select('id')
                     .in('application_id', appIds);
-                const candidateIds = candidates?.map(c => c.id) || [];
+                const candidateIds = candidates?.map((c) => c.id) || [];
                 if (candidateIds.length > 0) {
                     const { data: activeSessions } = await supabase_1.supabase
                         .from('admission_assessment_sessions')
@@ -339,22 +380,25 @@ exports.router.get('/me', async (req, res) => {
         }
         const enabledFeatures = {
             dashboard: true,
-            finance: userObj.roles.some(r => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
-            entrance_exam: userObj.roles.some(r => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) || entranceExamEnabled,
-            hostel: false
+            finance: userObj.roles.some((r) => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
+            entrance_exam: userObj.roles.some((r) => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) ||
+                entranceExamEnabled,
+            hostel: false,
         };
         res.json({
             user: {
                 ...userObj,
-                enabledFeatures
-            }
+                enabledFeatures,
+            },
         });
     }
     catch (err) {
         res.status(500).json({ error: err.message });
     }
-});
-// 2. GET /schools/current
+};
+exports.router.get('/me', handleMe);
+exports.router.get('/auth/me', handleMe);
+exports.router.get('/v1/auth/me', handleMe);
 // 2. GET /schools/current
 exports.router.get('/schools/current', async (req, res) => {
     const school_id = req.context.user.school_id;
@@ -366,15 +410,18 @@ exports.router.get('/schools/current', async (req, res) => {
     res.json(data);
 });
 // 3. GET /academic-years/current
-// 3. GET /academic-years/current
 exports.router.get('/academic-years/current', async (req, res) => {
     const school_id = req.context.user.school_id;
-    const { data, error } = await supabase_1.supabase.from('academic_years').select('*').eq('school_id', school_id).eq('is_active', true).maybeSingle();
+    const { data, error } = await supabase_1.supabase
+        .from('academic_years')
+        .select('*')
+        .eq('school_id', school_id)
+        .eq('is_active', true)
+        .maybeSingle();
     if (error)
         return res.status(500).json({ error: error.message });
     res.json(data); // Returns null if not found
 });
-// 3b. GET /academic-years (All)
 // 3b. GET /academic-years (All)
 exports.router.get('/academic-years', async (req, res) => {
     const school_id = req.context.user.school_id;
@@ -388,12 +435,11 @@ exports.router.get('/academic-years', async (req, res) => {
     res.json(data);
 });
 // 4. POST /academic-years
-// 4. POST /academic-years
 exports.router.post('/academic-years', async (req, res) => {
     const school_id = req.context.user.school_id;
     const { year_label, is_active } = req.body;
     if (!year_label)
-        return res.status(400).json({ error: "Year label is required" });
+        return res.status(400).json({ error: 'Year label is required' });
     // If making this active, deactivate others
     if (is_active) {
         await supabase_1.supabase.from('academic_years').update({ is_active: false }).eq('school_id', school_id);
@@ -423,26 +469,36 @@ exports.router.use('/v1/tasks', task_routes_1.taskRouter);
 // System RBAC Audit Endpoint
 exports.router.get('/system/rbac/audit', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMIN_DASHBOARD_VIEW), async (req, res) => {
     try {
-        console.log("[Audit] Running RBAC System Integrity Scan...");
+        console.log('[Audit] Running RBAC System Integrity Scan...');
         // 1. Fetch Master Lists
-        const { data: dbRoles, error: rolesErr } = await supabase_1.supabase.from('roles').select('id, name, description');
-        const { data: dbPerms, error: permsErr } = await supabase_1.supabase.from('permissions').select('id, code, description');
-        const { data: dbUserRoles, error: urErr } = await supabase_1.supabase.from('user_roles').select('user_id, role_id');
-        const { data: dbRolePerms, error: rpErr } = await supabase_1.supabase.from('role_permissions').select('role_id, permission_id');
-        const { data: dbUsers, error: usersErr } = await supabase_1.supabase.from('users').select('id, email, status, login_status');
+        const { data: dbRoles, error: rolesErr } = await supabase_1.supabase
+            .from('roles')
+            .select('id, name, description');
+        const { data: dbPerms, error: permsErr } = await supabase_1.supabase
+            .from('permissions')
+            .select('id, code, description');
+        const { data: dbUserRoles, error: urErr } = await supabase_1.supabase
+            .from('user_roles')
+            .select('user_id, role_id');
+        const { data: dbRolePerms, error: rpErr } = await supabase_1.supabase
+            .from('role_permissions')
+            .select('role_id, permission_id');
+        const { data: dbUsers, error: usersErr } = await supabase_1.supabase
+            .from('users')
+            .select('id, email, status, login_status');
         if (rolesErr || permsErr || urErr || rpErr || usersErr) {
             throw new Error(`Data fetch failed: ${rolesErr?.message || permsErr?.message || urErr?.message || rpErr?.message || usersErr?.message}`);
         }
         // 2. Perform Checks
         const registeredPermsInCode = Object.values(permissions_1.PERMISSIONS);
-        const dbPermCodes = dbPerms.map(p => p.code);
+        const dbPermCodes = dbPerms.map((p) => p.code);
         // Dangling Permissions (DB but not in code definitions, and vice versa)
-        const missingInDb = registeredPermsInCode.filter(p => !dbPermCodes.includes(p));
-        const unregisteredInCode = dbPermCodes.filter(p => !registeredPermsInCode.includes(p));
+        const missingInDb = registeredPermsInCode.filter((p) => !dbPermCodes.includes(p));
+        const unregisteredInCode = dbPermCodes.filter((p) => !registeredPermsInCode.includes(p));
         // Duplicate Mappings check in role_permissions
         const pairingCounts = new Map();
         const duplicateMappings = [];
-        dbRolePerms.forEach(rp => {
+        dbRolePerms.forEach((rp) => {
             const key = `${rp.role_id}:${rp.permission_id}`;
             const count = pairingCounts.get(key) || 0;
             pairingCounts.set(key, count + 1);
@@ -451,37 +507,39 @@ exports.router.get('/system/rbac/audit', (0, rbac_middleware_1.checkPermission)(
             }
         });
         // Statistics
-        const activeUsers = dbUsers.filter(u => u.status === 'active');
-        const pendingApprovals = dbUsers.filter(u => u.login_status === 'PENDING');
+        const activeUsers = dbUsers.filter((u) => u.status === 'active');
+        const pendingApprovals = dbUsers.filter((u) => u.login_status === 'PENDING');
         res.json({
             timestamp: new Date().toISOString(),
-            status: "SECURE",
+            status: 'SECURE',
             summary: {
                 total_roles: dbRoles.length,
                 total_permissions: dbPerms.length,
                 total_role_permission_mappings: dbRolePerms.length,
                 total_users: dbUsers.length,
                 active_users: activeUsers.length,
-                pending_login_approvals: pendingApprovals.length
+                pending_login_approvals: pendingApprovals.length,
             },
             dangling_permissions: {
                 defined_in_code_but_missing_in_db: missingInDb,
-                defined_in_db_but_missing_in_code: unregisteredInCode
+                defined_in_db_but_missing_in_code: unregisteredInCode,
             },
             integrity: {
                 duplicate_role_permission_mappings: duplicateMappings.length,
                 duplicate_mappings_details: duplicateMappings,
-                unassigned_roles: dbRoles.filter(r => !dbUserRoles.some(ur => ur.role_id === r.id)).map(r => r.name)
+                unassigned_roles: dbRoles
+                    .filter((r) => !dbUserRoles.some((ur) => ur.role_id === r.id))
+                    .map((r) => r.name),
             },
-            roles_list: dbRoles.map(r => ({
+            roles_list: dbRoles.map((r) => ({
                 id: r.id,
                 name: r.name,
-                mapped_permissions_count: dbRolePerms.filter(rp => rp.role_id === r.id).length
-            }))
+                mapped_permissions_count: dbRolePerms.filter((rp) => rp.role_id === r.id).length,
+            })),
         });
     }
     catch (err) {
-        console.error("[RBAC Audit Error]:", err);
+        console.error('[RBAC Audit Error]:', err);
         res.status(500).json({ error: 'RBAC Audit Failed', message: err.message });
     }
 });

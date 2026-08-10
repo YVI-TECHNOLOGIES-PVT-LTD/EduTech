@@ -1,18 +1,16 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
+import type { Admission } from '@/modules/admission/types/admission.types';
 
-export interface ApplicationRecord {
-  id: string;
-  applicationNumber: string;
-  applicantName: string;
-  parentName: string;
-  gradeApplyingFor: string;
-  status: string;
-  submissionDate: string;
+export type ApplicationRecord = Admission & {
+  applicationNumber?: string;
+  applicantName?: string;
+  gradeApplyingFor?: string;
+  submissionDate?: string;
   assessmentScore?: number;
   feePaidAmount?: number;
-}
+  [key: string]: any;
+};
 
 export interface VerifyDocumentPayload {
   applicationId: string;
@@ -42,10 +40,17 @@ export interface CollectFeePayload {
 }
 
 export const admissionApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
-    getApplications: builder.query<ApplicationRecord[], void>({
-      query: () => ENDPOINTS.ADMISSIONS.APPLICATIONS,
+  endpoints: (builder) => ({
+    getApplications: builder.query<ApplicationRecord[], Record<string, any> | void>({
+      query: (params: Record<string, any> | void) => ({
+        url: ENDPOINTS.ADMISSIONS.APPLICATIONS,
+        params: params || undefined,
+      }),
       providesTags: ['Application'],
+    }),
+    getApplicationById: builder.query<ApplicationRecord, string>({
+      query: (id: string) => `/admissions/applications/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Application', id }],
     }),
     verifyDocument: builder.mutation<{ success: boolean }, VerifyDocumentPayload>({
       query: (body: VerifyDocumentPayload) => ({
@@ -84,6 +89,7 @@ export const admissionApi = apiSlice.injectEndpoints({
 
 export const {
   useGetApplicationsQuery,
+  useGetApplicationByIdQuery,
   useVerifyDocumentMutation,
   useRecordAssessmentMutation,
   useMakeDecisionMutation,

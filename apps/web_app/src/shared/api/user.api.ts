@@ -1,6 +1,5 @@
 import { apiSlice } from '@/app/store/apiSlice';
 import { ENDPOINTS } from './endpoints';
-import { ApiBuilder } from '@/types/rtk-query';
 
 export interface UserRecord {
   id: string;
@@ -29,7 +28,7 @@ export interface CreateUserPayload {
 }
 
 export const userApi = apiSlice.injectEndpoints({
-  endpoints: (builder: ApiBuilder) => ({
+  endpoints: (builder) => ({
     getUsers: builder.query<UserRecord[], void>({
       query: () => ENDPOINTS.USERS.BASE,
       providesTags: ['User'],

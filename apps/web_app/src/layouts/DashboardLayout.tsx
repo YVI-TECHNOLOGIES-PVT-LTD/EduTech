@@ -55,7 +55,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CommandPalette } from '../components/search/CommandPalette';
 import { useCommandPalette } from '../hooks/layout/useCommandPalette';
 import { NotificationCenter } from '../features/notifications/NotificationCenter';
-import { useNotificationStore } from '../store/notification.store';
+import { useAppDispatch, useAppSelector } from '../app/store';
+import { togglePanel as toggleNotificationsAction } from '../shared/store/notificationSlice';
 import { Breadcrumb } from '../components/navigation/Breadcrumb';
 import { useWorkspaceOptional } from '../modules/common/workspace/WorkspaceContext';
 import {
@@ -101,9 +102,11 @@ export const DashboardLayout = () => {
   } = useTheme();
 
   // Command palette, notification store, navigation visits
+  const dispatch = useAppDispatch();
   const { isOpen: isPaletteOpen, open: openPalette, close: closePalette } = useCommandPalette();
   const workspace = useWorkspaceOptional();
-  const { unreadCount, togglePanel: toggleNotifications } = useNotificationStore();
+  const unreadCount = useAppSelector((state) => state.notification.unreadCount);
+  const toggleNotifications = () => dispatch(toggleNotificationsAction());
 
   const { getVisibleModules, isModuleVisible } = useModuleVisibility();
 

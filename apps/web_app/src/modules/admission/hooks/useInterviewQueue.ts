@@ -33,7 +33,7 @@ export function useInterviewQueue(search = '') {
         [...recommended.applications, ...underReview.applications, ...docsVerified.applications].forEach(app => {
             const ui = mapUIStatus(app.status);
             const hasInterviewLog = app.admission_audit_logs?.some(
-                l => l.action.includes('INTERVIEW') || l.remarks?.toLowerCase().includes('interview'),
+                (l: any) => l.action.includes('INTERVIEW') || l.remarks?.toLowerCase().includes('interview'),
             );
             if (INTERVIEW_UI_STATUSES.has(ui) || app.status === 'recommended' || hasInterviewLog) {
                 merged.set(app.id, app);

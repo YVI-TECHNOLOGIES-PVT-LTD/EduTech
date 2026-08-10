@@ -1,195 +1,74 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffProfileImportStrategy = void 0;
+const client_1 = require("@prisma/client");
 const supabase_1 = require("../../../config/supabase");
-const zod_1 = require("zod");
-const StaffProfileRowSchema = zod_1.z.object({
-    email: zod_1.z.string().email("Invalid email format").transform(str => str.toLowerCase().trim()),
-    staff_type: zod_1.z.enum(['librarian', 'accountant', 'clerk', 'transport_manager', 'other'], { errorMap: () => ({ message: "Invalid staff_type. Allowed: librarian, accountant, clerk, transport_manager, other" }) }),
-    joining_date: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD").optional(),
-    department: zod_1.z.string().optional() // Name of department
-});
-class StaffProfileImportStrategy {
-    async validate(rows, schoolId, options) {
-        const userMode = options?.userMode || 'STRICT';
-        const result = {
-            isValid: true,
-            totalRows: rows.length,
-            validRows: [],
-            failedRows: []
-        };
-        const emailSet = new Set();
-        const emails = rows.map(r => r.email?.toString().toLowerCase().trim()).filter(Boolean);
-        const departments = rows.map(r => r.department?.toString().trim()).filter(Boolean);
-        let usersMap = new Map();
-        let departmentsMap = new Map(); // Name -> ID
-        let existingUserIds = new Set();
-        // 1. Fetch Users
-        if (emails.length > 0) {
-            const { data } = await supabase_1.supabase
-                .from('users')
-                .select(`id, email, user_roles!inner(role:roles!inner(name))`)
-                .eq('school_id', schoolId)
-                .in('email', emails);
-            if (data) {
-                data.forEach((u) => {
-                    const roleName = u.user_roles?.[0]?.role?.name;
-                    usersMap.set(u.email, { id: u.id, roleName });
-                });
-            }
-        }
-        // Fetch STAFF Role ID
-        const { data: roleData } = await supabase_1.supabase.from('roles').select('id').eq('name', 'STAFF').single();
-        const staffRoleId = roleData?.id;
-        // 2. Fetch Departments
-        if (departments.length > 0) {
-            const { data } = await supabase_1.supabase
-                .from('departments')
-                .select('id, name')
-                .eq('school_id', schoolId)
-                .in('name', departments);
-            if (data) {
-                data.forEach((d) => departmentsMap.set(d.name.toLowerCase(), d.id));
-            }
-        }
-        // 3. Check Duplicates in DB
-        if (usersMap.size > 0) {
-            const userIds = Array.from(usersMap.values()).map(u => u.id);
-            const { data: profiles } = await supabase_1.supabase
-                .from('staff_profiles')
-                .select('user_id')
-                .in('user_id', userIds);
-            if (profiles) {
-                profiles.forEach((p) => existingUserIds.add(p.user_id));
-            }
-        }
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const rowNum = i + 1;
-            const errors = [];
-            const parsed = StaffProfileRowSchema.safeParse(row);
-            if (!parsed.success) {
-                parsed.error.errors.forEach(err => {
-                    errors.push({ row: rowNum, column: err.path.join('.'), message: err.message, value: row[err.path[0]] });
-                });
-            }
-            else {
-                const { email, department } = parsed.data;
-                let user = usersMap.get(email);
-                if (!user) {
-                    if (userMode === 'AUTO_CREATE') {
-                        if (!staffRoleId) {
-                            errors.push({ row: rowNum, column: 'general', message: "System Error: STAFF Role not found", value: 'N/A' });
-                        }
-                        else {
-                            try {
-                                // 1. Create Auth User
-                                const { data: authData, error: authError } = await supabase_1.supabase.auth.admin.createUser({
-                                    email: email,
-                                    password: "Welcome#321",
-                                    email_confirm: true,
-                                    user_metadata: {
-                                        full_name: parsed.data.email.split('@')[0],
-                                        school_id: schoolId,
-                                        created_via_import: true,
-                                        force_password_change: true
-                                    }
-                                });
-                                if (authError)
-                                    throw authError;
-                                if (!authData.user)
-                                    throw new Error("Auth user creation failed");
-                                const newUserId = authData.user.id;
-                                // 2. Create Public User
-                                const { error: userError } = await supabase_1.supabase.from('users').upsert({
-                                    id: newUserId,
-                                    school_id: schoolId,
-                                    email: email,
-                                    full_name: parsed.data.email.split('@')[0],
-                                    status: 'active'
-                                });
-                                if (userError)
-                                    throw userError;
-                                // 3. Assign Role
-                                const { error: roleError } = await supabase_1.supabase.from('user_roles').insert({
-                                    user_id: newUserId,
-                                    role_id: staffRoleId
-                                });
-                                if (roleError)
-                                    throw roleError;
-                                // 4. Update local map
-                                user = { id: newUserId, roleName: 'STAFF' };
-                                usersMap.set(email, user);
-                            }
-                            catch (err) {
-                                errors.push({ row: rowNum, column: 'email', message: `Auto-create failed: ${err.message}`, value: email });
-                            }
-                        }
-                    }
-                    else {
-                        errors.push({ row: rowNum, column: 'email', message: "User not found. Enable AUTO_CREATE to create users automatically.", value: email });
-                    }
-                }
-                if (user) {
-                    if (user.roleName !== 'STAFF') {
-                        errors.push({ row: rowNum, column: 'email', message: `User has role '${user.roleName}', expected STAFF`, value: email });
-                    }
-                    else if (existingUserIds.has(user.id)) {
-                        errors.push({ row: rowNum, column: 'email', message: "Staff profile already exists", value: email });
-                    }
-                }
-                if (department && !departmentsMap.has(department.toLowerCase())) {
-                    errors.push({ row: rowNum, column: 'department', message: `Department '${department}' not found. Create it in Settings → Departments.`, value: department });
-                }
-                if (emailSet.has(email)) {
-                    errors.push({ row: rowNum, column: 'email', message: "Duplicate email in file", value: email });
-                }
-                if (errors.length === 0 && user) {
-                    emailSet.add(email);
-                    result.validRows.push({
-                        ...parsed.data,
-                        user_id: user.id,
-                        department_id: department ? departmentsMap.get(department.toLowerCase()) : null,
-                        _rowNum: rowNum
-                    });
-                }
-            }
-            if (errors.length > 0) {
-                result.failedRows.push({ row: rowNum, errors, data: row });
-            }
-        }
-        result.isValid = result.failedRows.length === 0;
-        return result;
+const index_1 = require("../index");
+const crypto_utils_1 = require("../../../auth/crypto.utils");
+const prisma = new client_1.PrismaClient();
+class StaffProfileImportStrategy extends index_1.BaseImportStrategy {
+    async validateRow(row, context) {
+        const errors = [];
+        if (!row.email || !row.email.includes('@'))
+            errors.push('Valid email is required');
+        if (!row.full_name || row.full_name.trim().length === 0)
+            errors.push('Full name is required');
+        return errors;
     }
-    async execute(validRows, context) {
-        const result = {
-            totalRows: validRows.length,
-            successCount: 0,
-            failedCount: 0,
-            failedRows: []
-        };
-        for (const row of validRows) {
-            try {
-                // Note: 'designation' removed because it is missing in the current staff_profiles table schema (ref: migration 042)
-                const { error } = await supabase_1.supabase
-                    .from('staff_profiles')
-                    .insert({
-                    user_id: row.user_id,
-                    staff_type: row.staff_type,
-                    department_id: row.department_id,
-                    joining_date: row.joining_date,
-                    status: 'active'
+    async process(rows, context) {
+        const result = { successCount: 0, failedCount: 0, failedRows: [] };
+        const { data: role } = await supabase_1.supabase
+            .from('roles')
+            .select('id')
+            .eq('name', 'STAFF')
+            .maybeSingle();
+        for (const row of rows) {
+            const errors = await this.validateRow(row, context);
+            if (errors.length > 0) {
+                result.failedCount++;
+                result.failedRows.push({
+                    row: row._rowNum,
+                    errors: errors.map((e) => ({ row: row._rowNum, message: e, value: 'INVALID' })),
+                    data: row,
                 });
-                if (error)
-                    throw new Error(error.message);
+                continue;
+            }
+            const cleanEmail = row.email.trim().toLowerCase();
+            let createdUserId = null;
+            try {
+                const existingUser = await prisma.users.findFirst({ where: { email: cleanEmail } });
+                if (existingUser) {
+                    createdUserId = existingUser.user_id;
+                }
+                else {
+                    const tempPassword = 'StaffTempPass123!';
+                    const passwordHash = await crypto_utils_1.NativePassword.hash(tempPassword);
+                    const newUser = await prisma.users.create({
+                        data: {
+                            org_id: context.schoolId,
+                            first_name: row.full_name,
+                            email: cleanEmail,
+                            phone: row.phone || '',
+                            password_hash: passwordHash,
+                            status: 'active',
+                        },
+                    });
+                    createdUserId = newUser.user_id;
+                }
+                if (role && createdUserId) {
+                    await supabase_1.supabase.from('user_roles').upsert({
+                        user_id: createdUserId,
+                        role_id: role.id,
+                    }, { onConflict: 'user_id,role_id' });
+                }
                 result.successCount++;
             }
             catch (err) {
                 result.failedCount++;
                 result.failedRows.push({
                     row: row._rowNum,
-                    errors: [{ row: row._rowNum, message: err.message, value: 'INSERT_FAIL' }],
-                    data: row
+                    errors: [{ row: row._rowNum, message: err.message, value: 'EXECUTION_FAIL' }],
+                    data: row,
                 });
             }
         }

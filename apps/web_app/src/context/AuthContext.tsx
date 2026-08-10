@@ -3,170 +3,212 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api-client';
 import { EnrichedUser } from '../types/auth';
+import { useAppDispatch, useAppSelector } from '../app/store';
+import {
+  setUser,
+  setCredentials,
+  logout as logoutAction,
+  setInitializing,
+  setSystemMode,
+} from '../shared/store/authSlice';
+import { setPermissions, clearPermissions } from '../shared/store/permissionSlice';
+import { setActiveTenant, setSchoolId } from '../shared/store/tenantSlice';
+import { selectHasPermission, selectHasRole } from '../shared/auth/permissionSelectors';
 
-interface AuthContextType {
-    session: Session | null;
-    user: EnrichedUser | null;
-    loading: boolean;
-    isAuthenticated: boolean;
-    signOut: () => Promise<void>;
-    hasPermission: (code: string) => boolean;
-    hasRole: (role: string) => boolean;
-    refreshProfile: () => Promise<void>;
-    systemMode: 'UAT' | 'PRODUCTION';
+export interface AuthContextType {
+  session: Session | null;
+  user: EnrichedUser | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  signOut: () => Promise<void>;
+  hasPermission: (code: string) => boolean;
+  hasRole: (role: string) => boolean;
+  refreshProfile: () => Promise<void>;
+  systemMode: 'UAT' | 'PRODUCTION';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [session, setSession] = useState<Session | null>(null);
-    const [user, setUser] = useState<EnrichedUser | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [systemMode, setSystemMode] = useState<'UAT' | 'PRODUCTION'>('UAT');
+  const dispatch = useAppDispatch();
 
-    // Using Ref to track the user ID we are currently "loading" to prevent redundant fetches
-    const profileFetchTracker = useRef<string | null>(null);
+  // Supabase session remains in local React state inside AuthProvider (sole credential authority)
+  const [session, setSession] = useState<Session | null>(null);
 
-    /**
-     * Fetches the enriched user profile from the backend.
-     */
-    const fetchUserProfile = useCallback(async (token?: string) => {
-        try {
-            // Priority: Explicit token > Current Session Token
-            const activeToken = token || (await supabase.auth.getSession()).data.session?.access_token;
-            if (!activeToken) {
-                setLoading(false);
-                return;
-            }
+  // Redux Application Auth State
+  const user = useAppSelector((state) => state.auth.user) as EnrichedUser | null;
+  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const systemMode = useAppSelector((state) => state.auth.systemMode);
+  const reduxIsAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-            const res = await apiClient.get('/me', {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
+  const userPermissions = useAppSelector((state) => state.permission.permissions);
+  const userRoles = useAppSelector((state) => state.permission.roles);
 
-            if (res.data?.user) {
-                setUser(res.data.user);
-            }
-        } catch (error: any) {
-            console.error("[Auth] Profile fetch failed:", error.response?.status || error.message);
-            // If we have a session but profile fetch fails, it might be a temporary DB issue or a missing record.
-            // We clear user to ensure ProtectedRoutes trigger correctly.
-            setUser(null);
-        } finally {
-            setLoading(false);
+  // Profile fetch tracker to avoid duplicate calls
+  const profileFetchTracker = useRef<string | null>(null);
+
+  /**
+   * Fetches enriched user profile from backend and dispatches to Redux auth & tenant slices.
+   */
+  const fetchUserProfile = useCallback(
+    async (token?: string) => {
+      try {
+        const activeToken = token || (await supabase.auth.getSession()).data.session?.access_token;
+        if (!activeToken) {
+          dispatch(setInitializing(false));
+          return;
         }
-    }, []);
 
-    useEffect(() => {
-        let isMounted = true;
-
-        // 1. Initial State Sync
-        const initialize = async () => {
-            // Fetch System Mode (Public)
-            try {
-                const sysRes = await apiClient.get('/system/info');
-                if (isMounted) setSystemMode(sysRes.data.mode);
-            } catch (e) {
-                console.error("[Auth] System Info fetch failed");
-            }
-
-            const { data: { session: initSession } } = await supabase.auth.getSession();
-            if (!isMounted) return;
-
-            if (initSession?.access_token) {
-                setSession(initSession);
-                profileFetchTracker.current = initSession.user.id;
-                // Add short delay to ensure token is ready in interceptor
-                await new Promise(r => setTimeout(r, 100));
-                await fetchUserProfile(initSession.access_token);
-            } else {
-                setLoading(false);
-            }
-        };
-
-        initialize();
-
-        // 2. Lifecycle Listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-            if (!isMounted) return;
-
-            console.debug(`[Auth] Event: ${event}`);
-            setSession(currentSession);
-
-            if (currentSession) {
-                const isNewUser = currentSession.user.id !== profileFetchTracker.current;
-
-                // Fetch if user changed or if explicit login event occurred
-                if (isNewUser || event === 'SIGNED_IN') {
-                    profileFetchTracker.current = currentSession.user.id;
-
-                    // FIXED: Only block UI if it is a completely new user session.
-                    // If we are just re-validating the same user, do it in background.
-                    if (isNewUser) {
-                        setLoading(true);
-                    }
-
-                    await fetchUserProfile(currentSession.access_token);
-                }
-            } else {
-                // Cleanup on Logout
-                profileFetchTracker.current = null;
-                setUser(null);
-                setLoading(false);
-            }
+        const res = await apiClient.get('/me', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
-        return () => {
-            isMounted = false;
-            subscription.unsubscribe();
-        };
-    }, [fetchUserProfile]);
-
-    const signOut = async () => {
-        setLoading(true);
-        try {
-            await supabase.auth.signOut();
-        } finally {
-            setUser(null);
-            setSession(null);
-            profileFetchTracker.current = null;
-            setLoading(false);
+        if (res.data?.user) {
+          const enrichedUser: EnrichedUser = res.data.user;
+          // Dispatch identity profile to authSlice
+          dispatch(setUser(enrichedUser));
+          // Dispatch roles and permissions to permissionSlice
+          dispatch(
+            setPermissions({
+              roles: enrichedUser.roles || [],
+              permissions: enrichedUser.permissions || [],
+            }),
+          );
+          // Dispatch tenant/school context to tenantSlice
+          if (enrichedUser.school_id) {
+            dispatch(setActiveTenant({ id: enrichedUser.school_id }));
+            dispatch(setSchoolId(enrichedUser.school_id));
+          }
+        } else {
+          dispatch(setUser(null));
+          dispatch(clearPermissions());
         }
+      } catch (error: any) {
+        console.error('[Auth] Profile fetch failed:', error.response?.status || error.message);
+        dispatch(setUser(null));
+        dispatch(clearPermissions());
+      } finally {
+        dispatch(setInitializing(false));
+      }
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const initialize = async () => {
+      dispatch(setInitializing(true));
+
+      // Fetch System Info (Public)
+      try {
+        const sysRes = await apiClient.get('/system/info');
+        if (isMounted && sysRes.data?.mode) {
+          dispatch(setSystemMode(sysRes.data.mode));
+        }
+      } catch (e) {
+        console.error('[Auth] System Info fetch failed');
+      }
+
+      // Initial Supabase Session Sync
+      const {
+        data: { session: initSession },
+      } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      if (initSession?.access_token) {
+        setSession(initSession);
+        profileFetchTracker.current = initSession.user.id;
+        await new Promise((r) => setTimeout(r, 100));
+        await fetchUserProfile(initSession.access_token);
+      } else {
+        dispatch(setInitializing(false));
+      }
     };
 
-    const hasPermission = (code: string) => {
-        if (!user) return false;
-        // Super Admin bypasses all permission checks
-        if (user.roles?.some(r => r === 'SUPERADMIN')) return true;
-        return user.permissions?.includes(code) || false;
-    };
+    initialize();
 
-    const hasRole = (role: string) => {
-        return user?.roles?.some(r => r.toUpperCase() === role.toUpperCase()) || false;
-    };
+    // Supabase Auth Lifecycle Subscription
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (!isMounted) return;
 
-    const value: AuthContextType = {
-        session,
-        user,
-        loading,
-        isAuthenticated: !!session && !!user,
-        signOut,
-        hasPermission,
-        hasRole,
-        systemMode,
-        refreshProfile: () => fetchUserProfile()
-    };
+      console.debug(`[Auth] Event: ${event}`);
+      setSession(currentSession);
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+      if (currentSession) {
+        const isNewUser = currentSession.user.id !== profileFetchTracker.current;
+
+        if (isNewUser || event === 'SIGNED_IN') {
+          profileFetchTracker.current = currentSession.user.id;
+          if (isNewUser) {
+            dispatch(setInitializing(true));
+          }
+          await fetchUserProfile(currentSession.access_token);
+        }
+      } else {
+        // Cleanup on SIGNED_OUT
+        profileFetchTracker.current = null;
+        dispatch(logoutAction());
+        dispatch(clearPermissions());
+        dispatch(setInitializing(false));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchUserProfile, dispatch]);
+
+  const signOut = async () => {
+    dispatch(setInitializing(true));
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      profileFetchTracker.current = null;
+      setSession(null);
+      dispatch(logoutAction());
+      dispatch(clearPermissions());
+      dispatch(setInitializing(false));
+    }
+  };
+
+  const hasPermission = useCallback(
+    (code: string): boolean => {
+      return userPermissions?.includes(code) ?? false;
+    },
+    [userPermissions],
+  );
+
+  const hasRole = useCallback(
+    (role: string): boolean => {
+      return userRoles?.includes(role) ?? false;
+    },
+    [userRoles],
+  );
+
+  const value: AuthContextType = {
+    session,
+    user,
+    loading: isInitializing,
+    isAuthenticated: Boolean(session && user && reduxIsAuthenticated),
+    signOut,
+    hasPermission,
+    hasRole,
+    systemMode,
+    refreshProfile: () => fetchUserProfile(),
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

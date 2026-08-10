@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useGetDashboardSummaryQuery } from '../shared/api/dashboard.api';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api-client';
 import {
@@ -52,20 +52,12 @@ export function SchoolOperationsWorkspace() {
     isSuperAdmin: user?.roles?.includes('SUPER_ADMIN'),
   };
 
-  // Live operational inbox metrics query
+  // Live operational inbox metrics query via RTK Query
   const {
     data: adminOverview,
     isLoading: isMetricsLoading,
     refetch: refetchMetrics,
-  } = useQuery({
-    queryKey: ['adminDashboardOverview'],
-    queryFn: async () => {
-      const res = await apiClient.get('/dashboard/admin/overview');
-      return res.data;
-    },
-    staleTime: 30000,
-    retry: 2,
-  });
+  } = useGetDashboardSummaryQuery();
 
   // Dynamic live metric mapping for operational inbox widgets
   const visibleWidgets = TASK_DRIVEN_WORKSPACE_WIDGETS.filter((w) =>

@@ -79,9 +79,9 @@ export function CounselorDashboard() {
                                         className="py-3 border-b border-gray-100 last:border-0 flex items-center justify-between gap-3"
                                     >
                                         <div className="min-w-0">
-                                            <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{lead.student_name}</p>
+                                            <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{(lead as any).student_name || (lead as any).studentName}</p>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                                {lead.inquiry_number ?? lead.id.slice(0, 8)} · {lead.grade_applied_for ?? '—'}
+                                                {(lead as any).inquiry_number ?? (lead as any).leadNumber ?? lead.id.slice(0, 8)} · {(lead as any).grade_applied_for ?? (lead as any).gradeApplyingFor ?? '—'}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">

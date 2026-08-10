@@ -31,7 +31,12 @@ export class AdmissionController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await AdmissionService.getApplicationById(id);
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id;
+      const isOnlyParent = user?.roles?.includes('PARENT') && !user?.roles?.some(r => ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r));
+      const parentUserId = isOnlyParent ? user?.id : undefined;
+
+      const result = await AdmissionService.getApplicationById(id, orgId, parentUserId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {

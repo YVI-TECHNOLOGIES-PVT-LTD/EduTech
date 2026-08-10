@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 export const ApplicationsListTab: React.FC = () => {
   const { data: apps, isLoading } = useGetApplicationsQuery();
 
-  const dummyApps: ApplicationRecord[] = [
+  const dummyApps: any[] = [
     {
       id: 'app-1',
       applicationNumber: 'APP-2026-042',

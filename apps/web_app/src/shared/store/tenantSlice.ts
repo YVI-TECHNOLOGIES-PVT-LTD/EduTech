@@ -4,6 +4,9 @@ import { API_CONFIG } from '@/config/api';
 export interface TenantState {
   activeTenantId: string | null;
   tenantName: string | null;
+  selectedSchoolId: string | null;
+  selectedAcademicYearId: string | null;
+  activeRole: string | null;
 }
 
 const getStoredTenantId = (): string | null => {
@@ -17,6 +20,9 @@ const getStoredTenantId = (): string | null => {
 const initialState: TenantState = {
   activeTenantId: getStoredTenantId(),
   tenantName: null,
+  selectedSchoolId: null,
+  selectedAcademicYearId: null,
+  activeRole: null,
 };
 
 export const tenantSlice = createSlice({
@@ -41,8 +47,19 @@ export const tenantSlice = createSlice({
         console.error('Failed to clear stored tenant ID', err);
       }
     },
+    setSchoolId: (state, action: PayloadAction<string | null>) => {
+      state.selectedSchoolId = action.payload;
+    },
+    setAcademicYearId: (state, action: PayloadAction<string | null>) => {
+      state.selectedAcademicYearId = action.payload;
+    },
+    setActiveRole: (state, action: PayloadAction<string | null>) => {
+      state.activeRole = action.payload;
+    },
   },
 });
 
-export const { setActiveTenant, clearTenant } = tenantSlice.actions;
+export const { setActiveTenant, clearTenant, setSchoolId, setAcademicYearId, setActiveRole } =
+  tenantSlice.actions;
+
 export default tenantSlice.reducer;

@@ -35,7 +35,13 @@ export class EnquiryController {
 
             const correlationId = req.headers['x-correlation-id'] as string;
             const data = await this.enquiryService.createEnquiry(schoolId!, academicYearId!, req.body, correlationId);
-            res.status(201).json(data);
+            const referenceCode = `ENQ-2026-${data.id.slice(0, 8).toUpperCase()}`;
+            res.status(201).json({
+                ...data,
+                id: data.id,
+                reference_code: referenceCode,
+                reference: referenceCode,
+            });
         } catch (err) {
             handleControllerError(res, err);
         }

@@ -3,10 +3,11 @@ import { ROLES } from '@/shared/constants/roles';
 
 export const usePermission = () => {
   const user = useAppSelector((state) => state.auth.user);
-  const userRole = user?.role || '';
+  const userRoles = user?.roles || [];
+  const userRole = userRoles[0] || '';
   const userPermissions = user?.permissions || [];
 
-  const isSuperAdmin = userRole === ROLES.SUPER_ADMIN;
+  const isSuperAdmin = userRoles.includes(ROLES.SUPER_ADMIN);
 
   const hasPermission = (permission: string): boolean => {
     if (isSuperAdmin) return true;
@@ -25,7 +26,7 @@ export const usePermission = () => {
 
   const hasRole = (role: string): boolean => {
     if (isSuperAdmin) return true;
-    return userRole === role;
+    return userRoles.includes(role);
   };
 
   return {

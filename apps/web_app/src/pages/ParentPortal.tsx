@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useGetDashboardSummaryQuery } from '../shared/api/dashboard.api';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api-client';
 import {
@@ -42,16 +42,8 @@ export function ParentPortal() {
     isSuperAdmin: user?.roles?.includes('SUPER_ADMIN'),
   };
 
-  // Live parent overview query
-  const { data: parentData, isLoading: isParentDataLoading } = useQuery({
-    queryKey: ['parentOverview'],
-    queryFn: async () => {
-      const res = await apiClient.get('/dashboard/parent/overview');
-      return res.data;
-    },
-    staleTime: 30000,
-    retry: 1,
-  });
+  // Live parent overview query via RTK Query
+  const { data: parentData, isLoading: isParentDataLoading } = useGetDashboardSummaryQuery();
 
   const visibleWidgets = TASK_DRIVEN_PARENT_WIDGETS.filter((w) =>
     CapabilityEngine.canRenderWidget(w, capabilityContext),
