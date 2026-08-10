@@ -5,14 +5,15 @@ export class AuthController {
   static async login(req: Request, res: Response) {
     console.log('>>> LOGIN CONTROLLER HIT');
     try {
-      const { email, password, passwordHash } = req.body;
+      const { email, phone, identifier, password, passwordHash } = req.body;
+      const loginId = identifier || email || phone;
       const userPassword = password || passwordHash;
 
-      if (!email || !userPassword) {
-        return res.status(400).json({ error: 'Email and password are required' });
+      if (!loginId || !userPassword) {
+        return res.status(400).json({ error: 'Email/Phone and password are required' });
       }
 
-      const result = await AuthService.login(email, userPassword);
+      const result = await AuthService.login(loginId, userPassword);
       return res.json(result);
     } catch (err: any) {
       return res.status(401).json({ error: err.message || 'Invalid login credentials' });

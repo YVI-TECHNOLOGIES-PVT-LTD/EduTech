@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sessionService = exports.SessionService = void 0;
 const client_1 = require("@prisma/client");
-const supabase_1 = require("../config/supabase");
 const auth_service_1 = require("./auth.service");
 const prisma = new client_1.PrismaClient();
 const sessionCache = new Map();
@@ -25,39 +24,21 @@ class SessionService {
             if (!user || user.status !== 'active') {
                 return null;
             }
-            // 3. Fetch Roles & Permissions via database
-            const { data: rolesData, error: rolesError } = await supabase_1.supabase
-                .from('user_roles')
-                .select(`
-          roles (
-            role_name,
-            role_permissions (
-              permissions (
-                code
-              )
-            )
-          )
-        `)
-                .eq('user_id', user.user_id);
-            if (rolesError) {
-                console.error('[SessionService] Error fetching roles/permissions:', rolesError);
-            }
-            const roles = [];
-            const permissions = new Set();
-            rolesData?.forEach((ur) => {
-                const roleObj = ur.roles;
-                if (roleObj) {
-                    roles.push(roleObj.role_name || roleObj.name);
-                    roleObj.role_permissions?.forEach((rp) => {
-                        if (rp.permissions?.code) {
-                            permissions.add(rp.permissions.code);
-                        }
-                    });
-                }
+            // 3. Fetch User Roles via Prisma ORM
+            const userRolesData = await prisma.user_roles.findMany({
+                where: { user_id: user.user_id },
+                include: {
+                    roles: true,
+                },
             });
+            const roles = userRolesData
+                .map((ur) => ur.roles?.role_name)
+                .filter((r) => Boolean(r));
+            const permissions = [];
             const profile = {
                 id: user.user_id,
                 email: user.email,
+                org_id: user.org_id,
                 school_id: user.org_id,
                 full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
                 roles,

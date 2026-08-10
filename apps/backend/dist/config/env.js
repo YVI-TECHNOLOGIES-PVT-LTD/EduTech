@@ -16,6 +16,8 @@ const envSchema = zod_1.z.object({
     FRONTEND_URL: zod_1.z.string().optional(),
     JWT_SECRET: zod_1.z.string().default('edutrack-enterprise-jwt-secret-2026'),
     JWT_REFRESH_SECRET: zod_1.z.string().default('edutrack-enterprise-jwt-refresh-secret-2026'),
+    CACHE_PROVIDER: zod_1.z.enum(['memory', 'redis']).default('memory'),
+    REDIS_URL: zod_1.z.string().default('redis://localhost:6379'),
 });
 const rawSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const parseResult = envSchema.safeParse({
@@ -27,6 +29,8 @@ const parseResult = envSchema.safeParse({
     FRONTEND_URL: process.env.FRONTEND_URL,
     JWT_SECRET: process.env.JWT_SECRET || 'edutrack-enterprise-jwt-secret-2026',
     JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'edutrack-enterprise-jwt-refresh-secret-2026',
+    CACHE_PROVIDER: process.env.CACHE_PROVIDER || 'memory',
+    REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
 });
 if (!parseResult.success) {
     console.error('🚨 [Fatal] Configuration validation failed on startup:');

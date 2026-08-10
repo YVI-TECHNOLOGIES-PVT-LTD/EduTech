@@ -12,6 +12,8 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().optional(),
   JWT_SECRET: z.string().default('edutrack-enterprise-jwt-secret-2026'),
   JWT_REFRESH_SECRET: z.string().default('edutrack-enterprise-jwt-refresh-secret-2026'),
+  CACHE_PROVIDER: z.enum(['memory', 'redis']).default('memory'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
 });
 
 const rawSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
@@ -26,6 +28,8 @@ const parseResult = envSchema.safeParse({
   JWT_SECRET: process.env.JWT_SECRET || 'edutrack-enterprise-jwt-secret-2026',
   JWT_REFRESH_SECRET:
     process.env.JWT_REFRESH_SECRET || 'edutrack-enterprise-jwt-refresh-secret-2026',
+  CACHE_PROVIDER: process.env.CACHE_PROVIDER || 'memory',
+  REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
 });
 
 if (!parseResult.success) {

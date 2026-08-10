@@ -5,10 +5,21 @@ import { SearchLeadDto } from '../dto/request/search-lead.dto';
 const db: any = prisma;
 
 export class LeadSearchQuery {
-  static async execute(params: SearchLeadDto) {
+  static async execute(params: SearchLeadDto, user?: any) {
     const q = sanitizeSearchQuery(params);
 
     const whereClause: any = {};
+
+    if (user) {
+      whereClause.org_id = user.org_id;
+      if (user.roles?.includes('PARENT')) {
+        const ownerConditions: any[] = [{ created_by: user.id }];
+        if (user.phone) ownerConditions.push({ contact_phone: user.phone });
+        if (user.email) ownerConditions.push({ contact_email: user.email });
+
+        whereClause.AND = [{ OR: ownerConditions }];
+      }
+    }
 
     if (q.stage) {
       whereClause.stage = q.stage;

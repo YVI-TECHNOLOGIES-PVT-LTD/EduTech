@@ -92,4 +92,51 @@ export class ParentController {
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
+
+  static async getProfile(req: Request, res: Response) {
+    try {
+      const user = req.context?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized: No session context' });
+      }
+
+      const result = await ParentService.getProfileByUserId(
+        user.id,
+        user.org_id,
+        user.email,
+        (user as any).phone,
+      );
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof ParentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async updateSelfProfile(req: Request, res: Response) {
+    try {
+      const user = req.context?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized: No session context' });
+      }
+
+      const parsed = updateParentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: parsed.error.format(),
+        });
+      }
+
+      const result = await ParentService.updateProfileByUserId(user.id, user.org_id, parsed.data);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof ParentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
 }

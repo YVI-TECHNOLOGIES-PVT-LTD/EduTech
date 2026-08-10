@@ -5,7 +5,7 @@
  * Defines standard error classes for domain, HTTP, validation, and database errors.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.InternalServerError = exports.ConflictError = exports.NotFoundError = exports.ForbiddenError = exports.UnauthorizedError = exports.ValidationError = exports.AppError = void 0;
+exports.RateLimitError = exports.InternalServerError = exports.ConflictError = exports.NotFoundError = exports.ForbiddenError = exports.UnauthorizedError = exports.ValidationError = exports.AppError = void 0;
 class AppError extends Error {
     constructor(message, statusCode = 500, errorCode = 'INTERNAL_SERVER_ERROR', details) {
         super(message);
@@ -54,3 +54,9 @@ class InternalServerError extends AppError {
     }
 }
 exports.InternalServerError = InternalServerError;
+class RateLimitError extends AppError {
+    constructor(message = 'Rate limit exceeded', details) {
+        super(message, 429, 'TOO_MANY_REQUESTS', details);
+    }
+}
+exports.RateLimitError = RateLimitError;

@@ -18,7 +18,8 @@ const authenticate = async (req, res, next) => {
             user: {
                 id: userProfile.id,
                 email: userProfile.email,
-                school_id: userProfile.school_id,
+                org_id: userProfile.org_id || userProfile.school_id,
+                school_id: userProfile.school_id || userProfile.org_id,
                 roles: userProfile.roles,
                 permissions: userProfile.permissions,
                 login_status: userProfile.login_status
@@ -46,7 +47,8 @@ const authenticateOptional = async (req, res, next) => {
                 user: {
                     id: userProfile.id,
                     email: userProfile.email,
-                    school_id: userProfile.school_id,
+                    org_id: userProfile.org_id || userProfile.school_id,
+                    school_id: userProfile.school_id || userProfile.org_id,
                     roles: userProfile.roles,
                     permissions: userProfile.permissions,
                     login_status: userProfile.login_status
@@ -78,6 +80,8 @@ const checkLoginApproval = (req, res, next) => {
             '/v1/admission/application',
             '/v1/admission/public-apply',
             '/v1/admission/apply',
+            '/v1/admission/crm/enquiries',
+            '/v1/admission/enquiries',
             '/v1/admission/assessment',
         ];
         const isAllowed = allowedPaths.some(path => req.path === path || req.path.startsWith(path + '/'));

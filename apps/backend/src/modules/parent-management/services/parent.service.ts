@@ -49,6 +49,50 @@ export class ParentService {
     return ParentMapper.toResponseDto(parent);
   }
 
+  static async getProfileByUserId(
+    userId: string,
+    orgId: string,
+    email?: string,
+    phone?: string,
+  ): Promise<ParentResponseDto> {
+    let parent = await ParentRepository.findByUserId(orgId, userId);
+    if (!parent && phone) {
+      parent = await ParentRepository.findByPhone(orgId, phone);
+    }
+
+    if (!parent) {
+      parent = await ParentRepository.create({
+        org_id: orgId,
+        user_id: userId,
+        first_name: 'Parent User',
+        phone: phone || '+910000000000',
+        email,
+      });
+    }
+
+    return ParentMapper.toResponseDto(parent);
+  }
+
+  static async updateProfileByUserId(
+    userId: string,
+    orgId: string,
+    dto: UpdateParentDto,
+  ): Promise<ParentResponseDto> {
+    let parent = await ParentRepository.findByUserId(orgId, userId);
+    if (!parent) {
+      parent = await ParentRepository.create({
+        org_id: orgId,
+        user_id: userId,
+        first_name: dto.first_name || 'Parent User',
+        phone: dto.phone || '+910000000000',
+        email: dto.email,
+      });
+    } else {
+      parent = await ParentRepository.update(parent.parent_id, dto);
+    }
+    return ParentMapper.toResponseDto(parent);
+  }
+
   static async updateParent(
     id: string,
     dto: UpdateParentDto,

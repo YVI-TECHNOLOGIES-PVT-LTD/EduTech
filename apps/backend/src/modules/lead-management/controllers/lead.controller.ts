@@ -12,6 +12,7 @@ import { LeadError } from '../errors/lead.errors';
 export class LeadController {
   static async create(req: Request, res: Response) {
     try {
+      const user = req.context?.user;
       const parsed = createLeadSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({
@@ -20,8 +21,18 @@ export class LeadController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadService.createLead(parsed.data, userId);
+      const dto = { ...parsed.data };
+      if (user) {
+        dto.org_id = user.org_id;
+        if (user.roles?.includes('PARENT')) {
+          dto.source = 'website' as any;
+          dto.stage = 'enquiry_received' as any;
+          dto.priority = 'warm' as any;
+        }
+      }
+
+      const userId = user?.id || null;
+      const result = await LeadService.createLead(dto, userId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -34,7 +45,8 @@ export class LeadController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await LeadService.getLeadById(id);
+      const user = req.context?.user;
+      const result = await LeadService.getLeadById(id, user);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -47,6 +59,7 @@ export class LeadController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user = req.context?.user;
       const parsed = updateLeadSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({
@@ -55,8 +68,8 @@ export class LeadController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadService.updateLead(id, parsed.data, userId);
+      const userId = user?.id || null;
+      const result = await LeadService.updateLead(id, parsed.data, userId, user);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -90,7 +103,8 @@ export class LeadController {
         });
       }
 
-      const result = await LeadService.searchLeads(parsed.data);
+      const user = req.context?.user;
+      const result = await LeadService.searchLeads(parsed.data, user);
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ error: error.message || 'Internal server error' });

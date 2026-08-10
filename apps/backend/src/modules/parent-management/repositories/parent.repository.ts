@@ -23,6 +23,17 @@ export class ParentRepository {
     });
   }
 
+  static async findByUserId(org_id: string, user_id: string) {
+    return db.parents.findFirst({
+      where: { org_id, user_id },
+      include: {
+        student_parents: {
+          include: { students: true },
+        },
+      },
+    });
+  }
+
   static async create(dto: CreateParentDto) {
     return db.parents.create({
       data: {

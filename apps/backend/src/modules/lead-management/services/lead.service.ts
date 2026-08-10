@@ -1,7 +1,7 @@
 import { LeadRepository } from '../repositories/lead.repository';
 import { LeadSearchRepository } from '../repositories/lead.search.repository';
 import { LeadValidator } from '../validators/lead.validator';
-import { LeadNotFoundError } from '../errors/lead.errors';
+import { LeadNotFoundError, LeadError } from '../errors/lead.errors';
 import { CreateLeadDto } from '../dto/request/create-lead.dto';
 import { UpdateLeadDto } from '../dto/request/update-lead.dto';
 import { SearchLeadDto } from '../dto/request/search-lead.dto';
@@ -53,11 +53,27 @@ export class LeadService {
     return LeadMapper.toResponseDto(lead);
   }
 
-  static async getLeadById(id: string): Promise<LeadResponseDto> {
+  static async getLeadById(id: string, user?: any): Promise<LeadResponseDto> {
     const lead = await LeadRepository.findById(id);
     if (!lead) {
       throw new LeadNotFoundError(id);
     }
+
+    if (user) {
+      if (user.roles?.includes('PARENT')) {
+        const isOwner =
+          lead.org_id === user.org_id &&
+          (lead.created_by === user.id ||
+            lead.contact_phone === user.phone ||
+            lead.contact_email === user.email);
+        if (!isOwner) {
+          throw new LeadError('Forbidden: Access denied to lead', 403, 'FORBIDDEN');
+        }
+      } else if (lead.org_id !== user.org_id && !user.roles?.includes('SUPERADMIN')) {
+        throw new LeadError('Forbidden: Tenant isolation mismatch', 403, 'TENANT_MISMATCH');
+      }
+    }
+
     return LeadMapper.toResponseDto(lead);
   }
 
@@ -65,10 +81,31 @@ export class LeadService {
     id: string,
     dto: UpdateLeadDto,
     performedBy?: string | null,
+    user?: any,
   ): Promise<LeadResponseDto> {
     const existing = await LeadRepository.findById(id);
     if (!existing) {
       throw new LeadNotFoundError(id);
+    }
+
+    if (user) {
+      if (user.roles?.includes('PARENT')) {
+        const isOwner =
+          existing.org_id === user.org_id &&
+          (existing.created_by === user.id ||
+            existing.contact_phone === user.phone ||
+            existing.contact_email === user.email);
+        if (!isOwner) {
+          throw new LeadError('Forbidden: Access denied to lead', 403, 'FORBIDDEN');
+        }
+        delete (dto as any).stage;
+        delete (dto as any).status;
+        delete (dto as any).priority;
+        delete (dto as any).assigned_counsellor_id;
+        delete (dto as any).org_id;
+      } else if (existing.org_id !== user.org_id && !user.roles?.includes('SUPERADMIN')) {
+        throw new LeadError('Forbidden: Tenant isolation mismatch', 403, 'TENANT_MISMATCH');
+      }
     }
 
     const updated = await LeadRepository.update(id, dto);
@@ -106,8 +143,11 @@ export class LeadService {
     return { success: true };
   }
 
-  static async searchLeads(params: SearchLeadDto): Promise<PaginatedResponse<LeadResponseDto>> {
-    const result = await LeadSearchRepository.search(params);
+  static async searchLeads(
+    params: SearchLeadDto,
+    user?: any,
+  ): Promise<PaginatedResponse<LeadResponseDto>> {
+    const result = await LeadSearchRepository.search(params, user);
 
     return {
       data: result.items.map(LeadMapper.toResponseDto),

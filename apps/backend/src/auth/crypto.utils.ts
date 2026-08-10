@@ -139,3 +139,37 @@ export class NativeJwt {
     return payload as T;
   }
 }
+
+export class NativeOtpCrypto {
+  /**
+   * Generates a cryptographically secure 6-digit OTP code (100000 to 999999).
+   */
+  static generateOtpCode(): string {
+    return crypto.randomInt(100000, 1000000).toString();
+  }
+
+  /**
+   * Computes a SHA-256 hex digest of the plaintext OTP.
+   */
+  static hashOtp(otp: string): string {
+    return crypto.createHash('sha256').update(otp).digest('hex');
+  }
+
+  /**
+   * Generates a 256-bit CSPRNG registration proof token in hex format.
+   */
+  static generateRegistrationToken(): string {
+    return `reg_proof_${crypto.randomBytes(32).toString('hex')}`;
+  }
+
+  /**
+   * Compares two string values using timing-safe buffer comparison.
+   */
+  static timingSafeCompare(a: string, b: string): boolean {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  }
+}

@@ -44,41 +44,19 @@ export class SessionService {
         return null;
       }
 
-      // 3. Fetch Roles & Permissions via database
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select(
-          `
-          roles (
-            role_name,
-            role_permissions (
-              permissions (
-                code
-              )
-            )
-          )
-        `,
-        )
-        .eq('user_id', user.user_id);
-
-      if (rolesError) {
-        console.error('[SessionService] Error fetching roles/permissions:', rolesError);
-      }
-
-      const roles: string[] = [];
-      const permissions = new Set<string>();
-
-      rolesData?.forEach((ur: any) => {
-        const roleObj = ur.roles;
-        if (roleObj) {
-          roles.push(roleObj.role_name || roleObj.name);
-          roleObj.role_permissions?.forEach((rp: any) => {
-            if (rp.permissions?.code) {
-              permissions.add(rp.permissions.code);
-            }
-          });
-        }
+      // 3. Fetch User Roles via Prisma ORM
+      const userRolesData = await prisma.user_roles.findMany({
+        where: { user_id: user.user_id },
+        include: {
+          roles: true,
+        },
       });
+
+      const roles: string[] = userRolesData
+        .map((ur) => ur.roles?.role_name)
+        .filter((r): r is string => Boolean(r));
+
+      const permissions: string[] = [];
 
       const profile: UserProfile = {
         id: user.user_id,

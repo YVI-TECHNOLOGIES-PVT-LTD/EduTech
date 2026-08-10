@@ -3,6 +3,7 @@ import { checkPermission } from '../../../rbac/rbac.middleware';
 import { checkIdempotency } from '../../../middlewares/idempotency.middleware';
 import { LeadController } from '../controllers/lead.controller';
 import { LeadActivityController } from '../controllers/lead-activity.controller';
+import { LeadVisitController } from '../controllers/lead-visit.controller';
 import { LeadPolicy } from '../policies/lead.policy';
 
 export const leadRouter = Router();
@@ -71,4 +72,22 @@ leadRouter.patch(
   '/activities/:id',
   checkPermission(LeadPolicy.canUpdate()),
   LeadActivityController.update,
+);
+
+// Lead Visits (Phase 7)
+leadRouter.post(
+  '/:id/visits',
+  checkPermission(LeadPolicy.canUpdate()),
+  checkIdempotency,
+  LeadVisitController.create,
+);
+leadRouter.get(
+  '/:id/visits',
+  checkPermission(LeadPolicy.canView()),
+  LeadVisitController.getByLeadId,
+);
+leadRouter.patch(
+  '/visits/:visitId',
+  checkPermission(LeadPolicy.canUpdate()),
+  LeadVisitController.updateStatus,
 );

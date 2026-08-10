@@ -6,14 +6,13 @@ exports.createEnquirySchema = zod_1.z.object({
     student_name: zod_1.z.string()
         .min(2, 'Name must contain at least 2 characters')
         .max(100, 'Name must not exceed 100 characters')
-        .regex(/^[A-Za-z ]+$/, 'Name must contain letters only'),
+        .optional()
+        .nullable(),
     grade_applied_for: zod_1.z.string().min(1, 'Grade applied for is required'),
     parent_name: zod_1.z.string().min(2, 'Parent name must contain at least 2 characters'),
     parent_email: zod_1.z.string().email('Enter a valid email address'),
     parent_phone: zod_1.z.string().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number with country code (e.g. +919876543210)'),
-    source: zod_1.z.enum(['Website', 'Phone', 'Walk-in', 'Campaign', 'Referral'], {
-        errorMap: () => ({ message: 'Invalid lead source' })
-    }),
+    source: zod_1.z.enum(['Website', 'Phone', 'Walk-in', 'Campaign', 'Referral']).optional().default('Website'),
     date_of_birth: zod_1.z.string().refine((val) => !isNaN(Date.parse(val)), {
         message: 'Date of birth must be a valid date string'
     }).optional().nullable(),

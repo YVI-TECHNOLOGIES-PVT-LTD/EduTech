@@ -8,6 +8,13 @@ import { ParentPolicy } from '../policies/parent.policy';
 
 export const parentRouter = Router();
 
+// Parent Self-Service Profile Endpoints
+parentRouter.get('/profile', ParentController.getProfile);
+parentRouter.post('/profile', ParentController.updateSelfProfile);
+parentRouter.patch('/profile', ParentController.updateSelfProfile);
+parentRouter.get('/me', ParentController.getProfile);
+parentRouter.patch('/me', ParentController.updateSelfProfile);
+
 // Analytics & Dashboard
 parentRouter.get(
   '/dashboard',

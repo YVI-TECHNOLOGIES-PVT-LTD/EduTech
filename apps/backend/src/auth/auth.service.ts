@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { supabase } from '../config/supabase';
 import { env } from '../config/env';
 import { NativePassword, NativeJwt } from './crypto.utils';
+import { normalizePhone } from '../utils/phone.utils';
 
 const prisma = new PrismaClient();
 
@@ -18,17 +19,31 @@ export interface TokenPayload {
 }
 
 export class AuthService {
-  static async login(email: string, passwordInput: string) {
+  static async login(emailOrPhone: string, passwordInput: string) {
     console.log('>>> AUTH SERVICE HIT');
     console.log('========== LOGIN DIAGNOSTICS ==========');
-    console.log('Incoming Email:', email);
-    console.log('Incoming Password:', passwordInput);
+    console.log('Incoming Identifier:', emailOrPhone);
 
-    const cleanEmail = email.trim().toLowerCase();
+    let identifierStr = '';
+    if (typeof emailOrPhone === 'object' && emailOrPhone !== null) {
+      identifierStr =
+        (emailOrPhone as any).identifier ||
+        (emailOrPhone as any).email ||
+        (emailOrPhone as any).phone ||
+        '';
+      if (!passwordInput) passwordInput = (emailOrPhone as any).password;
+    } else {
+      identifierStr = String(emailOrPhone || '');
+    }
 
-    // 1. Query public.users via Prisma ORM
+    const cleanInput = identifierStr.trim().toLowerCase();
+    const normPhone = normalizePhone(cleanInput);
+
+    // 1. Query public.users via Prisma ORM by email or phone
     const user = await prisma.users.findFirst({
-      where: { email: cleanEmail },
+      where: {
+        OR: [{ email: cleanInput }, { phone: cleanInput }, { phone: normPhone }],
+      },
     });
 
     console.log('User Exists:', !!user);
@@ -37,7 +52,6 @@ export class AuthService {
       console.log('User ID:', user.user_id);
       console.log('Email:', user.email);
       console.log('Status:', user.status);
-      console.log('Password Hash:', user.password_hash);
     }
 
     if (!user) {
@@ -68,44 +82,20 @@ export class AuthService {
       throw new Error('Invalid login credentials');
     }
 
-    // 3. Fetch User Roles & Permissions via database
-    console.log('Fetching roles and permissions...');
-    const { data: userRolesData, error: rolesError } = await supabase
-      .from('user_roles')
-      .select(
-        `
-        roles (
-          role_name,
-          role_permissions (
-            permissions (
-              code
-            )
-          )
-        )
-      `,
-      )
-      .eq('user_id', user.user_id);
-
-    if (rolesError) {
-      console.error('[AuthService] Error fetching roles/permissions:', rolesError);
-    }
-
-    const roles: string[] = [];
-    const permissionsSet = new Set<string>();
-
-    userRolesData?.forEach((ur: any) => {
-      const roleObj = ur.roles;
-      if (roleObj) {
-        roles.push(roleObj.role_name || roleObj.name);
-        roleObj.role_permissions?.forEach((rp: any) => {
-          if (rp.permissions?.code) {
-            permissionsSet.add(rp.permissions.code);
-          }
-        });
-      }
+    // 3. Fetch User Roles via Prisma ORM
+    console.log('Fetching roles via Prisma...');
+    const userRolesData = await prisma.user_roles.findMany({
+      where: { user_id: user.user_id },
+      include: {
+        roles: true,
+      },
     });
 
-    const permissions = Array.from(permissionsSet);
+    const roles: string[] = userRolesData
+      .map((ur) => ur.roles?.role_name)
+      .filter((r): r is string => Boolean(r));
+
+    const permissions: string[] = [];
 
     // 4. Update last_login_at timestamp via Prisma
     await prisma.users.update({

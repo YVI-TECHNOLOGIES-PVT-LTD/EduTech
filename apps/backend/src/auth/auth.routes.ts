@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from './auth.controller';
+import { OtpController } from './otp.controller';
 import { authenticate } from './auth.middleware';
 
 export const publicAuthRouter = Router();
@@ -8,6 +9,8 @@ export const protectedAuthRouter = Router();
 // Public Authentication Endpoints (Unprotected)
 publicAuthRouter.post('/login', AuthController.login);
 publicAuthRouter.post('/refresh', AuthController.refresh);
+publicAuthRouter.post('/otp/request', OtpController.requestOtp);
+publicAuthRouter.post('/otp/verify', OtpController.verifyOtp);
 
 // Protected Authentication Endpoints
 protectedAuthRouter.post('/logout', authenticate, AuthController.logout);

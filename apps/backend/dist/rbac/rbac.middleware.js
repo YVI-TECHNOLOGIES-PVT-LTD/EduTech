@@ -61,8 +61,11 @@ const checkPermission = (requiredPermission) => {
         const permissions = req.context.user.permissions;
         const roles = (0, exports.getEffectiveRoles)(req.context.user.roles);
         console.log(`[RBAC] User: ${req.context.user.email}, Required: ${requiredPermission}, Has: ${permissions.length} perms`);
-        // 2. Super Admin Bypass
+        // 2. Super Admin & Parent Self-Service Bypass
         if (roles.includes('SUPERADMIN')) {
+            return next();
+        }
+        if (roles.includes('PARENT') && requiredPermission.startsWith('admission.')) {
             return next();
         }
         // 3. Dynamic Permission Hierarchy Evaluation
