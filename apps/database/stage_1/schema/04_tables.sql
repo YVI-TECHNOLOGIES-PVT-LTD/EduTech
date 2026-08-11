@@ -653,7 +653,7 @@ CREATE TABLE lead_activities (
 );
 
 -- ----------------------------------------------------------------------------
--- CHATBOT SESSIONS 
+-- CHATBOT SESSIONS   
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE chatbot_sessions (
