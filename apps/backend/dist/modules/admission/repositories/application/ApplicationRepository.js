@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApplicationRepository = void 0;
 const BaseRepository_1 = require("../BaseRepository");
@@ -6,6 +9,7 @@ const AdmissionApplication_1 = require("../../domain/application/AdmissionApplic
 const ApplicationProfile_1 = require("../../domain/application/ApplicationProfile");
 const ApplicationDeclaration_1 = require("../../domain/application/ApplicationDeclaration");
 const supabase_1 = require("../../../../config/supabase");
+const prismaClient_1 = __importDefault(require("../../../../lib/prismaClient"));
 class ApplicationRepository extends BaseRepository_1.BaseRepository {
     constructor() {
         super('admission_applications');
@@ -34,59 +38,46 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             .is('deleted_at', null);
         if (error)
             throw error;
-        return (data || []).map(row => this.toDomain(row));
+        return (data || []).map((row) => this.toDomain(row));
     }
     async getGradeForApplication(applicationId) {
         const app = await this.findById(applicationId);
-        if (!app || !app.leadId) {
+        if (!app?.leadId) {
             return 'Grade 1';
         }
-        const { data: lead, error: leadErr } = await supabase_1.supabase
-            .from('admission_leads')
-            .select('enquiry_id')
-            .eq('id', app.leadId)
-            .maybeSingle();
-        if (leadErr || !lead || !lead.enquiry_id) {
+        const lead = await prismaClient_1.default.leads.findUnique({
+            where: { lead_id: app.leadId },
+            include: {
+                academic_year_grades: {
+                    include: { grades: true },
+                },
+            },
+        });
+        if (!lead) {
             return 'Grade 1';
         }
-        const { data: enquiry, error: enquiryErr } = await supabase_1.supabase
-            .from('admission_enquiries')
-            .select('grade_applied_for')
-            .eq('id', lead.enquiry_id)
-            .maybeSingle();
-        if (enquiryErr || !enquiry) {
-            return 'Grade 1';
-        }
-        return enquiry.grade_applied_for;
+        return (lead.academic_year_grades?.grades?.grade_name ||
+            lead.academic_year_grades?.grades?.grade_code ||
+            'Grade 1');
     }
     async getApplicantDisplayInfo(applicationId) {
         const app = await this.findById(applicationId);
         if (!app?.leadId) {
             return { studentName: 'Student', parentEmail: null, parentPhone: null };
         }
-        const { data: lead } = await supabase_1.supabase
-            .from('admission_leads')
-            .select('enquiry_id')
-            .eq('id', app.leadId)
-            .maybeSingle();
-        if (!lead?.enquiry_id) {
+        const lead = await prismaClient_1.default.leads.findUnique({
+            where: { lead_id: app.leadId },
+        });
+        if (!lead) {
             return { studentName: 'Student', parentEmail: null, parentPhone: null };
         }
-        const { data: enquiry } = await supabase_1.supabase
-            .from('admission_enquiries')
-            .select('student_name, parent_email, parent_phone')
-            .eq('id', lead.enquiry_id)
-            .maybeSingle();
-        const { data: parentRow } = await supabase_1.supabase
-            .from('application_parents')
-            .select('email, mobile_number')
-            .eq('application_id', applicationId)
-            .limit(1)
-            .maybeSingle();
+        const studentName = lead.student_last_name
+            ? `${lead.student_first_name} ${lead.student_last_name}`
+            : lead.student_first_name;
         return {
-            studentName: enquiry?.student_name ?? 'Student',
-            parentEmail: parentRow?.email ?? enquiry?.parent_email ?? null,
-            parentPhone: parentRow?.mobile_number ?? enquiry?.parent_phone ?? null,
+            studentName,
+            parentEmail: lead.contact_email,
+            parentPhone: lead.contact_phone,
         };
     }
     async findCurrentByLeadId(leadId) {
@@ -112,7 +103,7 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             .is('deleted_at', null);
         if (error)
             throw error;
-        return new Map((data ?? []).map(row => [row.lead_id, row.id]));
+        return new Map((data ?? []).map((row) => [row.lead_id, row.id]));
     }
     async findCurrentByDetails(studentName, dateOfBirth, academicYearId) {
         const dobStr = dateOfBirth.toISOString().split('T')[0];
@@ -131,19 +122,15 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         for (const row of data) {
             if (!row.lead_id)
                 continue;
-            const { data: lead } = await supabase_1.supabase
-                .from('admission_leads')
-                .select('enquiry_id')
-                .eq('id', row.lead_id)
-                .maybeSingle();
-            if (!lead?.enquiry_id)
+            const lead = await prismaClient_1.default.leads.findUnique({
+                where: { lead_id: row.lead_id },
+            });
+            if (!lead)
                 continue;
-            const { data: enquiry } = await supabase_1.supabase
-                .from('admission_enquiries')
-                .select('student_name')
-                .eq('id', lead.enquiry_id)
-                .maybeSingle();
-            if (enquiry?.student_name?.toLowerCase() === normalizedName) {
+            const name = (lead.student_last_name
+                ? `${lead.student_first_name} ${lead.student_last_name}`
+                : lead.student_first_name).toLowerCase();
+            if (name === normalizedName) {
                 return this.toDomain(row);
             }
         }
@@ -162,11 +149,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             change_reason: application.changeReason,
             submitted_at: application.submittedAt?.toISOString() || null,
             updated_at: application.updatedAt.toISOString(),
-            deleted_at: application.deletedAt?.toISOString() || null
+            deleted_at: application.deletedAt?.toISOString() || null,
         };
-        const { error } = await supabase_1.supabase
-            .from('admission_applications')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('admission_applications').upsert(payload);
         if (error)
             throw error;
     }
@@ -207,11 +192,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             allergies: profile.allergies,
             medical_conditions: profile.medicalConditions,
             emergency_notes: profile.emergencyNotes,
-            updated_at: profile.updatedAt.toISOString()
+            updated_at: profile.updatedAt.toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_profiles')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_profiles').upsert(payload);
         if (error)
             throw error;
     }
@@ -229,11 +212,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const payload = {
             application_id: applicationId,
             ...parentsData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_parents')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_parents').upsert(payload);
         if (error)
             throw error;
     }
@@ -251,11 +232,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const payload = {
             application_id: applicationId,
             ...eduData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_previous_education')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_previous_education').upsert(payload);
         if (error)
             throw error;
     }
@@ -273,11 +252,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const payload = {
             application_id: applicationId,
             ...prefData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_preferences')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_preferences').upsert(payload);
         if (error)
             throw error;
     }
@@ -299,25 +276,23 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             application_id: declaration.applicationId,
             agreed_to_terms: declaration.agreedToTerms,
             parent_signature: declaration.parentSignature,
-            date_signed: declaration.dateSigned ? declaration.dateSigned.toISOString().split('T')[0] : null,
-            updated_at: declaration.updatedAt.toISOString()
+            date_signed: declaration.dateSigned
+                ? declaration.dateSigned.toISOString().split('T')[0]
+                : null,
+            updated_at: declaration.updatedAt.toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_declarations')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_declarations').upsert(payload);
         if (error)
             throw error;
     }
     async logWorkflow(applicationId, action, fromStatus, toStatus, performedBy, notes) {
-        const { error } = await supabase_1.supabase
-            .from('application_workflow')
-            .insert({
+        const { error } = await supabase_1.supabase.from('application_workflow').insert({
             application_id: applicationId,
             action,
             from_status: fromStatus,
             to_status: toStatus,
             performed_by: performedBy,
-            notes
+            notes,
         });
         if (error)
             throw error;
@@ -385,22 +360,15 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const normalizedEmail = userEmail.trim().toLowerCase();
         if (!normalizedEmail)
             return;
-        const { data: enquiries } = await supabase_1.supabase
-            .from('admission_enquiries')
-            .select('id')
-            .ilike('parent_email', normalizedEmail);
-        for (const enquiry of enquiries ?? []) {
-            const { data: lead } = await supabase_1.supabase
-                .from('admission_leads')
-                .select('id')
-                .eq('enquiry_id', enquiry.id)
-                .maybeSingle();
-            if (!lead)
-                continue;
+        const leads = await prismaClient_1.default.leads.findMany({
+            where: { contact_email: { equals: normalizedEmail, mode: 'insensitive' } },
+            select: { lead_id: true },
+        });
+        for (const lead of leads) {
             await supabase_1.supabase
-                .from('admission_applications')
+                .from('admissions_applications')
                 .update({ created_by: userId, updated_at: new Date().toISOString() })
-                .eq('lead_id', lead.id)
+                .eq('lead_id', lead.lead_id)
                 .is('created_by', null);
         }
         const { data: parentApps } = await supabase_1.supabase
@@ -435,20 +403,11 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
                 return true;
         }
         if (app.leadId) {
-            const { data: lead } = await supabase_1.supabase
-                .from('admission_leads')
-                .select('enquiry_id')
-                .eq('id', app.leadId)
-                .maybeSingle();
-            if (lead?.enquiry_id) {
-                const { data: enquiry } = await supabase_1.supabase
-                    .from('admission_enquiries')
-                    .select('parent_email')
-                    .eq('id', lead.enquiry_id)
-                    .maybeSingle();
-                if (enquiry?.parent_email?.toLowerCase() === normalizedEmail)
-                    return true;
-            }
+            const lead = await prismaClient_1.default.leads.findUnique({
+                where: { lead_id: app.leadId },
+            });
+            if (lead?.contact_email?.toLowerCase() === normalizedEmail)
+                return true;
         }
         return false;
     }
@@ -486,7 +445,10 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
                 const studentName = enquiry?.student_name?.toLowerCase() ?? '';
                 const parentEmail = enquiry?.parent_email?.toLowerCase() ?? '';
                 const parentPhone = enquiry?.parent_phone?.toLowerCase() ?? '';
-                return studentName.includes(term) || parentEmail.includes(term) || parentPhone.includes(term) || row.id.includes(term);
+                return (studentName.includes(term) ||
+                    parentEmail.includes(term) ||
+                    parentPhone.includes(term) ||
+                    row.id.includes(term));
             });
         }
         const enriched = rows.map((row) => {
@@ -521,12 +483,15 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const { data, error } = await query;
         if (error)
             throw error;
-        return (data ?? []).map(row => ({
+        return (data ?? []).map((row) => ({
             id: row.id,
             status: (row.status ?? 'DRAFT').toLowerCase(),
             created_at: row.created_at,
             updated_at: row.updated_at,
         }));
+    }
+    async softDelete(id) {
+        await this.performSoftDelete(id);
     }
 }
 exports.ApplicationRepository = ApplicationRepository;

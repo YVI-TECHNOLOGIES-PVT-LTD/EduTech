@@ -14,7 +14,8 @@ class EnquiryController {
                 let schoolId = req.context?.user?.school_id;
                 let academicYearId = req.headers['x-academic-year-id'] || req.body.academic_year_id;
                 if (!schoolId || !academicYearId) {
-                    const resolved = await admission_service_1.AdmissionService.resolveContext();
+                    const requestedYear = req.body.academic_year || req.body.academicYear || req.body.academic_year_name;
+                    const resolved = await admission_service_1.AdmissionService.resolveContext(requestedYear);
                     if (!schoolId)
                         schoolId = resolved.school_id;
                     if (!academicYearId)
@@ -31,6 +32,7 @@ class EnquiryController {
                 });
             }
             catch (err) {
+                console.error('[ENQUIRY-CONTROLLER-ERROR]', err);
                 (0, ControllerErrorHandler_1.handleControllerError)(res, err);
             }
         };
