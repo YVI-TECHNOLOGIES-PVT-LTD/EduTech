@@ -1,6 +1,6 @@
 [build]
-  base = "apps/web"
-  command = "npm run build"
+  base = "apps/web_app"
+  command = "pnpm install --frozen-lockfile && pnpm --filter @edutrack/web run build"
   publish = "dist"
 
 [context.production.environment]

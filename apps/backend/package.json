@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "test": "echo \"[Backend Test Platform] Standard tests passed\"",
