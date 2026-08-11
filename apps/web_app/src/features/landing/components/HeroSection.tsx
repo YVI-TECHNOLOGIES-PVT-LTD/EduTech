@@ -1,7 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, GraduationCap, Award, Sparkles, BookOpen, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  GraduationCap,
+  Award,
+  Sparkles,
+  BookOpen,
+  ShieldCheck,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HeroSectionProps {
@@ -51,7 +59,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAdmissionClick 
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
             >
-              A modern learning environment built around academic excellence, character development, creativity, and future-ready thinking.
+              A modern learning environment built around academic excellence, character development,
+              creativity, and future-ready thinking.
             </motion.p>
 
             {/* Action CTAs */}
@@ -71,12 +80,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAdmissionClick 
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               ) : (
-                <Link to="/admissions/apply" className="w-full sm:w-auto">
+                <Link to="/enquiry" className="w-full sm:w-auto">
                   <Button
                     size="lg"
                     className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#e55f00] text-white font-bold text-sm sm:text-base px-7 shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    Start Admission
+                    Submit Enquiry
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
@@ -144,7 +153,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAdmissionClick 
                     </div>
                     <div>
                       <div className="text-xs font-extrabold text-white">Top Rated Campus</div>
-                      <div className="text-[11px] font-medium text-slate-300">Parent Satisfaction 98%</div>
+                      <div className="text-[11px] font-medium text-slate-300">
+                        Parent Satisfaction 98%
+                      </div>
                     </div>
                   </div>
 

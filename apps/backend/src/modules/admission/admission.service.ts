@@ -6,21 +6,59 @@ import { NativePassword } from '../../auth/crypto.utils';
 const prisma = new PrismaClient();
 
 export class AdmissionService {
-  static async resolveContext(): Promise<{ school_id: string; academic_year_id: string | null }> {
-    const { data: school } = await supabase.from('schools').select('id').limit(1).maybeSingle();
-    const schoolId = school?.id || '00000000-0000-0000-0000-000000000000';
+  static async resolveContext(
+    academicYearName?: string,
+  ): Promise<{ school_id: string; academic_year_id: string }> {
+    const org =
+      (await prisma.organizations.findFirst({
+        where: { status: 'active' },
+        select: { org_id: true },
+      })) ||
+      (await prisma.organizations.findFirst({
+        select: { org_id: true },
+      }));
 
-    const { data: year } = await supabase
-      .from('academic_years')
-      .select('id')
-      .eq('school_id', schoolId)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
+    if (!org || !org.org_id) {
+      throw new Error('No active organization found in database.');
+    }
+
+    const orgId = org.org_id;
+
+    const year =
+      (await prisma.academic_years.findFirst({
+        where: {
+          org_id: orgId,
+          ...(academicYearName ? { academic_year_name: academicYearName } : {}),
+          status: {
+            in: ['admissions_open', 'open', 'planning'],
+          },
+        },
+        orderBy: { start_date: 'desc' },
+        select: { academic_year_id: true },
+      })) ||
+      (await prisma.academic_years.findFirst({
+        where: {
+          org_id: orgId,
+          status: {
+            in: ['admissions_open', 'open', 'planning'],
+          },
+        },
+        orderBy: { start_date: 'desc' },
+        select: { academic_year_id: true },
+      })) ||
+      (await prisma.academic_years.findFirst({
+        where: { org_id: orgId },
+        orderBy: { start_date: 'desc' },
+        select: { academic_year_id: true },
+      }));
+
+    if (!year || !year.academic_year_id) {
+      throw new Error(`No eligible academic year found for organization ${orgId}.`);
+    }
 
     return {
-      school_id: schoolId,
-      academic_year_id: year?.id || null,
+      school_id: orgId,
+      academic_year_id: year.academic_year_id,
     };
   }
 

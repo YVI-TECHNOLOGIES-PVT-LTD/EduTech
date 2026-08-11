@@ -44,7 +44,7 @@ export const AnnouncementBar: React.FC<AnnouncementBarProps> = ({ onApplyClick }
               </button>
             ) : (
               <Link
-                to={ANNOUNCEMENT_DATA.ctaLink || '/admissions/apply'}
+                to={ANNOUNCEMENT_DATA.ctaLink || '/enquiry'}
                 className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-semibold text-xs transition-colors py-1 px-1.5 rounded"
               >
                 <span>{ANNOUNCEMENT_DATA.ctaText}</span>

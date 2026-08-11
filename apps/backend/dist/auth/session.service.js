@@ -58,6 +58,7 @@ class SessionService {
             const profile = {
                 id: user.user_id,
                 email: user.email,
+                org_id: user.org_id,
                 school_id: user.org_id,
                 full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
                 roles,

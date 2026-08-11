@@ -43,11 +43,10 @@ exports.router.get('/health', (req, res) => {
 exports.router.get('/health/liveness', (req, res) => {
     res.json({ status: 'alive', service: 'edutrack-api', timestamp: new Date().toISOString() });
 });
+const prismaClient_1 = __importDefault(require("./lib/prismaClient"));
 exports.router.get('/health/readiness', async (req, res) => {
     try {
-        const { data, error } = await supabase_1.supabase.from('schools').select('id').limit(1);
-        if (error)
-            throw error;
+        await prismaClient_1.default.organizations.findFirst({ select: { org_id: true } });
         res.json({
             status: 'ready',
             service: 'edutrack-api',
@@ -60,7 +59,7 @@ exports.router.get('/health/readiness', async (req, res) => {
             status: 'unhealthy',
             service: 'edutrack-api',
             database: 'disconnected',
-            error: err.message,
+            error: 'Database connection check failed',
         });
     }
 });
@@ -77,68 +76,261 @@ exports.router.use('/v1/auth', auth_routes_1.publicAuthRouter);
 exports.router.post('/v1/admission/public-apply', index_1.publicApplicationController.apply);
 exports.router.post('/admissions/public-apply', index_1.publicApplicationController.apply);
 exports.router.post('/admissions', auth_middleware_1.authenticateOptional, admission_controller_1.AdmissionController.create);
-// Public lookup for schools
+// Public Online Enquiry Endpoints (Website Visitors)
+exports.router.post('/v1/admission/crm/enquiries', auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
+exports.router.post('/v1/admission/enquiries', auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
+// Public lookup for schools/organizations
 exports.router.get('/schools', async (req, res) => {
     try {
-        const { data, error } = await supabase_1.supabase.from('schools').select('id, name, code').limit(10);
-        if (error)
-            throw error;
-        res.json(data || []);
-    }
-    catch (error) {
-        res.status(200).json([]); // Suppress error for public view
-    }
-});
-// Public lookup for current year (required for registration if not hardcoded)
-exports.router.get('/public/academic-year', async (req, res) => {
-    try {
-        const { data, error } = await supabase_1.supabase
-            .from('academic_years')
-            .select('id, year_label')
-            .eq('is_active', true)
-            .limit(1)
-            .maybeSingle();
-        if (error)
-            throw error;
-        res.json(data); // Returns null if not found, with 200 OK
-    }
-    catch (error) {
-        res.status(200).json(null);
-    }
-});
-// Public lookup for academic years of a school
-exports.router.get('/public/academic-years', async (req, res) => {
-    try {
-        const { school_id } = req.query;
-        if (!school_id)
-            return res.status(400).json({ error: 'school_id is required' });
-        const { data, error } = await supabase_1.supabase
-            .from('academic_years')
-            .select('id, year_label, is_active')
-            .eq('school_id', school_id)
-            .order('year_label', { ascending: false });
-        if (error)
-            throw error;
-        res.json(data || []);
+        const orgs = await prismaClient_1.default.organizations.findMany({
+            where: { status: 'active' },
+            select: { org_id: true, org_name: true, org_code: true },
+            take: 10,
+        });
+        res.json(orgs.map((o) => ({ id: o.org_id, name: o.org_name, code: o.org_code })));
     }
     catch (error) {
         res.status(200).json([]);
     }
 });
-// Public lookup for classes/grades of a school
-exports.router.get('/public/classes', async (req, res) => {
+// v1-prefixed alias so {{baseUrl}}/schools works with baseUrl=http://localhost:3000/api/v1
+exports.router.get('/v1/schools', async (req, res) => {
+    try {
+        const orgs = await prismaClient_1.default.organizations.findMany({
+            where: { status: 'active' },
+            select: { org_id: true, org_name: true, org_code: true },
+            take: 10,
+        });
+        res.json(orgs.map((o) => ({ id: o.org_id, name: o.org_name, code: o.org_code })));
+    }
+    catch (error) {
+        res.status(200).json([]);
+    }
+});
+// Public lookup for current year
+exports.router.get('/public/academic-year', async (req, res) => {
+    try {
+        const year = await prismaClient_1.default.academic_years.findFirst({
+            orderBy: { created_at: 'desc' },
+            select: { academic_year_id: true, academic_year_name: true },
+        });
+        res.json(year ? { id: year.academic_year_id, year_label: year.academic_year_name } : null);
+    }
+    catch (error) {
+        res.status(200).json(null);
+    }
+});
+// v1-prefixed alias
+exports.router.get('/v1/public/academic-year', async (req, res) => {
+    try {
+        const year = await prismaClient_1.default.academic_years.findFirst({
+            orderBy: { created_at: 'desc' },
+            select: { academic_year_id: true, academic_year_name: true },
+        });
+        res.json(year ? { id: year.academic_year_id, year_label: year.academic_year_name } : null);
+    }
+    catch (error) {
+        res.status(200).json(null);
+    }
+});
+const client_1 = require("@prisma/client");
+// Public lookup for academic years of a school
+exports.router.get('/public/academic-years', async (req, res) => {
     try {
         const { school_id } = req.query;
-        if (!school_id)
-            return res.status(400).json({ error: 'school_id is required' });
-        const { data, error } = await supabase_1.supabase
-            .from('classes')
-            .select('id, name')
-            .eq('school_id', school_id)
-            .order('name');
-        if (error)
-            throw error;
-        res.json(data || []);
+        let targetOrgId = school_id;
+        if (!targetOrgId) {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
+            targetOrgId = activeOrg?.org_id || '';
+        }
+        const years = await prismaClient_1.default.academic_years.findMany({
+            where: targetOrgId ? { org_id: targetOrgId } : undefined,
+            orderBy: { created_at: 'desc' },
+            select: { academic_year_id: true, academic_year_name: true, status: true },
+        });
+        res.json(years.map((y) => ({
+            id: y.academic_year_id,
+            year_label: y.academic_year_name,
+            is_active: y.status === client_1.academic_year_status.admissions_open || y.status === client_1.academic_year_status.open || y.status === client_1.academic_year_status.planning,
+        })));
+    }
+    catch (error) {
+        res.status(200).json([]);
+    }
+});
+// v1-prefixed alias
+exports.router.get('/v1/public/academic-years', async (req, res) => {
+    try {
+        const { school_id } = req.query;
+        let targetOrgId = school_id;
+        if (!targetOrgId) {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
+            targetOrgId = activeOrg?.org_id || '';
+        }
+        const years = await prismaClient_1.default.academic_years.findMany({
+            where: targetOrgId ? { org_id: targetOrgId } : undefined,
+            orderBy: { created_at: 'desc' },
+            select: { academic_year_id: true, academic_year_name: true, status: true },
+        });
+        res.json(years.map((y) => ({
+            id: y.academic_year_id,
+            year_label: y.academic_year_name,
+            is_active: y.status === client_1.academic_year_status.admissions_open || y.status === client_1.academic_year_status.open || y.status === client_1.academic_year_status.planning,
+        })));
+    }
+    catch (error) {
+        res.status(200).json([]);
+    }
+});
+exports.router.get('/public/classes', async (req, res) => {
+    try {
+        const { school_id, academic_year_id } = req.query;
+        let targetOrgId = school_id;
+        if (!targetOrgId) {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
+            targetOrgId = activeOrg?.org_id || '';
+        }
+        let targetYearId = academic_year_id;
+        if (!targetYearId && targetOrgId) {
+            const activeYear = await prismaClient_1.default.academic_years.findFirst({
+                where: { org_id: targetOrgId },
+                orderBy: { created_at: 'desc' },
+            });
+            targetYearId = activeYear?.academic_year_id || '';
+        }
+        let aygList = [];
+        if (targetYearId) {
+            aygList = await prismaClient_1.default.academic_year_grades.findMany({
+                where: {
+                    academic_year_id: targetYearId,
+                    is_active: true,
+                },
+                include: {
+                    grades: true,
+                },
+                orderBy: {
+                    grades: { display_order: 'asc' },
+                },
+            });
+        }
+        if (aygList.length === 0 && targetOrgId) {
+            const grades = await prismaClient_1.default.grades.findMany({
+                where: { org_id: targetOrgId, is_active: true },
+                orderBy: { display_order: 'asc' },
+            });
+            const seenGrades = new Set();
+            const uniqueGrades = [];
+            for (const g of grades) {
+                const key = `${g.grade_name}_${g.board || ''}`;
+                if (!seenGrades.has(key)) {
+                    seenGrades.add(key);
+                    uniqueGrades.push(g);
+                }
+            }
+            return res.json(uniqueGrades.map((g) => ({
+                id: g.grade_id,
+                academic_year_grade_id: g.grade_id,
+                grade_id: g.grade_id,
+                name: g.grade_name,
+                grade_name: g.grade_name,
+                board: g.board || 'CBSE',
+                code: g.grade_code,
+            })));
+        }
+        const seenAygKeys = new Set();
+        const uniqueAygList = [];
+        for (const ayg of aygList) {
+            const gName = ayg.grades?.grade_name || ayg.grade_id;
+            const key = `${gName}_${ayg.grades?.board || ''}`;
+            if (!seenAygKeys.has(key)) {
+                seenAygKeys.add(key);
+                uniqueAygList.push(ayg);
+            }
+        }
+        res.json(uniqueAygList.map((ayg) => ({
+            id: ayg.academic_year_grade_id,
+            academic_year_grade_id: ayg.academic_year_grade_id,
+            grade_id: ayg.grade_id,
+            name: ayg.grades.grade_name,
+            grade_name: ayg.grades.grade_name,
+            board: ayg.grades.board || 'CBSE',
+            code: ayg.grades.grade_code,
+            display_order: ayg.grades.display_order,
+        })));
+    }
+    catch (error) {
+        res.status(200).json([]);
+    }
+});
+// v1-prefixed alias
+exports.router.get('/v1/public/classes', async (req, res) => {
+    try {
+        const { school_id, academic_year_id } = req.query;
+        let targetOrgId = school_id;
+        if (!targetOrgId) {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
+            targetOrgId = activeOrg?.org_id || '';
+        }
+        let targetYearId = academic_year_id;
+        if (!targetYearId && targetOrgId) {
+            const activeYear = await prismaClient_1.default.academic_years.findFirst({
+                where: { org_id: targetOrgId },
+                orderBy: { created_at: 'desc' },
+            });
+            targetYearId = activeYear?.academic_year_id || '';
+        }
+        let aygList = [];
+        if (targetYearId) {
+            aygList = await prismaClient_1.default.academic_year_grades.findMany({
+                where: { academic_year_id: targetYearId, is_active: true },
+                include: { grades: true },
+                orderBy: { grades: { display_order: 'asc' } },
+            });
+        }
+        if (aygList.length === 0 && targetOrgId) {
+            const grades = await prismaClient_1.default.grades.findMany({
+                where: { org_id: targetOrgId, is_active: true },
+                orderBy: { display_order: 'asc' },
+            });
+            const seenGrades = new Set();
+            const uniqueGrades = [];
+            for (const g of grades) {
+                const key = `${g.grade_name}_${g.board || ''}`;
+                if (!seenGrades.has(key)) {
+                    seenGrades.add(key);
+                    uniqueGrades.push(g);
+                }
+            }
+            return res.json(uniqueGrades.map((g) => ({
+                id: g.grade_id,
+                academic_year_grade_id: g.grade_id,
+                grade_id: g.grade_id,
+                name: g.grade_name,
+                grade_name: g.grade_name,
+                board: g.board || 'CBSE',
+                code: g.grade_code,
+            })));
+        }
+        const seenAygKeys = new Set();
+        const uniqueAygList = [];
+        for (const ayg of aygList) {
+            const gName = ayg.grades?.grade_name || ayg.grade_id;
+            const key = `${gName}_${ayg.grades?.board || ''}`;
+            if (!seenAygKeys.has(key)) {
+                seenAygKeys.add(key);
+                uniqueAygList.push(ayg);
+            }
+        }
+        res.json(uniqueAygList.map((ayg) => ({
+            id: ayg.academic_year_grade_id,
+            academic_year_grade_id: ayg.academic_year_grade_id,
+            grade_id: ayg.grade_id,
+            name: ayg.grades.grade_name,
+            grade_name: ayg.grades.grade_name,
+            board: ayg.grades.board || 'CBSE',
+            code: ayg.grades.grade_code,
+            display_order: ayg.grades.display_order,
+        })));
     }
     catch (error) {
         res.status(200).json([]);
@@ -146,136 +338,94 @@ exports.router.get('/public/classes', async (req, res) => {
 });
 // Public lookup for transport routes of a school
 exports.router.get('/public/transport-routes', async (req, res) => {
-    try {
-        const { school_id } = req.query;
-        if (!school_id)
-            return res.status(400).json({ error: 'school_id is required' });
-        const { data, error } = await supabase_1.supabase
-            .from('transport_routes')
-            .select('id, name')
-            .eq('school_id', school_id)
-            .order('name');
-        if (error)
-            throw error;
-        res.json(data || []);
-    }
-    catch (error) {
-        res.status(200).json([]);
-    }
+    res.json([]);
 });
 // Public lookup for fee structures of a school
 exports.router.get('/public/fee-structures', async (req, res) => {
-    try {
-        const { school_id } = req.query;
-        if (!school_id)
-            return res.status(400).json({ error: 'school_id is required' });
-        const { data, error } = await supabase_1.supabase
-            .from('fee_structures')
-            .select('id, name, amount')
-            .eq('school_id', school_id)
-            .order('name');
-        if (error)
-            throw error;
-        res.json(data || []);
-    }
-    catch (error) {
-        res.status(200).json([]);
-    }
+    res.json([]);
 });
 // Public lookup for admission grades (mapping layer)
 exports.router.get('/public/admission/grades', async (req, res) => {
     try {
-        const { school_id } = req.query;
-        if (!school_id)
-            return res.status(400).json({ error: 'school_id is required' });
-        const { data, error } = await supabase_1.supabase
-            .from('classes')
-            .select('id, name')
-            .eq('school_id', school_id)
-            .order('name');
-        if (error)
-            throw error;
-        // Return mapped list of grades/classes (just id and grade_name)
-        res.json(data?.map((c) => ({ id: c.id, grade_name: c.name })) || []);
+        const { school_id, academic_year_id } = req.query;
+        let targetOrgId = school_id;
+        if (!targetOrgId) {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
+            targetOrgId = activeOrg?.org_id || '';
+        }
+        let targetYearId = academic_year_id;
+        if (!targetYearId && targetOrgId) {
+            const activeYear = await prismaClient_1.default.academic_years.findFirst({
+                where: { org_id: targetOrgId },
+                orderBy: { created_at: 'desc' },
+            });
+            targetYearId = activeYear?.academic_year_id || '';
+        }
+        let aygList = [];
+        if (targetYearId) {
+            aygList = await prismaClient_1.default.academic_year_grades.findMany({
+                where: { academic_year_id: targetYearId, is_active: true },
+                include: { grades: true },
+                orderBy: { grades: { display_order: 'asc' } },
+            });
+        }
+        if (aygList.length === 0 && targetOrgId) {
+            const grades = await prismaClient_1.default.grades.findMany({
+                where: { org_id: targetOrgId, is_active: true },
+                orderBy: { display_order: 'asc' },
+            });
+            return res.json(grades.map((g) => ({ id: g.grade_id, grade_id: g.grade_id, grade_name: g.grade_name, board: g.board || 'CBSE' })));
+        }
+        res.json(aygList.map((ayg) => ({
+            id: ayg.academic_year_grade_id,
+            academic_year_grade_id: ayg.academic_year_grade_id,
+            grade_id: ayg.grade_id,
+            grade_name: ayg.grades.grade_name,
+            board: ayg.grades.board || 'CBSE',
+        })));
     }
     catch (error) {
         res.status(200).json([]);
     }
 });
-// Consolidated public configuration for admissions (versioned metadata)
-exports.router.get('/public/admission/config', async (req, res) => {
+// Shared Prisma-backed handler for the admission config public lookup.
+// Both /public/admission/config and /v1/public/admission/config delegate here
+// so there is exactly ONE implementation — no dual-implementation risk.
+const admissionConfigHandler = async (req, res) => {
     try {
         const { school_id } = req.query;
-        // Fetch all schools for selector
-        const { data: schools, error: schoolsError } = await supabase_1.supabase
-            .from('schools')
-            .select('id, name, code');
-        if (schoolsError)
-            throw schoolsError;
-        let activeSchool = null;
-        let activeYear = null;
-        let gradesList = [];
-        if (school_id) {
-            // Fetch selected school details
-            const { data: school, error: schoolError } = await supabase_1.supabase
-                .from('schools')
-                .select('id, name, code')
-                .eq('id', school_id)
-                .maybeSingle();
-            if (schoolError)
-                throw schoolError;
-            activeSchool = school;
-            // Fetch active academic year
-            const { data: year, error: yearError } = await supabase_1.supabase
-                .from('academic_years')
-                .select('id, year_label, is_active')
-                .eq('school_id', school_id)
-                .eq('is_active', true)
-                .maybeSingle();
-            if (yearError)
-                throw yearError;
-            activeYear = year;
-            // Fetch grades (classes mapped cleanly to grades)
-            const { data: classes, error: classesError } = await supabase_1.supabase
-                .from('classes')
-                .select('id, name')
-                .eq('school_id', school_id)
-                .order('name');
-            if (classesError)
-                throw classesError;
-            gradesList = classes?.map((c) => ({ id: c.id, grade_name: c.name })) || [];
+        let targetOrgId = school_id;
+        if (!targetOrgId) {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
+            targetOrgId = activeOrg?.org_id || '';
         }
-        // Dynamically compute the version based on max updated_at of the configurations
-        const { data: schoolMax } = await supabase_1.supabase
-            .from('schools')
-            .select('updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        const { data: yearMax } = await supabase_1.supabase
-            .from('academic_years')
-            .select('updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        const { data: classMax } = await supabase_1.supabase
-            .from('classes')
-            .select('updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        const times = [
-            schoolMax?.updated_at ? new Date(schoolMax.updated_at).getTime() : 0,
-            yearMax?.updated_at ? new Date(yearMax.updated_at).getTime() : 0,
-            classMax?.updated_at ? new Date(classMax.updated_at).getTime() : 0,
-        ];
-        const version = new Date(Math.max(...times, Date.now() - 3600000)).toISOString();
+        const schools = await prismaClient_1.default.organizations.findMany({
+            where: { status: 'active' },
+            select: { org_id: true, org_name: true, org_code: true },
+        });
+        let activeYear = null;
+        if (targetOrgId) {
+            const yr = await prismaClient_1.default.academic_years.findFirst({
+                where: { org_id: targetOrgId },
+                orderBy: { created_at: 'desc' },
+                select: { academic_year_id: true, academic_year_name: true },
+            });
+            if (yr)
+                activeYear = { id: yr.academic_year_id, year_label: yr.academic_year_name };
+        }
+        const grades = targetOrgId
+            ? await prismaClient_1.default.grades.findMany({
+                where: { org_id: targetOrgId, is_active: true },
+                orderBy: { display_order: 'asc' },
+                select: { grade_id: true, grade_name: true },
+            })
+            : [];
         res.json({
-            version,
-            schools: schools || [],
-            school: activeSchool,
+            version: new Date().toISOString(),
+            schools: schools.map((s) => ({ id: s.org_id, name: s.org_name, code: s.org_code })),
+            school: targetOrgId ? schools.find((s) => s.org_id === targetOrgId) || null : null,
             academicYear: activeYear,
-            grades: gradesList,
+            grades: grades.map((g) => ({ id: g.grade_id, grade_name: g.grade_name })),
             requiredDocuments: [
                 { type: 'birth_certificate', label: 'Birth Certificate', required: true },
                 { type: 'transfer_certificate', label: 'Transfer Certificate', required: false },
@@ -283,21 +433,18 @@ exports.router.get('/public/admission/config', async (req, res) => {
                 { type: 'parent_id', label: 'Parent ID Proof (Aadhaar/Passport)', required: true },
                 { type: 'photo', label: 'Student Passport Photo', required: true },
             ],
-            admissionCalendar: {
-                opens: '2026-10-01',
-                closes: '2026-12-15',
-                classStarts: '2026-08-15',
-            },
-            brochure: {
-                url: '/brochure.pdf',
-                title: 'Greenwood High Admission Brochure',
-            },
+            admissionCalendar: { opens: '2026-10-01', closes: '2026-12-15', classStarts: '2026-08-15' },
         });
     }
     catch (error) {
         res.status(500).json({ error: error.message });
     }
-});
+};
+// Consolidated public configuration for admissions (versioned metadata)
+// Uses the shared Prisma-backed handler — SAME implementation as /v1/public/admission/config
+exports.router.get('/public/admission/config', admissionConfigHandler);
+// v1-prefixed alias — delegates to the SAME shared handler (zero implementation drift)
+exports.router.get('/v1/public/admission/config', admissionConfigHandler);
 // Temporary RBAC debug endpoint
 exports.router.get('/public/inspect-rbac', async (req, res) => {
     try {

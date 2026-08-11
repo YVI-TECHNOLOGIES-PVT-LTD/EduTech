@@ -172,7 +172,7 @@ export function ParentPortal() {
               </p>
             </div>
             <button
-              onClick={() => navigate('/admissions/apply')}
+              onClick={() => navigate('/enquiry')}
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
             >
               + Submit New Application

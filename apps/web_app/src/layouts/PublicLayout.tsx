@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { AnnouncementBar } from '@/features/landing/components/AnnouncementBar';
 import { Navbar } from '@/features/landing/components/Navbar';
 import { Footer } from '@/features/landing/components/Footer';
 import { EduAIAssistant } from '@/features/landing/components/EduAIAssistant';
-import { QuickEnquiryModal } from '@/features/landing/components/QuickEnquiryModal';
 
 export function PublicLayout() {
-  const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
+  const navigate = useNavigate();
   const [isEduAIOpen, setIsEduAIOpen] = useState(false);
 
-  const handleOpenEnquiry = () => setIsEnquiryOpen(true);
-  const handleCloseEnquiry = () => setIsEnquiryOpen(false);
+  const handleOpenEnquiry = () => navigate('/enquiry');
 
   const handleOpenEduAI = () => setIsEduAIOpen(true);
   const handleCloseEduAI = () => setIsEduAIOpen(false);
@@ -32,15 +30,8 @@ export function PublicLayout() {
       {/* Canonical Footer */}
       <Footer />
 
-      {/* Quick Enquiry Modal */}
-      <QuickEnquiryModal isOpen={isEnquiryOpen} onClose={handleCloseEnquiry} />
-
       {/* Global Floating EduAI Assistant Concierge */}
-      <EduAIAssistant
-        isOpen={isEduAIOpen}
-        onOpen={handleOpenEduAI}
-        onClose={handleCloseEduAI}
-      />
+      <EduAIAssistant isOpen={isEduAIOpen} onOpen={handleOpenEduAI} onClose={handleCloseEduAI} />
     </div>
   );
 }

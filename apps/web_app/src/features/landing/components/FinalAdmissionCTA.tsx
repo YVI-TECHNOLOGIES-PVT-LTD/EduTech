@@ -47,7 +47,8 @@ export const FinalAdmissionCTA: React.FC<FinalAdmissionCTAProps> = ({
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          Give your child a place to learn, grow, and become their absolute best. Applications for the upcoming session are open now.
+          Give your child a place to learn, grow, and become their absolute best. Applications for
+          the upcoming session are open now.
         </motion.p>
 
         <motion.div
@@ -67,12 +68,12 @@ export const FinalAdmissionCTA: React.FC<FinalAdmissionCTAProps> = ({
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           ) : (
-            <Link to="/admissions/apply" className="w-full sm:w-auto">
+            <Link to="/enquiry" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#e55f00] text-white font-bold text-sm sm:text-base px-8 shadow-xl shadow-orange-500/25 transition-all hover:scale-[1.02] cursor-pointer"
               >
-                Start Application
+                Submit Enquiry
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>

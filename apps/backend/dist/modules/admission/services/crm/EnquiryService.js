@@ -54,7 +54,10 @@ class EnquiryService extends BaseService_1.BaseService {
             throw new ConflictError_1.ConflictError('Exact duplicate enquiry found', { matches: dupCheck.matches });
         }
         const id = crypto.randomUUID();
-        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, validated.student_name, validated.grade_applied_for, validated.parent_name, validated.parent_email, validated.parent_phone, validated.source, 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null);
+        const studentName = (validated.student_name && validated.student_name.trim())
+            ? validated.student_name.trim()
+            : `${validated.parent_name.trim()}'s Ward`;
+        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, studentName, validated.grade_applied_for, validated.parent_name, validated.parent_email, validated.parent_phone, (validated.source || 'Website'), 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null);
         const saved = await this.enquiryRepo.save(enquiry);
         await this.auditService.logAudit({
             userId: null,
@@ -74,7 +77,7 @@ class EnquiryService extends BaseService_1.BaseService {
         }
         const beforeState = { ...existing };
         // Map values
-        const updated = new AdmissionEnquiry_1.AdmissionEnquiry(existing.id, existing.schoolId, existing.academicYearId, validated.student_name !== undefined ? validated.student_name : existing.studentName, validated.grade_applied_for !== undefined ? validated.grade_applied_for : existing.gradeAppliedFor, validated.parent_name !== undefined ? validated.parent_name : existing.parentName, validated.parent_email !== undefined ? validated.parent_email : existing.parentEmail, validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone, validated.source !== undefined ? validated.source : existing.source, existing.status, existing.createdAt, new Date(), existing.deletedAt, validated.date_of_birth !== undefined ? (validated.date_of_birth ? new Date(validated.date_of_birth) : null) : existing.dateOfBirth, validated.gender !== undefined ? validated.gender : existing.gender, validated.current_school !== undefined ? validated.current_school : existing.currentSchool, validated.address !== undefined ? validated.address : existing.address, validated.remarks !== undefined ? validated.remarks : existing.remarks);
+        const updated = new AdmissionEnquiry_1.AdmissionEnquiry(existing.id, existing.schoolId, existing.academicYearId, validated.student_name ? validated.student_name : (existing.studentName || `${existing.parentName}'s Ward`), validated.grade_applied_for !== undefined ? validated.grade_applied_for : existing.gradeAppliedFor, validated.parent_name !== undefined ? validated.parent_name : existing.parentName, validated.parent_email !== undefined ? validated.parent_email : existing.parentEmail, validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone, validated.source !== undefined ? validated.source : existing.source, existing.status, existing.createdAt, new Date(), existing.deletedAt, validated.date_of_birth !== undefined ? (validated.date_of_birth ? new Date(validated.date_of_birth) : null) : existing.dateOfBirth, validated.gender !== undefined ? validated.gender : existing.gender, validated.current_school !== undefined ? validated.current_school : existing.currentSchool, validated.address !== undefined ? validated.address : existing.address, validated.remarks !== undefined ? validated.remarks : existing.remarks);
         const saved = await this.enquiryRepo.save(updated);
         await this.auditService.logAudit({
             userId: null,

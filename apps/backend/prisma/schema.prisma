@@ -440,46 +440,50 @@ model lead_visits {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model leads {
-  lead_id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_id                        String                   @db.Uuid
-  lead_number                   String                   @unique @db.VarChar(30)
-  academic_year_grade_id        String                   @db.Uuid
-  student_first_name            String                   @db.VarChar(100)
-  student_last_name             String?                  @db.VarChar(100)
-  dob                           DateTime?                @db.Date
+  lead_id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                        String                     @db.Uuid
+  lead_number                   String                     @unique @db.VarChar(30)
+  academic_year_grade_id        String                     @db.Uuid
+  student_first_name            String                     @db.VarChar(100)
+  student_last_name             String?                    @db.VarChar(100)
+  dob                           DateTime?                  @db.Date
   gender                        gender_type?
-  curriculum_preference         String?                  @db.VarChar(50)
-  scholarship_interest          Boolean                  @default(false)
-  contact_name                  String                   @db.VarChar(150)
+  curriculum_preference         String?                    @db.VarChar(50)
+  scholarship_interest          Boolean                    @default(false)
+  contact_name                  String                     @db.VarChar(150)
   contact_relationship          relationship_type?
-  contact_phone                 String                   @db.VarChar(20)
-  contact_email                 String?                  @db.VarChar(200)
+  contact_phone                 String                     @db.VarChar(20)
+  contact_email                 String?                    @db.VarChar(200)
   source                        lead_source
-  stage                         lead_stage               @default(enquiry_received)
-  priority                      lead_priority?           @default(warm)
-  ai_lead_score                 Decimal?                 @db.Decimal(5, 2)
-  assigned_counsellor_id        String?                  @db.Uuid
+  stage                         lead_stage                 @default(enquiry_received)
+  priority                      lead_priority?             @default(warm)
+  ai_lead_score                 Decimal?                   @db.Decimal(5, 2)
+  assigned_counsellor_id        String?                    @db.Uuid
   remarks                       String?
-  enquiry_date                  DateTime                 @default(dbgenerated("CURRENT_DATE")) @db.Date
-  created_at                    DateTime                 @default(now()) @db.Timestamptz(6)
-  created_by                    String?                  @db.Uuid
-  updated_at                    DateTime                 @default(now()) @db.Timestamptz(6)
-  updated_by                    String?                  @db.Uuid
+  enquiry_date                  DateTime                   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  created_at                    DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                    String?                    @db.Uuid
+  updated_at                    DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by                    String?                    @db.Uuid
+  contact_consent               Boolean                    @default(false)
+  contact_consent_at            DateTime?                  @db.Timestamptz(6)
   admissions_applications       admissions_applications?
   chatbot_sessions              chatbot_sessions[]
   lead_activities               lead_activities[]
+  lead_query_type_mappings      lead_query_type_mappings[]
   lead_visits                   lead_visits[]
-  academic_year_grades          academic_year_grades     @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onUpdate: NoAction)
-  staff                         staff?                   @relation(fields: [assigned_counsellor_id], references: [staff_id], onUpdate: NoAction)
-  users_leads_created_byTousers users?                   @relation("leads_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  organizations                 organizations            @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
-  users_leads_updated_byTousers users?                   @relation("leads_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  academic_year_grades          academic_year_grades       @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onUpdate: NoAction)
+  staff                         staff?                     @relation(fields: [assigned_counsellor_id], references: [staff_id], onUpdate: NoAction)
+  users_leads_created_byTousers users?                     @relation("leads_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                 organizations              @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_leads_updated_byTousers users?                     @relation("leads_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
 
   @@index([academic_year_grade_id], map: "ix_leads_academic_year_grade")
   @@index([assigned_counsellor_id], map: "ix_leads_assigned_counsellor")
   @@index([lead_number], map: "ix_leads_lead_number")
   @@index([org_id], map: "ix_leads_org")
   @@index([stage], map: "ix_leads_stage")
+  @@index([org_id], map: "idx_leads_org_id")
   @@schema("public")
 }
 
@@ -511,6 +515,7 @@ model organizations {
   designations                          designations[]
   document_types                        document_types[]
   grades                                grades[]
+  lead_query_types                      lead_query_types[]
   leads                                 leads[]
   users_organizations_created_byTousers users?                     @relation("organizations_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_created_by")
   users_organizations_updated_byTousers users?                     @relation("organizations_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_updated_by")
@@ -773,6 +778,8 @@ model users {
   grades_grades_updated_byTousers                                       grades[]                    @relation("grades_updated_byTousers")
   lead_activities_lead_activities_created_byTousers                     lead_activities[]           @relation("lead_activities_created_byTousers")
   lead_activities_lead_activities_updated_byTousers                     lead_activities[]           @relation("lead_activities_updated_byTousers")
+  lead_query_types_lead_query_types_created_byTousers                   lead_query_types[]          @relation("lead_query_types_created_byTousers")
+  lead_query_types_lead_query_types_updated_byTousers                   lead_query_types[]          @relation("lead_query_types_updated_byTousers")
   lead_visits_lead_visits_created_byTousers                             lead_visits[]               @relation("lead_visits_created_byTousers")
   lead_visits_lead_visits_updated_byTousers                             lead_visits[]               @relation("lead_visits_updated_byTousers")
   leads_leads_created_byTousers                                         leads[]                     @relation("leads_created_byTousers")
@@ -806,6 +813,39 @@ model users {
 
   @@unique([org_id, email])
   @@index([org_id], map: "ix_users_org")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model lead_query_type_mappings {
+  lead_id          String           @db.Uuid
+  query_type_id    String           @db.Uuid
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  leads            leads            @relation(fields: [lead_id], references: [lead_id], onDelete: Cascade, onUpdate: NoAction)
+  lead_query_types lead_query_types @relation(fields: [query_type_id], references: [query_type_id], onUpdate: NoAction)
+
+  @@id([lead_id, query_type_id])
+  @@index([query_type_id], map: "idx_lead_query_type_mappings_query_type")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model lead_query_types {
+  query_type_id                            String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                   String                     @db.Uuid
+  query_type_name                          String                     @db.VarChar(100)
+  display_order                            Int                        @default(0)
+  is_active                                Boolean                    @default(true)
+  created_at                               DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                               String?                    @db.Uuid
+  updated_at                               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by                               String?                    @db.Uuid
+  lead_query_type_mappings                 lead_query_type_mappings[]
+  users_lead_query_types_created_byTousers users?                     @relation("lead_query_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                            organizations              @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_lead_query_types_updated_byTousers users?                     @relation("lead_query_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@unique([org_id, query_type_name])
   @@schema("public")
 }
 

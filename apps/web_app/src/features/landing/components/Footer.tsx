@@ -25,7 +25,8 @@ export const Footer: React.FC = () => {
             </Link>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              Empowering curious minds to become confident, ethical, and creative global citizens through holistic academic excellence.
+              Empowering curious minds to become confident, ethical, and creative global citizens
+              through holistic academic excellence.
             </p>
 
             <div className="space-y-2 text-xs pt-2">
@@ -139,7 +140,10 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/admission-process#eligibility" className="hover:text-white transition-colors">
+                <Link
+                  to="/admission-process#eligibility"
+                  className="hover:text-white transition-colors"
+                >
                   Age & Eligibility
                 </Link>
               </li>
@@ -149,8 +153,8 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/admissions/apply" className="hover:text-amber-300 font-bold transition-colors">
-                  Apply Online →
+                <Link to="/enquiry" className="hover:text-amber-300 font-bold transition-colors">
+                  Enquire Online →
                 </Link>
               </li>
               <li>

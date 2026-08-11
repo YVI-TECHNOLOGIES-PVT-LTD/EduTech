@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Compass, HelpCircle, Calendar, FileText, CheckCircle, Award, UserCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  Compass,
+  HelpCircle,
+  Calendar,
+  FileText,
+  CheckCircle,
+  Award,
+  UserCheck,
+} from 'lucide-react';
 import { ADMISSION_JOURNEY_STEPS } from '../data/landing-content';
 
 interface AdmissionJourneyProps {
@@ -22,7 +31,8 @@ export const AdmissionJourney: React.FC<AdmissionJourneyProps> = ({ onEnquireCli
             <span className="text-indigo-900">7 transparent steps to join EduTrack.</span>
           </h2>
           <p className="text-base text-slate-600 leading-relaxed">
-            Our admissions process is designed to be welcoming, transparent, and supportive for parents and prospective students alike.
+            Our admissions process is designed to be welcoming, transparent, and supportive for
+            parents and prospective students alike.
           </p>
         </div>
 
@@ -54,12 +64,8 @@ export const AdmissionJourney: React.FC<AdmissionJourneyProps> = ({ onEnquireCli
                   <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 mb-1 group-hover:text-indigo-900 transition-colors">
                     {step.title}
                   </h3>
-                  <div className="text-[11px] font-bold text-indigo-900 mb-2">
-                    {step.subtitle}
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {step.description}
-                  </p>
+                  <div className="text-[11px] font-bold text-indigo-900 mb-2">{step.subtitle}</div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{step.description}</p>
                 </div>
 
                 {/* Optional Step Action */}
@@ -101,9 +107,9 @@ export const AdmissionJourney: React.FC<AdmissionJourneyProps> = ({ onEnquireCli
               Session 2026–27 applications are currently being evaluated on a rolling basis.
             </div>
           </div>
-          <Link to="/admissions/apply" className="w-full sm:w-auto">
+          <Link to="/enquiry" className="w-full sm:w-auto">
             <button className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition-all hover:scale-[1.02] cursor-pointer">
-              Apply Online Now →
+              Submit Online Enquiry →
             </button>
           </Link>
         </div>

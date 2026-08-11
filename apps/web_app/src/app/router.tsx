@@ -10,7 +10,6 @@ import {
 } from '../components/auth/ProtectedRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { AdmissionWorkspaceLayout } from '../modules/admission/layouts/AdmissionWorkspaceLayout';
-import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
 import PublicLayout from '../layouts/PublicLayout';
 import Home from '../pages/Home';
 import About from '../pages/About';
@@ -81,7 +80,6 @@ export const AppRouter = () => {
                 <Route path="/faculty" element={<Faculty />} />
                 <Route path="/admissions" element={<Admissions />} />
                 <Route path="/admission-process" element={<AdmissionProcess />} />
-                <Route path="/admissions/apply" element={<AdmissionForm />} />
                 <Route path="/enquiry" element={<EnquiryPage />} />
                 <Route path="/admissions/enquiry-form" element={<EnquiryPage />} />
                 <Route path="/admission/enquiry" element={<EnquiryPage />} />

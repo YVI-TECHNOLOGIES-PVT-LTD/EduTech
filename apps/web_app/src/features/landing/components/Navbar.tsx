@@ -50,18 +50,102 @@ interface SearchItem {
 }
 
 const SEARCH_ITEMS: SearchItem[] = [
-  { id: 'about', title: 'About EduTrack', category: 'General', href: '/about', keywords: 'about school history mission vision leadership overview', description: 'School history, vision, leadership, and core values.' },
-  { id: 'academics', title: 'Academics & Curriculum', category: 'Academics', href: '/academics', keywords: 'academics curriculum grades primary middle senior stem subjects', description: 'Early years, primary, middle, and senior secondary curriculum.' },
-  { id: 'admissions-hub', title: 'Admissions Hub 2026–27', category: 'Admissions', href: '/admissions', keywords: 'admissions apply application seats open process dates', description: 'Overview of admissions, criteria, and available seats.' },
-  { id: 'admission-process', title: 'Admission Process & Walkthrough', category: 'Admissions', href: '/admission-process', keywords: 'process guide eligibility walkthrough rules criteria', description: 'Step-by-step application walkthrough and eligibility rules.' },
-  { id: 'apply-now', title: 'Online Application Form', category: 'Admissions', href: '/admissions/apply', keywords: 'apply application form register guest online student', description: 'Fill and submit your formal student application form.' },
-  { id: 'fees', title: 'Fee Structure & Financial Aid', category: 'Admissions', href: '/admissions#fees', keywords: 'fees structure cost tuition scholarship financial aid', description: 'Transparent fee structures, installment options, and scholarships.' },
-  { id: 'enquiry', title: 'Online Enquiry & Counseling', category: 'Enquiry', href: '/enquiry', keywords: 'enquiry ask question counselor enquiry form quick', description: 'Submit an enquiry to talk directly with our admissions counselor.' },
-  { id: 'campus', title: 'Campus Facilities & Infrastructure', category: 'Campus', href: '/campus', keywords: 'campus facilities infrastructure sports lab library student life', description: 'Explore modern classrooms, science labs, sports complex, and campus.' },
-  { id: 'gallery', title: 'Gallery & Media Center', category: 'Campus', href: '/campus#gallery', keywords: 'gallery photos pictures campus images events photos', description: 'Photo gallery, campus views, and student event highlights.' },
-  { id: 'achievements', title: 'Student Achievements & Events', category: 'Campus', href: '/achievements', keywords: 'achievements events news awards activities', description: 'Recent academic, athletic, and cultural achievements.' },
-  { id: 'faqs', title: 'Frequently Asked Questions (FAQs)', category: 'Support', href: '/admission-process#faqs', keywords: 'faqs questions help support eligibility age criteria', description: 'Common answers about age limits, documents, and admission policies.' },
-  { id: 'contact', title: 'Contact Us & Office Location', category: 'General', href: '/contact', keywords: 'contact phone email address location helpline map', description: 'Get school address, helpline phone numbers, and email contact.' },
+  {
+    id: 'about',
+    title: 'About EduTrack',
+    category: 'General',
+    href: '/about',
+    keywords: 'about school history mission vision leadership overview',
+    description: 'School history, vision, leadership, and core values.',
+  },
+  {
+    id: 'academics',
+    title: 'Academics & Curriculum',
+    category: 'Academics',
+    href: '/academics',
+    keywords: 'academics curriculum grades primary middle senior stem subjects',
+    description: 'Early years, primary, middle, and senior secondary curriculum.',
+  },
+  {
+    id: 'admissions-hub',
+    title: 'Admissions Hub 2026–27',
+    category: 'Admissions',
+    href: '/admissions',
+    keywords: 'admissions apply application seats open process dates',
+    description: 'Overview of admissions, criteria, and available seats.',
+  },
+  {
+    id: 'admission-process',
+    title: 'Admission Process & Walkthrough',
+    category: 'Admissions',
+    href: '/admission-process',
+    keywords: 'process guide eligibility walkthrough rules criteria',
+    description: 'Step-by-step application walkthrough and eligibility rules.',
+  },
+  {
+    id: 'apply-now',
+    title: 'Online Enquiry & Counseling',
+    category: 'Admissions',
+    href: '/enquiry',
+    keywords: 'enquiry apply application form register guest online student',
+    description: 'Submit an online enquiry to talk directly with our admissions counselor.',
+  },
+  {
+    id: 'fees',
+    title: 'Fee Structure & Financial Aid',
+    category: 'Admissions',
+    href: '/admissions#fees',
+    keywords: 'fees structure cost tuition scholarship financial aid',
+    description: 'Transparent fee structures, installment options, and scholarships.',
+  },
+  {
+    id: 'enquiry',
+    title: 'Online Enquiry & Counseling',
+    category: 'Enquiry',
+    href: '/enquiry',
+    keywords: 'enquiry ask question counselor enquiry form quick',
+    description: 'Submit an enquiry to talk directly with our admissions counselor.',
+  },
+  {
+    id: 'campus',
+    title: 'Campus Facilities & Infrastructure',
+    category: 'Campus',
+    href: '/campus',
+    keywords: 'campus facilities infrastructure sports lab library student life',
+    description: 'Explore modern classrooms, science labs, sports complex, and campus.',
+  },
+  {
+    id: 'gallery',
+    title: 'Gallery & Media Center',
+    category: 'Campus',
+    href: '/campus#gallery',
+    keywords: 'gallery photos pictures campus images events photos',
+    description: 'Photo gallery, campus views, and student event highlights.',
+  },
+  {
+    id: 'achievements',
+    title: 'Student Achievements & Events',
+    category: 'Campus',
+    href: '/achievements',
+    keywords: 'achievements events news awards activities',
+    description: 'Recent academic, athletic, and cultural achievements.',
+  },
+  {
+    id: 'faqs',
+    title: 'Frequently Asked Questions (FAQs)',
+    category: 'Support',
+    href: '/admission-process#faqs',
+    keywords: 'faqs questions help support eligibility age criteria',
+    description: 'Common answers about age limits, documents, and admission policies.',
+  },
+  {
+    id: 'contact',
+    title: 'Contact Us & Office Location',
+    category: 'General',
+    href: '/contact',
+    keywords: 'contact phone email address location helpline map',
+    description: 'Get school address, helpline phone numbers, and email contact.',
+  },
 ];
 
 const SUPPORTED_LANGUAGES = [
@@ -177,7 +261,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
       setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredSearchItems.length));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + filteredSearchItems.length) % Math.max(1, filteredSearchItems.length));
+      setSelectedIndex(
+        (prev) => (prev - 1 + filteredSearchItems.length) % Math.max(1, filteredSearchItems.length),
+      );
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (filteredSearchItems.length > 0) {
@@ -214,9 +300,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
       icon: Sparkles,
     },
     {
-      title: 'Apply Online',
-      description: 'Submit formal student application form',
-      href: '/admissions/apply',
+      title: 'Online Enquiry',
+      description: 'Submit an enquiry to our admissions counseling team',
+      href: '/enquiry',
       icon: BookOpen,
       badge: 'Open 2026–27',
     },
@@ -259,7 +345,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
       <header className="sticky top-2 sm:top-3 z-40 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-1.5 sm:py-2 pointer-events-none transition-all duration-300">
         {/* Compact Floating Pill Container (Target Height: 76px–84px) */}
         <div className="pointer-events-auto rounded-full bg-slate-900/90 backdrop-blur-md border border-slate-700/80 shadow-2xl shadow-slate-950/60 text-white px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between h-[76px] sm:h-[80px] lg:h-[84px]">
-          
           {/* LEFT ZONE: Compact Brand Logo & Title */}
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-amber-300 flex items-center justify-center font-bold shadow-md transition-transform group-hover:scale-105 shrink-0">
@@ -281,7 +366,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
               to="/about"
               className={cn(
                 'text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300',
-                location.pathname === '/about' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                location.pathname === '/about' ? 'text-amber-400 font-bold' : 'text-slate-200',
               )}
             >
               About
@@ -296,14 +381,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
               <button
                 className={cn(
                   'flex items-center gap-1 text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300 cursor-pointer py-1',
-                  activeDropdown === 'academics' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                  activeDropdown === 'academics' ? 'text-amber-400 font-bold' : 'text-slate-200',
                 )}
               >
                 <span>Academics</span>
                 <ChevronDown
                   className={cn(
                     'w-3.5 h-3.5 transition-transform duration-200',
-                    activeDropdown === 'academics' && 'rotate-180 text-amber-400'
+                    activeDropdown === 'academics' && 'rotate-180 text-amber-400',
                   )}
                 />
               </button>
@@ -347,14 +432,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
               <button
                 className={cn(
                   'flex items-center gap-1 text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300 cursor-pointer py-1',
-                  activeDropdown === 'admissions' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                  activeDropdown === 'admissions' ? 'text-amber-400 font-bold' : 'text-slate-200',
                 )}
               >
                 <span>Admissions</span>
                 <ChevronDown
                   className={cn(
                     'w-3.5 h-3.5 transition-transform duration-200',
-                    activeDropdown === 'admissions' && 'rotate-180 text-amber-400'
+                    activeDropdown === 'admissions' && 'rotate-180 text-amber-400',
                   )}
                 />
               </button>
@@ -414,7 +499,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
               to="/campus"
               className={cn(
                 'text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300',
-                location.pathname === '/campus' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                location.pathname === '/campus' ? 'text-amber-400 font-bold' : 'text-slate-200',
               )}
             >
               Campus
@@ -424,7 +509,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
               to="/contact"
               className={cn(
                 'text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300',
-                location.pathname === '/contact' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                location.pathname === '/contact' ? 'text-amber-400 font-bold' : 'text-slate-200',
               )}
             >
               Contact
@@ -444,13 +529,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             </Link>
 
             {/* Apply Now Secondary CTA */}
-            <Link to="/admissions/apply" className="hidden md:inline-block">
+            <Link to="/enquiry" className="hidden md:inline-block">
               <Button
                 variant="outline"
                 size="sm"
                 className="border-slate-700 bg-slate-800/80 text-white hover:bg-slate-800 font-bold text-xs sm:text-sm h-10 sm:h-10.5 px-4 sm:px-5 rounded-full cursor-pointer"
               >
-                Apply Now
+                Enquire Now
               </Button>
             </Link>
 
@@ -477,7 +562,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                   <Menu className="w-4.5 h-4.5" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[320px] max-w-[calc(100vw-32px)] bg-slate-950 text-white border-slate-800 p-0 flex flex-col">
+              <SheetContent
+                side="right"
+                className="w-[320px] max-w-[calc(100vw-32px)] bg-slate-950 text-white border-slate-800 p-0 flex flex-col"
+              >
                 <SheetHeader className="p-6 border-b border-slate-800 text-left">
                   <SheetTitle className="text-white flex items-center gap-3 text-lg font-display">
                     <div className="w-9 h-9 rounded-xl bg-indigo-600 text-amber-300 flex items-center justify-center font-bold">
@@ -494,13 +582,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm font-semibold">
                   <SheetClose asChild>
-                    <Link to="/" className="block py-2 text-slate-200 hover:text-amber-400 transition-colors">
+                    <Link
+                      to="/"
+                      className="block py-2 text-slate-200 hover:text-amber-400 transition-colors"
+                    >
                       Home
                     </Link>
                   </SheetClose>
 
                   <SheetClose asChild>
-                    <Link to="/about" className="block py-2 text-slate-200 hover:text-amber-400 transition-colors">
+                    <Link
+                      to="/about"
+                      className="block py-2 text-slate-200 hover:text-amber-400 transition-colors"
+                    >
                       About EduTrack
                     </Link>
                   </SheetClose>
@@ -510,7 +604,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                   </div>
                   {academicsMenuItems.map((item) => (
                     <SheetClose asChild key={item.title}>
-                      <Link to={item.href} className="block pl-3 py-1.5 text-slate-300 hover:text-amber-300 text-xs font-normal">
+                      <Link
+                        to={item.href}
+                        className="block pl-3 py-1.5 text-slate-300 hover:text-amber-300 text-xs font-normal"
+                      >
                         {item.title}
                       </Link>
                     </SheetClose>
@@ -521,7 +618,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                   </div>
                   {admissionsMenuItems.map((item) => (
                     <SheetClose asChild key={item.title}>
-                      <Link to={item.href} className="flex items-center justify-between pl-3 py-1.5 text-slate-300 hover:text-amber-300 text-xs font-normal">
+                      <Link
+                        to={item.href}
+                        className="flex items-center justify-between pl-3 py-1.5 text-slate-300 hover:text-amber-300 text-xs font-normal"
+                      >
                         <span>{item.title}</span>
                         {item.badge && (
                           <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded">
@@ -533,13 +633,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                   ))}
 
                   <SheetClose asChild>
-                    <Link to="/campus" className="block pt-3 py-2 text-slate-200 hover:text-amber-400 transition-colors">
+                    <Link
+                      to="/campus"
+                      className="block pt-3 py-2 text-slate-200 hover:text-amber-400 transition-colors"
+                    >
                       Campus Life
                     </Link>
                   </SheetClose>
 
                   <SheetClose asChild>
-                    <Link to="/contact" className="block py-2 text-slate-200 hover:text-amber-400 transition-colors">
+                    <Link
+                      to="/contact"
+                      className="block py-2 text-slate-200 hover:text-amber-400 transition-colors"
+                    >
                       Contact Us
                     </Link>
                   </SheetClose>
@@ -555,9 +661,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                   </SheetClose>
 
                   <SheetClose asChild>
-                    <Link to="/admissions/apply" className="block w-full">
-                      <Button variant="outline" className="w-full border-slate-700 text-slate-200 hover:bg-slate-800 h-10.5 rounded-full">
-                        Start Application →
+                    <Link to="/enquiry" className="block w-full">
+                      <Button
+                        variant="outline"
+                        className="w-full border-slate-700 text-slate-200 hover:bg-slate-800 h-10.5 rounded-full"
+                      >
+                        Submit Enquiry →
                       </Button>
                     </Link>
                   </SheetClose>
@@ -577,7 +686,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
     <header className="sticky top-2 sm:top-3 z-40 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-1.5 sm:py-2 pointer-events-none transition-all duration-300">
       {/* Floating Pill Container (Max-Width 1440px Centered) */}
       <div className="pointer-events-auto rounded-full bg-slate-900/90 backdrop-blur-md border border-slate-700/80 shadow-2xl shadow-slate-950/60 text-white px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between h-[76px] sm:h-[80px] lg:h-[84px]">
-        
         {/* LEFT ZONE: Compact Brand Logo & Title */}
         <Link to="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-amber-300 flex items-center justify-center font-bold shadow-md transition-transform group-hover:scale-105 shrink-0">
@@ -599,7 +707,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             to="/about"
             className={cn(
               'text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300',
-              location.pathname === '/about' ? 'text-amber-400 font-bold' : 'text-slate-200'
+              location.pathname === '/about' ? 'text-amber-400 font-bold' : 'text-slate-200',
             )}
           >
             About
@@ -614,14 +722,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             <button
               className={cn(
                 'flex items-center gap-1 text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300 cursor-pointer py-1',
-                activeDropdown === 'academics' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                activeDropdown === 'academics' ? 'text-amber-400 font-bold' : 'text-slate-200',
               )}
             >
               <span>Academics</span>
               <ChevronDown
                 className={cn(
                   'w-3.5 h-3.5 transition-transform duration-200',
-                  activeDropdown === 'academics' && 'rotate-180 text-amber-400'
+                  activeDropdown === 'academics' && 'rotate-180 text-amber-400',
                 )}
               />
             </button>
@@ -645,9 +753,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                         <div className="text-xs font-bold text-white group-hover:text-amber-300">
                           {item.title}
                         </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {item.description}
-                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
                   </div>
@@ -665,14 +771,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             <button
               className={cn(
                 'flex items-center gap-1 text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300 cursor-pointer py-1',
-                activeDropdown === 'admissions' ? 'text-amber-400 font-bold' : 'text-slate-200'
+                activeDropdown === 'admissions' ? 'text-amber-400 font-bold' : 'text-slate-200',
               )}
             >
               <span>Admissions</span>
               <ChevronDown
                 className={cn(
                   'w-3.5 h-3.5 transition-transform duration-200',
-                  activeDropdown === 'admissions' && 'rotate-180 text-amber-400'
+                  activeDropdown === 'admissions' && 'rotate-180 text-amber-400',
                 )}
               />
             </button>
@@ -732,7 +838,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             to="/campus"
             className={cn(
               'text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300',
-              location.pathname === '/campus' ? 'text-amber-400 font-bold' : 'text-slate-200'
+              location.pathname === '/campus' ? 'text-amber-400 font-bold' : 'text-slate-200',
             )}
           >
             Gallery
@@ -742,7 +848,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             to="/contact"
             className={cn(
               'text-xs sm:text-sm font-semibold transition-colors hover:text-amber-300',
-              location.pathname === '/contact' ? 'text-amber-400 font-bold' : 'text-slate-200'
+              location.pathname === '/contact' ? 'text-amber-400 font-bold' : 'text-slate-200',
             )}
           >
             Contact
@@ -751,7 +857,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
 
         {/* RIGHT ZONE: Compact Controls (Search, Language, Enquiry, Apply Now) */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          
           {/* 1. SEARCH CONTROL BUTTON & OVERLAY */}
           <div className="relative" ref={searchContainerRef}>
             <button
@@ -762,7 +867,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                 'w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer border shadow-sm',
                 isSearchOpen
                   ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
+                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white',
               )}
             >
               <Search className="w-4 h-4" />
@@ -817,7 +922,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                           onMouseEnter={() => setSelectedIndex(idx)}
                           className={cn(
                             'p-2.5 rounded-2xl cursor-pointer transition-colors flex items-start justify-between group',
-                            idx === selectedIndex ? 'bg-indigo-600/30 border border-indigo-500/40' : 'hover:bg-slate-800/80'
+                            idx === selectedIndex
+                              ? 'bg-indigo-600/30 border border-indigo-500/40'
+                              : 'hover:bg-slate-800/80',
                           )}
                         >
                           <div>
@@ -840,8 +947,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-800 flex justify-between items-center text-[10px] text-slate-400">
-                    <span>Press <kbd className="bg-slate-800 px-1.5 py-0.5 rounded font-mono">ESC</kbd> to exit</span>
-                    <span>Use <kbd className="bg-slate-800 px-1.5 py-0.5 rounded font-mono">↑ ↓</kbd> to navigate</span>
+                    <span>
+                      Press <kbd className="bg-slate-800 px-1.5 py-0.5 rounded font-mono">ESC</kbd>{' '}
+                      to exit
+                    </span>
+                    <span>
+                      Use <kbd className="bg-slate-800 px-1.5 py-0.5 rounded font-mono">↑ ↓</kbd> to
+                      navigate
+                    </span>
                   </div>
                 </motion.div>
               )}
@@ -859,7 +972,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
             >
               <Globe className="w-3.5 h-3.5 text-amber-400" />
               <span>{currentLang.toUpperCase()}</span>
-              <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform duration-200', isLangOpen && 'rotate-180')} />
+              <ChevronDown
+                className={cn(
+                  'w-3 h-3 text-slate-400 transition-transform duration-200',
+                  isLangOpen && 'rotate-180',
+                )}
+              />
             </button>
 
             <AnimatePresence>
@@ -880,11 +998,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                       onClick={() => handleSelectLanguage(lang.code)}
                       className={cn(
                         'w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer',
-                        currentLang === lang.code ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        currentLang === lang.code
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                       )}
                     >
                       <span>{lang.label}</span>
-                      {currentLang === lang.code && <Check className="w-3.5 h-3.5 text-amber-300" />}
+                      {currentLang === lang.code && (
+                        <Check className="w-3.5 h-3.5 text-amber-300" />
+                      )}
                     </button>
                   ))}
                 </motion.div>
@@ -902,12 +1024,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
           </button>
 
           {/* 4. PRIMARY PURPLE APPLY NOW BUTTON */}
-          <Link to="/admissions/apply" className="hidden md:inline-block">
+          <Link to="/enquiry" className="hidden md:inline-block">
             <Button
               size="sm"
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm h-9.5 sm:h-10 px-4 sm:px-5 rounded-full shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 border border-indigo-400/30"
             >
-              <span>Apply Now</span>
+              <span>Enquire Now</span>
               <ArrowRight className="w-3.5 h-3.5 text-amber-300" />
             </Button>
           </Link>
@@ -922,7 +1044,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                 <Menu className="w-4.5 h-4.5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[320px] max-w-[calc(100vw-32px)] bg-slate-950 text-white border-slate-800 p-0 flex flex-col">
+            <SheetContent
+              side="right"
+              className="w-[320px] max-w-[calc(100vw-32px)] bg-slate-950 text-white border-slate-800 p-0 flex flex-col"
+            >
               <SheetHeader className="p-5 border-b border-slate-800 text-left">
                 <SheetTitle className="text-white flex items-center gap-3 text-base font-display">
                   <div className="w-8.5 h-8.5 rounded-xl bg-indigo-600 text-amber-300 flex items-center justify-center font-bold">
@@ -1020,9 +1145,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick, variant }) => {
                 </SheetClose>
 
                 <SheetClose asChild>
-                  <Link to="/admissions/apply" className="block w-full">
+                  <Link to="/enquiry" className="block w-full">
                     <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-full flex items-center justify-center gap-2 shadow-lg text-xs sm:text-sm">
-                      <span>Apply Now</span>
+                      <span>Submit Enquiry</span>
                       <ArrowRight className="w-4 h-4 text-amber-300" />
                     </Button>
                   </Link>

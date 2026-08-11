@@ -13,8 +13,8 @@ export const ANNOUNCEMENT_DATA: AnnouncementConfig = {
   academicYear: '2026–27',
   message: 'Admissions Open for Academic Session 2026–27 · Limited Seats Available',
   badgeText: 'ADMISSIONS OPEN',
-  ctaText: 'Apply Online',
-  ctaLink: '/admissions/apply',
+  ctaText: 'Enquire Online',
+  ctaLink: '/enquiry',
   isDismissible: true,
 };
 
@@ -172,7 +172,8 @@ export const ADMISSION_JOURNEY_STEPS: JourneyStep[] = [
     stepNumber: '01',
     title: 'Explore',
     subtitle: 'Discover Academics',
-    description: 'Explore our academic philosophy, campus facilities, programs, and community values.',
+    description:
+      'Explore our academic philosophy, campus facilities, programs, and community values.',
     ctaText: 'Explore Academics',
     ctaHref: '/academics',
   },
@@ -180,29 +181,33 @@ export const ADMISSION_JOURNEY_STEPS: JourneyStep[] = [
     stepNumber: '02',
     title: 'Enquire',
     subtitle: 'Connect With Us',
-    description: 'Submit a quick enquiry online or talk to EduAI to receive customized admission insights.',
+    description:
+      'Submit a quick enquiry online or talk to EduAI to receive customized admission insights.',
     ctaText: 'Quick Enquiry',
   },
   {
     stepNumber: '03',
     title: 'Counselling',
     subtitle: 'Personalized Guidance',
-    description: 'Meet our admissions counselors for a campus tour and personalized interactive session.',
+    description:
+      'Meet our admissions counselors for a campus tour and personalized interactive session.',
     ctaText: 'Book Visit',
   },
   {
     stepNumber: '04',
     title: 'Apply',
     subtitle: 'Submit Application',
-    description: 'Fill out the digital application form and upload necessary academic and birth documents.',
-    ctaText: 'Apply Online',
-    ctaHref: '/admissions/apply',
+    description:
+      'Fill out the digital application form and upload necessary academic and birth documents.',
+    ctaText: 'Enquire Online',
+    ctaHref: '/enquiry',
   },
   {
     stepNumber: '05',
     title: 'Assessment',
     subtitle: 'Interactive Interaction',
-    description: 'A friendly interaction or placement assessment to understand your child’s learning baseline.',
+    description:
+      'A friendly interaction or placement assessment to understand your child’s learning baseline.',
   },
   {
     stepNumber: '06',
@@ -214,7 +219,8 @@ export const ADMISSION_JOURNEY_STEPS: JourneyStep[] = [
     stepNumber: '07',
     title: 'Enroll',
     subtitle: 'Welcome to EduTrack',
-    description: 'Complete fee payment, uniform & book procurement, and join our student orientation.',
+    description:
+      'Complete fee payment, uniform & book procurement, and join our student orientation.',
   },
 ];
 
@@ -223,7 +229,8 @@ export const CAMPUS_GALLERY_DATA: CampusMediaItem[] = [
     id: 'camp-1',
     title: 'Future Tech Robotics Lab',
     category: 'lab',
-    imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    imageUrl:
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     caption: 'Students assembling automated robotics prototypes in our AI & Innovation Lab.',
     tags: ['Robotics', 'AI Lab', 'STEM'],
   },
@@ -231,7 +238,8 @@ export const CAMPUS_GALLERY_DATA: CampusMediaItem[] = [
     id: 'camp-2',
     title: 'Olympic-Standard Athletic Track',
     category: 'sports',
-    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80',
+    imageUrl:
+      'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80',
     caption: 'All-weather synthetic running track hosting inter-school athletics events.',
     tags: ['Sports', 'Athletics', 'Fitness'],
   },
@@ -239,7 +247,8 @@ export const CAMPUS_GALLERY_DATA: CampusMediaItem[] = [
     id: 'camp-3',
     title: 'Visual & Digital Arts Studio',
     category: 'arts',
-    imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=800&q=80',
+    imageUrl:
+      'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=800&q=80',
     caption: 'Spacious studio equipped for painting, clay modeling, sculpture, and digital design.',
     tags: ['Art Studio', 'Creative', 'Exhibition'],
   },
@@ -247,7 +256,8 @@ export const CAMPUS_GALLERY_DATA: CampusMediaItem[] = [
     id: 'camp-4',
     title: 'Central Knowledge Library',
     category: 'library',
-    imageUrl: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=800&q=80',
+    imageUrl:
+      'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=800&q=80',
     caption: 'Over 25,000 titles, digital archives, and quiet study pods for deep research.',
     tags: ['Library', 'Books', 'Research'],
   },
@@ -255,7 +265,8 @@ export const CAMPUS_GALLERY_DATA: CampusMediaItem[] = [
     id: 'camp-5',
     title: 'Interactive Collaborative Classrooms',
     category: 'classroom',
-    imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    imageUrl:
+      'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
     caption: 'Ergonomic furniture and interactive displays supporting team-based learning.',
     tags: ['Classroom', 'Digital Learning'],
   },
@@ -263,8 +274,10 @@ export const CAMPUS_GALLERY_DATA: CampusMediaItem[] = [
     id: 'camp-6',
     title: 'Annual Arts & Cultural Festival',
     category: 'events',
-    imageUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
-    caption: 'Annual showcase of drama, orchestral music, and dance performances in our auditorium.',
+    imageUrl:
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+    caption:
+      'Annual showcase of drama, orchestral music, and dance performances in our auditorium.',
     tags: ['Events', 'Performances', 'Auditorium'],
   },
 ];
