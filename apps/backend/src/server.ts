@@ -114,11 +114,15 @@ async function runRBACSelfHealing() {
         for (const perm of NEW_PERMISSIONS) {
             await supabase.from('permissions').upsert(perm, { onConflict: 'code' });
         }
-        const { data: dbRoles } = await supabase.from('roles').select('id, name');
-        const { data: dbPerms } = await supabase.from('permissions').select('id, code');
+        const { data: dbRoles, error: rolesError } = await supabase.from('roles').select('id, name');
+        const { data: dbPerms, error: permsError } = await supabase.from('permissions').select('id, code');
 
         if (!dbRoles || !dbPerms) {
-            logger.error("[RBAC Self-Healing] Failed to fetch roles or permissions from database.");
+            logger.error(
+                "[RBAC Self-Healing] Failed to fetch roles or permissions from database.",
+                undefined,
+                { rolesError, permsError }
+            );
             return;
         }
 
