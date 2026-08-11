@@ -59,6 +59,36 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.39.0
         version: 2.112.0
+      '@types/archiver':
+        specifier: ^7.0.0
+        version: 7.0.0
+      '@types/compression':
+        specifier: ^1.8.1
+        version: 1.8.1
+      '@types/cors':
+        specifier: ^2.8.19
+        version: 2.8.19
+      '@types/express':
+        specifier: ^4.17.25
+        version: 4.17.25
+      '@types/express-rate-limit':
+        specifier: ^6.0.2
+        version: 6.0.2(express@4.22.2)
+      '@types/morgan':
+        specifier: ^1.9.10
+        version: 1.9.10
+      '@types/multer':
+        specifier: ^2.0.0
+        version: 2.2.0
+      '@types/node':
+        specifier: ^20.19.31
+        version: 20.19.43
+      '@types/readdir-glob':
+        specifier: ^1.1.5
+        version: 1.1.5
+      '@types/uuid':
+        specifier: ^9.0.8
+        version: 9.0.8
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
@@ -98,9 +128,15 @@ importers:
       pdf-parse:
         specifier: ^2.4.5
         version: 2.4.5
+      prisma:
+        specifier: ^5.22.0
+        version: 5.22.0
       puppeteer:
         specifier: ^24.37.2
         version: 24.43.1(typescript@5.3.3)
+      typescript:
+        specifier: ^5.3.2
+        version: 5.3.3
       uuid:
         specifier: ^9.0.1
         version: 9.0.1
@@ -114,57 +150,21 @@ importers:
       '@edutrack/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@types/archiver':
-        specifier: ^7.0.0
-        version: 7.0.0
-      '@types/compression':
-        specifier: ^1.8.1
-        version: 1.8.1
-      '@types/cors':
-        specifier: ^2.8.19
-        version: 2.8.19
-      '@types/express':
-        specifier: ^4.17.25
-        version: 4.17.25
-      '@types/express-rate-limit':
-        specifier: ^6.0.2
-        version: 6.0.2(express@4.22.2)
-      '@types/morgan':
-        specifier: ^1.9.10
-        version: 1.9.10
-      '@types/multer':
-        specifier: ^2.0.0
-        version: 2.2.0
-      '@types/node':
-        specifier: ^20.19.31
-        version: 20.19.43
       '@types/pg':
         specifier: ^8.11.5
         version: 8.20.3
-      '@types/readdir-glob':
-        specifier: ^1.1.5
-        version: 1.1.5
-      '@types/uuid':
-        specifier: ^9.0.8
-        version: 9.0.8
       nodemon:
         specifier: ^3.1.11
         version: 3.1.14
       pg:
         specifier: ^8.11.3
         version: 8.22.0
-      prisma:
-        specifier: ^5.22.0
-        version: 5.22.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.43)(typescript@5.3.3)
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@20.19.43)(typescript@5.3.3)
-      typescript:
-        specifier: ^5.3.2
-        version: 5.3.3
 
   apps/mobile_app:
     dependencies:
