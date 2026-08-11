@@ -87,3 +87,15 @@ CROSS JOIN (
 ) AS v(query_type_name, display_order)
 ON CONFLICT (org_id, query_type_name)
 DO NOTHING;
+
+-- ============================================================================
+-- LEAD ↔ PARENT RELATIONSHIP
+-- ============================================================================
+
+ALTER TABLE leads
+ADD COLUMN parent_id UUID
+    REFERENCES parents(parent_id)
+    ON DELETE SET NULL;
+
+CREATE INDEX idx_leads_parent_id
+ON leads(parent_id);
