@@ -99,3 +99,11 @@ ADD COLUMN parent_id UUID
 
 CREATE INDEX idx_leads_parent_id
 ON leads(parent_id);
+
+ALTER TABLE admission_documents
+ADD COLUMN original_file_name VARCHAR(255),
+ADD COLUMN mime_type VARCHAR(100),
+ADD COLUMN file_size BIGINT;
+
+ALTER TABLE admission_documents
+RENAME COLUMN file_path TO storage_path;
