@@ -6,6 +6,8 @@ export const searchApplicationSchema = z.object({
   status: z.nativeEnum(application_status).optional(),
   academic_year_id: z.string().uuid().optional(),
   org_id: z.string().uuid().optional(),
+  created_by: z.string().uuid().optional(),
+  mine: z.coerce.boolean().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),

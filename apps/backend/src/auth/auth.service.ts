@@ -3,6 +3,8 @@ import { supabase } from '../config/supabase';
 import { env } from '../config/env';
 import { NativePassword, NativeJwt } from './crypto.utils';
 
+import { logger } from '../utils/logger';
+
 const prisma = new PrismaClient();
 
 const JWT_SECRET = env.JWT_SECRET;
@@ -19,25 +21,23 @@ export interface TokenPayload {
 
 export class AuthService {
   static async login(email: string, passwordInput: string) {
-    console.log('>>> AUTH SERVICE HIT');
-    console.log('========== LOGIN DIAGNOSTICS ==========');
-    console.log('Incoming Email:', email);
-    console.log('Incoming Password:', passwordInput);
-
     const cleanEmail = email.trim().toLowerCase();
 
     // 1. Query public.users via Prisma ORM
-    const user = await prisma.users.findFirst({
-      where: { email: cleanEmail },
+    let user = await prisma.users.findFirst({
+      where: { email: cleanEmail, status: 'active' },
+      orderBy: { updated_at: 'desc' },
     });
 
-    console.log('User Exists:', !!user);
+    if (!user) {
+      user = await prisma.users.findFirst({
+        where: { email: cleanEmail },
+        orderBy: { updated_at: 'desc' },
+      });
+    }
 
     if (user) {
-      console.log('User ID:', user.user_id);
-      console.log('Email:', user.email);
-      console.log('Status:', user.status);
-      console.log('Password Hash:', user.password_hash);
+      logger.info(`[AuthService] Login attempt for user: ${user.user_id} (${user.email})`);
     }
 
     if (!user) {
@@ -70,40 +70,66 @@ export class AuthService {
 
     // 3. Fetch User Roles & Permissions via database
     console.log('Fetching roles and permissions...');
-    const { data: userRolesData, error: rolesError } = await supabase
-      .from('user_roles')
-      .select(
-        `
-        roles (
-          role_name,
-          role_permissions (
-            permissions (
-              code
-            )
-          )
-        )
-      `,
-      )
-      .eq('user_id', user.user_id);
-
-    if (rolesError) {
-      console.error('[AuthService] Error fetching roles/permissions:', rolesError);
-    }
-
     const roles: string[] = [];
     const permissionsSet = new Set<string>();
 
-    userRolesData?.forEach((ur: any) => {
-      const roleObj = ur.roles;
-      if (roleObj) {
-        roles.push(roleObj.role_name || roleObj.name);
-        roleObj.role_permissions?.forEach((rp: any) => {
-          if (rp.permissions?.code) {
-            permissionsSet.add(rp.permissions.code);
+    try {
+      const { data: userRolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(
+          `
+          roles (
+            role_name,
+            role_permissions (
+              permissions (
+                code
+              )
+            )
+          )
+        `,
+        )
+        .eq('user_id', user.user_id);
+
+      if (!rolesError && userRolesData) {
+        userRolesData.forEach((ur: any) => {
+          const roleObj = ur.roles;
+          if (roleObj) {
+            roles.push(roleObj.role_name || roleObj.name);
+            roleObj.role_permissions?.forEach((rp: any) => {
+              if (rp.permissions?.code) {
+                permissionsSet.add(rp.permissions.code);
+              }
+            });
           }
         });
       }
-    });
+    } catch (e) {
+      console.warn('[AuthService] Supabase roles fetch exception, trying Prisma fallback');
+    }
+
+    // Prisma fallback if Supabase returns 0 roles
+    if (roles.length === 0) {
+      try {
+        const userRolesPrisma: any = await prisma.user_roles.findMany({
+          where: { user_id: user.user_id },
+          include: {
+            roles: true,
+          },
+        });
+
+        userRolesPrisma.forEach((ur: any) => {
+          if (ur.roles) {
+            roles.push(ur.roles.role_name || ur.roles.name);
+          }
+        });
+      } catch (e) {
+        // Fallback silently if table not present in Prisma schema
+      }
+    }
+
+    if (roles.length === 0) {
+      roles.push('PARENT');
+    }
 
     const permissions = Array.from(permissionsSet);
 

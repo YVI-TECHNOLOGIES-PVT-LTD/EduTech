@@ -15,8 +15,10 @@ export class AdmissionPaymentController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await AdmissionPaymentService.recordPayment(id, userId, parsed.data);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await AdmissionPaymentService.recordPayment(id, userId, parsed.data, orgId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {
@@ -29,7 +31,16 @@ export class AdmissionPaymentController {
   static async getByApplicationId(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await AdmissionPaymentService.getPaymentByApplication(id);
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id;
+      const isOnlyParent =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r) =>
+          ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
+      const parentUserId = isOnlyParent ? user?.id : undefined;
+
+      const result = await AdmissionPaymentService.getPaymentByApplication(id, orgId, parentUserId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {

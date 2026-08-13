@@ -4,7 +4,8 @@ import { AdmissionAnalyticsService } from '../services/admission.analytics.servi
 export class AdmissionAnalyticsController {
   static async getDashboard(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || undefined;
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id || (req.query.org_id as string) || undefined;
       const result = await AdmissionAnalyticsService.getDashboardMetrics(orgId);
       return res.json(result);
     } catch (error: any) {
@@ -24,7 +25,8 @@ export class AdmissionAnalyticsController {
 
   static async getPendingItems(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || undefined;
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id || (req.query.org_id as string) || undefined;
       const result = await AdmissionAnalyticsService.getPendingItems(orgId);
       return res.json(result);
     } catch (error: any) {

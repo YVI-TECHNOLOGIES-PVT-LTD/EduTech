@@ -1,7 +1,8 @@
+import prisma from '../../../lib/prismaClient';
 import { lead_stage } from '@prisma/client';
 import { LeadRepository } from '../repositories/lead.repository';
 import { LeadValidator } from '../validators/lead.validator';
-import { LeadNotFoundError } from '../errors/lead.errors';
+import { LeadNotFoundError, LeadValidationError } from '../errors/lead.errors';
 import { LeadEvents, LeadEventType } from '../events/lead.events';
 import { LeadMapper } from '../mappers/lead.mapper';
 import { LeadResponseDto } from '../dto/response/lead.response.dto';
@@ -53,5 +54,98 @@ export class LeadLifecycleService {
     }
 
     return LeadMapper.toResponseDto(updated);
+  }
+
+  static async convertToApplication(leadId: string, performedBy?: string | null, orgId?: string) {
+    const lead = await LeadRepository.findById(leadId);
+    if (!lead) {
+      throw new LeadNotFoundError(leadId);
+    }
+    if (orgId && lead.org_id !== orgId) {
+      throw new LeadNotFoundError(leadId);
+    }
+
+    // Check if application already exists for this lead
+    const existingApp = await prisma.admissions_applications.findUnique({
+      where: { lead_id: leadId },
+    });
+    if (existingApp) {
+      return existingApp;
+    }
+
+    // Resolve academic year ID
+    let academicYearId = '';
+    if (lead.academic_year_grades?.academic_year_id) {
+      academicYearId = lead.academic_year_grades.academic_year_id;
+    } else {
+      const activeYear = await prisma.academic_years.findFirst({
+        where: { org_id: lead.org_id },
+        orderBy: { created_at: 'desc' },
+      });
+      academicYearId = activeYear?.academic_year_id || '';
+    }
+
+    if (!academicYearId) {
+      throw new LeadValidationError('Academic year not configured for organization');
+    }
+
+    // Generate collision-checked application_number
+    const year = new Date().getFullYear();
+    let count = await prisma.admissions_applications.count({ where: { org_id: lead.org_id } });
+    let applicationNumber = `APP-${year}-${String(count + 1).padStart(5, '0')}`;
+    let attempts = 0;
+    while (attempts < 10) {
+      const exists = await prisma.admissions_applications.findUnique({
+        where: { application_number: applicationNumber },
+      });
+      if (!exists) break;
+      count += 1;
+      applicationNumber = `APP-${year}-${String(count + 1).padStart(5, '0')}`;
+      attempts += 1;
+    }
+
+    // Atomic transaction for Application creation + Lead stage update
+    const application = await prisma.$transaction(async (tx) => {
+      const app = await tx.admissions_applications.create({
+        data: {
+          lead_id: leadId,
+          org_id: lead.org_id,
+          academic_year_id: academicYearId,
+          application_number: applicationNumber,
+          status: 'submitted',
+          created_by: performedBy || undefined,
+        },
+      });
+
+      await tx.leads.update({
+        where: { lead_id: leadId },
+        data: {
+          stage: lead_stage.application_submitted,
+          updated_at: new Date(),
+          updated_by: performedBy || undefined,
+        },
+      });
+
+      return app;
+    });
+
+    logger.info(`Lead ${leadId} converted to Application ${application.application_number}`, {
+      leadId,
+      applicationId: application.application_id,
+      applicationNumber: application.application_number,
+      performedBy,
+    });
+
+    await LeadEvents.publish(LeadEventType.CONVERTED, {
+      leadId,
+      performedBy,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        applicationId: application.application_id,
+        applicationNumber: application.application_number,
+      },
+    });
+
+    return application;
   }
 }

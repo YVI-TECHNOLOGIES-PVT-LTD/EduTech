@@ -18,6 +18,7 @@ import { selectHasPermission, selectHasRole } from '../shared/auth/permissionSel
 export interface AuthContextType {
   session: Session | null;
   user: EnrichedUser | null;
+  accessToken: string | null;
   loading: boolean;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Redux Application Auth State
   const user = useAppSelector((state) => state.auth.user) as EnrichedUser | null;
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const isInitializing = useAppSelector((state) => state.auth.isInitializing);
   const systemMode = useAppSelector((state) => state.auth.systemMode);
   const reduxIsAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -110,7 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('[Auth] System Info fetch failed');
       }
 
-      // Initial Supabase Session Sync
+      // Initial Supabase Session Sync or Native JWT restoration
+      const storedToken = localStorage.getItem('edutrack_access_token');
       const {
         data: { session: initSession },
       } = await supabase.auth.getSession();
@@ -122,6 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profileFetchTracker.current = initSession.user.id;
         await new Promise((r) => setTimeout(r, 100));
         await fetchUserProfile(initSession.access_token);
+      } else if (storedToken) {
+        await fetchUserProfile(storedToken);
       } else {
         dispatch(setInitializing(false));
       }
@@ -149,10 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserProfile(currentSession.access_token);
         }
       } else {
-        // Cleanup on SIGNED_OUT
-        profileFetchTracker.current = null;
-        dispatch(logoutAction());
-        dispatch(clearPermissions());
+        // Do NOT wipe Native JWT Redux credentials on Supabase event
         dispatch(setInitializing(false));
       }
     });
@@ -178,14 +180,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = useCallback(
     (code: string): boolean => {
+      const normalized = userRoles?.map((r) => r.toUpperCase().replace(/[\s_-]+/g, '_')) || [];
+      if (
+        normalized.includes('ADMIN') ||
+        normalized.includes('SUPERADMIN') ||
+        normalized.includes('EXAM_CELL_ADMIN')
+      )
+        return true;
+      if (
+        normalized.includes('FRONT_OFFICE') ||
+        normalized.includes('FO') ||
+        normalized.includes('STAFF') ||
+        normalized.includes('ADMISSION_OFFICER') ||
+        normalized.includes('COUNSELLOR')
+      ) {
+        return true;
+      }
+      if (normalized.includes('PARENT')) {
+        const parentPermissions = [
+          'admission.view_own',
+          'admission.create',
+          'admission.application.view_own',
+          'admission.application.create',
+          'admission.application.view',
+          'admission.read',
+          'student.dashboard.view',
+          'parent.dashboard.view',
+        ];
+        if (parentPermissions.includes(code)) return true;
+      }
       return userPermissions?.includes(code) ?? false;
     },
-    [userPermissions],
+    [userPermissions, userRoles],
   );
 
   const hasRole = useCallback(
     (role: string): boolean => {
-      return userRoles?.includes(role) ?? false;
+      const searchNorm = role.toUpperCase().replace(/[\s_-]+/g, '_');
+      return (
+        userRoles?.some((r) => r.toUpperCase().replace(/[\s_-]+/g, '_') === searchNorm) ?? false
+      );
     },
     [userRoles],
   );
@@ -193,8 +227,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     session,
     user,
+    accessToken,
     loading: isInitializing,
-    isAuthenticated: Boolean(session && user && reduxIsAuthenticated),
+    isAuthenticated: Boolean((session || accessToken) && user && reduxIsAuthenticated),
     signOut,
     hasPermission,
     hasRole,

@@ -9,13 +9,10 @@ import { CreateApplicationDto } from '../dto/request/create-application.dto';
 export class ApplicationValidator {
   static validateCreate(dto: CreateApplicationDto): void {
     if (!dto.lead_id) {
-      throw new ApplicationValidationError('Lead ID is required');
-    }
-    if (!dto.org_id) {
-      throw new ApplicationValidationError('Organization ID is required');
-    }
-    if (!dto.academic_year_id) {
-      throw new ApplicationValidationError('Academic year ID is required');
+      const sName = dto.student_first_name || dto.student_name;
+      if (!sName) {
+        throw new ApplicationValidationError('Student Name is required');
+      }
     }
   }
 

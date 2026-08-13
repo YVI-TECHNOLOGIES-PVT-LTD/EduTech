@@ -2,6 +2,7 @@ import prisma from '../../../../lib/prismaClient';
 import { BaseService } from '../BaseService';
 import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
 import { NotFoundError } from '../../errors/NotFoundError';
+import { BusinessRuleError } from '../../errors/BusinessRuleError';
 
 export class DraftService extends BaseService {
   constructor(
@@ -57,6 +58,11 @@ export class DraftService extends BaseService {
     const app = await this.appRepo.findById(id);
     if (!app) {
       throw new NotFoundError(`Application with ID ${id} not found`);
+    }
+    if (app.status && app.status.toUpperCase() !== 'DRAFT') {
+      throw new BusinessRuleError(
+        `Application ${app.applicationNumber || id} has been submitted and is read-only.`,
+      );
     }
   }
 

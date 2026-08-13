@@ -84,6 +84,21 @@ export function SchoolOperationsWorkspace() {
     CapabilityEngine.canRenderQuickAction(qa, capabilityContext),
   );
 
+  const rawStaffName =
+    user?.full_name ||
+    (user as any)?.name ||
+    ((user as any)?.firstName
+      ? `${(user as any).firstName} ${(user as any).lastName || ''}`.trim()
+      : '');
+  const staffName =
+    rawStaffName ||
+    (user?.email
+      ? user.email
+          .split('@')[0]
+          .replace(/[._-]/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase())
+      : 'Front Office Desk');
+
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
       {/* Workspace Header */}
@@ -92,19 +107,26 @@ export function SchoolOperationsWorkspace() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-3">
-              <Sparkles className="w-3.5 h-3.5" /> Stage-1 Unified Foundation
+              <Sparkles className="w-3.5 h-3.5" /> Front Office Operations
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight">School Operations Workspace</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight">Good day, {staffName}</h1>
             <p className="text-slate-300 text-sm mt-1 max-w-2xl">
-              Consolidated operational desk for staff. Capabilities dictate granular access to
-              Admissions, People Directory, School Structure, and Settings.
+              Operational admissions desk for inquiries, candidate file review, campus visit
+              schedules, and enrollment workflows.
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => refetchMetrics()}
+              className="p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl border border-white/10 text-white transition-colors"
+              title="Refresh Metrics"
+            >
+              <RefreshCw className={`w-4 h-4 ${isMetricsLoading ? 'animate-spin' : ''}`} />
+            </button>
             <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-right">
               <p className="text-xs text-slate-400 font-medium">Persona</p>
               <p className="text-sm font-bold text-emerald-400">
-                {user?.roles?.includes('SUPER_ADMIN') ? 'Super Admin' : 'Front Office'}
+                {user?.roles?.includes('SUPER_ADMIN') ? 'Super Admin' : 'Front Office Desk'}
               </p>
             </div>
           </div>

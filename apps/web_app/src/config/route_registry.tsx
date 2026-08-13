@@ -19,19 +19,44 @@ import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 
+import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
+import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
+import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
+import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/ParentAdmissionStatusPage';
+
 import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
-import { ParentPortal } from '../pages/ParentPortal';
 
 export interface RouteConfig {
   path: string;
   element: React.ReactNode;
   permission?: string;
   permissions?: string[]; // For AnyPermissionGuard
-  layout: 'dashboard' | 'exam_admin' | 'admission_workspace' | 'none';
+  layout: 'dashboard' | 'exam_admin' | 'admission_workspace' | 'parent_admission' | 'none';
   guardType?: 'exam_operation' | 'admission_inquiry' | 'admission_application' | 'none';
 }
 
 export const ROUTE_REGISTRY: RouteConfig[] = [
+  // PARENT PORTAL CANONICAL ROUTES (PARENT ADMISSION LAYOUT)
+  { path: 'admissions/dashboard', element: <ParentDashboardPage />, layout: 'parent_admission' },
+  { path: 'admissions/my', element: <MyApplications />, layout: 'parent_admission' },
+  { path: 'admissions/wizard', element: <ApplicationWizardPage />, layout: 'parent_admission' },
+  {
+    path: 'admissions/documents',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+  },
+  { path: 'admissions/fees', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
+  { path: 'admissions/status', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
+
+  // PARENT ALIASES
+  { path: 'parent/dashboard', element: <MyApplications />, layout: 'parent_admission' },
+  { path: 'parent/applications', element: <MyApplications />, layout: 'parent_admission' },
+  { path: 'parent/documents', element: <ParentDocumentCenterPage />, layout: 'parent_admission' },
+  { path: 'parent/payments', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
+  { path: 'parent/decision', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
+  { path: 'parent/my-child', element: <MyApplications />, layout: 'parent_admission' },
+  { path: 'parent/notifications', element: <MyApplications />, layout: 'parent_admission' },
+
   // SCHOOL OPERATIONS WORKSPACE (CONSOLIDATED INTERNAL STAFF)
   { path: 'workspace', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
   { path: 'people', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
@@ -40,14 +65,6 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   { path: 'people/staff', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
   { path: 'school', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
   { path: 'school/academics', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
-
-  // PARENT PORTAL (ISOLATED PARENT PERSONA)
-  { path: 'parent/dashboard', element: <ParentPortal />, layout: 'dashboard' },
-  { path: 'parent/applications', element: <ParentPortal />, layout: 'dashboard' },
-  { path: 'parent/documents', element: <ParentPortal />, layout: 'dashboard' },
-  { path: 'parent/my-child', element: <ParentPortal />, layout: 'dashboard' },
-  { path: 'parent/notifications', element: <ParentPortal />, layout: 'dashboard' },
-  { path: 'parent/profile', element: <ParentPortal />, layout: 'dashboard' },
 
   // CORE DASHBOARDS
   { path: 'dashboard', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
@@ -74,58 +91,6 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   // WORKSPACE PROFILE & SETTINGS
   { path: 'profile', element: <Profile />, layout: 'dashboard' },
   { path: 'settings', element: <Settings />, layout: 'dashboard' },
-
-  // PARENT PORTAL & APPLICANT SELF-SERVICE
-  {
-    path: 'admissions/my',
-    element: <MyApplications />,
-    layout: 'dashboard',
-    permission: 'admission.view_own',
-  },
-
-  // ADMISSIONS DESK (AdmissionWorkspaceLayout)
-  {
-    path: 'admissions/dashboard',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'admission.review',
-  },
-  {
-    path: 'admissions/analytics',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'admission.review',
-  },
-  {
-    path: 'admissions/inquiries',
-    element: <InquiryListPage />,
-    layout: 'admission_workspace',
-    guardType: 'admission_inquiry',
-  },
-  {
-    path: 'admissions/enquiry',
-    element: <InquiryListPage />,
-    layout: 'admission_workspace',
-    guardType: 'admission_inquiry',
-  },
-  {
-    path: 'admissions/assign',
-    element: <InquiryListPage />,
-    layout: 'admission_workspace',
-    guardType: 'admission_inquiry',
-  },
-  {
-    path: 'admissions/new',
-    element: <AdmissionForm />,
-    layout: 'admission_workspace',
-    permission: 'admission.create',
-  },
-  {
-    path: 'admissions/wizard',
-    element: <ApplicationWizardPage />,
-    layout: 'admission_workspace',
-    permission: 'admission.create',
-  },
   {
     path: 'admissions/application/:id',
     element: <Applicant360Page />,
@@ -143,6 +108,12 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <Applicant360Page />,
     layout: 'admission_workspace',
     guardType: 'admission_application',
+  },
+  {
+    path: 'admissions/inquiries',
+    element: <InquiryListPage />,
+    layout: 'admission_workspace',
+    permission: 'admission.enquiry.view',
   },
   {
     path: 'admissions/review',

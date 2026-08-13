@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CapabilityEngine, UserCapabilityContext } from '@edutrack/types';
 import { SchoolOperationsWorkspace } from './SchoolOperationsWorkspace';
-import { ParentPortal } from './ParentPortal';
+import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -24,7 +24,7 @@ export default function Dashboard() {
     user.roles?.includes('PARENT');
 
   if (isParent) {
-    return <ParentPortal />;
+    return <Navigate to="/app/admissions/dashboard" replace />;
   }
 
   return <SchoolOperationsWorkspace />;

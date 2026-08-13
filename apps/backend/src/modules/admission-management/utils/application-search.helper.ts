@@ -10,6 +10,7 @@ export function sanitizeApplicationSearchQuery(params: SearchApplicationDto) {
     status: params.status || undefined,
     academic_year_id: params.academic_year_id || undefined,
     org_id: params.org_id || undefined,
+    created_by: params.created_by || undefined,
     startDate: params.startDate ? new Date(params.startDate) : undefined,
     endDate: params.endDate ? new Date(params.endDate) : undefined,
   };

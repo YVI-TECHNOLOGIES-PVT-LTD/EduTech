@@ -25,7 +25,7 @@ app.use(requestIdMiddleware);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-  })
+  }),
 );
 
 // 3. Centralized CORS Configuration
@@ -41,16 +41,26 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const isLocal = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+      const isLocal =
+        origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
       if (isLocal || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`Not allowed by CORS: ${origin}`));
+        callback(null, false);
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  })
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'x-expected-updated-at',
+      'idempotency-key',
+      'x-tenant-id',
+    ],
+  }),
 );
 
 // Body Parser

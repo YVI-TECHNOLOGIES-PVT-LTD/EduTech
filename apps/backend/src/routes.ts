@@ -12,7 +12,11 @@ import { evaluationRouter } from './modules/admission/evaluation.routes';
 import { assessmentRouter } from './modules/admission/assessment.routes';
 import { enrollmentRouter } from './modules/admission/enrollment.routes';
 import { AdmissionController } from './modules/admission/admission.controller';
-import { applicationController, publicApplicationController, enquiryController } from './modules/admission/index';
+import {
+  applicationController,
+  publicApplicationController,
+  enquiryController,
+} from './modules/admission/index';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes';
 import { importRouter } from './modules/import/import.routes';
 import departmentRouter from './modules/departments/department.routes';
@@ -82,6 +86,9 @@ router.post('/admissions/public-apply', publicApplicationController.apply);
 router.post('/admissions', authenticateOptional, AdmissionController.create);
 
 // Public Online Enquiry Endpoints (Website Visitors)
+router.get('/v1/admission/crm/query-types', enquiryController.getQueryTypes);
+router.get('/v1/admission/query-types', enquiryController.getQueryTypes);
+router.get('/admission/query-types', enquiryController.getQueryTypes);
 router.post('/v1/admission/crm/enquiries', authenticateOptional, enquiryController.create);
 router.post('/v1/admission/enquiries', authenticateOptional, enquiryController.create);
 
@@ -144,15 +151,18 @@ import { academic_year_status } from '@prisma/client';
 // Public lookup for academic years of a school
 router.get('/public/academic-years', async (req: Request, res: Response) => {
   try {
-    const { school_id } = req.query;
-    let targetOrgId = school_id as string;
+    const targetOrgId = (req.query.school_id ||
+      req.query.org_id ||
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id) as string;
     if (!targetOrgId) {
-      const activeOrg = await prisma.organizations.findFirst({ where: { status: 'active' } });
-      targetOrgId = activeOrg?.org_id || '';
+      return res
+        .status(400)
+        .json({ error: 'School ID (school_id or org_id) parameter is required' });
     }
 
     const years = await prisma.academic_years.findMany({
-      where: targetOrgId ? { org_id: targetOrgId } : undefined,
+      where: { org_id: targetOrgId },
       orderBy: { created_at: 'desc' },
       select: { academic_year_id: true, academic_year_name: true, status: true },
     });
@@ -160,25 +170,31 @@ router.get('/public/academic-years', async (req: Request, res: Response) => {
       years.map((y) => ({
         id: y.academic_year_id,
         year_label: y.academic_year_name,
-        is_active: y.status === academic_year_status.admissions_open || y.status === academic_year_status.open || y.status === academic_year_status.planning,
-      }))
+        is_active:
+          y.status === academic_year_status.admissions_open ||
+          y.status === academic_year_status.open ||
+          y.status === academic_year_status.planning,
+      })),
     );
   } catch (error: any) {
-    res.status(200).json([]);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // v1-prefixed alias
 router.get('/v1/public/academic-years', async (req: Request, res: Response) => {
   try {
-    const { school_id } = req.query;
-    let targetOrgId = school_id as string;
+    const targetOrgId = (req.query.school_id ||
+      req.query.org_id ||
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id) as string;
     if (!targetOrgId) {
-      const activeOrg = await prisma.organizations.findFirst({ where: { status: 'active' } });
-      targetOrgId = activeOrg?.org_id || '';
+      return res
+        .status(400)
+        .json({ error: 'School ID (school_id or org_id) parameter is required' });
     }
     const years = await prisma.academic_years.findMany({
-      where: targetOrgId ? { org_id: targetOrgId } : undefined,
+      where: { org_id: targetOrgId },
       orderBy: { created_at: 'desc' },
       select: { academic_year_id: true, academic_year_name: true, status: true },
     });
@@ -186,24 +202,36 @@ router.get('/v1/public/academic-years', async (req: Request, res: Response) => {
       years.map((y) => ({
         id: y.academic_year_id,
         year_label: y.academic_year_name,
-        is_active: y.status === academic_year_status.admissions_open || y.status === academic_year_status.open || y.status === academic_year_status.planning,
-      }))
+        is_active:
+          y.status === academic_year_status.admissions_open ||
+          y.status === academic_year_status.open ||
+          y.status === academic_year_status.planning,
+      })),
     );
   } catch (error: any) {
-    res.status(200).json([]);
+    res.status(500).json({ error: error.message });
   }
 });
 
 router.get('/public/classes', async (req: Request, res: Response) => {
   try {
-    const { school_id, academic_year_id } = req.query;
-
-    let targetOrgId = school_id as string;
+    let targetOrgId = (req.query.school_id ||
+      req.query.org_id ||
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id) as string;
+    if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
+      const activeOrg =
+        (await prisma.organizations.findFirst({ where: { status: 'active' } })) ||
+        (await prisma.organizations.findFirst());
+      if (activeOrg) targetOrgId = activeOrg.org_id;
+    }
     if (!targetOrgId) {
-      const activeOrg = await prisma.organizations.findFirst({ where: { status: 'active' } });
-      targetOrgId = activeOrg?.org_id || '';
+      return res
+        .status(400)
+        .json({ error: 'School ID (school_id or org_id) parameter is required' });
     }
 
+    const { academic_year_id } = req.query;
     let targetYearId = academic_year_id as string;
     if (!targetYearId && targetOrgId) {
       const activeYear = await prisma.academic_years.findFirst({
@@ -234,7 +262,7 @@ router.get('/public/classes', async (req: Request, res: Response) => {
         where: { org_id: targetOrgId, is_active: true },
         orderBy: { display_order: 'asc' },
       });
-      
+
       const seenGrades = new Set<string>();
       const uniqueGrades: any[] = [];
       for (const g of grades) {
@@ -254,7 +282,7 @@ router.get('/public/classes', async (req: Request, res: Response) => {
           grade_name: g.grade_name,
           board: g.board || 'CBSE',
           code: g.grade_code,
-        }))
+        })),
       );
     }
 
@@ -279,22 +307,26 @@ router.get('/public/classes', async (req: Request, res: Response) => {
         board: ayg.grades.board || 'CBSE',
         code: ayg.grades.grade_code,
         display_order: ayg.grades.display_order,
-      }))
+      })),
     );
   } catch (error: any) {
-    res.status(200).json([]);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // v1-prefixed alias
 router.get('/v1/public/classes', async (req: Request, res: Response) => {
   try {
-    const { school_id, academic_year_id } = req.query;
-    let targetOrgId = school_id as string;
+    const targetOrgId = (req.query.school_id ||
+      req.query.org_id ||
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id) as string;
     if (!targetOrgId) {
-      const activeOrg = await prisma.organizations.findFirst({ where: { status: 'active' } });
-      targetOrgId = activeOrg?.org_id || '';
+      return res
+        .status(400)
+        .json({ error: 'School ID (school_id or org_id) parameter is required' });
     }
+    const { academic_year_id } = req.query;
     let targetYearId = academic_year_id as string;
     if (!targetYearId && targetOrgId) {
       const activeYear = await prisma.academic_years.findFirst({
@@ -334,7 +366,7 @@ router.get('/v1/public/classes', async (req: Request, res: Response) => {
           grade_name: g.grade_name,
           board: g.board || 'CBSE',
           code: g.grade_code,
-        }))
+        })),
       );
     }
 
@@ -359,10 +391,10 @@ router.get('/v1/public/classes', async (req: Request, res: Response) => {
         board: ayg.grades.board || 'CBSE',
         code: ayg.grades.grade_code,
         display_order: ayg.grades.display_order,
-      }))
+      })),
     );
   } catch (error: any) {
-    res.status(200).json([]);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -408,7 +440,14 @@ router.get('/public/admission/grades', async (req: Request, res: Response) => {
         where: { org_id: targetOrgId, is_active: true },
         orderBy: { display_order: 'asc' },
       });
-      return res.json(grades.map((g) => ({ id: g.grade_id, grade_id: g.grade_id, grade_name: g.grade_name, board: g.board || 'CBSE' })));
+      return res.json(
+        grades.map((g) => ({
+          id: g.grade_id,
+          grade_id: g.grade_id,
+          grade_name: g.grade_name,
+          board: g.board || 'CBSE',
+        })),
+      );
     }
 
     res.json(
@@ -418,7 +457,7 @@ router.get('/public/admission/grades', async (req: Request, res: Response) => {
         grade_id: ayg.grade_id,
         grade_name: ayg.grades.grade_name,
         board: ayg.grades.board || 'CBSE',
-      }))
+      })),
     );
   } catch (error: any) {
     res.status(200).json([]);
@@ -430,12 +469,11 @@ router.get('/public/admission/grades', async (req: Request, res: Response) => {
 // so there is exactly ONE implementation — no dual-implementation risk.
 const admissionConfigHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { school_id } = req.query;
-    let targetOrgId = school_id as string;
-    if (!targetOrgId) {
-      const activeOrg = await prisma.organizations.findFirst({ where: { status: 'active' } });
-      targetOrgId = activeOrg?.org_id || '';
-    }
+    const targetOrgId =
+      ((req.query.school_id ||
+        req.query.org_id ||
+        req.context?.user?.org_id ||
+        req.context?.user?.school_id) as string) || '';
     const schools = await prisma.organizations.findMany({
       where: { status: 'active' },
       select: { org_id: true, org_name: true, org_code: true },
@@ -482,7 +520,6 @@ router.get('/public/admission/config', admissionConfigHandler);
 
 // v1-prefixed alias — delegates to the SAME shared handler (zero implementation drift)
 router.get('/v1/public/admission/config', admissionConfigHandler);
-
 
 // Temporary RBAC debug endpoint
 router.get('/public/inspect-rbac', async (req: Request, res: Response) => {
@@ -678,6 +715,7 @@ router.use('/v1/admission/evaluation', evaluationRouter);
 router.use('/v1/admission/assessment', assessmentRouter);
 router.use('/v1/admission/enrollment', enrollmentRouter);
 router.use('/v1/admission/application', applicationRouter);
+router.use('/v1/applications', applicationRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/import', importRouter);
 router.use('/v1/workflows', workflowRouter);

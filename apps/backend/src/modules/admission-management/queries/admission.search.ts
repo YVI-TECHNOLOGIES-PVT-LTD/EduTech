@@ -20,6 +20,10 @@ export class AdmissionSearchQuery {
       whereClause.org_id = q.org_id;
     }
 
+    if (q.created_by) {
+      whereClause.created_by = q.created_by;
+    }
+
     if (q.startDate || q.endDate) {
       whereClause.created_at = {};
       if (q.startDate) whereClause.created_at.gte = q.startDate;

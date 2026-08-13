@@ -11,7 +11,7 @@ export class AdmissionAssessmentRepository {
       return prisma.application_assessments.update({
         where: { application_id: applicationId },
         data: {
-          config_id: dto.config_id,
+          config_id: dto.config_id || undefined,
           assessment_date: new Date(dto.assessment_date),
           maximum_marks: dto.maximum_marks !== undefined ? dto.maximum_marks : undefined,
           marks_obtained: dto.marks_obtained !== undefined ? dto.marks_obtained : undefined,
@@ -27,7 +27,7 @@ export class AdmissionAssessmentRepository {
     return prisma.application_assessments.create({
       data: {
         application_id: applicationId,
-        config_id: dto.config_id,
+        config_id: dto.config_id || '',
         assessment_date: new Date(dto.assessment_date),
         maximum_marks: dto.maximum_marks !== undefined ? dto.maximum_marks : undefined,
         marks_obtained: dto.marks_obtained !== undefined ? dto.marks_obtained : undefined,

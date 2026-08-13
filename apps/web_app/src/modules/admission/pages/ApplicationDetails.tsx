@@ -189,7 +189,12 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{app.student_name}</h1>
-                <p className="text-gray-500 mt-1">Application ID: {app.id}</p>
+                <p className="text-gray-500 mt-1">
+                  Application Number:{' '}
+                  <strong className="text-indigo-600 font-extrabold">
+                    {app.application_number || app.applicationNumber || app.id}
+                  </strong>
+                </p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <span

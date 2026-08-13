@@ -17,8 +17,10 @@ export class AdmissionController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await AdmissionService.createApplication(parsed.data, userId);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const userOrgId = user?.org_id || user?.school_id;
+      const result = await AdmissionService.createApplication(parsed.data, userId, userOrgId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {
@@ -33,7 +35,11 @@ export class AdmissionController {
       const { id } = req.params;
       const user = req.context?.user;
       const orgId = user?.org_id || user?.school_id;
-      const isOnlyParent = user?.roles?.includes('PARENT') && !user?.roles?.some(r => ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r));
+      const isOnlyParent =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r) =>
+          ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
       const parentUserId = isOnlyParent ? user?.id : undefined;
 
       const result = await AdmissionService.getApplicationById(id, orgId, parentUserId);
@@ -84,6 +90,7 @@ export class AdmissionController {
 
   static async search(req: Request, res: Response) {
     try {
+      const user = req.context?.user;
       const parsed = searchApplicationSchema.safeParse(req.query);
       if (!parsed.success) {
         return res.status(400).json({
@@ -92,7 +99,23 @@ export class AdmissionController {
         });
       }
 
-      const result = await AdmissionService.searchApplications(parsed.data);
+      const searchParams = { ...parsed.data };
+      const isOnlyParent =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r) =>
+          ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
+      if (isOnlyParent || req.query.mine === 'true' || req.query.mine === '1') {
+        if (user?.id) {
+          searchParams.created_by = user.id;
+        }
+      }
+
+      if (!searchParams.org_id && (user?.org_id || user?.school_id)) {
+        searchParams.org_id = user.org_id || user.school_id;
+      }
+
+      const result = await AdmissionService.searchApplications(searchParams);
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ error: error.message || 'Internal server error' });

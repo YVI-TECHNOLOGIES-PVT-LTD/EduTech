@@ -46,10 +46,16 @@ export const admissionApi = apiSlice.injectEndpoints({
         url: ENDPOINTS.ADMISSIONS.APPLICATIONS,
         params: params || undefined,
       }),
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.data)) return response.data;
+        if (response && Array.isArray(response.items)) return response.items;
+        return [];
+      },
       providesTags: ['Application'],
     }),
     getApplicationById: builder.query<ApplicationRecord, string>({
-      query: (id: string) => `/admissions/applications/${id}`,
+      query: (id: string) => ENDPOINTS.ADMISSIONS.APPLICATION_BY_ID(id),
       providesTags: (_result, _error, id) => [{ type: 'Application', id }],
     }),
     verifyDocument: builder.mutation<{ success: boolean }, VerifyDocumentPayload>({

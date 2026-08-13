@@ -41,19 +41,25 @@ export class AdmissionRepository {
     });
   }
 
-  static async create(dto: CreateApplicationDto) {
+  static async create(dto: CreateApplicationDto, createdBy?: string | null) {
     const year = new Date().getFullYear();
     const count = await prisma.admissions_applications.count();
-    const application_number = `APP-${year}-${String(count + 1).padStart(5, '0')}`;
+    let appSeq = count + 1;
+    let application_number = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+    while (await prisma.admissions_applications.findUnique({ where: { application_number } })) {
+      appSeq++;
+      application_number = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+    }
 
     return prisma.admissions_applications.create({
       data: {
-        lead_id: dto.lead_id,
-        org_id: dto.org_id,
-        academic_year_id: dto.academic_year_id,
+        lead_id: dto.lead_id!,
+        org_id: dto.org_id!,
+        academic_year_id: dto.academic_year_id!,
         application_number,
         application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
         status: dto.status || application_status.submitted,
+        created_by: createdBy || undefined,
       },
       include: {
         leads: true,

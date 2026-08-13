@@ -43,8 +43,11 @@ export interface CreateLeadPayload {
 
 export const crmApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getLeads: builder.query<LeadRecord[], void>({
-      query: () => ENDPOINTS.CRM.LEADS,
+    getLeads: builder.query<any, any>({
+      query: (params?: any) => ({
+        url: ENDPOINTS.CRM.LEADS,
+        params,
+      }),
       providesTags: ['Lead'],
     }),
     createLead: builder.mutation<LeadRecord, CreateLeadPayload>({
@@ -55,11 +58,72 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Lead'],
     }),
-    getCampusVisits: builder.query<CampusVisitRecord[], void>({
-      query: () => ENDPOINTS.CRM.CAMPUS_VISITS,
+    assignLead: builder.mutation<any, { leadId: string; counselor_id: string; remarks?: string }>({
+      query: ({ leadId, counselor_id, remarks }) => ({
+        url: `${ENDPOINTS.CRM.LEADS}/${leadId}/assign`,
+        method: 'PATCH',
+        body: { assigned_counsellor_id: counselor_id, remarks },
+      }),
+      invalidatesTags: ['Lead'],
+    }),
+    qualifyLead: builder.mutation<any, string>({
+      query: (leadId: string) => ({
+        url: ENDPOINTS.CRM.QUALIFY(leadId),
+        method: 'POST',
+      }),
+      invalidatesTags: ['Lead'],
+    }),
+    convertLead: builder.mutation<any, string>({
+      query: (leadId: string) => ({
+        url: ENDPOINTS.CRM.CONVERT(leadId),
+        method: 'POST',
+      }),
+      invalidatesTags: ['Lead'],
+    }),
+    getCampusVisits: builder.query<any, any>({
+      query: (params?: any) => ({
+        url: ENDPOINTS.CRM.CAMPUS_VISITS,
+        params,
+      }),
       providesTags: ['CampusVisit'],
     }),
+    scheduleVisit: builder.mutation<
+      any,
+      {
+        lead_id: string;
+        visit_type: 'campus' | 'virtual';
+        scheduled_at: string;
+        staff_id?: string;
+        remarks?: string;
+      }
+    >({
+      query: (body) => ({
+        url: `${ENDPOINTS.CRM.LEADS}/${body.lead_id}/visits`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['CampusVisit', 'Lead'],
+    }),
+    updateVisitStatus: builder.mutation<any, { visitId: string; status: string; remarks?: string }>(
+      {
+        query: ({ visitId, status, remarks }) => ({
+          url: `${ENDPOINTS.CRM.CAMPUS_VISITS}/${visitId}`,
+          method: 'PATCH',
+          body: { status, remarks },
+        }),
+        invalidatesTags: ['CampusVisit', 'Lead'],
+      },
+    ),
   }),
 });
 
-export const { useGetLeadsQuery, useCreateLeadMutation, useGetCampusVisitsQuery } = crmApi;
+export const {
+  useGetLeadsQuery,
+  useCreateLeadMutation,
+  useAssignLeadMutation,
+  useQualifyLeadMutation,
+  useConvertLeadMutation,
+  useGetCampusVisitsQuery,
+  useScheduleVisitMutation,
+  useUpdateVisitStatusMutation,
+} = crmApi;

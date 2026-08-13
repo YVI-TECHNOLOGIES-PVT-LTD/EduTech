@@ -15,8 +15,10 @@ export class AdmissionDecisionController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await AdmissionDecisionService.recordDecision(id, userId, parsed.data);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await AdmissionDecisionService.recordDecision(id, userId, parsed.data, orgId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {

@@ -5,15 +5,23 @@ import { LeadController } from '../controllers/lead.controller';
 import { LeadActivityController } from '../controllers/lead-activity.controller';
 import { LeadPolicy } from '../policies/lead.policy';
 
+import { LeadVisitController } from '../controllers/lead-visit.controller';
+
 export const leadRouter = Router();
 
-// Dashboard & Search & Duplicates
+// Dashboard, Search, Duplicates, Visits Queue
 leadRouter.get('/dashboard', checkPermission(LeadPolicy.canView()), LeadController.getDashboard);
 leadRouter.get('/search', checkPermission(LeadPolicy.canView()), LeadController.search);
 leadRouter.get(
   '/check-duplicates',
   checkPermission(LeadPolicy.canView()),
   LeadController.checkDuplicates,
+);
+leadRouter.get('/visits', checkPermission(LeadPolicy.canView()), LeadVisitController.getQueue);
+leadRouter.patch(
+  '/visits/:id',
+  checkPermission(LeadPolicy.canUpdate()),
+  LeadVisitController.updateStatus,
 );
 
 // Bulk Ops
@@ -36,7 +44,7 @@ leadRouter.get('/:id', checkPermission(LeadPolicy.canView()), LeadController.get
 leadRouter.patch('/:id', checkPermission(LeadPolicy.canUpdate()), LeadController.update);
 leadRouter.delete('/:id', checkPermission(LeadPolicy.canDelete()), LeadController.delete);
 
-// Status & Assignment
+// Status, Assignment, Qualification & Handoff
 leadRouter.patch(
   '/:id/status',
   checkPermission(LeadPolicy.canUpdate()),
@@ -48,6 +56,13 @@ leadRouter.patch(
   checkPermission(LeadPolicy.canAssign()),
   checkIdempotency,
   LeadController.assign,
+);
+leadRouter.post('/:id/qualify', checkPermission(LeadPolicy.canUpdate()), LeadController.qualify);
+leadRouter.post(
+  '/:id/convert',
+  checkPermission(LeadPolicy.canCreate()),
+  checkIdempotency,
+  LeadController.convert,
 );
 
 // Lead Activities & Timeline
@@ -71,4 +86,17 @@ leadRouter.patch(
   '/activities/:id',
   checkPermission(LeadPolicy.canUpdate()),
   LeadActivityController.update,
+);
+
+// Lead Visits & Counselling
+leadRouter.post(
+  '/:id/visits',
+  checkPermission(LeadPolicy.canUpdate()),
+  checkIdempotency,
+  LeadVisitController.schedule,
+);
+leadRouter.get(
+  '/:id/visits',
+  checkPermission(LeadPolicy.canView()),
+  LeadVisitController.getByLeadId,
 );

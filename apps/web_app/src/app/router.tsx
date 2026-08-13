@@ -1,15 +1,14 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceShell } from '../modules/common/workspace/WorkspaceShell';
-import { LoginPage } from '../features/auth/LoginPage';
+import { LoginPage } from '../modules/auth/pages/LoginPage';
 import UnauthorizedPage from '../pages/Unauthorized';
 import {
   ProtectedRoute,
   PermissionGuard,
   AnyPermissionGuard,
 } from '../components/auth/ProtectedRoute';
-import { DashboardLayout } from '../layouts/DashboardLayout';
-import { AdmissionWorkspaceLayout } from '../modules/admission/layouts/AdmissionWorkspaceLayout';
+import { AppShell } from '../components/shell/AppShell';
 import PublicLayout from '../layouts/PublicLayout';
 import Home from '../pages/Home';
 import About from '../pages/About';
@@ -26,20 +25,42 @@ import Achievements from '../pages/Achievements';
 import Events from '../pages/Events';
 import Contact from '../pages/Contact';
 import Notifications from '../pages/Notifications';
-import EnquiryPage from '../features/landing/pages/EnquiryPage';
-import EnquirySuccessPage from '../features/admission-portal/pages/EnquirySuccessPage';
-import RegistrationPage from '../features/admission-portal/pages/RegistrationPage';
-import OtpVerificationPage from '../features/admission-portal/pages/OtpVerificationPage';
-import RegistrationSuccessPage from '../features/admission-portal/pages/RegistrationSuccessPage';
-import ForgotPasswordPage from '../features/auth/ForgotPasswordPage';
-import ResetPasswordPage from '../features/auth/ResetPasswordPage';
-import SessionExpiredPage from '../features/auth/SessionExpiredPage';
+import EnquiryPage from '../modules/admission/pages/public/EnquiryPage';
+import EnquirySuccessPage from '../modules/admission/pages/public/EnquirySuccessPage';
+import RegistrationPage from '../modules/admission/pages/public/RegistrationPage';
+import OtpVerificationPage from '../modules/admission/pages/public/OtpVerificationPage';
+import RegistrationSuccessPage from '../modules/admission/pages/public/RegistrationSuccessPage';
+import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
+import SessionExpiredPage from '../modules/auth/pages/SessionExpiredPage';
 import { AdmissionInquiryGuard } from '../modules/admission/components/AdmissionInquiryGuard';
 import { AdmissionApplicationGuard } from '../modules/admission/components/AdmissionApplicationGuard';
 import { LayoutErrorBoundary } from '../components/common/ErrorBoundary';
 import { PageSkeleton } from '../components/common/LoadingSkeleton';
 
 import { ROUTE_REGISTRY, RouteConfig } from '../config/route_registry';
+
+import { useAuth } from '../context/AuthContext';
+
+const RoleBasedDefaultRedirect: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const userRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
+
+  if (
+    userRoles.includes('FRONT_OFFICE') ||
+    userRoles.includes('FO') ||
+    userRoles.includes('STAFF') ||
+    userRoles.includes('ADMISSION_OFFICER') ||
+    userRoles.includes('ADMIN') ||
+    userRoles.includes('SUPERADMIN')
+  ) {
+    return <Navigate to="/app/workspace" replace />;
+  }
+
+  return <Navigate to="/app/admissions/dashboard" replace />;
+};
 
 export const AppRouter = () => {
   const wrapWithGuards = (route: RouteConfig) => {
@@ -61,6 +82,7 @@ export const AppRouter = () => {
 
   const dashboardRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'dashboard');
   const admissionWorkspaceRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'admission_workspace');
+  const parentAdmissionRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'parent_admission');
   const standaloneRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'none');
 
   return (
@@ -93,10 +115,8 @@ export const AppRouter = () => {
                 <Route path="/events" element={<Events />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route path="/login" element={<LoginPage />} />
               </Route>
-
-              {/* Login */}
-              <Route path="/login" element={<LoginPage />} />
 
               {/* Auth Utility Pages */}
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -105,30 +125,18 @@ export const AppRouter = () => {
 
               {/* Protected App Routes */}
               <Route path="/app" element={<ProtectedRoute />}>
-                {/* Standalone routes outside layout */}
-                {standaloneRoutes.map((route) => (
-                  <Route key={route.path} path={route.path} element={wrapWithGuards(route)} />
-                ))}
-
-                {/* DashboardLayout routes */}
-                <Route element={<DashboardLayout />}>
-                  {dashboardRoutes.map((route) => (
+                {/* Single Canonical Global AppShell for all application routes */}
+                <Route element={<AppShell />}>
+                  {ROUTE_REGISTRY.map((route) => (
                     <Route key={route.path} path={route.path} element={wrapWithGuards(route)} />
                   ))}
+                  <Route path="unauthorized" element={<UnauthorizedPage />} />
+                  <Route path="" element={<RoleBasedDefaultRedirect />} />
                 </Route>
-
-                {/* AdmissionWorkspaceLayout routes */}
-                <Route element={<AdmissionWorkspaceLayout />}>
-                  {admissionWorkspaceRoutes.map((route) => (
-                    <Route key={route.path} path={route.path} element={wrapWithGuards(route)} />
-                  ))}
-                </Route>
-
-                <Route path="unauthorized" element={<UnauthorizedPage />} />
-                <Route path="" element={<Navigate to="dashboard" replace />} />
               </Route>
 
               {/* Redirects */}
+              <Route path="/parent/*" element={<Navigate to="/app/admissions/my" replace />} />
               <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
               <Route path="*" element={<Home />} />
             </Routes>

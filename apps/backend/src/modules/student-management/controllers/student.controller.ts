@@ -115,4 +115,44 @@ export class StudentController {
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
+
+  static async getApprovedApplications(req: Request, res: Response) {
+    try {
+      const user = req.context?.user;
+      const orgId =
+        user?.org_id ||
+        user?.school_id ||
+        (req.query.org_id as string) ||
+        (req.query.school_id as string) ||
+        undefined;
+      const search = req.query.search as string | undefined;
+
+      const result = await StudentService.getApprovedApplications(orgId, search);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async convertApplication(req: Request, res: Response) {
+    try {
+      const { applicationId } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+
+      const result = await StudentService.convertApplicationToStudent(
+        applicationId,
+        userId,
+        orgId,
+        req.body,
+      );
+      return res.status(201).json(result);
+    } catch (error: any) {
+      if (error instanceof StudentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
 }

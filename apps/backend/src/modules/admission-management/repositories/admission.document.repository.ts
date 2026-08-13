@@ -9,10 +9,10 @@ export class AdmissionDocumentRepository {
       data: {
         application_id: applicationId,
         document_type_id: dto.document_type_id,
-        file_path: dto.file_path,
+        storage_path: dto.file_path || (dto as any).storage_path || '',
         verify_status: document_verify_status.pending,
         created_by: createdBy || undefined,
-      },
+      } as any,
       include: {
         document_types: true,
       },
@@ -22,7 +22,7 @@ export class AdmissionDocumentRepository {
   static async findById(document_id: string) {
     return prisma.admission_documents.findUnique({
       where: { document_id },
-      include: { document_types: true },
+      include: { document_types: true, admissions_applications: true },
     });
   }
 

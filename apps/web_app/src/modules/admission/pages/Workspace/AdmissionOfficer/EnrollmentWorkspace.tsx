@@ -1,212 +1,286 @@
-import React, { useMemo, useState } from 'react';
-import { Award, UserCheck, ShieldAlert, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Award, UserCheck, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEnrollment, useEnrollmentStatus } from '../../../hooks/useEnrollment';
+import { admissionApi } from '../../../admission.api';
 import { toast } from 'sonner';
 
 interface EnrollmentWorkspaceProps {
-    applications: any[];
-    isLoading: boolean;
-    refetch: () => void;
+  applications?: any[];
+  isLoading?: boolean;
+  refetch?: () => void;
 }
 
-export function EnrollmentWorkspace({ applications, isLoading, refetch }: EnrollmentWorkspaceProps) {
-    const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-    const [section, setSection] = useState('A');
-    const [rollNo, setRollNo] = useState('');
-    const [house, setHouse] = useState('Red');
-    const [transport, setTransport] = useState('Bus Route 3');
-    const [hostel, setHostel] = useState('None');
+export function EnrollmentWorkspace({ refetch: parentRefetch }: EnrollmentWorkspaceProps) {
+  const [approvedApps, setApprovedApps] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string>('');
+  const [rollNo, setRollNo] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const enrollmentApps = useMemo(() => {
-        return applications.filter(a => ['fee_verified', 'payment_verified', 'enrollment_pending', 'enrolled'].includes(a.status));
-    }, [applications]);
+  const loadApproved = async () => {
+    setIsLoading(true);
+    try {
+      const res = await admissionApi.getApprovedApplications();
+      const list = res.data || res || [];
+      setApprovedApps(list);
+      if (list.length > 0 && !selectedAppId) {
+        setSelectedAppId(list[0].application_id);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to load approved applications inbox');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const activeApp = useMemo(() => {
-        return applications.find(a => a.id === selectedAppId) || null;
-    }, [applications, selectedAppId]);
+  useEffect(() => {
+    loadApproved();
+  }, []);
 
-    const { data: enrollmentStatus, refetch: refetchEnrollment } = useEnrollmentStatus(selectedAppId || '');
-    const { enroll, confirm, isEnrolling, isConfirming } = useEnrollment();
+  const activeApp = approvedApps.find((a) => a.application_id === selectedAppId) || null;
 
-    const handleConfirmDetails = async () => {
-        if (!selectedAppId) return;
-        try {
-            await confirm({ applicationId: selectedAppId });
-            toast.success('Academic parameters verified for enrollment');
-            refetchEnrollment();
-            refetch();
-        } catch (e: any) {
-            toast.error(e?.message || 'Verification failed');
-        }
-    };
+  const handleEnroll = async () => {
+    if (!selectedAppId) return;
+    setIsSubmitting(true);
+    try {
+      const res = await admissionApi.enrollCandidate(selectedAppId, {
+        section_id: selectedSectionId || undefined,
+        roll_number: rollNo || undefined,
+        remarks: remarks || undefined,
+      });
+      const data = res.data || res;
+      if (data.is_existing) {
+        toast.info(`Candidate already enrolled (Admission No: ${data.student?.admission_no})`);
+      } else {
+        toast.success(
+          `Candidate successfully enrolled! Generated Admission No: ${data.student?.admission_no}`,
+        );
+      }
+      await loadApproved();
+      if (parentRefetch) parentRefetch();
+    } catch (e: any) {
+      toast.error(e?.message || 'Enrollment failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const handleEnroll = async () => {
-        if (!selectedAppId || !rollNo) return toast.warning('Roll / Admission number required');
-        try {
-            await enroll({ applicationId: selectedAppId });
-            toast.success('Provisioning complete! Student record created in SIS Master.');
-            refetchEnrollment();
-            refetch();
-        } catch (e: any) {
-            toast.error(e?.message || 'Student master handoff failed');
-        }
-    };
-
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Queue list */}
-            <div className="bg-white dark:bg-card p-5 border rounded-2xl shadow-sm space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-gray-800 flex items-center justify-between pb-2 border-b">
-                    <span>Enrollment Queue</span>
-                    <span className="px-2 py-0.5 rounded bg-gray-150 text-[9px] font-black text-gray-700">
-                        {enrollmentApps.length}
-                    </span>
-                </h3>
-                <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
-                    {isLoading ? (
-                        <p className="text-xs text-gray-400 animate-pulse">Loading list...</p>
-                    ) : enrollmentApps.length === 0 ? (
-                        <p className="text-xs text-gray-400">No applicants ready for final SIS enrollment.</p>
-                    ) : (
-                        enrollmentApps.map(app => {
-                            const isSelected = selectedAppId === app.id;
-                            return (
-                                <div
-                                    key={app.id}
-                                    onClick={() => setSelectedAppId(app.id)}
-                                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                                        isSelected
-                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-sm'
-                                            : 'hover:bg-gray-50 border-gray-100 text-gray-700'
-                                    }`}
-                                >
-                                    <p className="font-bold text-[11px] truncate">{app.student_name}</p>
-                                    <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase mt-1">
-                                        <span>{app.id.slice(0, 8)} • {app.grade_applied_for}</span>
-                                        <span className="text-indigo-600">{app.status}</span>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
-
-            {/* Right Provision Form */}
-            <div className="lg:col-span-2 bg-white dark:bg-card p-6 border rounded-2xl shadow-sm space-y-5">
-                {activeApp ? (
-                    <>
-                        <div className="pb-3 border-b flex justify-between items-center">
-                            <div>
-                                <h3 className="text-sm font-black text-gray-900">{activeApp.student_name}</h3>
-                                <p className="text-xs text-gray-400 font-bold uppercase mt-0.5">{activeApp.id} • {activeApp.grade_applied_for}</p>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={() => refetchEnrollment()} className="h-8 gap-1">
-                                <RefreshCw className="w-3.5 h-3.5" /> Re-sync
-                            </Button>
-                        </div>
-
-                        {/* SIS parameters inputs */}
-                        <div className="p-4 border rounded-xl bg-gray-50/50 space-y-4">
-                            <h4 className="text-xs font-black uppercase text-gray-700 flex items-center gap-1">
-                                <UserCheck className="w-4 h-4 text-indigo-500" /> SIS Section & Identity Mapping
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Section</label>
-                                    <select value={section} onChange={e => setSection(e.target.value)} className="w-full border rounded-lg p-2.5 bg-white h-9">
-                                        <option value="A">Section A</option>
-                                        <option value="B">Section B</option>
-                                        <option value="C">Section C</option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Roll / Admission Number</label>
-                                    <input
-                                        type="text"
-                                        value={rollNo}
-                                        onChange={e => setRollNo(e.target.value)}
-                                        placeholder="e.g. ADM-2026-0041"
-                                        className="w-full border rounded-lg p-2.5 bg-white h-9"
-                                    />
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase">House Group</label>
-                                    <select value={house} onChange={e => setHouse(e.target.value)} className="w-full border rounded-lg p-2.5 bg-white h-9">
-                                        <option value="Red">Red House</option>
-                                        <option value="Blue">Blue House</option>
-                                        <option value="Green">Green House</option>
-                                        <option value="Gold">Gold House</option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Transport Route</label>
-                                    <select value={transport} onChange={e => setTransport(e.target.value)} className="w-full border rounded-lg p-2.5 bg-white h-9">
-                                        <option value="None">No Transport</option>
-                                        <option value="Bus Route 3">Bus Route 3 - South Campus</option>
-                                        <option value="Bus Route 5">Bus Route 5 - East Campus</option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Hostel block</label>
-                                    <select value={hostel} onChange={e => setHostel(e.target.value)} className="w-full border rounded-lg p-2.5 bg-white h-9">
-                                        <option value="None">Day Scholar</option>
-                                        <option value="A-Block">A-Block Boy's Residence</option>
-                                        <option value="B-Block">B-Block Girl's Residence</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Integration buttons */}
-                        <div className="flex gap-2 flex-wrap">
-                            <Button
-                                size="sm"
-                                onClick={handleConfirmDetails}
-                                disabled={isConfirming}
-                                className="text-xs bg-indigo-600"
-                            >
-                                {isConfirming ? 'Confirming...' : 'Verify Academic Details'}
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={handleEnroll}
-                                disabled={isEnrolling || !rollNo}
-                                className="text-xs bg-emerald-600 text-white hover:bg-emerald-700"
-                            >
-                                {isEnrolling ? 'Provisioning...' : 'Finalize Sync & Provision to Student Master'}
-                            </Button>
-                        </div>
-
-                        {/* Sync Check card */}
-                        {enrollmentStatus && (
-                            <div className="p-4 border rounded-xl bg-white space-y-2 text-xs">
-                                <h4 className="font-bold text-gray-800 flex items-center gap-1.5">
-                                    <Award className="w-4 h-4 text-emerald-500" /> ERP Student Status Check
-                                </h4>
-                                <div className="grid grid-cols-2 gap-2 text-gray-600 font-medium">
-                                    <div>Student ID: <span className="font-bold text-gray-900">{enrollmentStatus.studentId || 'Not Yet Provisioned'}</span></div>
-                                    <div>Admission Number: <span className="font-bold text-gray-900">{enrollmentStatus.admissionNumber || '—'}</span></div>
-                                    <div>Email Broadcast: <span className="font-bold text-emerald-600 text-[10px] uppercase">Sent Successfully</span></div>
-                                    <div>Parent Portal: <span className="font-bold text-emerald-600 text-[10px] uppercase">Activated</span></div>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="py-24 text-center border-2 border-dashed rounded-xl bg-gray-50/50">
-                        <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                        <p className="text-xs text-gray-400 font-bold">Select a candidate from the left panel to execute final ERP SIS student provisioning.</p>
-                    </div>
-                )}
-            </div>
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Left Queue List */}
+      <div className="bg-white dark:bg-card p-5 border rounded-2xl shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b">
+          <h3 className="text-xs font-black uppercase tracking-wider text-gray-800 flex items-center gap-1.5">
+            <UserCheck className="w-4 h-4 text-indigo-600" /> Approved Candidates Queue
+          </h3>
+          <span className="px-2 py-0.5 rounded bg-indigo-50 text-[10px] font-black text-indigo-700">
+            {approvedApps.length}
+          </span>
         </div>
-    );
+        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+          {isLoading ? (
+            <p className="text-xs text-gray-400 animate-pulse p-4 text-center">
+              Loading approved inbox...
+            </p>
+          ) : approvedApps.length === 0 ? (
+            <div className="p-6 text-center text-gray-400">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+              <p className="text-xs font-bold">No approved applications pending enrollment desk.</p>
+            </div>
+          ) : (
+            approvedApps.map((app) => {
+              const isSelected = selectedAppId === app.application_id;
+              return (
+                <div
+                  key={app.application_id}
+                  onClick={() => {
+                    setSelectedAppId(app.application_id);
+                    setSelectedSectionId('');
+                    setRollNo('');
+                  }}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                    isSelected
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-sm'
+                      : 'hover:bg-gray-50 border-gray-150 text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-xs truncate">{app.student_name}</p>
+                    {app.is_enrolled && (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase">
+                        Enrolled
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase mt-1">
+                    <span>
+                      #{app.application_number} • {app.grade_name}
+                    </span>
+                    <span className="text-indigo-600">{app.status}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Right Provisioning & Identity Panel */}
+      <div className="lg:col-span-2 bg-white dark:bg-card p-6 border rounded-2xl shadow-sm space-y-5">
+        {activeApp ? (
+          <>
+            <div className="pb-3 border-b flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-black text-gray-900">{activeApp.student_name}</h3>
+                <p className="text-xs text-gray-400 font-bold uppercase mt-0.5">
+                  App ID: #{activeApp.application_number} • Grade: {activeApp.grade_name}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={loadApproved} className="h-8 gap-1">
+                <RefreshCw className="w-3.5 h-3.5" /> Re-sync Inbox
+              </Button>
+            </div>
+
+            {/* Candidate & Parent Summary Card */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-xl text-xs">
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase">
+                  Parent Contact
+                </span>
+                <p className="font-semibold text-gray-800 mt-0.5">{activeApp.contact_name}</p>
+                <p className="text-gray-500 text-[11px]">{activeApp.contact_phone}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Academic Year</span>
+                <p className="font-semibold text-gray-800 mt-0.5">
+                  {activeApp.academic_year_name || 'Current Year'}
+                </p>
+                <p className="text-gray-500 text-[11px]">{activeApp.grade_name}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase">
+                  Enrollment Status
+                </span>
+                <p className="font-bold text-emerald-600 mt-0.5">
+                  {activeApp.is_enrolled
+                    ? `Enrolled (${activeApp.student?.admission_no})`
+                    : 'Pending Onboarding'}
+                </p>
+              </div>
+            </div>
+
+            {/* Section & Roll Number Form */}
+            <div className="p-4 border rounded-xl bg-indigo-50/30 space-y-4">
+              <h4 className="text-xs font-black uppercase text-indigo-900 flex items-center gap-1.5">
+                <UserCheck className="w-4 h-4 text-indigo-600" /> Section & Academic Allocation
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">
+                    Assigned Section (Schema Mapped)
+                  </label>
+                  <select
+                    value={selectedSectionId}
+                    onChange={(e) => setSelectedSectionId(e.target.value)}
+                    className="w-full border rounded-lg p-2.5 bg-white h-9 text-xs"
+                  >
+                    <option value="">-- Select Section --</option>
+                    {activeApp.available_sections?.map((sec: any) => (
+                      <option key={sec.section_id} value={sec.section_id}>
+                        Section {sec.section_name} (Cap: {sec.capacity || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">
+                    Roll Number (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={rollNo}
+                    onChange={(e) => setRollNo(e.target.value)}
+                    placeholder="e.g. 01"
+                    className="w-full border rounded-lg p-2.5 bg-white h-9 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                size="sm"
+                onClick={handleEnroll}
+                disabled={isSubmitting}
+                className="text-xs bg-emerald-600 text-white hover:bg-emerald-700 h-9 px-4 gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isSubmitting
+                  ? 'Processing Enrollment...'
+                  : activeApp.is_enrolled
+                    ? 'Re-confirm Enrollment'
+                    : 'Finalize & Create Student Master'}
+              </Button>
+            </div>
+
+            {/* Enrollment Confirmation Result Card */}
+            {activeApp.is_enrolled && activeApp.student && (
+              <div className="p-4 border border-emerald-200 rounded-xl bg-emerald-50/40 space-y-3 text-xs">
+                <h4 className="font-bold text-emerald-900 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-emerald-600" /> Enrollment Confirmation
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-gray-700 font-medium">
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                      Admission No
+                    </span>
+                    <span className="font-black text-gray-900 text-sm">
+                      {activeApp.student.admission_no}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                      Student ID
+                    </span>
+                    <span className="font-mono text-gray-800 text-[11px] truncate block">
+                      {activeApp.student.student_id.slice(0, 8)}...
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                      Parent Link
+                    </span>
+                    <span className="font-bold text-emerald-700 uppercase text-[10px]">
+                      Linked & Primary
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                      Academic Status
+                    </span>
+                    <span className="font-bold text-emerald-700 uppercase text-[10px]">
+                      Active Enrolled
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="py-24 text-center border-2 border-dashed rounded-xl bg-gray-50/50">
+            <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+            <p className="text-xs text-gray-400 font-bold">
+              Select an approved candidate from the queue to process enrollment.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default EnrollmentWorkspace;

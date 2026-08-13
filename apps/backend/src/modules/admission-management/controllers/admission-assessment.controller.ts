@@ -15,8 +15,15 @@ export class AdmissionAssessmentController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await AdmissionAssessmentService.recordAssessment(id, userId, parsed.data);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await AdmissionAssessmentService.recordAssessment(
+        id,
+        userId,
+        parsed.data,
+        orgId,
+      );
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {
@@ -29,7 +36,9 @@ export class AdmissionAssessmentController {
   static async getByApplicationId(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await AdmissionAssessmentService.getAssessmentByApplication(id);
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await AdmissionAssessmentService.getAssessmentByApplication(id, orgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {

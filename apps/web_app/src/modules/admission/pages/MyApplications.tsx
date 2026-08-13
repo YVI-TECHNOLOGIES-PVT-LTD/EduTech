@@ -1,106 +1,154 @@
 import React from 'react';
-import { Plus, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, ChevronRight, FileText, Calendar, GraduationCap } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApplicationList } from '../hooks/useApplication';
 import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper';
-import ParentAdmissionDashboard from '../pages/Workspace/ParentDashboard';
+import {
+  PageContainer,
+  PageHeader,
+  SectionHeader,
+  EmptyState,
+} from '@/components/layout/PageLayout';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export function MyApplications() {
-  const { applications, isLoading } = useApplicationList({ limit: 50 }, { mine: true });
+  const navigate = useNavigate();
+  const { applications, isLoading, refetch } = useApplicationList({ limit: 50 }, { mine: true });
 
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-500">Loading applications…</div>;
+    return (
+      <PageContainer variant="default">
+        <div className="p-12 text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-gray-500">
+            Loading your admission applications...
+          </p>
+        </div>
+      </PageContainer>
+    );
   }
 
-  const activeApplications = applications.filter(
-    (app) => !['enrolled', 'rejected', 'withdrawn'].includes(app.status.toLowerCase()),
-  );
-
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            My Admission
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Track your child&apos;s admission progress, documents, and fees
-          </p>
-        </div>
-        <Link
-          to="/enquiry"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all shadow-lg shadow-blue-200 font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          New Enquiry
-        </Link>
-      </div>
+    <PageContainer variant="default">
+      {/* Canonical Page Header */}
+      <PageHeader
+        title="My Admission Applications"
+        description="Track evaluation status, submitted certificates, and processing fee clearance for your children."
+        badge={
+          <span className="text-xs font-black uppercase tracking-widest text-indigo-600">
+            Parent Self-Service
+          </span>
+        }
+        actions={
+          <Button
+            onClick={() => navigate('/app/admissions/wizard')}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Start New Application
+          </Button>
+        }
+      />
 
-      {activeApplications.length > 0 && <ParentAdmissionDashboard />}
-
+      {/* Applications List or Empty State */}
       {applications.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center shadow-sm">
-          <h3 className="text-xl font-semibold text-gray-800">No Applications Yet</h3>
-          <p className="text-gray-500 mt-2 max-w-sm mx-auto">
-            Start your child&apos;s journey with an online application.
-          </p>
-        </div>
+        <EmptyState
+          title="No Admission Applications Yet"
+          description="Start your child's enrollment process by completing an online admission application."
+          action={
+            <Button
+              onClick={() => navigate('/app/admissions/wizard')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs px-6"
+            >
+              Start New Application
+            </Button>
+          }
+        />
       ) : (
-        <div className="space-y-3">
-          <h2 className="text-sm font-black uppercase tracking-wider text-gray-500">
-            All Applications
-          </h2>
-          <div className="grid gap-4">
-            {applications.map((app) => (
-              <div
-                key={app.id}
-                className="bg-white rounded-xl border border-gray-100 p-5 flex items-center justify-between hover:shadow-md transition-shadow"
+        <div className="space-y-4">
+          <SectionHeader
+            title={`Your Registered Applications (${applications.length})`}
+            action={
+              <button
+                onClick={() => refetch()}
+                className="text-xs text-indigo-600 font-bold hover:underline"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center text-xl font-bold text-gray-600">
-                    {app.student_name.charAt(0)}
+                Refresh Status
+              </button>
+            }
+          />
+
+          <div className="grid gap-4">
+            {applications.map((app: any) => {
+              const studentName =
+                app.student_name ||
+                (app.leads
+                  ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`
+                  : 'Applicant');
+              const gradeApplied =
+                app.grade_applied_for ||
+                app.leads?.academic_year_grades?.grades?.grade_name ||
+                'Grade Applied';
+              const appNumber =
+                app.application_number ||
+                app.applicationNumber ||
+                `APP-${app.application_id?.slice(0, 8) || '2026'}`;
+              const appStatus = app.status || 'submitted';
+
+              return (
+                <div
+                  key={app.application_id || app.id}
+                  className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-700 rounded-2xl flex items-center justify-center font-black text-lg border border-indigo-100 shrink-0">
+                      {studentName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-900 text-base">{studentName}</h3>
+                        <span className="text-[11px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                          {appNumber}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                        <span className="flex items-center gap-1">
+                          <GraduationCap className="w-3.5 h-3.5 text-gray-400" /> Grade:{' '}
+                          {gradeApplied}
+                        </span>
+                        {app.application_date && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" /> Submitted:{' '}
+                            {new Date(app.application_date).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{app.student_name}</h3>
-                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                      <span>Grade: {app.grade_applied_for}</span>
+
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
+                    <span
+                      className={`px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wider ${getStatusColor(appStatus)}`}
+                    >
+                      {formatStatusLabel(appStatus)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/app/admissions/${app.application_id || app.id}`}
+                        className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1"
+                      >
+                        View Status <ChevronRight className="w-4 h-4 text-gray-400" />
+                      </Link>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${getStatusColor(app.status)}`}
-                  >
-                    {formatStatusLabel(app.status)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      to={`/app/admissions/${app.id}?tab=documents`}
-                      className="text-xs font-bold text-indigo-600 hover:underline"
-                    >
-                      Documents
-                    </Link>
-                    <Link
-                      to={`/app/admissions/${app.id}?tab=timeline`}
-                      className="text-xs font-bold text-indigo-600 hover:underline"
-                    >
-                      Timeline
-                    </Link>
-                    <Link
-                      to={`/app/admissions/${app.id}`}
-                      className="p-2 hover:bg-gray-50 rounded-full text-gray-400 hover:text-blue-600 transition-colors"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

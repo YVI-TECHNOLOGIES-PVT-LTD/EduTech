@@ -9,6 +9,19 @@ import { StudentPolicy } from '../policies/student.policy';
 
 export const studentRouter = Router();
 
+// Enrollment Desk & Approved Applications
+studentRouter.get(
+  '/approved-applications',
+  checkPermission(StudentPolicy.canView()),
+  StudentController.getApprovedApplications,
+);
+studentRouter.post(
+  '/convert-application/:applicationId',
+  checkPermission(StudentPolicy.canCreate()),
+  checkIdempotency,
+  StudentController.convertApplication,
+);
+
 // Analytics & Dashboard
 studentRouter.get(
   '/dashboard',

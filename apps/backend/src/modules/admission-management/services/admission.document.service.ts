@@ -12,8 +12,14 @@ export class AdmissionDocumentService {
     applicationId: string,
     createdBy: string | null,
     dto: UploadDocumentDto,
+    orgId?: string,
   ) {
-    const app = await AdmissionRepository.findById(applicationId);
+    const isParentOnly = createdBy ? true : false;
+    const app = await AdmissionRepository.findById(
+      applicationId,
+      orgId,
+      isParentOnly ? createdBy || undefined : undefined,
+    );
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
     }
@@ -39,8 +45,12 @@ export class AdmissionDocumentService {
     return doc;
   }
 
-  static async getDocumentsByApplication(applicationId: string) {
-    const app = await AdmissionRepository.findById(applicationId);
+  static async getDocumentsByApplication(
+    applicationId: string,
+    orgId?: string,
+    parentUserId?: string,
+  ) {
+    const app = await AdmissionRepository.findById(applicationId, orgId, parentUserId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
     }
@@ -52,9 +62,18 @@ export class AdmissionDocumentService {
     documentId: string,
     verifiedBy: string | null,
     dto: VerifyDocumentDto,
+    orgId?: string,
   ) {
     const existing = await AdmissionDocumentRepository.findById(documentId);
     if (!existing) {
+      throw new DocumentNotFoundError(documentId);
+    }
+
+    if (
+      orgId &&
+      existing.admissions_applications &&
+      existing.admissions_applications.org_id !== orgId
+    ) {
       throw new DocumentNotFoundError(documentId);
     }
 

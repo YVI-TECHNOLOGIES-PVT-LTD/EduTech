@@ -4,6 +4,7 @@ import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from './ControllerErrorHandler';
 import { AdmissionService } from '../../admission.service';
+import prisma from '../../../../lib/prismaClient';
 
 export class EnquiryController {
   constructor(
@@ -62,6 +63,58 @@ export class EnquiryController {
       });
     } catch (err) {
       console.error('[ENQUIRY-CONTROLLER-ERROR]', err);
+      handleControllerError(res, err);
+    }
+  };
+
+  public getQueryTypes = async (req: Request, res: Response) => {
+    try {
+      let schoolId = req.context?.user?.school_id;
+      if (!schoolId) {
+        const resolved = await AdmissionService.resolveContext();
+        schoolId = resolved.school_id;
+      }
+
+      const queryTypes = await (prisma as any).lead_query_types.findMany({
+        where: {
+          org_id: schoolId,
+          is_active: true,
+        },
+        orderBy: {
+          display_order: 'asc',
+        },
+        select: {
+          query_type_id: true,
+          query_type_name: true,
+          display_order: true,
+        },
+      });
+
+      let items = queryTypes.map((q: any) => ({
+        id: q.query_type_id,
+        name: q.query_type_name,
+        displayOrder: q.display_order,
+      }));
+
+      if (items.length === 0) {
+        const defaultNames = [
+          'Admission Availability',
+          'Admission Process',
+          'Fees',
+          'Curriculum',
+          'Documents Required',
+          'Campus Visit',
+        ];
+        items = defaultNames.map((name, idx) => ({
+          id: `default-${idx + 1}`,
+          name,
+          displayOrder: idx + 1,
+        }));
+      }
+
+      res.json({ items });
+    } catch (err) {
+      console.error('[QUERY-TYPES-ERROR]', err);
       handleControllerError(res, err);
     }
   };

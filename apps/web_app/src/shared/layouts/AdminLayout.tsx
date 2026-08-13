@@ -14,7 +14,6 @@ export const AdminLayout: React.FC = () => {
       <div
         className={cn('flex flex-col transition-all duration-300', sidebarOpen ? 'pl-64' : 'pl-0')}
       >
-        <TopBar />
         <main className="flex-1 p-6">
           <Outlet />
         </main>

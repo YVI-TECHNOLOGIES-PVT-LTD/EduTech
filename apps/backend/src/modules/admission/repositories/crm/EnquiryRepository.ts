@@ -75,6 +75,9 @@ export class EnquiryRepository {
       row.academic_year_grades?.grades?.grade_code ||
       'Grade 1';
 
+    const mappedQueryType =
+      row.lead_query_type_mappings?.[0]?.lead_query_types?.query_type_name || null;
+
     const domain = new AdmissionEnquiry(
       row.lead_id,
       row.org_id,
@@ -88,16 +91,17 @@ export class EnquiryRepository {
       row.stage === 'enquiry_received' ? 'new' : row.stage === 'qualified' ? 'converted' : 'new',
       new Date(row.created_at),
       new Date(row.updated_at),
-      null,
+      mappedQueryType,
       row.dob ? new Date(row.dob) : null,
       row.gender || null,
-      null,
+      mappedQueryType,
       null,
       row.remarks || null,
     );
     (domain as any).lead_number = row.lead_number;
     (domain as any).contact_consent = row.contact_consent;
     (domain as any).contact_consent_at = row.contact_consent_at;
+    (domain as any).query_type = mappedQueryType;
     return domain;
   }
 
@@ -107,6 +111,9 @@ export class EnquiryRepository {
       include: {
         academic_year_grades: {
           include: { grades: true },
+        },
+        lead_query_type_mappings: {
+          include: { lead_query_types: true },
         },
       },
     });
@@ -119,6 +126,9 @@ export class EnquiryRepository {
       include: {
         academic_year_grades: {
           include: { grades: true },
+        },
+        lead_query_type_mappings: {
+          include: { lead_query_types: true },
         },
       },
     });
@@ -144,6 +154,38 @@ export class EnquiryRepository {
     const shortId = enquiry.id.slice(0, 8).toUpperCase();
     const leadNumber = `ENQ-2026-${shortId}`;
 
+    // Resolve or populate lead_query_type for requested queryType
+    let queryTypeId: string | null = null;
+    const rawQueryType =
+      (enquiry as any).queryType || (extra as any)?.query_type || (extra as any)?.queryType;
+    if (rawQueryType && typeof rawQueryType === 'string' && rawQueryType.trim() !== '') {
+      const qName = rawQueryType.trim();
+      let qt = await (prisma as any).lead_query_types.findFirst({
+        where: {
+          org_id: enquiry.schoolId,
+          query_type_name: { equals: qName, mode: 'insensitive' },
+          is_active: true,
+        },
+      });
+
+      if (!qt) {
+        const maxOrder = await (prisma as any).lead_query_types.aggregate({
+          where: { org_id: enquiry.schoolId },
+          _max: { display_order: true },
+        });
+        const nextOrder = ((maxOrder?._max?.display_order as number) || 0) + 1;
+        qt = await (prisma as any).lead_query_types.create({
+          data: {
+            org_id: enquiry.schoolId,
+            query_type_name: qName,
+            display_order: nextOrder,
+            is_active: true,
+          },
+        });
+      }
+      queryTypeId = qt.query_type_id;
+    }
+
     // Check if existing lead
     const existing = await prisma.leads.findUnique({ where: { lead_id: enquiry.id } });
 
@@ -165,6 +207,9 @@ export class EnquiryRepository {
         include: {
           academic_year_grades: {
             include: { grades: true },
+          },
+          lead_query_type_mappings: {
+            include: { lead_query_types: true },
           },
         },
       });
@@ -191,8 +236,41 @@ export class EnquiryRepository {
           academic_year_grades: {
             include: { grades: true },
           },
+          lead_query_type_mappings: {
+            include: { lead_query_types: true },
+          },
         },
       });
+    }
+
+    if (queryTypeId && saved?.lead_id) {
+      try {
+        await (prisma as any).lead_query_type_mappings.upsert({
+          where: {
+            lead_id_query_type_id: {
+              lead_id: saved.lead_id,
+              query_type_id: queryTypeId,
+            },
+          },
+          create: {
+            lead_id: saved.lead_id,
+            query_type_id: queryTypeId,
+          },
+          update: {},
+        });
+      } catch (err) {
+        // Fallback for primary key format differences
+        try {
+          await (prisma as any).lead_query_type_mappings.create({
+            data: {
+              lead_id: saved.lead_id,
+              query_type_id: queryTypeId,
+            },
+          });
+        } catch (e) {
+          // Ignore duplicate mapping error
+        }
+      }
     }
 
     return this.toDomainFromLead(saved) as any;
@@ -232,6 +310,9 @@ export class EnquiryRepository {
         include: {
           academic_year_grades: {
             include: { grades: true },
+          },
+          lead_query_type_mappings: {
+            include: { lead_query_types: true },
           },
         },
       }),

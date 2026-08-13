@@ -32,13 +32,13 @@ const getStoredUser = (): UserProfile | null => {
 
 const initialAccessToken = getStoredItem(API_CONFIG.tokenKeys.accessToken);
 const initialRefreshToken = getStoredItem(API_CONFIG.tokenKeys.refreshToken);
-const initialUser = getStoredUser();
+const initialUser = initialAccessToken ? getStoredUser() : null;
 
 const initialState: AuthState = {
   user: initialUser,
   accessToken: initialAccessToken,
   refreshToken: initialRefreshToken,
-  isAuthenticated: Boolean(initialUser),
+  isAuthenticated: Boolean(initialAccessToken && initialUser),
   isInitializing: false,
   systemMode: 'UAT',
 };
@@ -65,6 +65,12 @@ export const authSlice = createSlice({
 
       try {
         localStorage.setItem(API_CONFIG.tokenKeys.userProfile, JSON.stringify(user));
+        if (accessToken) {
+          localStorage.setItem(API_CONFIG.tokenKeys.accessToken, accessToken);
+        }
+        if (refreshToken) {
+          localStorage.setItem(API_CONFIG.tokenKeys.refreshToken, refreshToken);
+        }
       } catch (err) {
         console.error('Failed to persist user profile in authSlice', err);
       }
@@ -100,6 +106,8 @@ export const authSlice = createSlice({
 
       try {
         localStorage.removeItem(API_CONFIG.tokenKeys.userProfile);
+        localStorage.removeItem(API_CONFIG.tokenKeys.accessToken);
+        localStorage.removeItem(API_CONFIG.tokenKeys.refreshToken);
       } catch (err) {
         console.error('Failed to clear stored auth profile', err);
       }

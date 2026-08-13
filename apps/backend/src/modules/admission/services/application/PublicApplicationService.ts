@@ -35,9 +35,24 @@ export class PublicApplicationService {
     private auditService?: any,
   ) {}
 
-  public static normalizePublicApplicationPayload(rawPayload: any): CanonicalPublicApplicationPayload {
-    const parentEmail = (rawPayload.contact_email || rawPayload.parent_email || rawPayload.email || '').trim().toLowerCase();
-    const parentPhone = (rawPayload.contact_phone || rawPayload.parent_phone || rawPayload.parentPhone || rawPayload.phone || '').trim();
+  public static normalizePublicApplicationPayload(
+    rawPayload: any,
+  ): CanonicalPublicApplicationPayload {
+    const parentEmail = (
+      rawPayload.contact_email ||
+      rawPayload.parent_email ||
+      rawPayload.email ||
+      ''
+    )
+      .trim()
+      .toLowerCase();
+    const parentPhone = (
+      rawPayload.contact_phone ||
+      rawPayload.parent_phone ||
+      rawPayload.parentPhone ||
+      rawPayload.phone ||
+      ''
+    ).trim();
 
     let pFirst = rawPayload.parent_first_name || '';
     let pLast = rawPayload.parent_last_name || '';
@@ -62,7 +77,9 @@ export class PublicApplicationService {
       ? (rawGender as 'male' | 'female' | 'other')
       : undefined;
 
-    const rawRel = (rawPayload.contact_relationship || rawPayload.relationship || '').toString().toLowerCase();
+    const rawRel = (rawPayload.contact_relationship || rawPayload.relationship || '')
+      .toString()
+      .toLowerCase();
     const normalizedRel = ['father', 'mother', 'guardian', 'other'].includes(rawRel)
       ? (rawRel as 'father' | 'mother' | 'guardian' | 'other')
       : undefined;
@@ -93,7 +110,13 @@ export class PublicApplicationService {
   async applyOnline(
     payload: any,
     correlationId?: string,
-  ): Promise<{ applicationId: string; enquiryId?: string; leadId?: string; userId: string; applicationNumber: string }> {
+  ): Promise<{
+    applicationId: string;
+    enquiryId?: string;
+    leadId?: string;
+    userId: string;
+    applicationNumber: string;
+  }> {
     return PublicApplicationService.apply(payload);
   }
 
@@ -102,18 +125,31 @@ export class PublicApplicationService {
     email: string,
     payload: any,
     correlationId?: string,
-  ): Promise<{ applicationId: string; enquiryId?: string; leadId?: string; userId: string; applicationNumber: string }> {
+  ): Promise<{
+    applicationId: string;
+    enquiryId?: string;
+    leadId?: string;
+    userId: string;
+    applicationNumber: string;
+  }> {
     return PublicApplicationService.apply({ ...payload, email, userId });
   }
 
   static async apply(
     payload: any,
-  ): Promise<{ applicationId: string; enquiryId?: string; leadId?: string; userId: string; applicationNumber: string }> {
+  ): Promise<{
+    applicationId: string;
+    enquiryId?: string;
+    leadId?: string;
+    userId: string;
+    applicationNumber: string;
+  }> {
     const canonical = PublicApplicationService.normalizePublicApplicationPayload(payload);
 
     const targetEmail = canonical.contact_email;
     const targetPassword = canonical.parent_password || 'Welcome#123';
-    const targetParentName = `${canonical.parent_first_name} ${canonical.parent_last_name || ''}`.trim();
+    const targetParentName =
+      `${canonical.parent_first_name} ${canonical.parent_last_name || ''}`.trim();
     const rawStudentFirst = canonical.student_first_name;
     const rawStudentLast = canonical.student_last_name || '';
     const phone = canonical.contact_phone || '9999999999';
@@ -163,7 +199,9 @@ export class PublicApplicationService {
     if (!academicYear) {
       throw new BusinessRuleError('No academic year configured for this school organization.');
     }
-    console.log(`[PUBLIC-APPLY] academic year resolved: ${academicYear.academic_year_id} (${academicYear.academic_year_name})`);
+    console.log(
+      `[PUBLIC-APPLY] academic year resolved: ${academicYear.academic_year_id} (${academicYear.academic_year_name})`,
+    );
 
     // 2b. Check Admission Configuration Rules
     const config = await prisma.admission_configurations.findFirst({
@@ -174,7 +212,9 @@ export class PublicApplicationService {
     });
     if (config) {
       if (config.allow_online_application === false) {
-        throw new BusinessRuleError('Online applications are currently disabled for this academic year.');
+        throw new BusinessRuleError(
+          'Online applications are currently disabled for this academic year.',
+        );
       }
       const now = new Date();
       if (config.admission_start_date && now < config.admission_start_date) {
@@ -223,7 +263,10 @@ export class PublicApplicationService {
     }
     if (!ayg) {
       ayg = await prisma.academic_year_grades.findFirst({
-        where: { is_active: true },
+        where: {
+          academic_years: { org_id: finalOrgId },
+          is_active: true,
+        },
       });
     }
     if (!ayg) {
@@ -252,15 +295,26 @@ export class PublicApplicationService {
             status: 'active',
           },
         });
+      } else {
+        const passwordHash = await NativePassword.hash(targetPassword);
+        user = await tx.users.update({
+          where: { user_id: user.user_id },
+          data: {
+            password_hash: passwordHash,
+            status: 'active',
+          },
+        });
       }
       console.log(`[PUBLIC-APPLY] parent user resolved/created: ${user.user_id}`);
 
       // b. Ensure PARENT role is assigned
-      const parentRole = await tx.roles.findFirst({
-        where: { org_id: finalOrgId, role_name: 'PARENT' },
-      }) || await tx.roles.findFirst({
-        where: { role_name: 'PARENT' },
-      });
+      const parentRole =
+        (await tx.roles.findFirst({
+          where: { org_id: finalOrgId, role_name: 'PARENT' },
+        })) ||
+        (await tx.roles.findFirst({
+          where: { role_name: 'PARENT' },
+        }));
 
       if (parentRole) {
         console.log(`[PUBLIC-APPLY] PARENT role resolved: ${parentRole.role_id}`);
@@ -324,7 +378,11 @@ export class PublicApplicationService {
       const appCount = await tx.admissions_applications.count();
       let appSeq = appCount + 1;
       let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-      while (await tx.admissions_applications.findUnique({ where: { application_number: applicationNumber } })) {
+      while (
+        await tx.admissions_applications.findUnique({
+          where: { application_number: applicationNumber },
+        })
+      ) {
         appSeq++;
         applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
       }
@@ -340,7 +398,9 @@ export class PublicApplicationService {
           created_by: user.user_id,
         },
       });
-      console.log(`[PUBLIC-APPLY] application created: ${application.application_id} (${application.application_number})`);
+      console.log(
+        `[PUBLIC-APPLY] application created: ${application.application_id} (${application.application_number})`,
+      );
       console.log('[PUBLIC-APPLY] transaction committed');
 
       return {
@@ -353,4 +413,3 @@ export class PublicApplicationService {
     });
   }
 }
-

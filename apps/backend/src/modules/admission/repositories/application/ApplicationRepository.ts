@@ -4,7 +4,6 @@ import {
   AdmissionApplication,
   ApplicationStatus,
 } from '../../domain/application/AdmissionApplication';
-import { ApplicationProfile } from '../../domain/application/ApplicationProfile';
 import { ApplicationDeclaration } from '../../domain/application/ApplicationDeclaration';
 import { supabase } from '../../../../config/supabase';
 import prisma from '../../../../lib/prismaClient';
@@ -18,21 +17,24 @@ export class ApplicationRepository
   }
 
   protected toDomain(row: any): AdmissionApplication {
-    return new AdmissionApplication(
-      row.id,
-      row.school_id,
+    const app = new AdmissionApplication(
+      row.application_id || row.id,
+      row.org_id || row.school_id,
       row.academic_year_id,
       row.lead_id,
       row.status as ApplicationStatus,
-      row.version,
-      row.is_current,
+      row.version || 1,
+      row.is_current ?? true,
       row.created_by,
       row.change_reason,
       row.submitted_at ? new Date(row.submitted_at) : null,
       new Date(row.created_at),
       new Date(row.updated_at),
       row.deleted_at ? new Date(row.deleted_at) : null,
+      row.application_number,
     );
+    app.applicationNumber = row.application_number;
+    return app;
   }
 
   public async findById(id: string): Promise<AdmissionApplication | null> {
@@ -148,57 +150,59 @@ export class ApplicationRepository
     studentName: string,
     dateOfBirth: Date,
     academicYearId: string,
+    schoolId?: string,
   ): Promise<AdmissionApplication | null> {
-    const dobStr = dateOfBirth.toISOString().split('T')[0];
-    const { data, error } = await supabase
-      .from('admission_applications')
-      .select('*, application_profiles!inner(*)')
-      .eq('academic_year_id', academicYearId)
-      .eq('is_current', true)
-      .is('deleted_at', null)
-      .eq('application_profiles.date_of_birth', dobStr);
+    const apps = await prisma.admissions_applications.findMany({
+      where: {
+        academic_year_id: academicYearId,
+        ...(schoolId ? { org_id: schoolId } : {}),
+      },
+      include: {
+        leads: true,
+      },
+    });
 
-    if (error) throw error;
-    if (!data?.length) return null;
+    if (!apps.length) return null;
 
     const normalizedName = studentName.trim().toLowerCase();
-    for (const row of data) {
-      if (!row.lead_id) continue;
-      const lead = await prisma.leads.findUnique({
-        where: { lead_id: row.lead_id },
-      });
-      if (!lead) continue;
+    for (const app of apps) {
+      if (!app.leads) continue;
+      const lead = app.leads;
       const name = (
         lead.student_last_name
           ? `${lead.student_first_name} ${lead.student_last_name}`
           : lead.student_first_name
       ).toLowerCase();
       if (name === normalizedName) {
-        return this.toDomain(row);
+        return this.toDomain(app);
       }
     }
     return null;
   }
 
   public async save(application: AdmissionApplication): Promise<void> {
-    const payload = {
-      id: application.id,
-      school_id: application.schoolId,
+    const year = new Date().getFullYear();
+    const appCount = await prisma.admissions_applications.count();
+    const appNumber =
+      (application as any).applicationNumber ||
+      `APP-${year}-${String(appCount + 1).padStart(5, '0')}`;
+
+    const payload: any = {
+      application_id: application.id,
+      application_number: appNumber,
+      org_id: application.schoolId,
       academic_year_id: application.academicYearId,
       lead_id: application.leadId,
-      status: application.status,
-      version: application.version,
-      is_current: application.isCurrent,
+      status: (application.status || 'submitted').toLowerCase() as any,
       created_by: application.createdBy,
-      change_reason: application.changeReason,
-      submitted_at: application.submittedAt?.toISOString() || null,
-      updated_at: application.updatedAt.toISOString(),
-      deleted_at: application.deletedAt?.toISOString() || null,
+      updated_at: application.updatedAt,
     };
 
-    const { error } = await supabase.from('admission_applications').upsert(payload);
-
-    if (error) throw error;
+    await prisma.admissions_applications.upsert({
+      where: { application_id: application.id },
+      create: payload,
+      update: payload,
+    });
   }
 
   public async findTimeline(applicationId: string): Promise<any[]> {
@@ -208,60 +212,45 @@ export class ApplicationRepository
       .eq('application_id', applicationId)
       .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) return [];
     return data || [];
   }
 
-  public async findProfile(applicationId: string): Promise<ApplicationProfile | null> {
-    const { data, error } = await supabase
-      .from('application_profiles')
-      .select('*')
-      .eq('application_id', applicationId)
-      .maybeSingle();
+  public async findProfile(applicationId: string): Promise<any | null> {
+    const app = await prisma.admissions_applications.findUnique({
+      where: { application_id: applicationId },
+      include: { leads: true },
+    });
 
-    if (error) throw error;
-    if (!data) return null;
+    if (!app || !app.leads) return null;
+    const lead = app.leads;
 
-    return new ApplicationProfile(
-      data.id,
-      data.application_id,
-      new Date(data.date_of_birth),
-      data.gender,
-      data.blood_group,
-      data.nationality,
-      data.religion,
-      data.category,
-      data.aadhaar,
-      data.photo_url,
-      data.allergies,
-      data.medical_conditions,
-      data.emergency_notes,
-      new Date(data.created_at),
-      new Date(data.updated_at),
-    );
+    return {
+      id: lead.lead_id,
+      application_id: applicationId,
+      date_of_birth: lead.dob,
+      gender: lead.gender,
+      student_first_name: lead.student_first_name,
+      student_last_name: lead.student_last_name,
+      created_at: lead.created_at,
+      updated_at: lead.updated_at,
+    };
   }
 
-  public async saveProfile(profile: ApplicationProfile): Promise<void> {
-    const payload = {
-      id: profile.id,
-      application_id: profile.applicationId,
-      date_of_birth: profile.dateOfBirth.toISOString().split('T')[0],
-      gender: profile.gender,
-      blood_group: profile.bloodGroup,
-      nationality: profile.nationality,
-      religion: profile.religion,
-      category: profile.category,
-      aadhaar: profile.aadhaar,
-      photo_url: profile.photoUrl,
-      allergies: profile.allergies,
-      medical_conditions: profile.medicalConditions,
-      emergency_notes: profile.emergencyNotes,
-      updated_at: profile.updatedAt.toISOString(),
-    };
+  public async saveProfile(profile: any): Promise<void> {
+    if (!profile || !profile.lead_id) return;
+    const validDob = profile.dateOfBirth && !isNaN(new Date(profile.dateOfBirth).getTime());
+    const dobDate = validDob ? new Date(profile.dateOfBirth) : undefined;
 
-    const { error } = await supabase.from('application_profiles').upsert(payload);
-
-    if (error) throw error;
+    await prisma.leads.update({
+      where: { lead_id: profile.lead_id },
+      data: {
+        dob: dobDate,
+        gender: profile.gender ? (profile.gender.toLowerCase() as any) : undefined,
+        student_first_name: profile.student_first_name || undefined,
+        student_last_name: profile.student_last_name || undefined,
+      },
+    });
   }
 
   public async findParents(applicationId: string): Promise<any | null> {
@@ -379,16 +368,22 @@ export class ApplicationRepository
     performedBy: string | null,
     notes?: string | null,
   ): Promise<void> {
-    const { error } = await supabase.from('application_workflow').insert({
-      application_id: applicationId,
-      action,
-      from_status: fromStatus,
-      to_status: toStatus,
-      performed_by: performedBy,
-      notes,
-    });
+    try {
+      const { error } = await supabase.from('application_workflow').insert({
+        application_id: applicationId,
+        action,
+        from_status: fromStatus,
+        to_status: toStatus,
+        performed_by: performedBy,
+        notes,
+      });
 
-    if (error) throw error;
+      if (error) {
+        console.warn('[logWorkflow] Warning:', error.message);
+      }
+    } catch (e: any) {
+      console.warn('[logWorkflow] Exception:', e?.message || e);
+    }
   }
 
   public async getAgeRule(grade: string): Promise<{ min_age: number; max_age: number } | null> {

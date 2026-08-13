@@ -117,6 +117,7 @@ export class LeadRepository {
     if ((dto as any).status !== undefined) data.stage = (dto as any).status;
 
     if (dto.priority !== undefined) data.priority = dto.priority;
+    if (dto.ai_lead_score !== undefined) data.ai_lead_score = dto.ai_lead_score;
     if (dto.assigned_counsellor_id !== undefined)
       data.assigned_counsellor_id = dto.assigned_counsellor_id;
     if (dto.dob !== undefined) data.dob = dto.dob ? new Date(dto.dob as string) : null;

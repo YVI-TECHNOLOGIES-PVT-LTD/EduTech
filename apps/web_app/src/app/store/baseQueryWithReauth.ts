@@ -30,9 +30,12 @@ export const baseQueryWithReauth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  const requestUrl = typeof args === 'string' ? args : args.url;
+  const isLoginEndpoint = requestUrl.includes('/auth/login');
+
   let result = await rawBaseQuery(args, api, extraOptions);
 
-  if (result.error && result.error.status === 401) {
+  if (result.error && result.error.status === 401 && !isLoginEndpoint) {
     // Attempt Token Refresh
     const state = api.getState() as RootState;
     const refreshToken =

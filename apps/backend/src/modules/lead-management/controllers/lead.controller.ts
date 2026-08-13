@@ -9,6 +9,8 @@ import { assignLeadSchema, bulkAssignLeadSchema } from '../dto/request/assign-le
 import { searchLeadSchema } from '../dto/request/search-lead.dto';
 import { LeadError } from '../errors/lead.errors';
 
+import { LeadScoringService } from '../services/lead.scoring.service';
+
 export class LeadController {
   static async create(req: Request, res: Response) {
     try {
@@ -20,8 +22,15 @@ export class LeadController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadService.createLead(parsed.data, userId);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const targetOrgId = parsed.data.org_id || user?.org_id || user?.school_id;
+      if (!targetOrgId) {
+        return res.status(400).json({ error: 'Organization ID (org_id) parameter is required' });
+      }
+      const payload = { ...parsed.data, org_id: targetOrgId };
+
+      const result = await LeadService.createLead(payload, userId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -90,7 +99,16 @@ export class LeadController {
         });
       }
 
-      const result = await LeadService.searchLeads(parsed.data);
+      const user = req.context?.user;
+      const orgId =
+        user?.org_id ||
+        user?.school_id ||
+        (req.query.org_id as string) ||
+        (req.query.school_id as string) ||
+        undefined;
+      const payload = { ...parsed.data, org_id: orgId || parsed.data.org_id };
+
+      const result = await LeadService.searchLeads(payload);
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -174,7 +192,13 @@ export class LeadController {
 
   static async getDashboard(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || (req.query.school_id as string) || undefined;
+      const user = req.context?.user;
+      const orgId =
+        user?.org_id ||
+        user?.school_id ||
+        (req.query.org_id as string) ||
+        (req.query.school_id as string) ||
+        undefined;
       const result = await LeadService.getDashboardMetrics(orgId);
       return res.json(result);
     } catch (error: any) {
@@ -195,6 +219,40 @@ export class LeadController {
       const result = await LeadService.checkDuplicates(phone, email, name);
       return res.json(result);
     } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async qualify(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+
+      const result = await LeadScoringService.evaluateAndQualify(id, userId, orgId);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof LeadError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async convert(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+
+      const result = await LeadLifecycleService.convertToApplication(id, userId, orgId);
+      return res.status(201).json(result);
+    } catch (error: any) {
+      if (error instanceof LeadError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

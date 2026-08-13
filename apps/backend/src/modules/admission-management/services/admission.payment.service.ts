@@ -10,8 +10,14 @@ export class AdmissionPaymentService {
     applicationId: string,
     createdBy: string | null,
     dto: RecordPaymentDto,
+    orgId?: string,
   ) {
-    const app = await AdmissionRepository.findById(applicationId);
+    const isParentOnly = createdBy ? true : false;
+    const app = await AdmissionRepository.findById(
+      applicationId,
+      orgId,
+      isParentOnly ? createdBy || undefined : undefined,
+    );
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
     }
@@ -41,8 +47,12 @@ export class AdmissionPaymentService {
     return payment;
   }
 
-  static async getPaymentByApplication(applicationId: string) {
-    const app = await AdmissionRepository.findById(applicationId);
+  static async getPaymentByApplication(
+    applicationId: string,
+    orgId?: string,
+    parentUserId?: string,
+  ) {
+    const app = await AdmissionRepository.findById(applicationId, orgId, parentUserId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
     }
