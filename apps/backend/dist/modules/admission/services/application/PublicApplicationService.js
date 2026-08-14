@@ -18,8 +18,17 @@ class PublicApplicationService {
         this.auditService = auditService;
     }
     static normalizePublicApplicationPayload(rawPayload) {
-        const parentEmail = (rawPayload.contact_email || rawPayload.parent_email || rawPayload.email || '').trim().toLowerCase();
-        const parentPhone = (rawPayload.contact_phone || rawPayload.parent_phone || rawPayload.parentPhone || rawPayload.phone || '').trim();
+        const parentEmail = (rawPayload.contact_email ||
+            rawPayload.parent_email ||
+            rawPayload.email ||
+            '')
+            .trim()
+            .toLowerCase();
+        const parentPhone = (rawPayload.contact_phone ||
+            rawPayload.parent_phone ||
+            rawPayload.parentPhone ||
+            rawPayload.phone ||
+            '').trim();
         let pFirst = rawPayload.parent_first_name || '';
         let pLast = rawPayload.parent_last_name || '';
         if (!pFirst) {
@@ -40,7 +49,9 @@ class PublicApplicationService {
         const normalizedGender = ['male', 'female', 'other'].includes(rawGender)
             ? rawGender
             : undefined;
-        const rawRel = (rawPayload.contact_relationship || rawPayload.relationship || '').toString().toLowerCase();
+        const rawRel = (rawPayload.contact_relationship || rawPayload.relationship || '')
+            .toString()
+            .toLowerCase();
         const normalizedRel = ['father', 'mother', 'guardian', 'other'].includes(rawRel)
             ? rawRel
             : undefined;
@@ -180,7 +191,10 @@ class PublicApplicationService {
         }
         if (!ayg) {
             ayg = await prismaClient_1.default.academic_year_grades.findFirst({
-                where: { is_active: true },
+                where: {
+                    academic_years: { org_id: finalOrgId },
+                    is_active: true,
+                },
             });
         }
         if (!ayg) {
@@ -208,13 +222,24 @@ class PublicApplicationService {
                     },
                 });
             }
+            else {
+                const passwordHash = await crypto_utils_1.NativePassword.hash(targetPassword);
+                user = await tx.users.update({
+                    where: { user_id: user.user_id },
+                    data: {
+                        password_hash: passwordHash,
+                        status: 'active',
+                    },
+                });
+            }
             console.log(`[PUBLIC-APPLY] parent user resolved/created: ${user.user_id}`);
             // b. Ensure PARENT role is assigned
-            const parentRole = await tx.roles.findFirst({
+            const parentRole = (await tx.roles.findFirst({
                 where: { org_id: finalOrgId, role_name: 'PARENT' },
-            }) || await tx.roles.findFirst({
-                where: { role_name: 'PARENT' },
-            });
+            })) ||
+                (await tx.roles.findFirst({
+                    where: { role_name: 'PARENT' },
+                }));
             if (parentRole) {
                 console.log(`[PUBLIC-APPLY] PARENT role resolved: ${parentRole.role_id}`);
                 const existingRoleLink = await tx.user_roles.findUnique({
@@ -272,7 +297,9 @@ class PublicApplicationService {
             const appCount = await tx.admissions_applications.count();
             let appSeq = appCount + 1;
             let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-            while (await tx.admissions_applications.findUnique({ where: { application_number: applicationNumber } })) {
+            while (await tx.admissions_applications.findUnique({
+                where: { application_number: applicationNumber },
+            })) {
                 appSeq++;
                 applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
             }

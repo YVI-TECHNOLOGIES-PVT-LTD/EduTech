@@ -1,30 +1,19 @@
 import React, { useState } from 'react';
-import {
-  UploadCloud,
-  FileCheck,
-  Eye,
-  Download,
-  CheckCircle2,
-  AlertCircle,
-  Plus,
-  Trash2,
-} from 'lucide-react';
 import { useApplicationList } from '../../hooks/useApplication';
 import {
   PageContainer,
   PageHeader,
   SectionHeader,
-  EmptyState,
 } from '@/components/layout/PageLayout';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { DocumentVerificationCard } from '../../components/DocumentVerificationCard';
 
 export function ParentDocumentCenterPage() {
-  const { applications, isLoading, refetch } = useApplicationList({ limit: 10 }, { mine: true });
+  const { applications, isLoading } = useApplicationList({ limit: 10 }, { mine: true });
 
   const [uploadedDocs, setUploadedDocs] = useState<
-    Record<string, { file_name: string; file_size: string; status: string }>
+    Record<string, { file_name: string; file_size: string; status: string; reason?: string }>
   >({
     birth_cert: { file_name: 'birth_cert_official.pdf', file_size: '1.8 MB', status: 'VERIFIED' },
     aadhaar_card: { file_name: 'aadhaar_card_scan.pdf', file_size: '1.2 MB', status: 'VERIFIED' },
@@ -33,7 +22,12 @@ export function ParentDocumentCenterPage() {
       file_size: '2.4 MB',
       status: 'IN REVIEW',
     },
-    photo: { file_name: 'passport_photo_v1.jpg', file_size: '850 KB', status: 'VERIFIED' },
+    photo: {
+      file_name: 'passport_photo_v1.jpg',
+      file_size: '850 KB',
+      status: 'ACTION NEEDED',
+      reason: 'Photograph is unclear. Please upload a clear color photo.',
+    },
   });
 
   const handleFileUpload = (docKey: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,25 +69,25 @@ export function ParentDocumentCenterPage() {
     {
       key: 'birth_cert',
       name: "Student's Birth Certificate",
-      req: 'Mandatory',
+      mandatory: true,
       hint: 'Government-issued birth certificate',
     },
     {
       key: 'aadhaar_card',
       name: "Student's Aadhaar / ID Card",
-      req: 'Mandatory',
+      mandatory: true,
       hint: 'Aadhaar Card or Passport copy',
     },
     {
       key: 'transfer_cert',
       name: 'Transfer Certificate (TC)',
-      req: 'Optional',
+      mandatory: false,
       hint: 'Previous school leaving certificate',
     },
     {
       key: 'photo',
       name: 'Passport Size Photograph',
-      req: 'Mandatory',
+      mandatory: true,
       hint: 'Recent color photograph (JPG/PNG)',
     },
   ];
@@ -107,7 +101,7 @@ export function ParentDocumentCenterPage() {
         badge={
           <Badge
             variant="outline"
-            className="text-[10px] font-black uppercase text-indigo-600 border-indigo-200"
+            className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
           >
             Parent Self-Service
           </Badge>
@@ -115,7 +109,7 @@ export function ParentDocumentCenterPage() {
         actions={
           primaryApp && (
             <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
-              <span className="text-[10px] font-bold text-slate-400">ACTIVE APP:</span>
+              <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
               <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
                 {primaryApp.application_number || primaryApp.id || 'APP-2026-00368'}
               </span>
@@ -125,7 +119,7 @@ export function ParentDocumentCenterPage() {
       />
 
       {/* Submitted Certificates Grid */}
-      <Card className="p-6 rounded-3xl border-slate-200/80 dark:border-border shadow-xs space-y-6">
+      <Card className="p-6 rounded-2xl border-border/80 bg-card shadow-sm space-y-6">
         <SectionHeader
           title="Verification Documents Vault"
           description="Uploaded certificates are securely audited by the school admission desk."
@@ -139,80 +133,26 @@ export function ParentDocumentCenterPage() {
         <div className="grid grid-cols-1 gap-4">
           {docRequirementDefs.map((def) => {
             const uploaded = uploadedDocs[def.key];
-            const isVerified = uploaded?.status === 'VERIFIED';
 
             return (
-              <div
+              <DocumentVerificationCard
                 key={def.key}
-                className="p-5 rounded-2xl border border-slate-100 dark:border-border bg-slate-50/50 dark:bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all"
-              >
-                <div className="flex items-center space-x-4 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold shrink-0 border border-indigo-100 dark:border-indigo-800">
-                    <FileCheck className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                        {def.name}
-                      </h4>
-                      <span className="text-[10px] font-bold text-slate-400">({def.req})</span>
-                    </div>
-                    {uploaded ? (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
-                        {uploaded.file_name} • {uploaded.file_size}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-slate-400 font-medium truncate mt-0.5">
-                        {def.hint}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-border">
-                  {uploaded ? (
-                    <span
-                      className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
-                        isVerified
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
-                          : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
-                      }`}
-                    >
-                      {uploaded.status}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1 bg-slate-100 dark:bg-muted rounded-full">
-                      NOT UPLOADED
-                    </span>
-                  )}
-
-                  <div className="flex items-center space-x-2">
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => handleFileUpload(def.key, e)}
-                        className="hidden"
-                      />
-                      <span className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center space-x-1.5 shadow-sm">
-                        <UploadCloud className="w-3.5 h-3.5" />
-                        <span>{uploaded ? 'Replace' : 'Upload'}</span>
-                      </span>
-                    </label>
-
-                    {uploaded && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDoc(def.key)}
-                        className="p-2 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
-                        title="Remove Document"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+                docKey={def.key}
+                name={def.name}
+                mandatory={def.mandatory}
+                hint={def.hint}
+                uploaded={uploaded}
+                onUpload={(e) => handleFileUpload(def.key, e)}
+                onRemove={uploaded ? () => handleRemoveDoc(def.key) : undefined}
+                onView={
+                  uploaded
+                    ? () =>
+                        alert(
+                          `Viewing document: ${uploaded.file_name} (${uploaded.status})`,
+                        )
+                    : undefined
+                }
+              />
             );
           })}
         </div>

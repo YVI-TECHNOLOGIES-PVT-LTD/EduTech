@@ -4,60 +4,91 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
 
-  /* Core Brand Colors */
-  --navy: 213 50% 24%;
-  --navy-light: 213 45% 32%;
-  --navy-dark: 213 55% 16%;
-  --gold: 40 60% 58%;
-  --gold-light: 40 55% 72%;
-  --gold-dark: 40 65% 45%;
-  --cream: 45 40% 96%;
-  --cream-dark: 45 25% 90%;
+  /* Core Brand & Editorial Art Direction Tokens */
+  --navy: 190 70% 12%;
+  --navy-light: 190 60% 20%;
+  --navy-dark: 190 80% 8%;
+  --gold: 38 72% 66%;
+  --gold-light: 38 85% 75%;
+  --gold-dark: 38 80% 50%;
+  --cream: 40 33% 94%;
+  --cream-dark: 40 25% 88%;
+  --mist: 160 15% 93%;
+  --teal-deep: 181 83% 13.7%;
 
-  /* Semantic Colors */
-  --background: 45 40% 98%;
-  --foreground: 213 50% 16%;
+  /* Semantic Design Tokens */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
 
   --card: 0 0% 100%;
-  --card-foreground: 213 50% 16%;
+  --card-foreground: 222 47% 11%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 213 50% 16%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary: 213 50% 24%;
-  --primary-foreground: 45 40% 98%;
+  --primary: 181 83% 13.7%; /* Deep EduTrack Teal #063F40 */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 40 60% 58%;
-  --secondary-foreground: 213 50% 16%;
+  --secondary: 38 72% 66%;
+  --secondary-foreground: 222 47% 11%;
 
-  --muted: 45 25% 92%;
-  --muted-foreground: 213 30% 45%;
+  --muted: 160 15% 93%;
+  --muted-foreground: 215 16% 40%;
 
-  --accent: 40 60% 58%;
-  --accent-foreground: 213 50% 16%;
+  --accent: 181 60% 25%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 84% 60%;
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 11%;
+
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 213 20% 85%;
-  --input: 213 20% 85%;
-  --ring: 40 60% 58%;
+  --info: 195 85% 45%;
+  --info-foreground: 0 0% 100%;
+
+  --border: 214 25% 88%;
+  --input: 214 25% 88%;
+  --ring: 181 83% 13.7%;
 
   --radius: 0.75rem;
 
-  /* Sidebar */
+  /* Sidebar Tokens */
   --sidebar-background: 0 0% 98%;
   --sidebar-foreground: 240 5.3% 26.1%;
-  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary: 181 83% 13.7%;
   --sidebar-primary-foreground: 0 0% 98%;
   --sidebar-accent: 240 4.8% 95.9%;
   --sidebar-accent-foreground: 240 5.9% 10%;
   --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar-ring: 181 83% 13.7%;
+}
+
+/* Editorial Section Background Motifs */
+.bg-editorial-cream {
+  background-color: hsl(40 33% 94%);
+}
+.dark .bg-editorial-cream {
+  background-color: hsl(222.2 84% 6.5%);
+}
+
+.bg-editorial-mist {
+  background-color: hsl(160 15% 93%);
+}
+.dark .bg-editorial-mist {
+  background-color: hsl(222.2 84% 8%);
+}
+
+.bg-editorial-teal {
+  background-color: hsl(181 83% 13.7%);
+  color: #ffffff;
 }
 
 body {
@@ -87,18 +118,57 @@ body {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.animate-slide-up {
-  animation: slideUp 0.5s ease forwards;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-page-entrance {
+  animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease forwards;
+}
+
+/* Stagger Animation Delays */
+.stagger-1 {
+  animation-delay: 100ms;
+}
+.stagger-2 {
+  animation-delay: 200ms;
+}
+.stagger-3 {
+  animation-delay: 300ms;
+}
+
+/* Image Zoom Hover Micro-Interaction */
+.img-zoom-container {
+  overflow: hidden;
+}
+.img-zoom-target {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.img-zoom-container:hover .img-zoom-target {
+  transform: scale(1.04);
+}
+
 
 /* Hero Gradient & Pattern */
 .bg-hero-gradient {

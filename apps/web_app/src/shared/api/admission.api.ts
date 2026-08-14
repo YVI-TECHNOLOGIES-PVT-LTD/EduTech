@@ -90,12 +90,21 @@ export const admissionApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Application', 'FeePayment'],
     }),
+    updateApplication: builder.mutation<ApplicationRecord, { id: string; body: Record<string, any> }>({
+      query: ({ id, body }) => ({
+        url: ENDPOINTS.ADMISSIONS.APPLICATION_BY_ID(id),
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Application', id }, 'Application'],
+    }),
   }),
 });
 
 export const {
   useGetApplicationsQuery,
   useGetApplicationByIdQuery,
+  useUpdateApplicationMutation,
   useVerifyDocumentMutation,
   useRecordAssessmentMutation,
   useMakeDecisionMutation,

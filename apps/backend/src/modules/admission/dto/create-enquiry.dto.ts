@@ -28,7 +28,9 @@ export const createEnquirySchema = z.object({
   current_school: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   remarks: z.string().optional().nullable(),
+  query_type: z.string().optional().nullable(),
   contact_consent: z.boolean().optional().default(false),
 });
+
 
 export type CreateEnquiryDto = z.infer<typeof createEnquirySchema>;

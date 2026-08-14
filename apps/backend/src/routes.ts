@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authenticateOptional, checkLoginApproval } from './auth/auth.middleware';
 import { publicAuthRouter, protectedAuthRouter } from './auth/auth.routes';
+import { AuthController } from './auth/auth.controller';
+import { resolveTenantMiddleware } from './middlewares/tenant.middleware';
 import { checkPermission } from './rbac/rbac.middleware';
 import { PERMISSIONS } from './rbac/permissions';
 import { supabase } from './config/supabase';
@@ -27,11 +29,14 @@ import { workflowRouter } from './workflows/workflow.routes';
 import { taskRouter } from './workflows/task.routes';
 import { leadRouter } from './modules/lead-management/routes/lead.routes';
 import { admissionRouter as admissionManagementRouter } from './modules/admission-management/routes/admission.routes';
+import { AdmissionController as AdmissionManagementController } from './modules/admission-management/controllers/admission.controller';
+
 import { studentRouter as studentManagementRouter } from './modules/student-management/routes/student.routes';
 import { parentRouter as parentManagementRouter } from './modules/parent-management/routes/parent.routes';
 import { academicRouter as academicManagementRouter } from './modules/academic-management/routes/academic.routes';
 import { staffRouter as staffManagementRouter } from './modules/staff-management/routes/staff.routes';
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
+
 
 import { env } from './config/env';
 
@@ -81,6 +86,8 @@ router.use('/auth', publicAuthRouter);
 router.use('/v1/auth', publicAuthRouter);
 
 // Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
+router.post('/v1/admission/register', resolveTenantMiddleware, AuthController.registerParent);
+router.post('/v1/admission/verify-otp', AuthController.verifyOtp);
 router.post('/v1/admission/public-apply', publicApplicationController.apply);
 router.post('/admissions/public-apply', publicApplicationController.apply);
 router.post('/admissions', authenticateOptional, AdmissionController.create);
@@ -89,8 +96,9 @@ router.post('/admissions', authenticateOptional, AdmissionController.create);
 router.get('/v1/admission/crm/query-types', enquiryController.getQueryTypes);
 router.get('/v1/admission/query-types', enquiryController.getQueryTypes);
 router.get('/admission/query-types', enquiryController.getQueryTypes);
-router.post('/v1/admission/crm/enquiries', authenticateOptional, enquiryController.create);
-router.post('/v1/admission/enquiries', authenticateOptional, enquiryController.create);
+router.post('/v1/admission/crm/enquiries', resolveTenantMiddleware, authenticateOptional, enquiryController.create);
+router.post('/v1/admission/enquiries', resolveTenantMiddleware, authenticateOptional, enquiryController.create);
+
 
 // Public lookup for schools/organizations
 router.get('/schools', async (req: Request, res: Response) => {
@@ -317,16 +325,23 @@ router.get('/public/classes', async (req: Request, res: Response) => {
 // v1-prefixed alias
 router.get('/v1/public/classes', async (req: Request, res: Response) => {
   try {
-    const targetOrgId = (req.query.school_id ||
+    let targetOrgId = (req.query.school_id ||
       req.query.org_id ||
       req.context?.user?.org_id ||
       req.context?.user?.school_id) as string;
+    if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
+      const activeOrg =
+        (await prisma.organizations.findFirst({ where: { status: 'active' } })) ||
+        (await prisma.organizations.findFirst());
+      if (activeOrg) targetOrgId = activeOrg.org_id;
+    }
     if (!targetOrgId) {
       return res
         .status(400)
         .json({ error: 'School ID (school_id or org_id) parameter is required' });
     }
     const { academic_year_id } = req.query;
+
     let targetYearId = academic_year_id as string;
     if (!targetYearId && targetOrgId) {
       const activeYear = await prisma.academic_years.findFirst({
@@ -575,17 +590,17 @@ router.use(checkLoginApproval);
 router.use('/auth', protectedAuthRouter);
 router.use('/v1/auth', protectedAuthRouter);
 
-// Parent CRM applications (alias for /v1/admission/application/my)
+// Parent CRM applications (alias for /v1/applications/mine)
 router.get(
   '/v1/admission/my',
   checkPermission(PERMISSIONS.ADMISSION_VIEW_SELF),
-  applicationController.listMine,
+  AdmissionManagementController.getMine,
 );
 
 router.post(
   '/v1/admission/apply',
   checkPermission(PERMISSIONS.ADMISSION_CREATE),
-  applicationController.parentApply,
+  AdmissionManagementController.create,
 );
 
 // 1. GET /me & GET /auth/me
@@ -715,7 +730,6 @@ router.use('/v1/admission/evaluation', evaluationRouter);
 router.use('/v1/admission/assessment', assessmentRouter);
 router.use('/v1/admission/enrollment', enrollmentRouter);
 router.use('/v1/admission/application', applicationRouter);
-router.use('/v1/applications', applicationRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/import', importRouter);
 router.use('/v1/workflows', workflowRouter);

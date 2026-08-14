@@ -43,11 +43,20 @@ exports.app.use((0, cors_1.default)({
             callback(null, true);
         }
         else {
-            callback(new Error(`Not allowed by CORS: ${origin}`));
+            callback(null, false);
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'x-expected-updated-at',
+        'idempotency-key',
+        'x-tenant-id',
+    ],
 }));
 // Body Parser
 exports.app.use(express_1.default.json({ limit: '10mb' }));

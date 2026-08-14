@@ -4,6 +4,8 @@ import { ArrowRight, Target, Eye, Compass, Sparkles, Shield, Globe } from "lucid
 import { Button } from "@/components/ui/button";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
+import { Card } from '@/components/ui/card';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const visionPoints = [
   {
@@ -49,44 +51,35 @@ const missionPillars = [
 export default function VisionMission() {
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              Our Purpose
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Vision & <span className="text-gold">Mission</span>
-            </h1>
-            <p className="text-lg text-white/80">
-              Our vision and mission guide everything we do, from curriculum design to 
-              community engagement. They represent our commitment to educational excellence 
-              and student success.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="OUR PURPOSE"
+        title="A Clear Vision for Better Learning Outcomes"
+        accentText="Learning Outcomes"
+        description="Our vision and mission guide everything we do, from curriculum design to community engagement. They represent our commitment to educational excellence and student success."
+        backgroundImage="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[55%_center]"
+        metadataItems={["Vision", "Mission", "Core Values"]}
+      />
 
       {/* Vision Section */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <AnimatedSection direction="left">
-              <div className="inline-flex items-center gap-3 bg-gold/10 px-4 py-2 rounded-full mb-6">
-                <Eye className="w-5 h-5 text-gold" />
-                <span className="text-gold font-semibold">Our Vision</span>
+              <div className="inline-flex items-center gap-2 bg-[#063F40] text-[#E7B76A] px-4 py-1.5 rounded-full mb-6 border border-[#E7B76A]/30">
+                <Eye className="w-4 h-4 text-[#E7B76A]" />
+                <span className="font-bold text-xs uppercase tracking-wider">Our Vision</span>
               </div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-primary mb-6">
+              <h2 className="font-extrabold text-3xl md:text-4xl text-foreground mb-6 tracking-tight">
                 Inspiring Excellence, Empowering Futures
               </h2>
-              <p className="text-lg text-muted-foreground mb-6">
+              <p className="text-base text-muted-foreground leading-relaxed mb-6">
                 To be a world-renowned institution that transforms education by nurturing 
                 innovative thinkers, compassionate leaders, and responsible global citizens 
                 who will shape a better tomorrow.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 We envision a learning community where every student discovers their unique 
                 potential, develops critical thinking skills, and emerges as a confident, 
                 well-rounded individual prepared to make meaningful contributions to society.
@@ -96,18 +89,15 @@ export default function VisionMission() {
             <StaggerContainer className="grid gap-4">
               {visionPoints.map((point) => (
                 <StaggerItem key={point.title}>
-                  <motion.div
-                    whileHover={{ x: 10 }}
-                    className="flex items-start gap-4 bg-white rounded-xl p-5 shadow-md"
-                  >
-                    <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                      <point.icon className="w-6 h-6 text-gold" />
+                  <Card className="flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/80 shadow-xs hover:shadow-md transition-all duration-300">
+                    <div className="w-12 h-12 bg-[#063F40] text-[#E7B76A] rounded-xl flex items-center justify-center flex-shrink-0">
+                      <point.icon className="w-6 h-6 text-[#E7B76A]" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-primary mb-1">{point.title}</h3>
-                      <p className="text-sm text-muted-foreground">{point.description}</p>
+                      <h3 className="font-bold text-foreground mb-1 text-base">{point.title}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{point.description}</p>
                     </div>
-                  </motion.div>
+                  </Card>
                 </StaggerItem>
               ))}
             </StaggerContainer>
@@ -116,18 +106,18 @@ export default function VisionMission() {
       </section>
 
       {/* Mission Section */}
-      <section className="section-padding bg-cream">
-        <div className="container-custom">
-          <div className="max-w-3xl mx-auto text-center mb-16">
+      <section className="py-20 bg-editorial-cream border-t border-border/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto text-center mb-16 space-y-4">
             <AnimatedSection>
-              <div className="inline-flex items-center gap-3 bg-gold/10 px-4 py-2 rounded-full mb-6">
-                <Target className="w-5 h-5 text-gold" />
-                <span className="text-gold font-semibold">Our Mission</span>
+              <div className="inline-flex items-center gap-2 bg-[#063F40] text-[#E7B76A] px-4 py-1.5 rounded-full mb-2 border border-[#E7B76A]/30">
+                <Target className="w-4 h-4 text-[#E7B76A]" />
+                <span className="font-bold text-xs uppercase tracking-wider">Our Mission</span>
               </div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-primary mb-6">
+              <h2 className="font-extrabold text-3xl md:text-4xl text-foreground tracking-tight">
                 Nurturing Tomorrow's Leaders Today
               </h2>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-base text-muted-foreground leading-relaxed">
                 Our mission is to provide an exceptional educational experience that 
                 challenges, inspires, and empowers every student to achieve their fullest 
                 potential while developing the skills, knowledge, and character necessary 
@@ -139,18 +129,15 @@ export default function VisionMission() {
           <StaggerContainer className="grid md:grid-cols-2 gap-6">
             {missionPillars.map((pillar) => (
               <StaggerItem key={pillar.title}>
-                <motion.div
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-md h-full"
-                >
-                  <div className={`h-2 ${pillar.color}`} />
-                  <div className="p-8">
-                    <h3 className="font-display text-xl font-bold text-primary mb-3">
+                <Card className="rounded-2xl bg-card border border-border/80 shadow-xs overflow-hidden h-full flex flex-col">
+                  <div className="h-2 bg-[#063F40]" />
+                  <div className="p-8 space-y-3 flex-1">
+                    <h3 className="font-bold text-xl text-foreground">
                       {pillar.title}
                     </h3>
-                    <p className="text-muted-foreground">{pillar.description}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{pillar.description}</p>
                   </div>
-                </motion.div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -158,8 +145,8 @@ export default function VisionMission() {
       </section>
 
       {/* Guiding Principles */}
-      <section className="section-padding bg-primary">
-        <div className="container-custom">
+      <section className="py-20 bg-[#063F40] text-white border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             subtitle="Guiding Principles"
             title="The Compass of Our Actions"
@@ -167,19 +154,19 @@ export default function VisionMission() {
             light
           />
           
-          <AnimatedSection>
+          <AnimatedSection className="pt-8">
             <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               {[
                 { title: "Student-Centered", desc: "Every decision prioritizes student well-being and success." },
                 { title: "Research-Based", desc: "Our methods are grounded in educational research and best practices." },
                 { title: "Future-Focused", desc: "We prepare students for the challenges and opportunities ahead." },
               ].map((item, index) => (
-                <div key={item.title} className="text-center">
-                  <div className="w-12 h-12 bg-gold rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="font-display text-xl font-bold text-navy">{index + 1}</span>
+                <div key={item.title} className="text-center space-y-2">
+                  <div className="w-12 h-12 bg-[#E7B76A] text-[#063F40] rounded-full flex items-center justify-center mx-auto mb-4 font-black text-lg shadow-md">
+                    <span>{index + 1}</span>
                   </div>
-                  <h3 className="font-display text-xl font-bold text-white mb-2">{item.title}</h3>
-                  <p className="text-white/70">{item.desc}</p>
+                  <h3 className="font-bold text-xl text-white">{item.title}</h3>
+                  <p className="text-emerald-100/80 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -187,8 +174,8 @@ export default function VisionMission() {
           
           <AnimatedSection className="text-center mt-12">
             <Link to="/about">
-              <Button variant="hero">
-                Learn More About Us
+              <Button size="lg" className="font-bold bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center space-x-2 rounded-xl h-11 px-6 mx-auto">
+                <span>Learn More About Us</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -198,3 +185,4 @@ export default function VisionMission() {
     </div>
   );
 }
+

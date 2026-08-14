@@ -73,23 +73,23 @@ export default function LoginPage() {
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.7 }}
-                className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-900 via-primary/95 to-slate-950 lg:h-screen lg:sticky lg:top-0 overflow-hidden items-center justify-center border-r border-border/10"
+                className="hidden lg:flex lg:w-1/2 relative bg-[#063F40] text-white lg:h-screen lg:sticky lg:top-0 overflow-hidden items-center justify-center border-r border-white/10"
             >
                 {/* Visual Glow Highlights */}
-                <div className="absolute top-20 right-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
-                <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+                <div className="absolute top-20 right-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-20 left-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Slideshow Content Container */}
                 <div className="relative z-10 w-full max-w-xl p-12 text-white">
                     
                     {/* Brand Identifier */}
                     <div className="mb-12 flex items-center gap-3">
-                        <div className="w-11 h-11 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shadow-premium-lg">
-                            <GraduationCap className="w-6 h-6 text-white" />
+                        <div className="w-11 h-11 bg-[#E7B76A] text-[#063F40] rounded-2xl flex items-center justify-center font-black shadow-md">
+                            <GraduationCap className="w-6 h-6 text-[#063F40]" />
                         </div>
                         <div className="flex flex-col">
                             <span className="font-black text-sm uppercase tracking-widest text-white leading-none">EduTrack</span>
-                            <span className="text-[9px] font-black text-white/50 uppercase tracking-widest mt-0.5">Enterprise ERP</span>
+                            <span className="text-[9px] font-black text-[#E7B76A] uppercase tracking-widest mt-0.5">Enterprise ERP</span>
                         </div>
                     </div>
 
@@ -103,12 +103,12 @@ export default function LoginPage() {
                                 transition={{ duration: 0.5 }}
                                 className="space-y-4"
                             >
-                                <h1 className="text-4xl xl:text-5xl font-black tracking-tight leading-tight">
+                                <h1 className="text-4xl xl:text-5xl font-black tracking-tight leading-tight text-white">
                                     {slides[currentSlide].title.split(slides[currentSlide].accent)[0]}
-                                    <span className="text-primary bg-white/15 px-3.5 py-0.5 rounded-2xl backdrop-blur-sm border border-white/10 shadow-premium-sm">{slides[currentSlide].accent}</span>
+                                    <span className="text-[#063F40] bg-[#E7B76A] px-3.5 py-0.5 rounded-2xl font-black border border-white/20 shadow-md">{slides[currentSlide].accent}</span>
                                     {slides[currentSlide].title.split(slides[currentSlide].accent)[1]}
                                 </h1>
-                                <p className="text-sm font-semibold text-white/70 leading-relaxed max-w-md">
+                                <p className="text-sm font-semibold text-emerald-100/90 leading-relaxed max-w-md">
                                     {slides[currentSlide].description}
                                 </p>
                             </motion.div>
@@ -121,7 +121,7 @@ export default function LoginPage() {
                             <button
                                 key={idx}
                                 onClick={() => setCurrentSlide(idx)}
-                                className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}
+                                className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'w-8 bg-[#E7B76A]' : 'w-2 bg-white/30'}`}
                             />
                         ))}
                     </div>
@@ -135,14 +135,14 @@ export default function LoginPage() {
                 <div className="absolute top-6 right-6 flex items-center gap-3 z-35">
                     <button
                         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        className="p-2.5 bg-white dark:bg-card border border-border/40 text-muted-foreground hover:text-primary rounded-xl transition-all shadow-premium-sm"
+                        className="p-2.5 bg-white dark:bg-card border border-border/40 text-muted-foreground hover:text-foreground rounded-xl transition-all shadow-xs"
                     >
-                        {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-500" /> : <Moon className="w-4 h-4" />}
+                        {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
                     </button>
                     
                     <Link
                         to="/"
-                        className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-primary transition-colors border border-border/40 bg-white dark:bg-card px-4 py-2.5 rounded-xl shadow-premium-sm"
+                        className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground hover:text-[#063F40] dark:hover:text-emerald-300 transition-colors border border-border/40 bg-white dark:bg-card px-4 py-2.5 rounded-xl shadow-xs"
                     >
                         <Home className="w-4 h-4" />
                         <span>Home</span>
@@ -155,12 +155,14 @@ export default function LoginPage() {
                     transition={{ duration: 0.55 }}
                     className="w-full max-w-md"
                 >
-                    <div className="bg-white/80 dark:bg-card/75 backdrop-blur-xl rounded-3xl border border-border/40 p-8 sm:p-10 shadow-premium-lg">
+                    <div className="bg-card border border-border/80 rounded-3xl p-8 sm:p-10 shadow-xs">
                         
                         {/* Header logo / titles */}
                         <div className="text-center mb-8">
-                            <GraduationCap className="w-10 h-10 text-primary mx-auto mb-4" />
-                            <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                            <div className="w-12 h-12 bg-[#063F40] text-[#E7B76A] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xs">
+                                <GraduationCap className="w-6 h-6 text-[#E7B76A]" />
+                            </div>
+                            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
                                 Access Workspace
                             </h2>
                             <p className="text-xs font-semibold text-muted-foreground mt-1.5">
@@ -172,7 +174,7 @@ export default function LoginPage() {
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="mb-6 rounded-xl border border-red-500/10 bg-red-500/5 p-4 flex items-start gap-3"
+                                className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 flex items-start gap-3"
                             >
                                 <AlertCircle className="w-4.5 h-4.5 text-red-500 shrink-0 mt-0.5" />
                                 <p className="text-xs font-bold text-red-500 leading-relaxed">{error}</p>
@@ -182,41 +184,41 @@ export default function LoginPage() {
                         <form onSubmit={handleLogin} className="space-y-5">
                             {/* Email Address */}
                             <div className="space-y-1.5">
-                                <label className="text-xs font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">
+                                <label className="text-xs font-bold uppercase tracking-widest text-foreground">
                                     Email Address
                                 </label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <input
                                         type="email"
                                         required
                                         placeholder="Enter your email address"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 text-sm font-semibold rounded-xl border border-border bg-gray-50/50 dark:bg-muted/10 focus:outline-none focus:border-primary focus:bg-white transition-all duration-200"
+                                        className="w-full pl-10 pr-4 py-3 text-sm font-semibold rounded-xl border border-border/80 bg-background focus:outline-none focus:border-[#063F40] focus:ring-2 focus:ring-[#063F40]/30 transition-all duration-200 text-foreground"
                                     />
                                 </div>
                             </div>
 
                             {/* Password */}
                             <div className="space-y-1.5">
-                                <label className="text-xs font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">
+                                <label className="text-xs font-bold uppercase tracking-widest text-foreground">
                                     Password
                                 </label>
                                 <div className="relative">
-                                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         required
                                         placeholder="Enter account password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-10 pr-12 py-3 text-sm font-semibold rounded-xl border border-border bg-gray-50/50 dark:bg-muted/10 focus:outline-none focus:border-primary focus:bg-white transition-all duration-200"
+                                        className="w-full pl-10 pr-12 py-3 text-sm font-semibold rounded-xl border border-border/80 bg-background focus:outline-none focus:border-[#063F40] focus:ring-2 focus:ring-[#063F40]/30 transition-all duration-200 text-foreground"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
+                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
                                     >
                                         {showPassword ? 'Hide' : 'Show'}
                                     </button>
@@ -228,11 +230,11 @@ export default function LoginPage() {
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                         type="checkbox"
-                                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary w-4 h-4"
+                                        className="w-4 h-4 rounded border-border text-[#063F40] focus:ring-[#063F40]"
                                     />
                                     <span className="text-muted-foreground">Keep me signed in</span>
                                 </label>
-                                <a href="#" className="text-primary hover:underline">
+                                <a href="#" className="text-[#063F40] dark:text-emerald-400 hover:underline">
                                     Forgot password?
                                 </a>
                             </div>
@@ -241,10 +243,10 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-xs uppercase tracking-widest py-3.5 rounded-xl shadow-premium-md shadow-glow hover:scale-[1.015] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                                className="w-full bg-[#063F40] hover:bg-[#082F35] text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl shadow-md hover:scale-[1.015] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
                             >
-                                <span>{loading ? 'Validating credentials...' : 'Enter Dashboard Workspace'}</span>
-                                {!loading && <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-0.5 transition-transform" />}
+                                <span className="text-[#E7B76A]">{loading ? 'Validating credentials...' : 'Enter Dashboard Workspace'}</span>
+                                {!loading && <ArrowRight className="w-4 h-4 text-[#E7B76A] group-hover:translate-x-0.5 transition-transform" />}
                             </button>
                         </form>
 
@@ -252,7 +254,7 @@ export default function LoginPage() {
                         <div className="mt-8 pt-6 border-t border-border/40 text-center">
                             <p className="text-xs font-bold text-muted-foreground">
                                 Interested in enrollment?{' '}
-                                <Link to="/admissions" className="text-primary hover:underline font-black">
+                                <Link to="/admissions" className="text-[#063F40] dark:text-emerald-400 hover:underline font-black">
                                     Apply for Admission
                                 </Link>
                             </p>

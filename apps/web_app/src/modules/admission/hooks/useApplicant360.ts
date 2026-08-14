@@ -40,15 +40,18 @@ export function useApplicant360(applicationId?: string) {
   const examQuery = useExamResults(applicationId ?? '');
   const enrollmentQuery = useEnrollmentStatus(applicationId);
 
+  const refetchExam = examQuery.refetch;
+  const refetchEnrollment = enrollmentQuery.refetch;
+
   const refetchAll = useCallback(async () => {
     await Promise.all([
       refetchApp(),
       refetchTimeline(),
       refetchPayments(),
-      examQuery.refetch(),
-      enrollmentQuery.refetch(),
+      refetchExam(),
+      refetchEnrollment(),
     ]);
-  }, [refetchApp, refetchTimeline, refetchPayments, examQuery, enrollmentQuery]);
+  }, [refetchApp, refetchTimeline, refetchPayments, refetchExam, refetchEnrollment]);
 
   useEffect(() => {
     if (!applicationId) return;
@@ -88,8 +91,8 @@ export function useApplicant360(applicationId?: string) {
     view,
     application,
     auditLogs,
-    isLoading: appLoading || timelineLoading || meritLoading || examQuery.isLoading || enrollmentQuery.isLoading,
-    error: error ?? examQuery.error ?? enrollmentQuery.error,
+    isLoading: appLoading,
+    error: error,
     refetch: refetchAll,
     notFound: !appLoading && !application && !!applicationId,
   };

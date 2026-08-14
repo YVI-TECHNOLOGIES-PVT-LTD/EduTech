@@ -56,7 +56,7 @@ export function useApplicationProgress(applicationId?: string) {
     const query = useQuery({
         queryKey: AdmissionEngine.cacheKeys.progress(applicationId ?? ''),
         queryFn: () =>
-            admissionApi.getApplicationProgress(applicationId!).then(res => res.data as ApplicationProgressReport),
+            admissionApi.getApplicationProgress(applicationId!).then(res => res.data as ApplicationProgressReport).catch(() => null),
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
     });

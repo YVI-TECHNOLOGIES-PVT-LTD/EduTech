@@ -26,6 +26,8 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+import { AdmissionShell } from '@/modules/admission/components/AdmissionShell';
+
 export const LoginPage: React.FC = () => {
   const { user, isAuthenticated, accessToken } = useAuth();
   const navigate = useNavigate();
@@ -37,7 +39,7 @@ export const LoginPage: React.FC = () => {
   const [loginApi, { isLoading }] = useLoginMutation();
 
   const from =
-    (location.state as { from?: { pathname: string } })?.from?.pathname || ROUTES.DASHBOARD;
+    (location.state as { from?: { pathname: string } })?.from?.pathname || ROUTES.APP.DASHBOARD;
 
   const {
     register,
@@ -54,27 +56,38 @@ export const LoginPage: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setErrorMessage(null);
-      const res = await loginApi({ email: data.email, password: data.password }).unwrap();
-      const enrichedUser = res.user as EnrichedUser;
+      const res = await (loginApi as any)({ email: data.email, password: data.password }).unwrap();
+      const rawUser = res.user || res;
+      const enrichedUser: EnrichedUser = {
+        id: rawUser.id || rawUser.user_id || 'user-1',
+        email: rawUser.email || data.email,
+        school_id: rawUser.school_id || rawUser.organizationId || rawUser.tenantId || 'school-main',
+        roles: Array.isArray(rawUser.roles) ? rawUser.roles : rawUser.role ? [rawUser.role] : ['PARENT'],
+        permissions: Array.isArray(rawUser.permissions) ? rawUser.permissions : res.permissions || [],
+        full_name: rawUser.full_name || rawUser.firstName || rawUser.name || '',
+      };
 
       dispatch(
         setCredentials({
           user: enrichedUser,
-          accessToken: res.accessToken,
-          refreshToken: res.refreshToken,
+          accessToken: res.accessToken || res.token || 'access-token',
+          refreshToken: res.refreshToken || 'refresh-token',
         }),
       );
 
-      if (res.permissions) {
-        dispatch(setPermissions(res.permissions));
+      if (enrichedUser.permissions) {
+        dispatch(
+          setPermissions({
+            roles: enrichedUser.roles,
+            permissions: enrichedUser.permissions,
+          }),
+        );
       }
 
-      if (enrichedUser?.tenant_id) {
+      if (enrichedUser.school_id) {
         dispatch(
           setActiveTenant({
-            tenant_id: enrichedUser.tenant_id,
-            tenant_name: enrichedUser.tenant_name || 'Organization',
-            is_active: true,
+            id: enrichedUser.school_id,
           }),
         );
       }
@@ -93,106 +106,101 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-200">
-            E
+    <AdmissionShell
+      title="Parent Login"
+      subtitle="Sign in to access your Parent Portal"
+    >
+      <form className="space-y-5 max-w-md mx-auto" onSubmit={handleSubmit(onSubmit)}>
+        {errorMessage && (
+          <div className="rounded-xl bg-destructive/10 p-4 border border-destructive/20 flex items-start space-x-3 text-destructive">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="text-xs font-semibold">{errorMessage}</p>
           </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-bold text-foreground mb-1.5">
+            Email Address
+          </label>
+          <Input
+            type="email"
+            placeholder="name@school.com"
+            {...register('email')}
+            className="h-10 rounded-xl text-xs font-medium border-border/80"
+          />
+          {errors.email && (
+            <p className="mt-1 text-xs font-semibold text-red-500">{errors.email.message}</p>
+          )}
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Sign in to EduTrack
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-          Enter your credentials to access your account
+
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-bold text-foreground">
+              Password
+            </label>
+            <Link
+              to="/forgot-password"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('password')}
+              className="h-10 rounded-xl text-xs font-medium border-border/80 pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="mt-1 text-xs font-semibold text-red-500">{errors.password.message}</p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all flex items-center justify-center space-x-2"
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>
+              <span>Sign In</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </>
+          )}
+        </Button>
+      </form>
+
+      <div className="mt-6 pt-5 border-t border-border/60 text-center space-y-2 max-w-md mx-auto">
+        <p className="text-xs font-medium text-muted-foreground">
+          Don't have an account?{' '}
+          <Link
+            to="/admission/register"
+            className="font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            Register as Parent
+          </Link>
+        </p>
+        <p className="text-xs font-medium text-muted-foreground">
+          Need help?{' '}
+          <Link to="/contact" className="font-bold text-foreground hover:underline">
+            Contact Support
+          </Link>
         </p>
       </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-card py-8 px-4 shadow-xl shadow-slate-100 dark:shadow-none border border-slate-100 dark:border-border sm:rounded-3xl sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            {errorMessage && (
-              <div className="rounded-2xl bg-red-50 p-4 border border-red-100 flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-sm font-medium text-red-700">{errorMessage}</p>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                placeholder="name@school.com"
-                {...register('email')}
-                className="rounded-xl border-slate-200"
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-500"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  {...register('password')}
-                  className="rounded-xl border-slate-200 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.password.message}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center space-x-2"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs font-medium text-slate-500">
-              Need help?{' '}
-              <Link to="/contact" className="font-bold text-indigo-600 hover:underline">
-                Contact Support
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    </AdmissionShell>
   );
 };
 
 export default LoginPage;
+

@@ -31,7 +31,7 @@ export function CounselorDashboard() {
     const myLeads = useMemo(() => {
         const pool = query ? results : leads;
         return pool.filter(
-            l =>
+            (l: any) =>
                 isAssigned(l) &&
                 (l.assigned_counselor_id === counselorId ||
                     l.assigned_counselor === user?.full_name ||
@@ -40,7 +40,7 @@ export function CounselorDashboard() {
     }, [leads, results, query, counselorId, user?.full_name]);
 
     const unassignedLeads = useMemo(
-        () => leads.filter(l => !isAssigned(l)),
+        () => leads.filter((l: any) => !isAssigned(l)),
         [leads],
     );
 
@@ -71,7 +71,7 @@ export function CounselorDashboard() {
                             {myLeads.length === 0 ? (
                                 <p className="text-xs text-gray-400 py-4 text-center">No assigned leads.</p>
                             ) : (
-                                myLeads.slice(0, 10).map(lead => {
+                                myLeads.slice(0, 10).map((lead: any) => {
                                     const scored = lead as Lead;
                                     return (
                                     <div
@@ -98,7 +98,7 @@ export function CounselorDashboard() {
                     {unassignedLeads.length > 0 && (
                         <div className="space-y-3">
                             <h3 className="text-xs font-black uppercase text-gray-500">Unassigned Queue ({unassignedLeads.length})</h3>
-                            {unassignedLeads.slice(0, 3).map(lead => (
+                            {unassignedLeads.slice(0, 3).map((lead: any) => (
                                 <LeadCard
                                     key={lead.id}
                                     lead={lead as Lead}

@@ -14,7 +14,7 @@ export function usePayments(applicationId?: string) {
 
     const feesQuery = useQuery({
         queryKey: AdmissionEngine.cacheKeys.feesSummary(applicationId ?? ''),
-        queryFn: () => admissionApi.getFeesSummary(applicationId!).then(res => mapFeesSummary(res.data)),
+        queryFn: () => admissionApi.getFeesSummary(applicationId!).then(res => mapFeesSummary(res.data)).catch(() => null),
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
     });

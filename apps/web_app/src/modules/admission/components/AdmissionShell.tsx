@@ -1,80 +1,108 @@
 import React from 'react';
-import { ShieldCheck, GraduationCap, Sparkles, PhoneCall, Mail } from 'lucide-react';
-import { SCHOOL_INFO } from '@/lib/public-constants';
+import { Link, useNavigate } from 'react-router-dom';
+import { Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Navbar } from '@/features/landing/components/Navbar';
+import { Footer } from '@/features/landing/components/Footer';
 
 export type StepId = 'enquiry' | 'register' | 'otp' | 'success' | 'login';
 
 interface AdmissionShellProps {
-  currentStep: StepId;
-  title: string;
-  subtitle: string;
+  currentStep?: StepId;
+  title?: string;
+  subtitle?: string;
   badgeText?: string;
   showProgressTracker?: boolean;
+  cardContainer?: boolean;
   children: React.ReactNode;
-  sidePanel?: React.ReactNode;
 }
 
 const steps = [
-  { id: 'enquiry', label: '1. Enquiry' },
-  { id: 'register', label: '2. Account' },
-  { id: 'otp', label: '3. Verify OTP' },
-  { id: 'success', label: '4. Complete' },
+  { id: 'register', label: '1. Account' },
+  { id: 'otp', label: '2. Verify OTP' },
+  { id: 'success', label: '3. Complete' },
 ];
 
 export const AdmissionShell: React.FC<AdmissionShellProps> = ({
   currentStep,
   title,
   subtitle,
-  badgeText = 'Parent Portal',
-  showProgressTracker = true,
+  badgeText,
+  showProgressTracker = false,
+  cardContainer = true,
   children,
-  sidePanel,
 }) => {
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full mb-3 border border-indigo-100 dark:border-indigo-800">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{badgeText}</span>
-          </span>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {title}
-          </h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>
+  const navigate = useNavigate();
 
-          {/* Progress Tracker */}
-          {showProgressTracker && (
-            <div className="mt-6 flex items-center justify-center space-x-2 sm:space-x-4">
-              {steps.map((step) => {
-                const isActive = step.id === currentStep;
-                return (
-                  <span
-                    key={step.id}
-                    className={cn(
-                      'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
-                        : 'bg-white dark:bg-card text-slate-500 border border-slate-200 dark:border-border',
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                );
-              })}
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-x-hidden">
+      {/* Universal Navbar Shell */}
+      <div className="bg-[#042A2B] text-white relative z-40">
+        <Navbar onEnquireClick={() => navigate('/enquiry')} />
+      </div>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto w-full">
+          {/* Section Header */}
+          {(title || subtitle || badgeText) && (
+            <div className="text-center mb-8">
+              {badgeText && (
+                <span className="inline-flex items-center space-x-1.5 px-3.5 py-1 bg-[#063F40] text-[#E7B76A] text-xs font-bold rounded-full mb-3 border border-[#E7B76A]/30">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{badgeText}</span>
+                </span>
+              )}
+              {title && (
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                  {title}
+                </h1>
+              )}
+              {subtitle && (
+                <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">{subtitle}</p>
+              )}
+
+              {/* Optional Progress Tracker for Multi-Step Wizards */}
+              {showProgressTracker && currentStep && (
+                <div className="mt-6 flex items-center justify-center space-x-2 sm:space-x-4">
+                  {steps.map((step) => {
+                    const isActive = step.id === currentStep;
+                    return (
+                      <span
+                        key={step.id}
+                        className={cn(
+                          'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                          isActive
+                            ? 'bg-[#063F40] text-[#E7B76A] shadow-sm'
+                            : 'bg-card text-muted-foreground border border-border/80',
+                        )}
+                      >
+                        {step.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        {/* Content Box */}
-        <div className="bg-white dark:bg-card border border-slate-100 dark:border-border rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-100 dark:shadow-none">
-          {children}
+          {/* Children View Container */}
+          {cardContainer ? (
+            <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-10 shadow-sm max-w-xl mx-auto">
+              {children}
+            </div>
+          ) : (
+            children
+          )}
         </div>
-      </div>
+      </main>
+
+      {/* Universal Footer */}
+      <Footer />
     </div>
   );
 };
 
 export default AdmissionShell;
+
+

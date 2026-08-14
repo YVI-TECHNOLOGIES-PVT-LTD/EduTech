@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdmissionApplication = void 0;
 class AdmissionApplication {
-    constructor(id, schoolId, academicYearId, leadId, status, version, isCurrent, createdBy, changeReason, submittedAt, createdAt, updatedAt, deletedAt = null) {
+    constructor(id, schoolId, academicYearId, leadId, status, version, isCurrent, createdBy, changeReason, submittedAt, createdAt, updatedAt, deletedAt = null, applicationNumber) {
         this.id = id;
         this.schoolId = schoolId;
         this.academicYearId = academicYearId;
@@ -16,6 +16,10 @@ class AdmissionApplication {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.deletedAt = deletedAt;
+        this.applicationNumber = null;
+        if (applicationNumber) {
+            this.applicationNumber = applicationNumber;
+        }
     }
     updateStatus(newStatus, reason) {
         this.status = newStatus;

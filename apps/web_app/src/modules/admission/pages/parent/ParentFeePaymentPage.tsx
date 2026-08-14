@@ -36,7 +36,7 @@ export function ParentFeePaymentPage() {
         badge={
           <Badge
             variant="outline"
-            className="text-[10px] font-black uppercase text-indigo-600 border-indigo-200"
+            className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
           >
             Parent Self-Service
           </Badge>
@@ -44,7 +44,7 @@ export function ParentFeePaymentPage() {
         actions={
           primaryApp && (
             <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
-              <span className="text-[10px] font-bold text-slate-400">ACTIVE APP:</span>
+              <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
               <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
                 {primaryApp.application_number || primaryApp.id || 'APP-2026-00368'}
               </span>
@@ -54,7 +54,7 @@ export function ParentFeePaymentPage() {
       />
 
       {/* Transaction History Card */}
-      <Card className="p-6 rounded-3xl border-slate-200/80 dark:border-border shadow-xs space-y-6">
+      <Card className="p-6 rounded-2xl border-border/80 bg-card shadow-sm space-y-6">
         <SectionHeader
           title="Payment Audit Trail & Receipts"
           description="Verified processing fee settlements and digital payment receipts."
@@ -82,24 +82,24 @@ export function ParentFeePaymentPage() {
           ].map((txn) => (
             <div
               key={txn.id}
-              className="p-5 rounded-2xl border border-slate-100 dark:border-border bg-slate-50/50 dark:bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all"
+              className="p-5 rounded-2xl border border-border/80 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all"
             >
               <div className="flex items-center space-x-4 min-w-0">
                 <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0 border border-emerald-100 dark:border-emerald-800">
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                  <h4 className="text-sm font-extrabold text-foreground truncate">
                     {txn.desc}
                   </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
+                  <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">
                     Ref: {txn.id} • {txn.mode} • {txn.date}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-border shrink-0">
-                <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+              <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border/60 shrink-0">
+                <span className="text-sm font-extrabold text-foreground">
                   {txn.amount}
                 </span>
                 <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
@@ -109,7 +109,7 @@ export function ParentFeePaymentPage() {
                   onClick={() => window.print()}
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3 rounded-xl border-slate-200 dark:border-border text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center space-x-1.5"
+                  className="h-9 px-3 rounded-xl border-border text-foreground font-bold text-xs flex items-center space-x-1.5"
                   title="Print / Download Receipt"
                 >
                   <Printer className="w-3.5 h-3.5" />

@@ -91,7 +91,7 @@ export const AppRouter = () => {
         <LayoutErrorBoundary>
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
-              {/* Public Site Routes */}
+              {/* Public Site Routes (inheriting Landing AnnouncementBar & Navbar) */}
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -102,21 +102,27 @@ export const AppRouter = () => {
                 <Route path="/faculty" element={<Faculty />} />
                 <Route path="/admissions" element={<Admissions />} />
                 <Route path="/admission-process" element={<AdmissionProcess />} />
-                <Route path="/enquiry" element={<EnquiryPage />} />
-                <Route path="/admissions/enquiry-form" element={<EnquiryPage />} />
-                <Route path="/admission/enquiry" element={<EnquiryPage />} />
-                <Route path="/admission/enquiry/success" element={<EnquirySuccessPage />} />
-                <Route path="/admission/register" element={<RegistrationPage />} />
-                <Route path="/admission/register/otp" element={<OtpVerificationPage />} />
-                <Route path="/admission/register/success" element={<RegistrationSuccessPage />} />
                 <Route path="/campus" element={<Campus />} />
+                <Route path="/gallery" element={<Campus />} />
                 <Route path="/student-life" element={<StudentLife />} />
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/notifications" element={<Notifications />} />
-                <Route path="/login" element={<LoginPage />} />
               </Route>
+
+              {/* Public Standalone Enquiry Routes */}
+              <Route path="/enquiry" element={<EnquiryPage />} />
+              <Route path="/admissions/enquiry-form" element={<EnquiryPage />} />
+              <Route path="/admission/enquiry" element={<EnquiryPage />} />
+              <Route path="/admission/enquiry/success" element={<EnquirySuccessPage />} />
+
+              {/* Standalone Authentication & Parent Registration Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/admission/register" element={<RegistrationPage />} />
+              <Route path="/admission/register/otp" element={<OtpVerificationPage />} />
+              <Route path="/admission/register/success" element={<RegistrationSuccessPage />} />
+
 
               {/* Auth Utility Pages */}
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />

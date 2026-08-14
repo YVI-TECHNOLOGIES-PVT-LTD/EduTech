@@ -36,14 +36,14 @@ export function useLeadTimeline(lead?: Lead | null) {
 
     const followupsQuery = useQuery({
         queryKey: AdmissionEngine.cacheKeys.followups({ lead_id: lead?.id }),
-        queryFn: () => admissionApi.getFollowups({ lead_id: lead?.id, enquiry_id: lead?.enquiry_id || lead?.id }).then(res => res.data),
+        queryFn: () => admissionApi.getFollowups({ lead_id: lead?.id, enquiry_id: lead?.enquiry_id || lead?.id }).then((res: any) => res.data),
         enabled: !!lead?.id && canManageLeads,
         staleTime: ADMISSION_STALE_TIME,
     });
 
     const enquiryQuery = useQuery({
         queryKey: AdmissionEngine.cacheKeys.inquiry.detail(lead?.enquiry_id || lead?.id || ''),
-        queryFn: () => admissionApi.getEnquiryById(lead!.enquiry_id || lead!.id).then(res => res.data),
+        queryFn: () => admissionApi.getEnquiryById(lead!.enquiry_id || lead!.id).then((res: any) => res.data),
         enabled: !!lead?.id && !lead.application_id,
         staleTime: ADMISSION_STALE_TIME,
     });

@@ -150,6 +150,23 @@ export class AdmissionService {
           },
         });
       }
+
+      const existingParent = await prisma.parents.findUnique({
+        where: { user_id: userId },
+      });
+      if (!existingParent) {
+        const pParts = (data.parent_name || '').trim().split(' ');
+        await prisma.parents.create({
+          data: {
+            org_id: data.school_id,
+            user_id: userId,
+            first_name: pParts[0] || 'Parent',
+            last_name: pParts.slice(1).join(' ') || undefined,
+            phone: data.parent_phone || '9999999999',
+            email: cleanEmail,
+          },
+        });
+      }
     } else {
       throw new Error('Email and Password are required for application submission.');
     }

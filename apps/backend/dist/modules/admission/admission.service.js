@@ -7,19 +7,50 @@ const utils_1 = require("../../utils");
 const crypto_utils_1 = require("../../auth/crypto.utils");
 const prisma = new client_1.PrismaClient();
 class AdmissionService {
-    static async resolveContext() {
-        const { data: school } = await supabase_1.supabase.from('schools').select('id').limit(1).maybeSingle();
-        const schoolId = school?.id || '00000000-0000-0000-0000-000000000000';
-        const { data: year } = await supabase_1.supabase
-            .from('academic_years')
-            .select('id')
-            .eq('school_id', schoolId)
-            .eq('is_active', true)
-            .limit(1)
-            .maybeSingle();
+    static async resolveContext(academicYearName) {
+        const org = (await prisma.organizations.findFirst({
+            where: { status: 'active' },
+            select: { org_id: true },
+        })) ||
+            (await prisma.organizations.findFirst({
+                select: { org_id: true },
+            }));
+        if (!org || !org.org_id) {
+            throw new Error('No active organization found in database.');
+        }
+        const orgId = org.org_id;
+        const year = (await prisma.academic_years.findFirst({
+            where: {
+                org_id: orgId,
+                ...(academicYearName ? { academic_year_name: academicYearName } : {}),
+                status: {
+                    in: ['admissions_open', 'open', 'planning'],
+                },
+            },
+            orderBy: { start_date: 'desc' },
+            select: { academic_year_id: true },
+        })) ||
+            (await prisma.academic_years.findFirst({
+                where: {
+                    org_id: orgId,
+                    status: {
+                        in: ['admissions_open', 'open', 'planning'],
+                    },
+                },
+                orderBy: { start_date: 'desc' },
+                select: { academic_year_id: true },
+            })) ||
+            (await prisma.academic_years.findFirst({
+                where: { org_id: orgId },
+                orderBy: { start_date: 'desc' },
+                select: { academic_year_id: true },
+            }));
+        if (!year || !year.academic_year_id) {
+            throw new Error(`No eligible academic year found for organization ${orgId}.`);
+        }
         return {
-            school_id: schoolId,
-            academic_year_id: year?.id || null,
+            school_id: orgId,
+            academic_year_id: year.academic_year_id,
         };
     }
     static async getLeadDashboard(schoolId) {
@@ -95,6 +126,22 @@ class AdmissionService {
                     data: {
                         user_id: userId,
                         role_id: parentRole.role_id,
+                    },
+                });
+            }
+            const existingParent = await prisma.parents.findUnique({
+                where: { user_id: userId },
+            });
+            if (!existingParent) {
+                const pParts = (data.parent_name || '').trim().split(' ');
+                await prisma.parents.create({
+                    data: {
+                        org_id: data.school_id,
+                        user_id: userId,
+                        first_name: pParts[0] || 'Parent',
+                        last_name: pParts.slice(1).join(' ') || undefined,
+                        phone: data.parent_phone || '9999999999',
+                        email: cleanEmail,
                     },
                 });
             }

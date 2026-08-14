@@ -6,6 +6,7 @@ import { AdmissionPermissions } from '../../core/AdmissionPermissions';
 import { useApplicant360 } from '../../hooks/useApplicant360';
 import { useApplicationProgress } from '../../hooks/useApplicationProgress';
 import Applicant360Profile from '../../components/profile360/Applicant360Profile';
+import { ParentReadOnlyApplicationView } from '../../components/parent/ParentReadOnlyApplicationView';
 import { Button } from '../../../../components/ui/button';
 
 export function Applicant360Page() {
@@ -20,7 +21,7 @@ export function Applicant360Page() {
           ? 'Timeline'
           : null;
     const { user, hasPermission, hasRole } = useAuth();
-    const { view, isLoading, error, refetch, notFound } = useApplicant360(id);
+    const { view, application, isLoading, error, refetch, notFound } = useApplicant360(id);
     const { progress, isLoading: progressLoading } = useApplicationProgress(id);
 
     const permCtx = {
@@ -86,24 +87,34 @@ export function Applicant360Page() {
         );
     }
 
+    if (readOnlyMode) {
+        const canEdit = Boolean((application as any)?.can_parent_edit || (application as any)?.canParentEdit || (view as any)?.canParentEdit);
+        const fields = (application as any)?.editable_fields || (application as any)?.editableFields || (view as any)?.editableFields || [];
+        return (
+            <ParentReadOnlyApplicationView
+                application={application}
+                view={view}
+                canParentEdit={canEdit}
+                editableFields={fields}
+                onRefetch={refetch}
+            />
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-                        {readOnlyMode ? 'My Application' : 'Applicant 360° Profile'}
+                        Applicant 360° Profile
                     </h2>
                     <p className="text-xs text-gray-400 font-semibold uppercase">
-                        {readOnlyMode
-                            ? 'View status, timeline, documents, interview, exam, and fees'
-                            : 'Live data — application, timeline, documents, evaluation, fees'}
+                        Live data — application, timeline, documents, evaluation, fees
                     </p>
                 </div>
-                {!readOnlyMode && (
-                    <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1">
-                        <RefreshCw className="w-3.5 h-3.5" /> Refresh
-                    </Button>
-                )}
+                <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1">
+                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                </Button>
             </div>
 
             <Applicant360Profile
@@ -111,7 +122,7 @@ export function Applicant360Page() {
                 applicationId={id}
                 progress={progress}
                 progressLoading={progressLoading}
-                readOnlyMode={readOnlyMode}
+                readOnlyMode={false}
                 initialTab={(pathTab ?? tabParam) as any}
             />
         </div>

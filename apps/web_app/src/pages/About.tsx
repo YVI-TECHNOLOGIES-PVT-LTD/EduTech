@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
 import { SCHOOL_INFO } from "@/lib/public-constants";
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const milestones = [
   { year: "1952", event: "Foundation of EduTrack" },
@@ -41,37 +42,27 @@ const values = [
 export default function About() {
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              About Us
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              A Legacy of <span className="text-gold">Excellence</span>
-            </h1>
-            <p className="text-lg text-white/80">
-              Since {SCHOOL_INFO.established}, {SCHOOL_INFO.name} has been dedicated to
-              nurturing young minds and shaping future leaders. Our commitment to academic
-              excellence and holistic development has made us a beacon of educational excellence.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="ABOUT EDUTRACK"
+        title="Building Better Education Experiences for Every Learner"
+        accentText="Every Learner"
+        description={`Since ${SCHOOL_INFO.established}, ${SCHOOL_INFO.name} has been dedicated to nurturing young minds and shaping future leaders through holistic development and academic excellence.`}
+        backgroundImage="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[65%_center]"
+        metadataItems={["Academic Excellence", "Parent Engagement", "Digital Operations"]}
+      />
 
       {/* Story Section */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <AnimatedSection direction="left">
-              <span className="text-gold font-semibold tracking-wider uppercase text-sm">Our Story</span>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-primary mt-3 mb-6">
-                Over {new Date().getFullYear() - SCHOOL_INFO.established} Years of
-                Educational Excellence
+              <span className="text-[#063F40] font-black tracking-widest uppercase text-xs">Our Story</span>
+              <h2 className="font-extrabold text-3xl md:text-4xl text-foreground mt-3 mb-6 tracking-tight">
+                Over {new Date().getFullYear() - SCHOOL_INFO.established} Years of Educational Excellence
               </h2>
-              <div className="space-y-4 text-muted-foreground">
+              <div className="space-y-4 text-muted-foreground leading-relaxed text-sm">
                 <p>
                   Founded in {SCHOOL_INFO.established}, {SCHOOL_INFO.name} began as a small
                   institution with a big vision: to provide world-class education that
@@ -90,13 +81,13 @@ export default function About() {
               </div>
               <div className="mt-8 flex gap-4">
                 <Link to="/vision-mission">
-                  <Button variant="cta">
+                  <Button className="bg-[#063F40] text-[#E7B76A] hover:bg-[#082F35] font-bold rounded-xl h-11 px-6">
                     Our Vision
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 </Link>
                 <Link to="/leadership">
-                  <Button variant="outline">
+                  <Button variant="outline" className="font-bold border-border/80 rounded-xl h-11 px-6">
                     Meet Our Leaders
                   </Button>
                 </Link>
@@ -105,29 +96,27 @@ export default function About() {
 
             <AnimatedSection direction="right">
               <div className="relative">
-                <div className="absolute -top-6 -right-6 w-48 h-48 bg-gold/10 rounded-3xl" />
-                <div className="absolute -bottom-6 -left-6 w-36 h-36 bg-primary/10 rounded-3xl" />
-                <div className="relative bg-white rounded-3xl p-8 shadow-lg">
+                <div className="relative bg-card border border-border/80 rounded-3xl p-8 shadow-lg">
                   <div className="grid grid-cols-2 gap-6">
-                    <div className="text-center p-6 bg-cream rounded-2xl">
-                      <BookOpen className="w-10 h-10 text-gold mx-auto mb-3" />
-                      <p className="font-display text-3xl font-bold text-primary">50+</p>
-                      <p className="text-sm text-muted-foreground">Programs</p>
+                    <div className="text-center p-6 bg-editorial-cream rounded-2xl">
+                      <BookOpen className="w-10 h-10 text-[#063F40] mx-auto mb-3" />
+                      <p className="text-3xl font-extrabold text-foreground">50+</p>
+                      <p className="text-xs font-medium text-muted-foreground mt-1">Programs</p>
                     </div>
-                    <div className="text-center p-6 bg-cream rounded-2xl">
-                      <Users className="w-10 h-10 text-gold mx-auto mb-3" />
-                      <p className="font-display text-3xl font-bold text-primary">5000+</p>
-                      <p className="text-sm text-muted-foreground">Students</p>
+                    <div className="text-center p-6 bg-editorial-cream rounded-2xl">
+                      <Users className="w-10 h-10 text-[#063F40] mx-auto mb-3" />
+                      <p className="text-3xl font-extrabold text-foreground">5000+</p>
+                      <p className="text-xs font-medium text-muted-foreground mt-1">Students</p>
                     </div>
-                    <div className="text-center p-6 bg-cream rounded-2xl">
-                      <Trophy className="w-10 h-10 text-gold mx-auto mb-3" />
-                      <p className="font-display text-3xl font-bold text-primary">150+</p>
-                      <p className="text-sm text-muted-foreground">Awards</p>
+                    <div className="text-center p-6 bg-editorial-cream rounded-2xl">
+                      <Trophy className="w-10 h-10 text-[#063F40] mx-auto mb-3" />
+                      <p className="text-3xl font-extrabold text-foreground">150+</p>
+                      <p className="text-xs font-medium text-muted-foreground mt-1">Awards</p>
                     </div>
-                    <div className="text-center p-6 bg-cream rounded-2xl">
-                      <Award className="w-10 h-10 text-gold mx-auto mb-3" />
-                      <p className="font-display text-3xl font-bold text-primary">95%</p>
-                      <p className="text-sm text-muted-foreground">Success Rate</p>
+                    <div className="text-center p-6 bg-editorial-cream rounded-2xl">
+                      <Award className="w-10 h-10 text-[#063F40] mx-auto mb-3" />
+                      <p className="text-3xl font-extrabold text-foreground">95%</p>
+                      <p className="text-xs font-medium text-muted-foreground mt-1">Success Rate</p>
                     </div>
                   </div>
                 </div>

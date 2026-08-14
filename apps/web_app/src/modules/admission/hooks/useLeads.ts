@@ -29,8 +29,8 @@ export function useLeads(params?: Record<string, unknown>, options?: { enabled?:
 }
 
 export function useLeadDashboard(params?: Record<string, unknown>) {
-  const leadsQuery = useGetLeadsQuery();
-  const visitsQuery = useGetCampusVisitsQuery();
+  const leadsQuery = useGetLeadsQuery(undefined);
+  const visitsQuery = useGetCampusVisitsQuery(undefined);
 
   const leads = useMemo(() => leadsQuery.data || [], [leadsQuery.data]);
   const visitors = useMemo(() => visitsQuery.data || [], [visitsQuery.data]);

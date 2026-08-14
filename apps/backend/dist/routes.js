@@ -7,6 +7,8 @@ exports.router = void 0;
 const express_1 = require("express");
 const auth_middleware_1 = require("./auth/auth.middleware");
 const auth_routes_1 = require("./auth/auth.routes");
+const auth_controller_1 = require("./auth/auth.controller");
+const tenant_middleware_1 = require("./middlewares/tenant.middleware");
 const rbac_middleware_1 = require("./rbac/rbac.middleware");
 const permissions_1 = require("./rbac/permissions");
 const supabase_1 = require("./config/supabase");
@@ -27,6 +29,7 @@ const workflow_routes_1 = require("./workflows/workflow.routes");
 const task_routes_1 = require("./workflows/task.routes");
 const lead_routes_1 = require("./modules/lead-management/routes/lead.routes");
 const admission_routes_1 = require("./modules/admission-management/routes/admission.routes");
+const admission_controller_2 = require("./modules/admission-management/controllers/admission.controller");
 const student_routes_1 = require("./modules/student-management/routes/student.routes");
 const parent_routes_1 = require("./modules/parent-management/routes/parent.routes");
 const academic_routes_1 = require("./modules/academic-management/routes/academic.routes");
@@ -73,12 +76,17 @@ exports.router.get('/system/info', (req, res) => {
 exports.router.use('/auth', auth_routes_1.publicAuthRouter);
 exports.router.use('/v1/auth', auth_routes_1.publicAuthRouter);
 // Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
+exports.router.post('/v1/admission/register', tenant_middleware_1.resolveTenantMiddleware, auth_controller_1.AuthController.registerParent);
+exports.router.post('/v1/admission/verify-otp', auth_controller_1.AuthController.verifyOtp);
 exports.router.post('/v1/admission/public-apply', index_1.publicApplicationController.apply);
 exports.router.post('/admissions/public-apply', index_1.publicApplicationController.apply);
 exports.router.post('/admissions', auth_middleware_1.authenticateOptional, admission_controller_1.AdmissionController.create);
 // Public Online Enquiry Endpoints (Website Visitors)
-exports.router.post('/v1/admission/crm/enquiries', auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
-exports.router.post('/v1/admission/enquiries', auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
+exports.router.get('/v1/admission/crm/query-types', index_1.enquiryController.getQueryTypes);
+exports.router.get('/v1/admission/query-types', index_1.enquiryController.getQueryTypes);
+exports.router.get('/admission/query-types', index_1.enquiryController.getQueryTypes);
+exports.router.post('/v1/admission/crm/enquiries', tenant_middleware_1.resolveTenantMiddleware, auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
+exports.router.post('/v1/admission/enquiries', tenant_middleware_1.resolveTenantMiddleware, auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
 // Public lookup for schools/organizations
 exports.router.get('/schools', async (req, res) => {
     try {
@@ -137,59 +145,79 @@ const client_1 = require("@prisma/client");
 // Public lookup for academic years of a school
 exports.router.get('/public/academic-years', async (req, res) => {
     try {
-        const { school_id } = req.query;
-        let targetOrgId = school_id;
+        const targetOrgId = (req.query.school_id ||
+            req.query.org_id ||
+            req.context?.user?.org_id ||
+            req.context?.user?.school_id);
         if (!targetOrgId) {
-            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
-            targetOrgId = activeOrg?.org_id || '';
+            return res
+                .status(400)
+                .json({ error: 'School ID (school_id or org_id) parameter is required' });
         }
         const years = await prismaClient_1.default.academic_years.findMany({
-            where: targetOrgId ? { org_id: targetOrgId } : undefined,
+            where: { org_id: targetOrgId },
             orderBy: { created_at: 'desc' },
             select: { academic_year_id: true, academic_year_name: true, status: true },
         });
         res.json(years.map((y) => ({
             id: y.academic_year_id,
             year_label: y.academic_year_name,
-            is_active: y.status === client_1.academic_year_status.admissions_open || y.status === client_1.academic_year_status.open || y.status === client_1.academic_year_status.planning,
+            is_active: y.status === client_1.academic_year_status.admissions_open ||
+                y.status === client_1.academic_year_status.open ||
+                y.status === client_1.academic_year_status.planning,
         })));
     }
     catch (error) {
-        res.status(200).json([]);
+        res.status(500).json({ error: error.message });
     }
 });
 // v1-prefixed alias
 exports.router.get('/v1/public/academic-years', async (req, res) => {
     try {
-        const { school_id } = req.query;
-        let targetOrgId = school_id;
+        const targetOrgId = (req.query.school_id ||
+            req.query.org_id ||
+            req.context?.user?.org_id ||
+            req.context?.user?.school_id);
         if (!targetOrgId) {
-            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
-            targetOrgId = activeOrg?.org_id || '';
+            return res
+                .status(400)
+                .json({ error: 'School ID (school_id or org_id) parameter is required' });
         }
         const years = await prismaClient_1.default.academic_years.findMany({
-            where: targetOrgId ? { org_id: targetOrgId } : undefined,
+            where: { org_id: targetOrgId },
             orderBy: { created_at: 'desc' },
             select: { academic_year_id: true, academic_year_name: true, status: true },
         });
         res.json(years.map((y) => ({
             id: y.academic_year_id,
             year_label: y.academic_year_name,
-            is_active: y.status === client_1.academic_year_status.admissions_open || y.status === client_1.academic_year_status.open || y.status === client_1.academic_year_status.planning,
+            is_active: y.status === client_1.academic_year_status.admissions_open ||
+                y.status === client_1.academic_year_status.open ||
+                y.status === client_1.academic_year_status.planning,
         })));
     }
     catch (error) {
-        res.status(200).json([]);
+        res.status(500).json({ error: error.message });
     }
 });
 exports.router.get('/public/classes', async (req, res) => {
     try {
-        const { school_id, academic_year_id } = req.query;
-        let targetOrgId = school_id;
-        if (!targetOrgId) {
-            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
-            targetOrgId = activeOrg?.org_id || '';
+        let targetOrgId = (req.query.school_id ||
+            req.query.org_id ||
+            req.context?.user?.org_id ||
+            req.context?.user?.school_id);
+        if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
+            const activeOrg = (await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } })) ||
+                (await prismaClient_1.default.organizations.findFirst());
+            if (activeOrg)
+                targetOrgId = activeOrg.org_id;
         }
+        if (!targetOrgId) {
+            return res
+                .status(400)
+                .json({ error: 'School ID (school_id or org_id) parameter is required' });
+        }
+        const { academic_year_id } = req.query;
         let targetYearId = academic_year_id;
         if (!targetYearId && targetOrgId) {
             const activeYear = await prismaClient_1.default.academic_years.findFirst({
@@ -259,18 +287,22 @@ exports.router.get('/public/classes', async (req, res) => {
         })));
     }
     catch (error) {
-        res.status(200).json([]);
+        res.status(500).json({ error: error.message });
     }
 });
 // v1-prefixed alias
 exports.router.get('/v1/public/classes', async (req, res) => {
     try {
-        const { school_id, academic_year_id } = req.query;
-        let targetOrgId = school_id;
+        const targetOrgId = (req.query.school_id ||
+            req.query.org_id ||
+            req.context?.user?.org_id ||
+            req.context?.user?.school_id);
         if (!targetOrgId) {
-            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
-            targetOrgId = activeOrg?.org_id || '';
+            return res
+                .status(400)
+                .json({ error: 'School ID (school_id or org_id) parameter is required' });
         }
+        const { academic_year_id } = req.query;
         let targetYearId = academic_year_id;
         if (!targetYearId && targetOrgId) {
             const activeYear = await prismaClient_1.default.academic_years.findFirst({
@@ -333,7 +365,7 @@ exports.router.get('/v1/public/classes', async (req, res) => {
         })));
     }
     catch (error) {
-        res.status(200).json([]);
+        res.status(500).json({ error: error.message });
     }
 });
 // Public lookup for transport routes of a school
@@ -374,7 +406,12 @@ exports.router.get('/public/admission/grades', async (req, res) => {
                 where: { org_id: targetOrgId, is_active: true },
                 orderBy: { display_order: 'asc' },
             });
-            return res.json(grades.map((g) => ({ id: g.grade_id, grade_id: g.grade_id, grade_name: g.grade_name, board: g.board || 'CBSE' })));
+            return res.json(grades.map((g) => ({
+                id: g.grade_id,
+                grade_id: g.grade_id,
+                grade_name: g.grade_name,
+                board: g.board || 'CBSE',
+            })));
         }
         res.json(aygList.map((ayg) => ({
             id: ayg.academic_year_grade_id,
@@ -393,12 +430,10 @@ exports.router.get('/public/admission/grades', async (req, res) => {
 // so there is exactly ONE implementation — no dual-implementation risk.
 const admissionConfigHandler = async (req, res) => {
     try {
-        const { school_id } = req.query;
-        let targetOrgId = school_id;
-        if (!targetOrgId) {
-            const activeOrg = await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } });
-            targetOrgId = activeOrg?.org_id || '';
-        }
+        const targetOrgId = (req.query.school_id ||
+            req.query.org_id ||
+            req.context?.user?.org_id ||
+            req.context?.user?.school_id) || '';
         const schools = await prismaClient_1.default.organizations.findMany({
             where: { status: 'active' },
             select: { org_id: true, org_name: true, org_code: true },
@@ -492,9 +527,9 @@ exports.router.use(auth_middleware_1.checkLoginApproval);
 // Protected Auth Router
 exports.router.use('/auth', auth_routes_1.protectedAuthRouter);
 exports.router.use('/v1/auth', auth_routes_1.protectedAuthRouter);
-// Parent CRM applications (alias for /v1/admission/application/my)
-exports.router.get('/v1/admission/my', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_VIEW_SELF), index_1.applicationController.listMine);
-exports.router.post('/v1/admission/apply', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_CREATE), index_1.applicationController.parentApply);
+// Parent CRM applications (alias for /v1/applications/mine)
+exports.router.get('/v1/admission/my', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_VIEW_SELF), admission_controller_2.AdmissionController.getMine);
+exports.router.post('/v1/admission/apply', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_CREATE), admission_controller_2.AdmissionController.create);
 // 1. GET /me & GET /auth/me
 const handleMe = async (req, res) => {
     try {

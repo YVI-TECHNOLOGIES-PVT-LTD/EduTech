@@ -46,13 +46,13 @@ export const studentApi = apiSlice.injectEndpoints({
       query: (id: string) => `/students/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Student', id }],
     }),
-    getParents: builder.query<ParentRecord[], void>({
-      query: () => ENDPOINTS.STUDENTS.PARENTS,
+    getParents: builder.query<ParentRecord[], string | void>({
+      query: (studentId?: string | void) => (studentId ? ENDPOINTS.STUDENTS.PARENTS(studentId) : '/v1/parents'),
       providesTags: ['Parent'],
     }),
     enrollStudent: builder.mutation<StudentRecord, EnrollStudentPayload>({
       query: (body: EnrollStudentPayload) => ({
-        url: ENDPOINTS.STUDENTS.ENROLL,
+        url: '/v1/students/enroll',
         method: 'POST',
         body,
       }),

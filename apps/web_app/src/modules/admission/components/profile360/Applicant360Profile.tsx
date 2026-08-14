@@ -34,7 +34,7 @@ function WorkflowRibbon({ status }: { status: string }) {
     ) || ADMISSION_WORKFLOW.RECEIVED;
 
     return (
-        <div className="bg-white dark:bg-card p-4 border border-gray-150 rounded-2xl shadow-sm overflow-x-auto">
+        <div className="bg-card p-4 border border-border/80 rounded-2xl shadow-sm overflow-x-auto">
             <div className="flex items-center gap-2 min-w-[1000px] justify-between">
                 {WORKFLOW_STAGES_ORDER.map((stageId, i) => {
                     const stage = ADMISSION_WORKFLOW[stageId];
@@ -42,11 +42,11 @@ function WorkflowRibbon({ status }: { status: string }) {
                     const isCurrent = stage.id === currentStage.id;
                     const isPending = stage.order > currentStage.order;
 
-                    let bgStyle = 'bg-gray-50 text-gray-400 border-gray-200';
+                    let bgStyle = 'bg-muted/40 text-muted-foreground border-border/60';
                     if (isCompleted) {
-                        bgStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        bgStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800';
                     } else if (isCurrent) {
-                        bgStyle = 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-2 ring-indigo-100';
+                        bgStyle = 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-2 ring-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800';
                     }
 
                     return (
@@ -57,13 +57,13 @@ function WorkflowRibbon({ status }: { status: string }) {
                                         {isCompleted ? '✓ Done' : isCurrent ? '● Active' : '○ Pending'}
                                     </span>
                                     {stage.isOptional && (
-                                        <span className="text-[8px] bg-slate-200 text-slate-600 font-extrabold px-1 rounded uppercase scale-90">Optional</span>
+                                        <span className="text-[8px] bg-muted text-muted-foreground font-extrabold px-1 rounded uppercase">Optional</span>
                                     )}
                                 </div>
-                                <span className="text-[9px] font-black uppercase tracking-wide truncate">{stage.displayName}</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wide truncate">{stage.displayName}</span>
                             </div>
                             {i < WORKFLOW_STAGES_ORDER.length - 1 && (
-                                <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                             )}
                         </React.Fragment>
                     );

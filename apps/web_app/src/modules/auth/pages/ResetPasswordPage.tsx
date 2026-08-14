@@ -45,7 +45,7 @@ export const ResetPasswordPage: React.FC = () => {
     }
     try {
       setError(null);
-      await resetPasswordApi({ token, new_password: data.password }).unwrap();
+      await (resetPasswordApi as any)({ token, password: data.password, new_password: data.password }).unwrap();
       setSubmitted(true);
     } catch (err: any) {
       setError(err?.data?.message || 'Password reset failed. The link may have expired.');

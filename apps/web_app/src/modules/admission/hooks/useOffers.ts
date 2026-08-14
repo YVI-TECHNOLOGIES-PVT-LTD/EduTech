@@ -7,7 +7,7 @@ export function useOffers(applicationId?: string) {
 
     const meritQuery = useQuery({
         queryKey: AdmissionEngine.cacheKeys.merit(applicationId ?? ''),
-        queryFn: () => admissionApi.getMeritList(applicationId!).then(res => res.data),
+        queryFn: () => admissionApi.getMeritList(applicationId!).then(res => res.data).catch(() => null),
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
     });
@@ -53,7 +53,7 @@ export function useOffers(applicationId?: string) {
 export function useMeritList(applicationId: string) {
     return useQuery({
         queryKey: AdmissionEngine.cacheKeys.merit(applicationId),
-        queryFn: () => admissionApi.getMeritList(applicationId).then(res => res.data),
+        queryFn: () => admissionApi.getMeritList(applicationId).then(res => res.data).catch(() => null),
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
     });
@@ -75,7 +75,7 @@ export function useGenerateMeritList() {
 export function useExamResults(applicationId: string) {
     return useQuery({
         queryKey: AdmissionEngine.cacheKeys.examResults(applicationId),
-        queryFn: () => admissionApi.getExamResults(applicationId).then(res => res.data),
+        queryFn: () => admissionApi.getExamResults(applicationId).then(res => res.data).catch(() => []),
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
     });

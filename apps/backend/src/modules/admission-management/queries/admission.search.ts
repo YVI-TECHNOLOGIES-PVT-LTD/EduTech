@@ -21,7 +21,16 @@ export class AdmissionSearchQuery {
     }
 
     if (q.created_by) {
-      whereClause.created_by = q.created_by;
+      whereClause.OR = [
+        { created_by: q.created_by },
+        {
+          leads: {
+            parents: {
+              user_id: q.created_by,
+            },
+          },
+        },
+      ];
     }
 
     if (q.startDate || q.endDate) {

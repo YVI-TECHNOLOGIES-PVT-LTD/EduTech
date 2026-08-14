@@ -266,7 +266,7 @@ const AdminDashboardInner = () => {
   const kpiElements = cards.map((c, i) => (
     <div
       key={i}
-      className="group relative bg-white dark:bg-card p-6 rounded-3xl border border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
+      className="group relative bg-card p-6 rounded-2xl border border-border/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
     >
       <div className="flex items-start justify-between">
         <div
@@ -292,22 +292,22 @@ const AdminDashboardInner = () => {
       </div>
 
       <div className="mt-5 space-y-1">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none">
           {c.label}
         </p>
         <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+          <span className="text-2xl font-black text-foreground tracking-tight">
             {c.format}
             <AnimatedNumber value={c.value} />
           </span>
-          <span className="text-[10px] font-bold text-emerald-500 ml-1">{c.trend}</span>
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1">{c.trend}</span>
         </div>
       </div>
 
       {c.link && (
         <Link
           to={c.link}
-          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-muted/60 hover:bg-primary hover:text-white rounded-lg text-muted-foreground"
+          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-muted hover:bg-primary hover:text-white rounded-lg text-muted-foreground"
         >
           <ArrowUpRight className="w-3.5 h-3.5" />
         </Link>
@@ -322,14 +322,14 @@ const AdminDashboardInner = () => {
       icon={Sparkles}
       actions={
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 p-2.5 bg-white dark:bg-card border border-border/40 rounded-xl hover:bg-gray-50 text-muted-foreground hover:text-primary transition-all shadow-premium-sm">
+          <button className="flex items-center gap-2 p-2.5 bg-card border border-border/80 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm">
             <Bell className="w-4 h-4" />
           </button>
           <Link
             to="/app/admissions/review"
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl font-bold transition-all shadow-premium-md shadow-glow hover:scale-[1.01] text-xs"
+            className="flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
           >
-            <ShieldCheck className="w-4.5 h-4.5" />
+            <ShieldCheck className="w-4 h-4" />
             Admin Panel Actions
           </Link>
         </div>

@@ -20,8 +20,12 @@ export function useTimeline(applicationId?: string) {
                     timestamp: entry.timestamp ?? (entry as { created_at?: string }).created_at ?? '',
                 }));
             } catch {
-                const { data } = await admissionApi.getTimeline(applicationId!);
-                return mapTimelineApiResponse(data);
+                try {
+                    const { data } = await admissionApi.getTimeline(applicationId!);
+                    return mapTimelineApiResponse(data);
+                } catch {
+                    return [];
+                }
             }
         },
         enabled: !!applicationId,

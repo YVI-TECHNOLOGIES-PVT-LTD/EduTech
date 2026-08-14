@@ -72,8 +72,11 @@ export class EnquiryService extends BaseService {
       validated.gender || null,
       validated.current_school || null,
       validated.address || null,
-      validated.remarks || null,
+      validated.query_type
+        ? `[${validated.query_type}] ${validated.remarks || ''}`.trim()
+        : validated.remarks || null,
     );
+
 
     const saved = await this.enquiryRepo.save(enquiry, {
       contact_consent: validated.contact_consent,
@@ -402,7 +405,10 @@ export class EnquiryService extends BaseService {
 
       const emailMatches = m.parentEmail === enquiryData.parent_email;
       const phoneMatches = m.parentPhone === enquiryData.parent_phone;
-      const nameMatches = m.studentName.toLowerCase() === enquiryData.student_name.toLowerCase();
+      const targetStudentName = (enquiryData.student_name || '').toLowerCase();
+      const matchStudentName = (m.studentName || '').toLowerCase();
+      const nameMatches = targetStudentName !== '' && matchStudentName !== '' && matchStudentName === targetStudentName;
+
 
       if (nameMatches && phoneMatches && emailMatches && dobMatches) {
         matchType = 'exact_match';

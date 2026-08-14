@@ -37,6 +37,11 @@ admissionRouter.post(
 );
 admissionRouter.get('/', checkPermission(AdmissionPolicy.canView()), AdmissionController.search);
 admissionRouter.get(
+  '/mine',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionController.getMine,
+);
+admissionRouter.get(
   '/:id',
   checkPermission(AdmissionPolicy.canView()),
   AdmissionController.getById,

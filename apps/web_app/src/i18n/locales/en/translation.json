@@ -1,14 +1,40 @@
 {
-    "common": {
-        "dashboard": "Dashboard",
-        "admissions": "Admissions",
-        "students": "Students",
-        "attendance": "Attendance",
-        "profile": "Profile",
-        "settings": "Settings",
-        "logout": "Logout",
-        "save": "Save changes",
-        "cancel": "Cancel",
-        "loading": "Loading..."
-    }
+  "common": {
+    "dashboard": "Dashboard",
+    "admissions": "Admissions",
+    "students": "Students",
+    "attendance": "Attendance",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "save": "Save changes",
+    "cancel": "Cancel",
+    "loading": "Loading..."
+  },
+  "enquiry": {
+    "heading": "Have questions about admissions?",
+    "subtitle": "Share a few details and our admissions team will get in touch with you.",
+    "badge": "No application is required at this stage.",
+    "parentDetails": "PARENT / ENQUIRER DETAILS",
+    "studentDetails": "STUDENT DETAILS",
+    "yourQuery": "YOUR QUERY",
+    "nameLabel": "Name *",
+    "namePlaceholder": "Enter full name",
+    "mobileLabel": "Mobile Number *",
+    "mobilePlaceholder": "+91 00000 00000",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "example@email.com",
+    "studentNameLabel": "Student Name",
+    "studentNamePlaceholder": "Enter student's full name",
+    "gradeLabel": "Grade / Class Interested In",
+    "academicYearLabel": "Academic Year",
+    "queryTypeLabel": "Query Type",
+    "messageLabel": "Message / Query",
+    "messagePlaceholder": "Tell us what you'd like to know...",
+    "consentLabel": "I agree to be contacted by the school regarding my admission enquiry.",
+    "submitButton": "Submit Enquiry",
+    "submitting": "Submitting...",
+    "helpCardHeading": "How can our admissions team help?",
+    "immediateHelpHeading": "Need immediate help?"
+  }
 }

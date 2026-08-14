@@ -1,20 +1,7 @@
 import React, { useState } from 'react';
-import {
-  UploadCloud,
-  FileCheck,
-  CheckCircle2,
-  AlertCircle,
-  X,
-  ArrowRight,
-  ArrowLeft,
-  AlertTriangle,
-  Upload,
-  RefreshCw,
-  Eye,
-} from 'lucide-react';
-import { Card } from '../../../../components/ui/card';
+import { AlertCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
+import { DocumentUploadCard } from '../../components/DocumentUploadCard';
 
 interface ParentDocumentsStepProps {
   uploadedDocs: Record<string, { file_name: string; file_size: string }>;
@@ -30,37 +17,33 @@ const REQUIRED_DOCS = [
     id: 'aadhaar_card',
     name: "Student's Aadhaar Card",
     mandatory: true,
-    desc: 'aadhaar_scan_v1.pdf • 1.2 MB • AI VERIFIED INSTANTLY',
-    status: 'VERIFIED',
-    badgeText: 'VERIFICATION SUCCESS',
-    badgeType: 'success',
+    accept: '.pdf,.jpg,.jpeg,.png',
+    maxSizeMb: 5,
+    hint: 'PDF / JPG / PNG • Max 5 MB',
   },
   {
     id: 'birth_certificate',
     name: 'Birth Certificate',
     mandatory: true,
-    desc: 'birth_cert_scan.pdf • 2.4 MB',
-    status: 'IN REVIEW',
-    badgeText: 'PENDING VERIFICATION',
-    badgeType: 'warning',
+    accept: '.pdf,.jpg,.jpeg,.png',
+    maxSizeMb: 5,
+    hint: 'PDF / JPG / PNG • Max 5 MB',
   },
   {
     id: 'passport_photo',
     name: "Student's Photo",
     mandatory: true,
-    desc: 'Reason: Photo is too blurry. Please upload a clear passport-size photo.',
-    status: 'ACTION NEEDED',
-    badgeText: 'RE-UPLOAD NEEDED',
-    badgeType: 'error',
+    accept: '.jpg,.jpeg,.png',
+    maxSizeMb: 5,
+    hint: 'JPG / PNG • Max 5 MB',
   },
   {
     id: 'academic_records',
     name: 'Previous Academic Records',
     mandatory: false,
-    desc: 'Last 2 years report cards (if applicable)',
-    status: 'OPTIONAL',
-    badgeText: 'OPTIONAL',
-    badgeType: 'neutral',
+    accept: '.pdf,.jpg,.jpeg,.png',
+    maxSizeMb: 5,
+    hint: 'PDF / JPG / PNG • Max 5 MB (Optional)',
   },
 ];
 
@@ -76,8 +59,7 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
 
   const handleProceed = () => {
     const missingMandatory = REQUIRED_DOCS.filter(
-      (d) =>
-        d.mandatory && !uploadedDocs[d.id] && d.status !== 'VERIFIED' && d.status !== 'IN REVIEW',
+      (d) => d.mandatory && !uploadedDocs[d.id],
     );
     if (missingMandatory.length > 0) {
       setError(`Please upload required document: ${missingMandatory[0].name}`);
@@ -114,136 +96,30 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
         <div className="space-y-1 text-xs text-amber-950">
           <h3 className="font-extrabold">File Upload Guidelines</h3>
           <ul className="space-y-0.5 text-amber-900 font-medium text-[11px]">
-            <li>• Max file size: 5 MB per PDF, JPG, or PNG</li>
-            <li>• Ensure text is clearly legible</li>
+            <li>• Max file size: 5 MB per PDF, JPG, or PNG file</li>
+            <li>• Ensure document text and photograph are clearly legible</li>
+            <li>• Uploaded files will undergo security scanning and school desk verification</li>
           </ul>
         </div>
       </div>
 
-      {/* Document Cards List */}
+      {/* Document Upload Cards List */}
       <div className="space-y-3.5">
-        {REQUIRED_DOCS.map((doc) => {
-          const uploaded = uploadedDocs[doc.id];
-          const isVerified = doc.status === 'VERIFIED';
-          const isInReview = doc.status === 'IN REVIEW';
-          const isActionNeeded = doc.status === 'ACTION NEEDED';
-
-          return (
-            <div
-              key={doc.id}
-              className={`bg-white rounded-3xl p-5 border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-                isActionNeeded
-                  ? 'border-red-200 bg-red-50/10'
-                  : isVerified
-                    ? 'border-emerald-100'
-                    : 'border-gray-100'
-              }`}
-            >
-              {/* Document Icon & Information */}
-              <div className="flex items-center space-x-4 min-w-0">
-                <div
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
-                    isVerified
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : isInReview
-                        ? 'bg-amber-50 text-amber-600'
-                        : isActionNeeded
-                          ? 'bg-red-50 text-red-600'
-                          : 'bg-indigo-50 text-indigo-600'
-                  }`}
-                >
-                  {isVerified ? (
-                    <FileCheck className="w-5 h-5" />
-                  ) : isActionNeeded ? (
-                    <AlertCircle className="w-5 h-5" />
-                  ) : (
-                    <UploadCloud className="w-5 h-5" />
-                  )}
-                </div>
-
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-xs font-bold text-gray-900">{doc.name}</h3>
-                    {doc.mandatory && <span className="text-red-500 font-bold">*</span>}
-
-                    {/* Status Badge */}
-                    <span
-                      className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                        isVerified
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : isInReview
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : isActionNeeded
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-gray-100 text-gray-500 border-gray-200'
-                      }`}
-                    >
-                      {doc.status}
-                    </span>
-                  </div>
-
-                  <p
-                    className={`text-[11px] font-medium truncate ${
-                      isActionNeeded ? 'text-red-600 font-semibold' : 'text-gray-500'
-                    }`}
-                  >
-                    {uploaded?.file_name
-                      ? `${uploaded.file_name} • ${uploaded.file_size}`
-                      : doc.desc}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="flex items-center space-x-3 shrink-0">
-                {isVerified ? (
-                  <div className="flex items-center space-x-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black uppercase tracking-wider gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      VERIFICATION SUCCESS
-                    </span>
-                    <button
-                      type="button"
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
-                      title="View File"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : isInReview ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider gap-1">
-                    <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" />
-                    PENDING VERIFICATION
-                  </span>
-                ) : isActionNeeded ? (
-                  <label className="inline-flex items-center px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-200 transition-colors cursor-pointer gap-1.5">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Re-upload File</span>
-                    <input
-                      type="file"
-                      disabled={isReadOnly}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => onFileUpload(doc.id, e)}
-                      className="hidden"
-                    />
-                  </label>
-                ) : (
-                  <label className="inline-flex items-center px-5 py-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200/80 transition-colors cursor-pointer gap-1.5">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload File</span>
-                    <input
-                      type="file"
-                      disabled={isReadOnly}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => onFileUpload(doc.id, e)}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {REQUIRED_DOCS.map((doc) => (
+          <DocumentUploadCard
+            key={doc.id}
+            id={doc.id}
+            name={doc.name}
+            mandatory={doc.mandatory}
+            hint={doc.hint}
+            accept={doc.accept}
+            maxSizeMb={doc.maxSizeMb}
+            uploadedDoc={uploadedDocs[doc.id]}
+            onFileUpload={(e) => onFileUpload(doc.id, e)}
+            onRemoveDoc={() => onRemoveDoc(doc.id)}
+            isReadOnly={isReadOnly}
+          />
+        ))}
       </div>
 
       {error && (

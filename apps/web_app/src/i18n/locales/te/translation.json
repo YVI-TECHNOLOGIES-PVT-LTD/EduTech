@@ -10,5 +10,32 @@
         "save": "మార్పులను సేవ్ చేయి",
         "cancel": "రద్దు చేయి",
         "loading": "లోడ్ అవుతోంది..."
+    },
+    "enquiry": {
+        "heading": "అడ్మిషన్ల గురించి ప్రశ్నలు ఉన్నాయా?",
+        "subtitle": "కొన్ని వివరాలను పంచుకోండి, మా అడ్మిషన్ల బృందం మిమ్మల్ని సంప్రదిస్తుంది.",
+        "badge": "ఈ దశలో అప్లికేషన్ అవసరం లేదు.",
+        "parentDetails": "తల్లిదండ్రులు / విచారణకర్త వివరాలు",
+        "studentDetails": "విద్యార్థి వివరాలు",
+        "yourQuery": "మీ ప్రశ్న",
+        "nameLabel": "పేరు *",
+        "namePlaceholder": "పూర్తి పేరు నమోదు చేయండి",
+        "mobileLabel": "మొబైల్ సంఖ్య *",
+        "mobilePlaceholder": "+91 00000 00000",
+        "emailLabel": "ఇమెయిల్ చిరునామా",
+        "emailPlaceholder": "example@email.com",
+        "studentNameLabel": "విద్యార్థి పేరు",
+        "studentNamePlaceholder": "విద్యార్థి పూర్తి పేరు నమోదు చేయండి",
+        "gradeLabel": "ఆసక్తి ఉన్న తరగతి",
+        "academicYearLabel": "విద్యా సంవత్సరం",
+        "queryTypeLabel": "ప్రశ్న రకం",
+        "messageLabel": "సందేశం / ప్రశ్న",
+        "messagePlaceholder": "మీరు ఏమి తెలుసుకోవాలనుకుంటున్నారో మాకు చెప్పండి...",
+        "consentLabel": "నా అడ్మిషన్ విచారణకు సంబంధించి పాఠశాల నన్ను సంప్రదించడానికి నేను అంగీకరిస్తున్నాను.",
+        "submitButton": "విచారణను సమర్పించండి",
+        "submitting": "సమర్పిస్తోంది...",
+        "helpCardHeading": "మా అడ్మిషన్స్ టీమ్ ఎలా సహాయపడుతుంది?",
+        "immediateHelpHeading": "తక్షణ సహాయం కావాలా?"
     }
 }
+

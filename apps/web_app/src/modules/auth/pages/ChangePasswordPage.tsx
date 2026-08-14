@@ -18,9 +18,13 @@ const schema = z
     path: ['confirmPassword'],
   });
 
-type FormData = z.infer<typeof schema>;
+type ChangePasswordFields = z.infer<typeof schema>;
 
-export const ChangePasswordForm: React.FC = () => {
+interface ChangePasswordFormProps {
+  onSuccess?: () => void;
+}
+
+export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onSuccess }) => {
   const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -32,11 +36,11 @@ export const ChangePasswordForm: React.FC = () => {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm<ChangePasswordFields>({
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: ChangePasswordFields) => {
     setIsLoading(true);
     try {
       setError(null);

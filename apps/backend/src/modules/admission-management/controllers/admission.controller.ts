@@ -99,6 +99,7 @@ export class AdmissionController {
         });
       }
 
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id;
       const searchParams = { ...parsed.data };
       const isOnlyParent =
         user?.roles?.includes('PARENT') &&
@@ -106,8 +107,8 @@ export class AdmissionController {
           ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
         );
       if (isOnlyParent || req.query.mine === 'true' || req.query.mine === '1') {
-        if (user?.id) {
-          searchParams.created_by = user.id;
+        if (userId) {
+          searchParams.created_by = userId;
         }
       }
 
@@ -118,6 +119,34 @@ export class AdmissionController {
       const result = await AdmissionService.searchApplications(searchParams);
       return res.json(result);
     } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async getMine(req: Request, res: Response) {
+    try {
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const orgId = user?.org_id || user?.school_id;
+      const searchParams: any = {
+        created_by: userId,
+        org_id: orgId,
+        page: 1,
+        pageSize: 50,
+        sort: 'created_at',
+        order: 'desc',
+      };
+
+      const result = await AdmissionService.searchApplications(searchParams);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof ApplicationError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

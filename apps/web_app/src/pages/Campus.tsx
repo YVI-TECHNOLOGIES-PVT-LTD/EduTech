@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Building, BookOpen, Beaker, Monitor, Dumbbell, Music, Utensils, Bus } from "lucide-react";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
+import { Card } from '@/components/ui/card';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const facilities = [
   { icon: Building, title: "Modern Classrooms", description: "Smart classrooms with interactive whiteboards and A/V equipment." },
@@ -17,30 +19,30 @@ const facilities = [
 export default function Campus() {
   return (
     <div className="overflow-hidden">
-      <section className="relative pt-32 pb-20 bg-hero-gradient">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">Our Campus</span>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-white mb-6">Campus & <span className="text-gold">Facilities</span></h1>
-            <p className="text-lg text-white/80">World-class infrastructure designed to inspire learning and growth.</p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="OUR CAMPUS"
+        title="Spaces Designed for Learning, Growth and Community"
+        accentText="Growth and Community"
+        description="World-class infrastructure designed to inspire learning and growth."
+        backgroundImage="https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-center"
+        metadataItems={["Facilities", "Learning Spaces", "Community"]}
+      />
 
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader subtitle="Facilities" title="Everything You Need" description="Our campus provides all the resources for academic excellence and personal development." />
           <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {facilities.map((facility) => (
               <StaggerItem key={facility.title}>
-                <motion.div whileHover={{ y: -8 }} className="bg-white rounded-2xl p-6 shadow-md h-full text-center">
-                  <div className="w-14 h-14 bg-gold/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <facility.icon className="w-7 h-7 text-gold" />
+                <Card className="p-6 rounded-2xl bg-card border border-border/80 shadow-sm hover:shadow-md transition-all duration-300 h-full text-center flex flex-col items-center">
+                  <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl flex items-center justify-center mb-4 shadow-sm">
+                    <facility.icon className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <h3 className="font-semibold text-primary mb-2">{facility.title}</h3>
-                  <p className="text-sm text-muted-foreground">{facility.description}</p>
-                </motion.div>
+                  <h3 className="font-bold text-foreground text-lg mb-2">{facility.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{facility.description}</p>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -49,3 +51,4 @@ export default function Campus() {
     </div>
   );
 }
+

@@ -70,7 +70,7 @@ export function ReceptionistDashboard() {
                 parent_phone: phone.trim(),
                 grade_applied_for: grade,
                 source: 'Walk-in',
-            });
+            } as any);
             await createVisitor.mutateAsync({
                 visitor_name: parentName.trim(),
                 phone: phone.trim(),

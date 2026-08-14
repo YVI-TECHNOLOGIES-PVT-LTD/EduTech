@@ -17,6 +17,18 @@ export class ParentRepository {
     });
   }
 
+  static async findByUserId(user_id: string) {
+    return db.parents.findUnique({
+      where: { user_id },
+      include: {
+        student_parents: {
+          include: { students: true },
+        },
+        users_parents_user_idTousers: true,
+      },
+    });
+  }
+
   static async findByPhone(org_id: string, phone: string) {
     return db.parents.findFirst({
       where: { org_id, phone },

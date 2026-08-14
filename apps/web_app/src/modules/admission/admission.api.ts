@@ -163,16 +163,33 @@ export const admissionApi = {
   // ==========================================
   getEnquiries: (params?: any) => apiClient.get('/v1/leads', { params }),
 
-  getEnquiryById: (id: string) => apiClient.get(`/v1/leads/${id}`),
+  getLeadById: (id: string) => apiClient.get<any>(`/v1/leads/${id}`),
+  getEnquiryById: (id: string) => apiClient.get<any>(`/v1/leads/${id}`),
 
-  createEnquiry: (data: any) => apiClient.post('/v1/leads', data, { silent: true } as any),
+  createEnquiry: (data?: any) => {
+    const payload = {
+      parent_name: data?.parent_name || data?.name || '',
+      parent_email: data?.parent_email || data?.email || '',
+      parent_phone: data?.parent_phone || data?.phone || '',
+      student_name: data?.student_name || '',
+      grade_applied_for: data?.grade_applied_for || data?.academic_year_grade_id || '',
+      query_type: data?.query_type || '',
+      remarks: data?.remarks || data?.message || '',
+      contact_consent: data?.contact_consent ?? data?.consent ?? true,
+      source: data?.source || 'Website',
+    };
+    return apiClient.post<any>('/v1/admission/enquiries', payload, { silent: true } as any);
+  },
 
-  updateEnquiry: (id: string, data: any) => apiClient.patch(`/v1/leads/${id}`, data),
 
-  deleteEnquiry: (id: string) => apiClient.delete(`/v1/leads/${id}`),
 
-  assignLead: (id: string, counselor_id: string, remarks?: string) =>
-    apiClient.patch(`/v1/leads/${id}/assign`, { assigned_counsellor_id: counselor_id, remarks }),
+  updateLead: (id: string, data: any) => apiClient.patch<any>(`/v1/leads/${id}`, data),
+  updateEnquiry: (id: string, data?: any) => apiClient.patch<any>(`/v1/leads/${id}`, data),
+
+  deleteEnquiry: (id: string) => apiClient.delete<any>(`/v1/leads/${id}`),
+
+  assignLead: (id: string, counselor_id?: string, remarks?: string, reassign?: boolean) =>
+    apiClient.patch(`/v1/leads/${id}/assign`, { assigned_counsellor_id: counselor_id, remarks, reassign }),
 
   qualifyLead: (id: string) => apiClient.post(`/v1/leads/${id}/qualify`),
 
@@ -279,7 +296,7 @@ export const admissionApi = {
   recordExamMarks: (data: any) => apiClient.post('/v1/admission/evaluation/exam/result', data),
 
   getExamResults: (applicationId: string) =>
-    apiClient.get(`/v1/admission/evaluation/exam/results/${applicationId}`),
+    apiClient.get(`/v1/admission/evaluation/exam/results/${applicationId}`, { silent: true } as any),
 
   scheduleInterview: (data: any) =>
     apiClient.post('/v1/admission/evaluation/interview/schedule', data),
@@ -290,7 +307,7 @@ export const admissionApi = {
   generateMeritList: (data: any) => apiClient.post('/v1/admission/evaluation/merit/generate', data),
 
   getMeritList: (applicationId: string) =>
-    apiClient.get(`/v1/admission/evaluation/merit/${applicationId}`),
+    apiClient.get(`/v1/admission/evaluation/merit/${applicationId}`, { silent: true } as any),
 
   generateOffer: (data: any) => apiClient.post('/v1/admission/evaluation/offer/generate', data),
 
@@ -301,7 +318,7 @@ export const admissionApi = {
   rejectOffer: (data: any) => apiClient.post('/v1/admission/evaluation/offer/reject', data),
 
   getTimeline: (applicationId: string) =>
-    apiClient.get(`/v1/admission/evaluation/timeline/${applicationId}`),
+    apiClient.get(`/v1/admission/evaluation/timeline/${applicationId}`, { silent: true } as any),
 
   // ==========================================
   // BILLING & ENROLLMENT (Sprint 6)
@@ -309,7 +326,7 @@ export const admissionApi = {
   assignFeeStructure: (data: any) => apiClient.post('/v1/admission/enrollment/fees/assign', data),
 
   getFeesSummary: (applicationId: string) =>
-    apiClient.get(`/v1/admission/enrollment/fees/${applicationId}`),
+    apiClient.get(`/v1/admission/enrollment/fees/${applicationId}`, { silent: true } as any),
 
   applyFeeWaiver: (data: any) => apiClient.post('/v1/admission/enrollment/waivers', data),
 
@@ -325,7 +342,7 @@ export const admissionApi = {
   enrollStudent: (data: any) => apiClient.post('/v1/admission/enrollment/enroll', data),
 
   getEnrollmentStatus: (applicationId: string) =>
-    apiClient.get(`/v1/admission/enrollment/status/${applicationId}`),
+    apiClient.get(`/v1/admission/enrollment/status/${applicationId}`, { silent: true } as any),
 
   // ==========================================
   // DOCUMENTS (Sprint 4 / Stage 3)
@@ -333,10 +350,19 @@ export const admissionApi = {
   listCrmDocuments: (applicationId: string) =>
     apiClient.get(`/v1/applications/${applicationId}/documents`),
 
-  uploadCrmDocument: (applicationId: string, documentTypeId: string, filePath: string) => {
-    return apiClient.post(`/v1/applications/${applicationId}/documents`, {
-      document_type_id: documentTypeId,
-      file_path: filePath,
+  uploadCrmDocument: (applicationId: string, documentTypeId: string, fileOrPath: File | string): Promise<any> => {
+    if (typeof fileOrPath === 'string') {
+      return apiClient.post(`/v1/applications/${applicationId}/documents`, {
+        document_type_id: documentTypeId,
+        file_path: fileOrPath,
+      });
+    }
+    const form = new FormData();
+    form.append('file', fileOrPath);
+    form.append('application_id', applicationId);
+    form.append('document_type_code', documentTypeId);
+    return apiClient.post(`/v1/applications/${applicationId}/documents`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 
@@ -365,7 +391,7 @@ export const admissionApi = {
     }),
 
   getApplicationProgress: (applicationId: string) =>
-    apiClient.get(`/v1/admission/application/${applicationId}/progress`),
+    apiClient.get(`/v1/admission/application/${applicationId}/progress`, { silent: true } as any),
 
   getAuditLogs: async (applicationId: string) => {
     const { data, error } = await supabase
@@ -386,4 +412,9 @@ export const admissionApi = {
     if (error) throw error;
     return data || [];
   },
+
+  verifyOtp: (data: { email?: string; phone?: string; otp: string }) =>
+    apiClient.post<any>('/v1/admission/verify-otp', data),
+
+  registerParent: (data: any) => apiClient.post<any>('/v1/admission/register', data),
 };

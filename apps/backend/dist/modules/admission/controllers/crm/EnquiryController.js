@@ -1,9 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EnquiryController = void 0;
 const PermissionError_1 = require("../../errors/PermissionError");
 const ControllerErrorHandler_1 = require("./ControllerErrorHandler");
 const admission_service_1 = require("../../admission.service");
+const prismaClient_1 = __importDefault(require("../../../../lib/prismaClient"));
 class EnquiryController {
     constructor(enquiryService, flagService) {
         this.enquiryService = enquiryService;
@@ -14,7 +18,8 @@ class EnquiryController {
                 let schoolId = req.context?.user?.school_id;
                 let academicYearId = req.headers['x-academic-year-id'] || req.body.academic_year_id;
                 if (!schoolId || !academicYearId) {
-                    const resolved = await admission_service_1.AdmissionService.resolveContext();
+                    const requestedYear = req.body.academic_year || req.body.academicYear || req.body.academic_year_name;
+                    const resolved = await admission_service_1.AdmissionService.resolveContext(requestedYear);
                     if (!schoolId)
                         schoolId = resolved.school_id;
                     if (!academicYearId)
@@ -31,6 +36,55 @@ class EnquiryController {
                 });
             }
             catch (err) {
+                console.error('[ENQUIRY-CONTROLLER-ERROR]', err);
+                (0, ControllerErrorHandler_1.handleControllerError)(res, err);
+            }
+        };
+        this.getQueryTypes = async (req, res) => {
+            try {
+                let schoolId = req.context?.user?.school_id;
+                if (!schoolId) {
+                    const resolved = await admission_service_1.AdmissionService.resolveContext();
+                    schoolId = resolved.school_id;
+                }
+                const queryTypes = await prismaClient_1.default.lead_query_types.findMany({
+                    where: {
+                        org_id: schoolId,
+                        is_active: true,
+                    },
+                    orderBy: {
+                        display_order: 'asc',
+                    },
+                    select: {
+                        query_type_id: true,
+                        query_type_name: true,
+                        display_order: true,
+                    },
+                });
+                let items = queryTypes.map((q) => ({
+                    id: q.query_type_id,
+                    name: q.query_type_name,
+                    displayOrder: q.display_order,
+                }));
+                if (items.length === 0) {
+                    const defaultNames = [
+                        'Admission Availability',
+                        'Admission Process',
+                        'Fees',
+                        'Curriculum',
+                        'Documents Required',
+                        'Campus Visit',
+                    ];
+                    items = defaultNames.map((name, idx) => ({
+                        id: `default-${idx + 1}`,
+                        name,
+                        displayOrder: idx + 1,
+                    }));
+                }
+                res.json({ items });
+            }
+            catch (err) {
+                console.error('[QUERY-TYPES-ERROR]', err);
                 (0, ControllerErrorHandler_1.handleControllerError)(res, err);
             }
         };

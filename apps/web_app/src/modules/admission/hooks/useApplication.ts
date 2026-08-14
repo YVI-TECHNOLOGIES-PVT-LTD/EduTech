@@ -59,7 +59,11 @@ export function useApplication(id?: string, options?: { enabled?: boolean; paren
 
 export function useApplicationList(params?: ApplicationListParams, options?: { enabled?: boolean; mine?: boolean }) {
   const isEnabled = options?.enabled ?? true;
-  const query = useGetApplicationsQuery(params, { skip: !isEnabled });
+  const queryParams = {
+    ...params,
+    ...(options?.mine ? { mine: 'true' } : {}),
+  };
+  const query = useGetApplicationsQuery(queryParams, { skip: !isEnabled });
 
   useEffect(() => {
     const refresh = () => void query.refetch();

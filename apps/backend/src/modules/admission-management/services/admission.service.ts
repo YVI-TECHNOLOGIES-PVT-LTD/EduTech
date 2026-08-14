@@ -51,10 +51,85 @@ export class AdmissionService {
 
     let application: any;
 
+    if (performedBy) {
+      let parent: any = await prisma.parents.findUnique({
+        where: { user_id: performedBy },
+      });
+
+      if (!parent) {
+        const user = await prisma.users.findUnique({ where: { user_id: performedBy } });
+        if (user) {
+          let pFirst = dto.parent_first_name || '';
+          let pLast = dto.parent_last_name || '';
+          if (!pFirst && dto.parent_name) {
+            const parts = dto.parent_name.trim().split(' ');
+            pFirst = parts[0];
+            pLast = parts.slice(1).join(' ');
+          }
+
+          const pEmail = user.email || dto.contact_email || dto.parent_email;
+          const pPhone = user.phone || dto.contact_phone || dto.parent_phone || '9999999999';
+
+          const existingUnlinkedParent = await prisma.parents.findFirst({
+            where: {
+              org_id: targetOrgId,
+              OR: [
+                ...(pEmail ? [{ email: pEmail }] : []),
+                ...(pPhone ? [{ phone: pPhone }] : []),
+              ],
+            },
+          });
+
+          if (existingUnlinkedParent) {
+            parent = await prisma.parents.update({
+              where: { parent_id: existingUnlinkedParent.parent_id },
+              data: { user_id: performedBy },
+            });
+          } else {
+            parent = await prisma.parents.create({
+              data: {
+                org_id: targetOrgId,
+                user_id: performedBy,
+                first_name: pFirst || user.first_name || 'Parent',
+                last_name: pLast || user.last_name || undefined,
+                phone: pPhone,
+                email: pEmail || undefined,
+              },
+            });
+          }
+        }
+      }
+
+      // Check for existing duplicate application for this user/parent idempotently
+      const existingUserApp = await prisma.admissions_applications.findFirst({
+        where: {
+          OR: [
+            { created_by: performedBy },
+            ...(parent ? [{ leads: { parent_id: parent.parent_id } }] : []),
+          ],
+          org_id: targetOrgId,
+        },
+        include: {
+          leads: true,
+          academic_years: true,
+          admission_documents: true,
+          application_assessments: true,
+          admission_decisions: true,
+          admission_fee_payments: true,
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      if (existingUserApp) {
+        logger.info(`Idempotent application retrieval for user ${performedBy}: ${existingUserApp.application_id}`);
+        return AdmissionMapper.toResponseDto(existingUserApp);
+      }
+    }
+
     if (targetLeadId) {
       const existingLeadApp = await AdmissionRepository.findByLeadId(targetLeadId);
       if (existingLeadApp) {
-        throw new DuplicateApplicationError(targetLeadId);
+        return AdmissionMapper.toResponseDto(existingLeadApp);
       }
       application = await AdmissionRepository.create(
         {
@@ -67,6 +142,13 @@ export class AdmissionService {
       );
     } else {
       application = await prisma.$transaction(async (tx) => {
+        let parentRecord: any = null;
+        if (performedBy) {
+          parentRecord = await tx.parents.findUnique({
+            where: { user_id: performedBy },
+          });
+        }
+
         let aygId = dto.academic_year_grade_id;
         if (!aygId && dto.grade_id) {
           const ayg = await tx.academic_year_grades.findFirst({
@@ -142,6 +224,7 @@ export class AdmissionService {
             source: 'website' as any,
             stage: 'application_submitted' as any,
             remarks: dto.remarks || undefined,
+            parent_id: parentRecord ? parentRecord.parent_id : undefined,
             created_by: performedBy || undefined,
           },
         });
@@ -211,7 +294,7 @@ export class AdmissionService {
 
   static async updateApplication(
     id: string,
-    dto: UpdateApplicationDto,
+    dto: any,
     performedBy?: string | null,
     orgId?: string,
   ): Promise<ApplicationResponseDto> {
@@ -220,11 +303,31 @@ export class AdmissionService {
       throw new ApplicationNotFoundError(id);
     }
 
+    // Security Ownership Check: If performed by a parent user, verify application ownership
+    if (performedBy) {
+      const parent = await prisma.parents.findUnique({ where: { user_id: performedBy } });
+      if (parent) {
+        const isOwner = existing.leads?.parent_id === parent.parent_id || existing.created_by === performedBy;
+        if (!isOwner) {
+          throw new ApplicationValidationError('Unauthorized: You do not own this application');
+        }
+      }
+    }
+
     if (dto.status && dto.status !== existing.status) {
       ApplicationValidator.validateStatusTransition(existing.status, dto.status);
     }
 
-    const updated = await AdmissionRepository.update(id, dto);
+    // Sanitize payload: Stripping immutable keys
+    const sanitizedDto = { ...dto };
+    delete sanitizedDto.application_id;
+    delete sanitizedDto.id;
+    delete sanitizedDto.lead_id;
+    delete sanitizedDto.created_by;
+    delete sanitizedDto.created_at;
+    delete sanitizedDto.application_number;
+
+    const updated = await AdmissionRepository.update(id, sanitizedDto);
 
     logger.info(`Admission application updated: ${id}`, { applicationId: id, performedBy });
 

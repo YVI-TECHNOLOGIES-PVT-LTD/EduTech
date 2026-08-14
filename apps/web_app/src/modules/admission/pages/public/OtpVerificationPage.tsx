@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { KeyRound, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,10 @@ export const OtpVerificationPage: React.FC = () => {
 
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  if (!email && !phone) {
+    return <Navigate to="/admission/register" replace />;
+  }
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +40,16 @@ export const OtpVerificationPage: React.FC = () => {
 
   return (
     <AdmissionShell
-      currentStep="otp"
-      title="Verify Mobile / Email"
+      title="Verify Account OTP"
       subtitle={`Enter OTP code sent to ${email || phone}`}
     >
-      <form onSubmit={handleVerify} className="space-y-6 max-w-md mx-auto text-center">
-        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <KeyRound className="w-6 h-6" />
+      <form onSubmit={handleVerify} className="space-y-5 max-w-md mx-auto text-center">
+        <div className="w-12 h-12 bg-[#063F40] text-[#E7B76A] rounded-2xl flex items-center justify-center mx-auto mb-2 border border-white/10 shadow-xs">
+          <KeyRound className="w-5 h-5 text-[#E7B76A]" />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold text-foreground mb-2">
             Verification Code
           </label>
           <Input
@@ -54,7 +57,7 @@ export const OtpVerificationPage: React.FC = () => {
             placeholder="123456"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="text-center text-lg font-mono tracking-widest h-12 rounded-xl"
+            className="text-center text-lg font-mono tracking-widest h-11 rounded-xl border-border/80 text-foreground focus-visible:border-[#063F40]"
             maxLength={6}
           />
         </div>
@@ -62,14 +65,14 @@ export const OtpVerificationPage: React.FC = () => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center justify-center space-x-2"
+          className="w-full h-11 bg-[#063F40] hover:bg-[#082F35] text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-md"
         >
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin text-[#E7B76A]" />
           ) : (
-            <span>Verify & Continue</span>
+            <span className="text-[#E7B76A]">Verify & Continue</span>
           )}
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-3.5 h-3.5 text-[#E7B76A]" />
         </Button>
       </form>
     </AdmissionShell>

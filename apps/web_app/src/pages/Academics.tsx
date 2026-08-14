@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
 import { EXTERNAL_URLS } from "@/lib/public-constants";
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const programs = [
   {
@@ -65,29 +66,20 @@ const specialPrograms = [
 export default function Academics() {
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              Academics
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Programs & <span className="text-gold">Curriculum</span>
-            </h1>
-            <p className="text-lg text-white/80">
-              Our comprehensive academic programs are designed to challenge students,
-              foster intellectual curiosity, and prepare them for success in higher
-              education and beyond.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="ACADEMIC EXPERIENCE"
+        title="Learning Pathways Designed Around Every Student"
+        accentText="Every Student"
+        description="Our comprehensive academic programs are designed to challenge students, foster intellectual curiosity, and prepare them for success in higher education and beyond."
+        backgroundImage="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[55%_center]"
+        metadataItems={["Curriculum", "Learning", "Progress"]}
+      />
 
       {/* Academic Levels */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             subtitle="Academic Levels"
             title="Education for Every Stage"
@@ -99,24 +91,24 @@ export default function Academics() {
               <StaggerItem key={program.level}>
                 <motion.div
                   whileHover={{ y: -8 }}
-                  className="bg-white rounded-3xl overflow-hidden shadow-lg h-full flex flex-col"
+                  className="bg-card border border-border/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 h-full flex flex-col"
                 >
-                  <div className={`bg-gradient-to-r ${program.color} p-6`}>
-                    <span className="inline-block bg-white/20 px-3 py-1 rounded-full text-white text-sm font-medium mb-2">
+                  <div className="bg-[#063F40] text-white p-6 border-b border-white/10">
+                    <span className="inline-block bg-[#E7B76A] text-[#063F40] px-3 py-1 rounded-full text-xs font-bold mb-2">
                       {program.grades}
                     </span>
-                    <h3 className="font-display text-2xl font-bold text-white">
+                    <h3 className="font-extrabold text-2xl text-white tracking-tight">
                       {program.level}
                     </h3>
                   </div>
                   <div className="p-6 flex-1 flex flex-col">
-                    <p className="text-muted-foreground mb-6">{program.description}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed">{program.description}</p>
                     <div className="mt-auto">
-                      <h4 className="font-semibold text-primary mb-3">Key Highlights</h4>
+                      <h4 className="font-bold text-foreground mb-3 text-xs uppercase tracking-wider">Key Highlights</h4>
                       <ul className="grid grid-cols-2 gap-2">
                         {program.highlights.map((highlight) => (
-                          <li key={highlight} className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <div className="w-1.5 h-1.5 bg-gold rounded-full" />
+                          <li key={highlight} className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className="w-1.5 h-1.5 bg-[#E7B76A] rounded-full" />
                             {highlight}
                           </li>
                         ))}
@@ -131,8 +123,8 @@ export default function Academics() {
       </section>
 
       {/* Subjects */}
-      <section className="section-padding bg-cream">
-        <div className="container-custom">
+      <section className="py-24 bg-editorial-cream border-t border-border/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             subtitle="Core Subjects"
             title="Comprehensive Curriculum"
@@ -144,14 +136,14 @@ export default function Academics() {
               <StaggerItem key={subject.name}>
                 <motion.div
                   whileHover={{ y: -5 }}
-                  className="bg-white rounded-2xl p-6 shadow-md flex items-start gap-4"
+                  className="bg-card border border-border/80 rounded-2xl p-6 shadow-xs flex items-start gap-4"
                 >
-                  <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                    <subject.icon className="w-7 h-7 text-gold" />
+                  <div className="w-12 h-12 bg-[#063F40] rounded-xl flex items-center justify-center flex-shrink-0">
+                    <subject.icon className="w-6 h-6 text-[#E7B76A]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-primary mb-1">{subject.name}</h3>
-                    <p className="text-sm text-muted-foreground">{subject.description}</p>
+                    <h3 className="font-bold text-foreground mb-1 text-base">{subject.name}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{subject.description}</p>
                   </div>
                 </motion.div>
               </StaggerItem>
