@@ -27,5 +27,6 @@ exports.createEnquirySchema = zod_1.z.object({
     current_school: zod_1.z.string().optional().nullable(),
     address: zod_1.z.string().optional().nullable(),
     remarks: zod_1.z.string().optional().nullable(),
+    query_type: zod_1.z.string().optional().nullable(),
     contact_consent: zod_1.z.boolean().optional().default(false),
 });

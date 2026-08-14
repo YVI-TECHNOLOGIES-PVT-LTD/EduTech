@@ -57,9 +57,10 @@ class EnquiryService extends BaseService_1.BaseService {
         const studentName = validated.student_name && validated.student_name.trim()
             ? validated.student_name.trim()
             : `${validated.parent_name.trim()}'s Ward`;
-        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, studentName, validated.grade_applied_for, validated.parent_name, validated.parent_email, validated.parent_phone, (validated.source || 'Website'), 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null);
+        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, studentName, validated.grade_applied_for, validated.parent_name, validated.parent_email, validated.parent_phone, (validated.source || 'Website'), 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null, validated.query_type || null);
         const saved = await this.enquiryRepo.save(enquiry, {
             contact_consent: validated.contact_consent,
+            query_type: validated.query_type || undefined,
         });
         await this.auditService.logAudit({
             userId: null,
@@ -87,7 +88,7 @@ class EnquiryService extends BaseService_1.BaseService {
             ? validated.date_of_birth
                 ? new Date(validated.date_of_birth)
                 : null
-            : existing.dateOfBirth, validated.gender !== undefined ? validated.gender : existing.gender, validated.current_school !== undefined ? validated.current_school : existing.currentSchool, validated.address !== undefined ? validated.address : existing.address, validated.remarks !== undefined ? validated.remarks : existing.remarks);
+            : existing.dateOfBirth, validated.gender !== undefined ? validated.gender : existing.gender, validated.current_school !== undefined ? validated.current_school : existing.currentSchool, validated.address !== undefined ? validated.address : existing.address, validated.remarks !== undefined ? validated.remarks : existing.remarks, validated.query_type !== undefined ? validated.query_type : existing.queryType);
         const saved = await this.enquiryRepo.save(updated);
         await this.auditService.logAudit({
             userId: null,
@@ -259,7 +260,11 @@ class EnquiryService extends BaseService_1.BaseService {
                     new Date(enquiryData.date_of_birth).toISOString().split('T')[0];
             const emailMatches = m.parentEmail === enquiryData.parent_email;
             const phoneMatches = m.parentPhone === enquiryData.parent_phone;
-            const nameMatches = m.studentName.toLowerCase() === enquiryData.student_name.toLowerCase();
+            const targetStudentName = (enquiryData.student_name || '').toLowerCase();
+            const matchStudentName = (m.studentName || '').toLowerCase();
+            const nameMatches = targetStudentName !== '' &&
+                matchStudentName !== '' &&
+                matchStudentName === targetStudentName;
             if (nameMatches && phoneMatches && emailMatches && dobMatches) {
                 matchType = 'exact_match';
             }

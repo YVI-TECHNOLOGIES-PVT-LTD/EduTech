@@ -293,10 +293,16 @@ exports.router.get('/public/classes', async (req, res) => {
 // v1-prefixed alias
 exports.router.get('/v1/public/classes', async (req, res) => {
     try {
-        const targetOrgId = (req.query.school_id ||
+        let targetOrgId = (req.query.school_id ||
             req.query.org_id ||
             req.context?.user?.org_id ||
             req.context?.user?.school_id);
+        if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
+            const activeOrg = (await prismaClient_1.default.organizations.findFirst({ where: { status: 'active' } })) ||
+                (await prismaClient_1.default.organizations.findFirst());
+            if (activeOrg)
+                targetOrgId = activeOrg.org_id;
+        }
         if (!targetOrgId) {
             return res
                 .status(400)

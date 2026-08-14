@@ -182,6 +182,12 @@ model admissions_applications {
   created_by                                      String?                  @db.Uuid
   updated_at                                      DateTime                 @default(now()) @db.Timestamptz(6)
   updated_by                                      String?                  @db.Uuid
+  nationality                                     String?                  @db.VarChar(100)
+  previous_school_name                            String?                  @db.VarChar(200)
+  previous_school_address                         String?
+  previous_school_board                           String?                  @db.VarChar(100)
+  previous_grade                                  String?                  @db.VarChar(50)
+  previous_school_year                            String?                  @db.VarChar(20)
   admission_decisions                             admission_decisions?
   admission_documents                             admission_documents[]
   admission_fee_payments                          admission_fee_payments?

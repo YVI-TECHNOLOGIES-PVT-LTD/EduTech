@@ -72,7 +72,7 @@ class EnquiryRepository {
             row.academic_year_grades?.grades?.grade_code ||
             'Grade 1';
         const mappedQueryType = row.lead_query_type_mappings?.[0]?.lead_query_types?.query_type_name || null;
-        const domain = new AdmissionEnquiry_1.AdmissionEnquiry(row.lead_id, row.org_id, row.academic_year_grades?.academic_year_id || '', studentName, gradeAppliedFor, row.contact_name, row.contact_email || '', row.contact_phone, 'Website', row.stage === 'enquiry_received' ? 'new' : row.stage === 'qualified' ? 'converted' : 'new', new Date(row.created_at), new Date(row.updated_at), mappedQueryType, row.dob ? new Date(row.dob) : null, row.gender || null, mappedQueryType, null, row.remarks || null);
+        const domain = new AdmissionEnquiry_1.AdmissionEnquiry(row.lead_id, row.org_id, row.academic_year_grades?.academic_year_id || '', studentName, gradeAppliedFor, row.contact_name, row.contact_email || '', row.contact_phone, (row.source || 'website'), row.stage === 'enquiry_received' ? 'new' : row.stage === 'qualified' ? 'converted' : 'new', new Date(row.created_at), new Date(row.updated_at), null, row.dob ? new Date(row.dob) : null, row.gender || null, null, null, row.remarks || null, mappedQueryType);
         domain.lead_number = row.lead_number;
         domain.contact_consent = row.contact_consent;
         domain.contact_consent_at = row.contact_consent_at;
@@ -147,6 +147,20 @@ class EnquiryRepository {
         }
         // Check if existing lead
         const existing = await prismaClient_1.default.leads.findUnique({ where: { lead_id: enquiry.id } });
+        const validSources = [
+            'website',
+            'walk_in',
+            'referral',
+            'social_media',
+            'chatbot',
+            'qr_code',
+            'education_fair',
+            'phone_call',
+            'email',
+            'other',
+        ];
+        const rawSource = String(enquiry.source || 'website').toLowerCase();
+        const resolvedSource = validSources.includes(rawSource) ? rawSource : 'website';
         let saved;
         if (existing) {
             saved = await prismaClient_1.default.leads.update({
@@ -157,6 +171,7 @@ class EnquiryRepository {
                     contact_name: enquiry.parentName,
                     contact_email: enquiry.parentEmail || null,
                     contact_phone: enquiry.parentPhone,
+                    source: resolvedSource,
                     remarks: enquiry.remarks || null,
                     contact_consent: isConsent,
                     contact_consent_at: isConsent ? new Date() : null,
@@ -184,7 +199,7 @@ class EnquiryRepository {
                     contact_name: enquiry.parentName,
                     contact_email: enquiry.parentEmail || null,
                     contact_phone: enquiry.parentPhone,
-                    source: 'website',
+                    source: resolvedSource,
                     stage: 'enquiry_received',
                     priority: 'warm',
                     remarks: enquiry.remarks || null,
