@@ -72,14 +72,13 @@ export class EnquiryService extends BaseService {
       validated.gender || null,
       validated.current_school || null,
       validated.address || null,
-      validated.query_type
-        ? `[${validated.query_type}] ${validated.remarks || ''}`.trim()
-        : validated.remarks || null,
+      validated.remarks || null,
+      validated.query_type || null,
     );
-
 
     const saved = await this.enquiryRepo.save(enquiry, {
       contact_consent: validated.contact_consent,
+      query_type: validated.query_type || undefined,
     });
 
     await this.auditService.logAudit({
@@ -135,6 +134,7 @@ export class EnquiryService extends BaseService {
       validated.current_school !== undefined ? validated.current_school : existing.currentSchool,
       validated.address !== undefined ? validated.address : existing.address,
       validated.remarks !== undefined ? validated.remarks : existing.remarks,
+      validated.query_type !== undefined ? validated.query_type : existing.queryType,
     );
 
     const saved = await this.enquiryRepo.save(updated);
@@ -375,9 +375,7 @@ export class EnquiryService extends BaseService {
     return { leadId, applicationId: application.id };
   }
 
-  public async checkDuplicates(
-    enquiryData: any,
-  ): Promise<{
+  public async checkDuplicates(enquiryData: any): Promise<{
     status: 'no_duplicate' | 'potentials_found' | 'exact_match' | 'merge_candidate';
     matches: any[];
   }> {
@@ -407,8 +405,10 @@ export class EnquiryService extends BaseService {
       const phoneMatches = m.parentPhone === enquiryData.parent_phone;
       const targetStudentName = (enquiryData.student_name || '').toLowerCase();
       const matchStudentName = (m.studentName || '').toLowerCase();
-      const nameMatches = targetStudentName !== '' && matchStudentName !== '' && matchStudentName === targetStudentName;
-
+      const nameMatches =
+        targetStudentName !== '' &&
+        matchStudentName !== '' &&
+        matchStudentName === targetStudentName;
 
       if (nameMatches && phoneMatches && emailMatches && dobMatches) {
         matchType = 'exact_match';

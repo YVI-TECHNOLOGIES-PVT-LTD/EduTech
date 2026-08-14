@@ -39,17 +39,24 @@ export class AuthController {
 
   static async registerParent(req: Request, res: Response) {
     try {
-      const { full_name, fullName, email, phone, mobile, password, school_id, org_id } = req.body;
+      const { full_name, fullName, email, phone, mobile, password, school_id, org_id, source } =
+        req.body;
       const targetName = full_name || fullName;
       const targetPhone = phone || mobile;
       const targetEmail = email;
 
       if (!targetName || !targetEmail || !password || !targetPhone) {
-        return res.status(400).json({ error: 'Full name, email, phone, and password are required.' });
+        return res
+          .status(400)
+          .json({ error: 'Full name, email, phone, and password are required.' });
       }
 
-      const orgId = org_id || school_id || (req as any).tenantOrgId || (req as any).context?.user?.org_id || (req as any).context?.user?.school_id;
-
+      const orgId =
+        org_id ||
+        school_id ||
+        (req as any).tenantOrgId ||
+        (req as any).context?.user?.org_id ||
+        (req as any).context?.user?.school_id;
 
       const result = await AuthService.registerParent({
         full_name: targetName,
@@ -57,6 +64,7 @@ export class AuthController {
         phone: targetPhone,
         password,
         org_id: orgId,
+        source,
       });
 
       return res.status(201).json(result);
@@ -75,4 +83,3 @@ export class AuthController {
     }
   }
 }
-

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { AdmissionShell } from '../../components/AdmissionShell';
 import { admissionApi } from '@/modules/admission/admission.api';
 import apiClient from '@/lib/api-client';
-import { SCHOOL_INFO } from '@/lib/public-constants';
+import { SCHOOL_INFO, LEAD_SOURCE_OPTIONS } from '@/lib/public-constants';
 import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
 
 const enquirySchema = z.object({
@@ -42,6 +43,7 @@ const enquirySchema = z.object({
   grade_applied_for: z.string().min(1, 'Please select grade'),
   query_type: z.string().min(1, 'Please select a query type'),
   message: z.string().optional(),
+  source: z.string().optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to be contacted to submit enquiry' }),
   }),
@@ -110,6 +112,7 @@ export const EnquiryPage: React.FC = () => {
       grade_applied_for: '',
       query_type: 'Admission Availability',
       message: '',
+      source: '',
       consent: true,
     },
   });
@@ -136,6 +139,7 @@ export const EnquiryPage: React.FC = () => {
         grade_applied_for: data.grade_applied_for,
         query_type: data.query_type,
         remarks: data.message || '',
+        source: data.source || 'Website',
         consent: data.consent,
       });
 
@@ -168,10 +172,7 @@ export const EnquiryPage: React.FC = () => {
   };
 
   return (
-    <AdmissionShell
-      cardContainer={false}
-      showProgressTracker={false}
-    >
+    <AdmissionShell cardContainer={false} showProgressTracker={false}>
       <div className="max-w-6xl mx-auto space-y-10">
         {/* EDITORIAL CINEMATIC HERO */}
         <CinematicPageHero
@@ -181,14 +182,19 @@ export const EnquiryPage: React.FC = () => {
           description="Our admissions team is here to guide you through program options, grade availability, application procedures, and campus tours. Submit your enquiry below to connect with a counselor."
           backgroundImage="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop"
           imagePosition="object-[60%_center]"
-          metadataItems={["Admissions", "Guidance", "Support"]}
+          metadataItems={['Admissions', 'Guidance', 'Support']}
           className="rounded-3xl border border-border/80"
         />
 
         {/* Info Badge */}
         <div className="inline-flex items-center space-x-2 bg-editorial-cream text-[#063F40] px-4 py-2 rounded-full text-xs font-bold border border-border/80">
           <Info className="w-4 h-4 text-[#063F40] shrink-0" />
-          <span>{t('enquiry.badge', 'No formal application fee or registration is required at this stage.')}</span>
+          <span>
+            {t(
+              'enquiry.badge',
+              'No formal application fee or registration is required at this stage.',
+            )}
+          </span>
         </div>
 
         {/* Desktop Two-Column Layout */}
@@ -199,10 +205,14 @@ export const EnquiryPage: React.FC = () => {
               {/* SECTION 1: PARENT / ENQUIRER DETAILS */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 pb-2 border-b border-border/60">
-                  <span className="w-7 h-7 rounded-lg bg-[#063F40] text-[#E7B76A] flex items-center justify-center font-black text-xs">01</span>
+                  <span className="w-7 h-7 rounded-lg bg-[#063F40] text-[#E7B76A] flex items-center justify-center font-black text-xs">
+                    01
+                  </span>
                   <div>
                     <h3 className="text-sm font-extrabold text-foreground">Your Details</h3>
-                    <p className="text-[11px] text-muted-foreground">Tell us how we can reach you.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Tell us how we can reach you.
+                    </p>
                   </div>
                 </div>
 
@@ -262,10 +272,14 @@ export const EnquiryPage: React.FC = () => {
               {/* SECTION 2: STUDENT DETAILS */}
               <div className="space-y-4 pt-2">
                 <div className="flex items-center space-x-3 pb-2 border-b border-border/60">
-                  <span className="w-7 h-7 rounded-lg bg-[#063F40] text-[#E7B76A] flex items-center justify-center font-black text-xs">02</span>
+                  <span className="w-7 h-7 rounded-lg bg-[#063F40] text-[#E7B76A] flex items-center justify-center font-black text-xs">
+                    02
+                  </span>
                   <div>
                     <h3 className="text-sm font-extrabold text-foreground">Student Details</h3>
-                    <p className="text-[11px] text-muted-foreground">Help us understand the learner you're enquiring about.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Help us understand the learner you're enquiring about.
+                    </p>
                   </div>
                 </div>
 
@@ -274,10 +288,7 @@ export const EnquiryPage: React.FC = () => {
                     {t('enquiry.studentNameLabel', 'Student Name')}
                   </label>
                   <Input
-                    placeholder={t(
-                      'enquiry.studentNamePlaceholder',
-                      "Enter student's full name",
-                    )}
+                    placeholder={t('enquiry.studentNamePlaceholder', "Enter student's full name")}
                     {...register('student_name')}
                     className="h-11 rounded-xl text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
                   />
@@ -336,10 +347,14 @@ export const EnquiryPage: React.FC = () => {
               {/* SECTION 3: YOUR QUERY */}
               <div className="space-y-4 pt-2">
                 <div className="flex items-center space-x-3 pb-2 border-b border-border/60">
-                  <span className="w-7 h-7 rounded-lg bg-[#063F40] text-[#E7B76A] flex items-center justify-center font-black text-xs">03</span>
+                  <span className="w-7 h-7 rounded-lg bg-[#063F40] text-[#E7B76A] flex items-center justify-center font-black text-xs">
+                    03
+                  </span>
                   <div>
                     <h3 className="text-sm font-extrabold text-foreground">How Can We Help?</h3>
-                    <p className="text-[11px] text-muted-foreground">Select the primary topic of your enquiry.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Select the primary topic of your enquiry.
+                    </p>
                   </div>
                 </div>
 
@@ -365,12 +380,12 @@ export const EnquiryPage: React.FC = () => {
                           <span className="truncate">{type}</span>
                           <span
                             className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-1.5 ${
-                              isSelected
-                                ? 'border-[#E7B76A] bg-[#E7B76A]'
-                                : 'border-border'
+                              isSelected ? 'border-[#E7B76A] bg-[#E7B76A]' : 'border-border'
                             }`}
                           >
-                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#063F40]" />}
+                            {isSelected && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#063F40]" />
+                            )}
                           </span>
                         </button>
                       );
@@ -396,6 +411,26 @@ export const EnquiryPage: React.FC = () => {
                     rows={3}
                     className="w-full p-3.5 bg-card border border-border/80 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#063F40] resize-none text-foreground"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    {t('enquiry.sourceLabel', 'How Did You Hear About Us?')}{' '}
+                    <span className="normal-case font-normal text-muted-foreground">
+                      (Optional)
+                    </span>
+                  </label>
+                  <select
+                    {...register('source')}
+                    className="w-full h-11 px-3.5 bg-card border border-border/80 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#063F40] text-foreground"
+                  >
+                    <option value="">Select an option</option>
+                    {LEAD_SOURCE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Consent Checkbox Area */}
@@ -434,7 +469,9 @@ export const EnquiryPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <span className="text-[#E7B76A]">{t('enquiry.submitButton', 'Submit Enquiry')}</span>
+                    <span className="text-[#E7B76A]">
+                      {t('enquiry.submitButton', 'Submit Enquiry')}
+                    </span>
                     <Send className="w-3.5 h-3.5 ml-1 text-[#E7B76A]" />
                   </>
                 )}
@@ -447,9 +484,7 @@ export const EnquiryPage: React.FC = () => {
             <div className="bg-card border border-border/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
               <h3 className="font-extrabold text-sm text-foreground flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 text-[#063F40]" />
-                <span>
-                  {t('enquiry.helpCardHeading', 'How can our admissions team help?')}
-                </span>
+                <span>{t('enquiry.helpCardHeading', 'How can our admissions team help?')}</span>
               </h3>
 
               <div className="space-y-4">
@@ -458,9 +493,7 @@ export const EnquiryPage: React.FC = () => {
                     <UserCheck className="w-4 h-4 text-[#E7B76A]" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">
-                      Admission guidance
-                    </h4>
+                    <h4 className="text-xs font-bold text-foreground">Admission guidance</h4>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       Personalized sessions to help you understand our values and culture.
                     </p>
@@ -472,9 +505,7 @@ export const EnquiryPage: React.FC = () => {
                     <Calendar className="w-4 h-4 text-[#E7B76A]" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">
-                      Grade availability
-                    </h4>
+                    <h4 className="text-xs font-bold text-foreground">Grade availability</h4>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       Real-time updates on seat availability across all grades.
                     </p>
@@ -486,9 +517,7 @@ export const EnquiryPage: React.FC = () => {
                     <DollarSign className="w-4 h-4 text-[#E7B76A]" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">
-                      Fee information
-                    </h4>
+                    <h4 className="text-xs font-bold text-foreground">Fee information</h4>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       Detailed breakdown of tuition, transport, and ancillary fees.
                     </p>
@@ -500,9 +529,7 @@ export const EnquiryPage: React.FC = () => {
                     <FileText className="w-4 h-4 text-[#E7B76A]" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">
-                      Application guidance
-                    </h4>
+                    <h4 className="text-xs font-bold text-foreground">Application guidance</h4>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       Assistance with documentation and portal navigation.
                     </p>

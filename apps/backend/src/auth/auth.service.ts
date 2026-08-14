@@ -213,86 +213,252 @@ export class AuthService {
     return NativeJwt.verify<TokenPayload>(token, JWT_SECRET);
   }
 
+  /**
+   * Centralized Domain Helper: Lead Claiming & Resolution Algorithm for Parents
+   * Resolves existing unlinked leads or creates a new lead transactionally.
+   * Priority:
+   *  1. Exact Verified Email AND Phone (org_id, parent_id IS NULL)
+   *  2. Exact Verified Email (org_id, parent_id IS NULL)
+   *  3. Exact Verified Phone (org_id, parent_id IS NULL)
+   * If unique match is found, claims lead atomically (with parent_id IS NULL guard).
+   * If 0 matches or multiple conflicting matches exist, creates a new lead for parent.
+   */
+  public static async resolveOrClaimLeadForParent(params: {
+    tx: any;
+    orgId: string;
+    parentId: string;
+    verifiedEmail: string;
+    verifiedPhone: string;
+    fullName: string;
+    firstName?: string;
+    lastName?: string;
+    source?: string;
+  }): Promise<{ lead_id: string; claimed: boolean }> {
+    const {
+      tx,
+      orgId,
+      parentId,
+      verifiedEmail,
+      verifiedPhone,
+      fullName,
+      firstName,
+      lastName,
+      source,
+    } = params;
+
+    const cleanEmail = verifiedEmail.trim().toLowerCase();
+    const cleanPhone = verifiedPhone.trim();
+
+    // 1. Fetch candidate unlinked leads in the exact same organization
+    const unlinkedLeads = await tx.leads.findMany({
+      where: {
+        org_id: orgId,
+        parent_id: null,
+      },
+    });
+
+    let claimedLead: any = null;
+
+    // Priority 1: Exact Verified Email AND Phone
+    const match1 = unlinkedLeads.filter(
+      (l: any) =>
+        l.contact_email?.trim().toLowerCase() === cleanEmail &&
+        l.contact_phone?.trim() === cleanPhone,
+    );
+
+    if (match1.length === 1) {
+      claimedLead = match1[0];
+    } else if (match1.length === 0) {
+      // Priority 2: Exact Verified Email
+      const match2 = unlinkedLeads.filter(
+        (l: any) => l.contact_email?.trim().toLowerCase() === cleanEmail,
+      );
+      if (match2.length === 1) {
+        claimedLead = match2[0];
+      } else if (match2.length === 0) {
+        // Priority 3: Exact Verified Phone
+        const match3 = unlinkedLeads.filter((l: any) => l.contact_phone?.trim() === cleanPhone);
+        if (match3.length === 1) {
+          claimedLead = match3[0];
+        }
+      }
+    }
+
+    // Attempt atomic update with concurrency protection
+    if (claimedLead) {
+      const updateResult = await tx.leads.updateMany({
+        where: {
+          lead_id: claimedLead.lead_id,
+          org_id: orgId,
+          parent_id: null,
+        },
+        data: {
+          parent_id: parentId,
+          updated_at: new Date(),
+        },
+      });
+
+      if (updateResult.count === 1) {
+        logger.info(
+          `[AuthService] Claimed existing lead ${claimedLead.lead_id} for parent ${parentId}`,
+        );
+        return { lead_id: claimedLead.lead_id, claimed: true };
+      }
+      logger.warn(
+        `[AuthService] Concurrency protection triggered on lead ${claimedLead.lead_id}. Fallback to creation.`,
+      );
+    }
+
+    // Fallback: Create new lead for parent
+    const ayg = await tx.academic_year_grades.findFirst({
+      where: { academic_years: { org_id: orgId } },
+    });
+
+    const year = new Date().getFullYear();
+    const leadCount = await tx.leads.count();
+    let leadSeq = leadCount + 1;
+    let leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
+    while (await tx.leads.findUnique({ where: { lead_number: leadNumber } })) {
+      leadSeq++;
+      leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
+    }
+
+    const newLead = await tx.leads.create({
+      data: {
+        org_id: orgId,
+        lead_number: leadNumber,
+        academic_year_grade_id: ayg?.academic_year_grade_id || crypto.randomUUID(),
+        student_first_name: firstName || 'Applicant',
+        student_last_name: lastName || undefined,
+        contact_name: fullName,
+        contact_phone: cleanPhone,
+        contact_email: cleanEmail,
+        source: (source || 'website') as any,
+        stage: 'enquiry_received' as any,
+        parent_id: parentId,
+      },
+    });
+
+    logger.info(
+      `[AuthService] Created new registration lead ${newLead.lead_id} for parent ${parentId}`,
+    );
+    return { lead_id: newLead.lead_id, claimed: false };
+  }
+
   static async registerParent(data: {
     full_name: string;
     email: string;
     phone: string;
     password: string;
     org_id?: string;
+    source?: string;
   }) {
+    const validSources = [
+      'website',
+      'walk_in',
+      'referral',
+      'social_media',
+      'chatbot',
+      'qr_code',
+      'education_fair',
+      'phone_call',
+      'email',
+      'other',
+    ];
+    const rawSource = String(data.source || 'website').toLowerCase();
+    const resolvedSource = validSources.includes(rawSource) ? rawSource : 'website';
     const cleanEmail = data.email.trim().toLowerCase();
-    const existing = await prisma.users.findFirst({
-      where: { email: cleanEmail },
-    });
 
-    if (existing) {
-      throw new Error('An account with this email address already exists. Please log in.');
-    }
-
-    let targetOrgId = data.org_id;
-    if (!targetOrgId) {
-      const activeOrg = await prisma.organizations.findFirst({
-        where: { status: 'active' },
-        select: { org_id: true },
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.users.findFirst({
+        where: { email: cleanEmail },
       });
-      targetOrgId = activeOrg?.org_id || '';
-    }
 
-    if (!targetOrgId) {
-      throw new Error('Organization context is required for registration.');
-    }
+      if (existing) {
+        throw new Error('An account with this email address already exists. Please log in.');
+      }
 
-    const passwordHash = await NativePassword.hash(data.password);
-    const nameParts = data.full_name.trim().split(' ');
-    const firstName = nameParts[0] || 'Parent';
-    const lastName = nameParts.slice(1).join(' ') || undefined;
+      let targetOrgId = data.org_id;
+      if (!targetOrgId) {
+        const activeOrg = await tx.organizations.findFirst({
+          where: { status: 'active' },
+          select: { org_id: true },
+        });
+        targetOrgId = activeOrg?.org_id || '';
+      }
 
-    const newUser = await prisma.users.create({
-      data: {
-        org_id: targetOrgId,
-        first_name: firstName,
-        last_name: lastName,
-        email: cleanEmail,
-        phone: data.phone.trim(),
-        password_hash: passwordHash,
-        status: 'active',
-      },
-    });
+      if (!targetOrgId) {
+        throw new Error('Organization context is required for registration.');
+      }
 
-    // Assign PARENT role
-    const parentRole = await prisma.roles.findFirst({
-      where: { role_name: 'PARENT' },
-    });
+      const passwordHash = await NativePassword.hash(data.password);
+      const nameParts = data.full_name.trim().split(' ');
+      const firstName = nameParts[0] || 'Parent';
+      const lastName = nameParts.slice(1).join(' ') || undefined;
 
-
-    if (parentRole) {
-      await prisma.user_roles.create({
+      const newUser = await tx.users.create({
         data: {
-          user_id: newUser.user_id,
-          role_id: parentRole.role_id,
+          org_id: targetOrgId,
+          first_name: firstName,
+          last_name: lastName,
+          email: cleanEmail,
+          phone: data.phone.trim(),
+          password_hash: passwordHash,
+          status: 'active',
         },
       });
-    }
 
-    // Create parents entity
-    await prisma.parents.create({
-      data: {
-        org_id: targetOrgId,
+      // Assign PARENT role
+      const parentRole = await tx.roles.findFirst({
+        where: { role_name: 'PARENT' },
+      });
+
+      if (parentRole) {
+        await tx.user_roles.create({
+          data: {
+            user_id: newUser.user_id,
+            role_id: parentRole.role_id,
+          },
+        });
+      }
+
+      // Create parents entity
+      const newParent = await tx.parents.create({
+        data: {
+          org_id: targetOrgId,
+          user_id: newUser.user_id,
+          first_name: firstName,
+          last_name: lastName,
+          phone: data.phone.trim(),
+          email: cleanEmail,
+        },
+      });
+
+      // Execute Lead Claiming & Creation Algorithm
+      const leadResult = await AuthService.resolveOrClaimLeadForParent({
+        tx,
+        orgId: targetOrgId,
+        parentId: newParent.parent_id,
+        verifiedEmail: cleanEmail,
+        verifiedPhone: data.phone.trim(),
+        fullName: data.full_name.trim(),
+        firstName,
+        lastName,
+        source: resolvedSource,
+      });
+
+      return {
+        success: true,
         user_id: newUser.user_id,
-        first_name: firstName,
-        last_name: lastName,
-        phone: data.phone.trim(),
+        parent_id: newParent.parent_id,
+        lead_id: leadResult.lead_id,
+        claimed: leadResult.claimed,
         email: cleanEmail,
-      },
+        phone: data.phone.trim(),
+        source: resolvedSource,
+        message: 'Registration initiated successfully. Verification OTP sent.',
+      };
     });
-
-    return {
-      success: true,
-      user_id: newUser.user_id,
-      email: cleanEmail,
-      phone: data.phone.trim(),
-      message: 'Registration initiated successfully. Verification OTP sent.',
-    };
   }
 
   static async verifyOtp(data: { email?: string; phone?: string; otp: string }) {
@@ -309,4 +475,3 @@ export class AuthService {
     };
   }
 }
-

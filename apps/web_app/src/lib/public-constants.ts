@@ -140,3 +140,17 @@ export const SCHOOL_INFO = {
     youtube: 'https://youtube.com/edutrack',
   },
 } as const;
+
+// Database-Synchronized Lead Source Enum Mapping (matching PostgreSQL lead_source enum)
+export const LEAD_SOURCE_OPTIONS = [
+  { value: 'website', label: 'Website' },
+  { value: 'walk_in', label: 'Walk-in' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'social_media', label: 'Social Media' },
+  { value: 'chatbot', label: 'EduAI / Chatbot' },
+  { value: 'qr_code', label: 'QR Code' },
+  { value: 'education_fair', label: 'Education Fair' },
+  { value: 'phone_call', label: 'Phone Call' },
+  { value: 'email', label: 'Email' },
+  { value: 'other', label: 'Other' },
+] as const;

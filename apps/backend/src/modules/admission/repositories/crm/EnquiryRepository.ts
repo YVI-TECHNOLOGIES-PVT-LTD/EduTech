@@ -87,16 +87,17 @@ export class EnquiryRepository {
       row.contact_name,
       row.contact_email || '',
       row.contact_phone,
-      'Website',
+      (row.source || 'website') as EnquirySource,
       row.stage === 'enquiry_received' ? 'new' : row.stage === 'qualified' ? 'converted' : 'new',
       new Date(row.created_at),
       new Date(row.updated_at),
-      mappedQueryType,
+      null,
       row.dob ? new Date(row.dob) : null,
       row.gender || null,
-      mappedQueryType,
+      null,
       null,
       row.remarks || null,
+      mappedQueryType,
     );
     (domain as any).lead_number = row.lead_number;
     (domain as any).contact_consent = row.contact_consent;
@@ -137,7 +138,7 @@ export class EnquiryRepository {
 
   public async save(
     enquiry: AdmissionEnquiry,
-    extra?: { contact_consent?: boolean },
+    extra?: { contact_consent?: boolean; query_type?: string | null },
   ): Promise<AdmissionEnquiry & { lead_number?: string }> {
     const aygId = await this.resolveAcademicYearGradeId(
       enquiry.schoolId,
@@ -189,6 +190,21 @@ export class EnquiryRepository {
     // Check if existing lead
     const existing = await prisma.leads.findUnique({ where: { lead_id: enquiry.id } });
 
+    const validSources = [
+      'website',
+      'walk_in',
+      'referral',
+      'social_media',
+      'chatbot',
+      'qr_code',
+      'education_fair',
+      'phone_call',
+      'email',
+      'other',
+    ];
+    const rawSource = String(enquiry.source || 'website').toLowerCase();
+    const resolvedSource = validSources.includes(rawSource) ? (rawSource as any) : 'website';
+
     let saved: any;
     if (existing) {
       saved = await prisma.leads.update({
@@ -199,6 +215,7 @@ export class EnquiryRepository {
           contact_name: enquiry.parentName,
           contact_email: enquiry.parentEmail || null,
           contact_phone: enquiry.parentPhone,
+          source: resolvedSource,
           remarks: enquiry.remarks || null,
           contact_consent: isConsent,
           contact_consent_at: isConsent ? new Date() : null,
@@ -225,7 +242,7 @@ export class EnquiryRepository {
           contact_name: enquiry.parentName,
           contact_email: enquiry.parentEmail || null,
           contact_phone: enquiry.parentPhone,
-          source: 'website',
+          source: resolvedSource,
           stage: 'enquiry_received',
           priority: 'warm',
           remarks: enquiry.remarks || null,
