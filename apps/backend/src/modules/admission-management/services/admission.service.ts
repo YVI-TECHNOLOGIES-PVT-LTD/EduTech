@@ -27,8 +27,17 @@ export class AdmissionService {
   ): Promise<ApplicationResponseDto> {
     ApplicationValidator.validateCreate(dto);
 
-    let targetLeadId = dto.lead_id;
-    let targetOrgId = dto.org_id || dto.school_id || userOrgId;
+    const isValidUuid = (id?: string | null) =>
+      !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    let targetLeadId: string | undefined = isValidUuid(dto.lead_id)
+      ? (dto.lead_id as string)
+      : undefined;
+    let targetOrgId: string | undefined =
+      (isValidUuid(dto.org_id) ? (dto.org_id as string) : undefined) ||
+      (isValidUuid(dto.school_id) ? (dto.school_id as string) : undefined) ||
+      (isValidUuid(userOrgId) ? (userOrgId as string) : undefined);
+
     if (!targetOrgId) {
       const activeOrg = await prisma.organizations.findFirst({ where: { status: 'active' } });
       targetOrgId = activeOrg?.org_id;
@@ -37,7 +46,9 @@ export class AdmissionService {
       throw new ApplicationValidationError('Organization ID is required');
     }
 
-    let targetAcademicYearId = dto.academic_year_id;
+    let targetAcademicYearId: string | undefined = isValidUuid(dto.academic_year_id)
+      ? (dto.academic_year_id as string)
+      : undefined;
     if (!targetAcademicYearId) {
       const activeYear = await prisma.academic_years.findFirst({
         where: { org_id: targetOrgId },
@@ -48,6 +59,9 @@ export class AdmissionService {
     if (!targetAcademicYearId) {
       throw new ApplicationValidationError('No active academic year found for organization');
     }
+
+    const safeOrgId: string = targetOrgId;
+    const safeAcademicYearId: string = targetAcademicYearId;
 
     let application: any;
 
@@ -73,10 +87,7 @@ export class AdmissionService {
           const existingUnlinkedParent = await prisma.parents.findFirst({
             where: {
               org_id: targetOrgId,
-              OR: [
-                ...(pEmail ? [{ email: pEmail }] : []),
-                ...(pPhone ? [{ phone: pPhone }] : []),
-              ],
+              OR: [...(pEmail ? [{ email: pEmail }] : []), ...(pPhone ? [{ phone: pPhone }] : [])],
             },
           });
 
@@ -121,7 +132,9 @@ export class AdmissionService {
       });
 
       if (existingUserApp) {
-        logger.info(`Idempotent application retrieval for user ${performedBy}: ${existingUserApp.application_id}`);
+        logger.info(
+          `Idempotent application retrieval for user ${performedBy}: ${existingUserApp.application_id}`,
+        );
         return AdmissionMapper.toResponseDto(existingUserApp);
       }
     }
@@ -152,24 +165,24 @@ export class AdmissionService {
         let aygId = dto.academic_year_grade_id;
         if (!aygId && dto.grade_id) {
           const ayg = await tx.academic_year_grades.findFirst({
-            where: { academic_year_id: targetAcademicYearId, grade_id: dto.grade_id },
+            where: { academic_year_id: safeAcademicYearId, grade_id: dto.grade_id },
           });
           aygId = ayg?.academic_year_grade_id;
         }
         if (!aygId && dto.grade_applied_for) {
           const matchedGrade = await tx.grades.findFirst({
-            where: { org_id: targetOrgId, grade_name: dto.grade_applied_for },
+            where: { org_id: safeOrgId, grade_name: dto.grade_applied_for },
           });
           if (matchedGrade) {
             const ayg = await tx.academic_year_grades.findFirst({
-              where: { academic_year_id: targetAcademicYearId, grade_id: matchedGrade.grade_id },
+              where: { academic_year_id: safeAcademicYearId, grade_id: matchedGrade.grade_id },
             });
             aygId = ayg?.academic_year_grade_id;
           }
         }
         if (!aygId) {
           const ayg = await tx.academic_year_grades.findFirst({
-            where: { academic_year_id: targetAcademicYearId, is_active: true },
+            where: { academic_year_id: safeAcademicYearId, is_active: true },
           });
           aygId = ayg?.academic_year_grade_id;
         }
@@ -307,7 +320,8 @@ export class AdmissionService {
     if (performedBy) {
       const parent = await prisma.parents.findUnique({ where: { user_id: performedBy } });
       if (parent) {
-        const isOwner = existing.leads?.parent_id === parent.parent_id || existing.created_by === performedBy;
+        const isOwner =
+          existing.leads?.parent_id === parent.parent_id || existing.created_by === performedBy;
         if (!isOwner) {
           throw new ApplicationValidationError('Unauthorized: You do not own this application');
         }

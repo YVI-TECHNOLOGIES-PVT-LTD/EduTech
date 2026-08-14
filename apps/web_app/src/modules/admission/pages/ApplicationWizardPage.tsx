@@ -62,11 +62,17 @@ export function ApplicationWizardPage() {
     student_last_name: '',
     date_of_birth: '',
     gender: 'male',
+    nationality: 'Indian',
     parent_name: user?.full_name || user?.name || '',
     parent_email: user?.email || '',
     parent_phone: user?.phone || '',
     parent_occupation: '',
     contact_relationship: 'father',
+    previous_school_name: '',
+    previous_school_address: '',
+    previous_school_board: '',
+    previous_grade: '',
+    previous_school_year: '',
     payment_mode: 'ONLINE',
     declaration_accepted: false,
   });
@@ -75,6 +81,7 @@ export function ApplicationWizardPage() {
   const [uploadedDocs, setUploadedDocs] = useState<
     Record<string, { file_name: string; file_size: string }>
   >({});
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({});
 
   // Final Submitted Application State (Screen 08)
   const [submittedApp, setSubmittedApp] = useState<any | null>(null);
@@ -204,19 +211,16 @@ export function ApplicationWizardPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          setFormData((prev: any) => ({ ...prev, ...parsed.formData }));
-          if (parsed.uploadedDocs) setUploadedDocs(parsed.uploadedDocs);
-          if (parsed.currentStep && parsed.currentStep <= 7) setCurrentStep(parsed.currentStep);
-          if (parsed.instructionsAccepted) setInstructionsAccepted(true);
-        }
+        if (parsed.formData) setFormData((prev: any) => ({ ...prev, ...parsed.formData }));
+        if (parsed.uploadedDocs) setUploadedDocs(parsed.uploadedDocs);
+        if (parsed.instructionsAccepted) setInstructionsAccepted(parsed.instructionsAccepted);
       } catch (e) {
-        console.error('Failed to parse saved draft', e);
+        console.warn('Could not parse saved application draft', e);
       }
     }
   }, [userId]);
 
-  // Save Draft to Local Storage
+  // Save Draft to LocalStorage
   const handleSaveDraft = () => {
     const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
     localStorage.setItem(
@@ -247,15 +251,16 @@ export function ApplicationWizardPage() {
     }
   };
 
-  // File Upload Handler
+  // File Upload Handler - retains actual File objects in state for real upload
   const handleFileUpload = (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds maximum allowed limit of 5MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds maximum allowed limit of 10MB.');
       return;
     }
     const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    setSelectedFiles((prev) => ({ ...prev, [docType]: file }));
     setUploadedDocs((prev) => ({
       ...prev,
       [docType]: { file_name: file.name, file_size: `${sizeMb} MB` },
@@ -263,6 +268,11 @@ export function ApplicationWizardPage() {
   };
 
   const handleRemoveDoc = (docType: string) => {
+    setSelectedFiles((prev) => {
+      const copy = { ...prev };
+      delete copy[docType];
+      return copy;
+    });
     setUploadedDocs((prev) => {
       const copy = { ...prev };
       delete copy[docType];
@@ -275,49 +285,92 @@ export function ApplicationWizardPage() {
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const isUuid = (str?: string) =>
+      !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
     try {
       const payload = {
-        school_id: formData.school_id || 'school-main',
-        org_id: formData.school_id || 'org-main',
-        academic_year_id: formData.academic_year_id || 'ay-2026',
-        academic_year_grade_id: formData.academic_year_grade_id,
-        grade_id: formData.grade_id,
+        school_id: isUuid(formData.school_id) ? formData.school_id : undefined,
+        org_id: isUuid(formData.school_id) ? formData.school_id : undefined,
+        academic_year_id: isUuid(formData.academic_year_id) ? formData.academic_year_id : undefined,
+        academic_year_grade_id: isUuid(formData.academic_year_grade_id)
+          ? formData.academic_year_grade_id
+          : undefined,
+        grade_id: isUuid(formData.grade_id) ? formData.grade_id : undefined,
         grade_applied_for: formData.grade_applied_for,
         grade: formData.grade_applied_for || formData.grade_id || 'Grade 1',
         curriculum_preference: formData.curriculum_preference,
-        student_first_name: formData.student_first_name.trim(),
-        student_last_name: formData.student_last_name.trim(),
-        student_name: `${formData.student_first_name} ${formData.student_last_name}`.trim(),
+        student_first_name: (formData.student_first_name || '').trim(),
+        student_last_name: (formData.student_last_name || '').trim(),
+        student_name:
+          `${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim(),
         date_of_birth: formData.date_of_birth,
         gender: formData.gender,
-        parent_name: formData.parent_name.trim(),
-        parent_email: formData.parent_email.trim(),
-        parent_phone: formData.parent_phone.trim(),
+        nationality: (formData.nationality || 'Indian').trim(),
+        parent_name: (formData.parent_name || '').trim(),
+        parent_email: (formData.parent_email || '').trim(),
+        parent_phone: (formData.parent_phone || '').trim(),
         contact_relationship: formData.contact_relationship,
+        previous_school_name:
+          (formData.previous_school_name || formData.previous_school || '').trim() || undefined,
+        previous_school_address: (formData.previous_school_address || '').trim() || undefined,
+        previous_school_board: formData.previous_school_board || undefined,
+        previous_grade: (formData.previous_grade || '').trim() || undefined,
+        previous_school_year: (formData.previous_school_year || '').trim() || undefined,
         status: 'submitted',
       };
 
       const res = await apiClient.post('/v1/applications', payload);
       const appData = res.data;
+      const createdAppId =
+        appData.application_id ||
+        appData.id ||
+        appData.application?.application_id ||
+        appData.application?.id;
+
+      if (!createdAppId) {
+        throw new Error('Failed to resolve created application ID from server response.');
+      }
+
+      // Step 2: Perform real binary document uploads to private Supabase Storage
+      const fileEntries = Object.entries(selectedFiles);
+      if (fileEntries.length > 0) {
+        for (const [docCode, fileObj] of fileEntries) {
+          try {
+            const formDataBody = new FormData();
+            formDataBody.append('file', fileObj);
+            formDataBody.append('document_code', docCode);
+            formDataBody.append('document_type', docCode);
+
+            await apiClient.post(`/v1/applications/${createdAppId}/documents`, formDataBody, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+          } catch (uploadErr: any) {
+            console.warn(
+              `Document upload warning for ${docCode}:`,
+              uploadErr?.response?.data || uploadErr.message,
+            );
+          }
+        }
+      }
 
       // Clear draft upon successful submission
       const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
       localStorage.removeItem(draftKey);
 
-      // Server application_number (DB -> API -> React State -> UI)
       const serverAppNo =
         appData.application_number ||
         appData.application?.application_number ||
         appData.data?.application_number ||
-        appData.application_id ||
-        appData.id;
+        createdAppId;
 
       setSubmittedApp({
-        id: appData.application_id || appData.id || appData.application?.application_id,
+        id: createdAppId,
         application_number: serverAppNo,
         status: appData.status || appData.application?.status || 'submitted',
         created_at: appData.created_at || new Date().toISOString(),
-        student_name: `${formData.student_first_name} ${formData.student_last_name}`.trim(),
+        student_name:
+          `${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim(),
         grade_applied_for: formData.grade_applied_for,
       });
 
@@ -401,6 +454,8 @@ export function ApplicationWizardPage() {
                 formData={formData}
                 setFormData={setFormData}
                 classes={classes}
+                schools={schools}
+                academicYears={academicYears}
                 onNext={handleNext}
                 onBack={handleBack}
                 isReadOnly={isReadOnly}

@@ -95,6 +95,12 @@ export class AdmissionMapper {
       updated_at: record.updated_at
         ? new Date(record.updated_at).toISOString()
         : new Date().toISOString(),
+      nationality: record.nationality || record.students?.nationality || null,
+      previous_school_name: record.previous_school_name || record.previous_school || null,
+      previous_school_address: record.previous_school_address || null,
+      previous_school_board: record.previous_school_board || null,
+      previous_grade: record.previous_grade || null,
+      previous_school_year: record.previous_school_year || null,
       lead: lead
         ? {
             lead_id: lead.lead_id,

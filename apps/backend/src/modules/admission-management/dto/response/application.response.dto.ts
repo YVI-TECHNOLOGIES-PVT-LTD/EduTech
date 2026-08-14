@@ -53,6 +53,12 @@ export interface ApplicationResponseDto {
   status: string;
   created_at: string;
   updated_at: string;
+  nationality?: string | null;
+  previous_school_name?: string | null;
+  previous_school_address?: string | null;
+  previous_school_board?: string | null;
+  previous_grade?: string | null;
+  previous_school_year?: string | null;
   lead?: {
     lead_id: string;
     lead_number: string;

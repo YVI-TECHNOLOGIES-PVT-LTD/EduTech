@@ -8,15 +8,16 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
+  History,
 } from 'lucide-react';
-import { Card } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
 
 interface ParentAcademicsStepProps {
   formData: any;
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   classes: any[];
+  schools?: any[];
+  academicYears?: any[];
   onNext: () => void;
   onBack: () => void;
   isReadOnly?: boolean;
@@ -26,11 +27,23 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
   formData,
   setFormData,
   classes = [],
+  schools = [],
+  academicYears = [],
   onNext,
   onBack,
   isReadOnly = false,
 }) => {
   const [error, setError] = useState<string | null>(null);
+
+  // Authoritative dynamic context resolution
+  const currentSchool = schools.find((s) => s.id === formData.school_id) || schools[0];
+  const schoolBranchName = currentSchool?.name || currentSchool?.org_name || 'Main Campus';
+
+  const currentAY =
+    academicYears.find(
+      (a) => a.id === formData.academic_year_id || a.academic_year_id === formData.academic_year_id,
+    ) || academicYears[0];
+  const academicYearLabel = currentAY?.year_label || currentAY?.name || 'AY 2025-26';
 
   const handleProceed = () => {
     if (!formData.academic_year_grade_id && !formData.grade_applied_for && !formData.grade_id) {
@@ -39,17 +52,6 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
     }
     setError(null);
     onNext();
-  };
-
-  const handleSelectGrade = (cls: any) => {
-    if (isReadOnly) return;
-    setFormData((prev: any) => ({
-      ...prev,
-      academic_year_grade_id: cls.academic_year_grade_id || cls.id,
-      grade_id: cls.grade_id || cls.id,
-      grade_applied_for: cls.name || cls.grade_name || cls.code,
-    }));
-    setError(null);
   };
 
   return (
@@ -63,10 +65,10 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
           <span>&gt;</span>
           <span>ACADEMICS</span>
         </div>
-        <h1 className="text-2xl font-black text-indigo-950 tracking-tight">Academic Selection</h1>
+        <h1 className="text-2xl font-black text-indigo-950 tracking-tight">Academic Information</h1>
         <p className="text-xs text-gray-500 font-medium">
-          Organization and Academic Year are set by the school. Select your desired grade and
-          curriculum.
+          School branch and academic year are set by the school. Select your grade choice and enter
+          previous academic history.
         </p>
       </div>
 
@@ -91,7 +93,7 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
               <span className="text-[9px] text-indigo-300 block uppercase font-black tracking-wider">
                 SCHOOL BRANCH
               </span>
-              <span className="text-xs font-black text-white">Main Campus, North Bengaluru</span>
+              <span className="text-xs font-black text-white">{schoolBranchName}</span>
             </div>
           </div>
 
@@ -103,7 +105,7 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
               <span className="text-[9px] text-emerald-300 block uppercase font-black tracking-wider">
                 ACADEMIC YEAR
               </span>
-              <span className="text-xs font-black text-white">AY 2025-26</span>
+              <span className="text-xs font-black text-white">{academicYearLabel}</span>
             </div>
           </div>
         </div>
@@ -119,7 +121,7 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
             <h3 className="text-sm font-bold text-gray-900">Grade &amp; Curriculum Choice</h3>
           </div>
           <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
-            STEP 4.1
+            SECTION A
           </span>
         </div>
 
@@ -129,7 +131,7 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
             CURRICULUM PREFERENCE <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {['CBSE', 'ICSE', 'IB', 'IGCSE'].map((curr) => (
+            {['CBSE', 'ICSE', 'IB', 'IGCSE', 'State Board'].map((curr) => (
               <button
                 key={curr}
                 type="button"
@@ -149,8 +151,8 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
           </div>
         </div>
 
-        {/* Grade Selection Grid */}
-        <div className="space-y-2">
+        {/* Select Grade Applying For */}
+        <div className="space-y-2 pt-2">
           <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
             SELECT GRADE APPLYING FOR <span className="text-red-500">*</span>
           </label>
@@ -194,14 +196,126 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
             })}
           </div>
         </div>
-
-        {error && (
-          <div className="flex items-center space-x-2 text-red-600 text-xs font-medium bg-red-50 p-3 rounded-xl border border-red-100">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
       </div>
+
+      {/* Section B: Previous Academic History */}
+      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+              <History className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900">Previous Academic History</h3>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+            SECTION B
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-500 font-medium">
+          If student attended a previous school, provide the historical academic details below.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              PREVIOUS SCHOOL NAME
+            </label>
+            <input
+              type="text"
+              disabled={isReadOnly}
+              value={formData.previous_school_name || formData.previous_school || ''}
+              onChange={(e) =>
+                setFormData((prev: any) => ({
+                  ...prev,
+                  previous_school_name: e.target.value,
+                  previous_school: e.target.value,
+                }))
+              }
+              placeholder="Name of last school attended"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all disabled:bg-gray-50"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              PREVIOUS SCHOOL BOARD / CURRICULUM
+            </label>
+            <select
+              disabled={isReadOnly}
+              value={formData.previous_school_board || ''}
+              onChange={(e) =>
+                setFormData((prev: any) => ({ ...prev, previous_school_board: e.target.value }))
+              }
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all cursor-pointer disabled:bg-gray-50"
+            >
+              <option value="">-- Select Board --</option>
+              <option value="CBSE">CBSE</option>
+              <option value="ICSE">ICSE</option>
+              <option value="STATE BOARD">State Board</option>
+              <option value="IB">IB</option>
+              <option value="CAMBRIDGE">Cambridge (IGCSE)</option>
+              <option value="NIOS">NIOS</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              PREVIOUS SCHOOL ADDRESS
+            </label>
+            <textarea
+              rows={2}
+              disabled={isReadOnly}
+              value={formData.previous_school_address || ''}
+              onChange={(e) =>
+                setFormData((prev: any) => ({ ...prev, previous_school_address: e.target.value }))
+              }
+              placeholder="Full address or location of previous school"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all disabled:bg-gray-50 resize-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              PREVIOUS GRADE COMPLETED
+            </label>
+            <input
+              type="text"
+              disabled={isReadOnly}
+              value={formData.previous_grade || ''}
+              onChange={(e) =>
+                setFormData((prev: any) => ({ ...prev, previous_grade: e.target.value }))
+              }
+              placeholder="e.g. Grade 4 / Class IV"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all disabled:bg-gray-50"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              PREVIOUS ACADEMIC YEAR
+            </label>
+            <input
+              type="text"
+              disabled={isReadOnly}
+              value={formData.previous_school_year || ''}
+              onChange={(e) =>
+                setFormData((prev: any) => ({ ...prev, previous_school_year: e.target.value }))
+              }
+              placeholder="e.g. 2024-25"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all disabled:bg-gray-50"
+            />
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="flex items-center space-x-2 text-red-600 text-xs font-medium bg-red-50 p-3 rounded-xl border border-red-100">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Footer Navigation Bar */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">

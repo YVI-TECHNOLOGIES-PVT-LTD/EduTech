@@ -75,7 +75,7 @@ export const ParentDetailsStep: React.FC<ParentDetailsStepProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-              GUARDIAN FULL NAME <span className="text-red-500">*</span>
+              PARENT / GUARDIAN FULL NAME <span className="text-red-500">*</span>
             </Label>
             <Input
               type="text"
@@ -110,7 +110,7 @@ export const ParentDetailsStep: React.FC<ParentDetailsStepProps> = ({
 
           <div className="space-y-1.5">
             <Label className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-              CONTACT PHONE <span className="text-red-500">*</span>
+              CONTACT NO <span className="text-red-500">*</span>
             </Label>
             <Input
               type="text"
@@ -126,7 +126,7 @@ export const ParentDetailsStep: React.FC<ParentDetailsStepProps> = ({
 
           <div className="space-y-1.5">
             <Label className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-              OFFICIAL EMAIL <span className="text-red-500">*</span>
+              EMAIL ADDRESS<span className="text-red-500">*</span>
             </Label>
             <Input
               type="email"
@@ -143,7 +143,7 @@ export const ParentDetailsStep: React.FC<ParentDetailsStepProps> = ({
 
         <div className="space-y-1.5 pt-2">
           <Label className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-            OCCUPATION / ORGANISATION
+            OCCUPATION
           </Label>
           <Input
             type="text"

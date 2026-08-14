@@ -113,8 +113,8 @@ export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> =
           </div>
         </div>
 
-        {/* DOB & Gender */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* DOB, Gender & Nationality */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
               DATE OF BIRTH <span className="text-red-500">*</span>
@@ -144,6 +144,22 @@ export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> =
               <option value="female">Female</option>
               <option value="other">Other</option>
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              NATIONALITY <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              disabled={isReadOnly}
+              value={formData.nationality || 'Indian'}
+              onChange={(e) =>
+                setFormData((prev: any) => ({ ...prev, nationality: e.target.value }))
+              }
+              placeholder="e.g. Indian"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all disabled:bg-gray-50"
+            />
           </div>
         </div>
       </div>

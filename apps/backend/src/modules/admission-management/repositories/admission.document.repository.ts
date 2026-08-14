@@ -4,18 +4,37 @@ import { UploadDocumentDto } from '../dto/request/upload-document.dto';
 import { VerifyDocumentDto } from '../dto/request/verify-document.dto';
 
 export class AdmissionDocumentRepository {
-  static async create(applicationId: string, createdBy: string | null, dto: UploadDocumentDto) {
+  static async create(
+    applicationId: string,
+    createdBy: string | null,
+    dto: {
+      document_type_id: string;
+      storage_path: string;
+      original_file_name?: string;
+      mime_type?: string;
+      file_size?: number | bigint;
+    },
+  ) {
     return prisma.admission_documents.create({
       data: {
         application_id: applicationId,
         document_type_id: dto.document_type_id,
-        storage_path: dto.file_path || (dto as any).storage_path || '',
+        storage_path: dto.storage_path,
+        original_file_name: dto.original_file_name || null,
+        mime_type: dto.mime_type || null,
+        file_size: dto.file_size ? BigInt(dto.file_size) : null,
         verify_status: document_verify_status.pending,
         created_by: createdBy || undefined,
-      } as any,
+      },
       include: {
         document_types: true,
       },
+    });
+  }
+
+  static async delete(document_id: string) {
+    return prisma.admission_documents.delete({
+      where: { document_id },
     });
   }
 

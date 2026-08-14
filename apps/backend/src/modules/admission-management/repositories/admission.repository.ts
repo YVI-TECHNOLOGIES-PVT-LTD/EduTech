@@ -60,7 +60,13 @@ export class AdmissionRepository {
         application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
         status: dto.status || application_status.submitted,
         created_by: createdBy || undefined,
-      },
+        nationality: dto.nationality || undefined,
+        previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
+        previous_school_address: dto.previous_school_address || undefined,
+        previous_school_board: dto.previous_school_board || undefined,
+        previous_grade: dto.previous_grade || undefined,
+        previous_school_year: dto.previous_school_year || undefined,
+      } as any,
       include: {
         leads: true,
         academic_years: true,
@@ -72,6 +78,16 @@ export class AdmissionRepository {
     const data: any = { updated_at: new Date() };
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.academic_year_id !== undefined) data.academic_year_id = dto.academic_year_id;
+    if (dto.nationality !== undefined) data.nationality = dto.nationality;
+    if (dto.previous_school_name !== undefined)
+      data.previous_school_name = dto.previous_school_name;
+    if (dto.previous_school_address !== undefined)
+      data.previous_school_address = dto.previous_school_address;
+    if (dto.previous_school_board !== undefined)
+      data.previous_school_board = dto.previous_school_board;
+    if (dto.previous_grade !== undefined) data.previous_grade = dto.previous_grade;
+    if (dto.previous_school_year !== undefined)
+      data.previous_school_year = dto.previous_school_year;
 
     return prisma.admissions_applications.update({
       where: { application_id },

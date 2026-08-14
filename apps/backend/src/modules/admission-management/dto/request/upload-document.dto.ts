@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
 export const uploadDocumentSchema = z.object({
-  document_type_id: z.string().uuid('Invalid document type ID'),
-  file_path: z.string().min(1, 'File path or storage key is required'),
+  document_type_id: z.string().optional(),
+  document_type: z.string().optional(),
+  document_code: z.string().optional(),
+  file_path: z.string().optional(),
 });
 
 export type UploadDocumentDto = z.infer<typeof uploadDocumentSchema>;

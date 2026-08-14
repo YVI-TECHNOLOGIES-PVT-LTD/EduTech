@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { checkPermission } from '../../../rbac/rbac.middleware';
 import { checkIdempotency } from '../../../middlewares/idempotency.middleware';
+import { uploadSingleMiddleware } from '../../../middlewares/upload.middleware';
 import { AdmissionController } from '../controllers/admission.controller';
 import { AdmissionDocumentController } from '../controllers/admission-document.controller';
 import { AdmissionAssessmentController } from '../controllers/admission-assessment.controller';
@@ -74,6 +75,7 @@ admissionRouter.get(
 admissionRouter.post(
   '/:id/documents',
   checkPermission(AdmissionPolicy.canManageDocuments()),
+  uploadSingleMiddleware,
   checkIdempotency,
   AdmissionDocumentController.upload,
 );
@@ -82,10 +84,20 @@ admissionRouter.get(
   checkPermission(AdmissionPolicy.canView()),
   AdmissionDocumentController.getByApplicationId,
 );
+admissionRouter.get(
+  '/documents/:id/signed-url',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionDocumentController.getSignedUrl,
+);
 admissionRouter.patch(
   '/documents/:id/verify',
   checkPermission(AdmissionPolicy.canManageDocuments()),
   AdmissionDocumentController.verify,
+);
+admissionRouter.delete(
+  '/documents/:id',
+  checkPermission(AdmissionPolicy.canManageDocuments()),
+  AdmissionDocumentController.delete,
 );
 
 // Child Resources: Assessment

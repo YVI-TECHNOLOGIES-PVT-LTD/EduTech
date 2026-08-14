@@ -19,7 +19,13 @@ export class AdmissionDocumentController {
       const user = req.context?.user;
       const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
       const orgId = user?.org_id || user?.school_id;
-      const result = await AdmissionDocumentService.uploadDocument(id, userId, parsed.data, orgId);
+      const result = await AdmissionDocumentService.uploadDocument(
+        id,
+        userId,
+        parsed.data,
+        req.file,
+        orgId,
+      );
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {
@@ -55,6 +61,28 @@ export class AdmissionDocumentController {
     }
   }
 
+  static async getSignedUrl(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const isOnlyParent =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r) =>
+          ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
+
+      const result = await AdmissionDocumentService.getSignedUrl(id, userId, orgId, isOnlyParent);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof ApplicationError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
   static async verify(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -71,6 +99,28 @@ export class AdmissionDocumentController {
       const orgId = user?.org_id || user?.school_id;
       const result = await AdmissionDocumentService.verifyDocument(id, userId, parsed.data, orgId);
       return res.json(result);
+    } catch (error: any) {
+      if (error instanceof ApplicationError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const isOnlyParent =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r) =>
+          ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
+
+      await AdmissionDocumentService.deleteDocument(id, userId, orgId, isOnlyParent);
+      return res.json({ success: true, message: 'Document deleted successfully' });
     } catch (error: any) {
       if (error instanceof ApplicationError) {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
-import { supabase } from '../config/supabase';
+import prisma from '../lib/prismaClient';
 import { AuthService, TokenPayload } from './auth.service';
-
-const prisma = new PrismaClient();
+import { logger } from '../utils/logger';
 
 export interface UserProfile {
   id: string;
@@ -24,6 +22,45 @@ const sessionCache = new Map<string, CachedSession>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache TTL
 
 export class SessionService {
+  /**
+   * Deterministic Role Normalization
+   * Maps raw database role strings or user-assigned strings to canonical runtime roles.
+   */
+  public static normalizeRoleName(rawRole?: string | null): string {
+    if (!rawRole || typeof rawRole !== 'string') return '';
+    const trimmed = rawRole.trim();
+    const lower = trimmed.toLowerCase().replace(/[\s\-_]+/g, '');
+
+    if (
+      lower === 'frontoffice' ||
+      lower === 'receptionist' ||
+      lower === 'admissionofficer' ||
+      lower === 'frontofficeexecutive'
+    ) {
+      return 'FRONT_OFFICE';
+    }
+    if (lower === 'parent' || lower === 'guardian') {
+      return 'PARENT';
+    }
+    if (lower === 'superadmin' || lower === 'superadministrator') {
+      return 'SUPERADMIN';
+    }
+    if (lower === 'admin' || lower === 'administrator') {
+      return 'ADMIN';
+    }
+    if (lower === 'counselor' || lower === 'counsellor') {
+      return 'COUNSELLOR';
+    }
+    if (lower === 'hoi' || lower === 'headofinstitute' || lower === 'principal') {
+      return 'HOI';
+    }
+    if (lower === 'staff' || lower === 'faculty') {
+      return 'STAFF';
+    }
+
+    return trimmed.toUpperCase().replace(/\s+/g, '_');
+  }
+
   async validateSession(token: string): Promise<UserProfile | null> {
     const cached = sessionCache.get(token);
     if (cached && cached.expiresAt > Date.now()) {
@@ -44,89 +81,80 @@ export class SessionService {
         return null;
       }
 
-      // 3. Fetch Roles & Permissions via database
+      // 3. Fetch Roles & Permissions via Prisma ORM using exact schema columns (role_id, role_name, is_active)
       const roles: string[] = [];
       const permissions = new Set<string>();
 
       try {
-        const { data: rolesData, error: rolesError } = await supabase
-          .from('user_roles')
-          .select(
-            `
-            roles (
-              id,
-              name,
-              code
-            )
-          `,
-          )
-          .eq('user_id', user.user_id);
+        const userRolesPrisma = await prisma.user_roles.findMany({
+          where: { user_id: user.user_id },
+          include: { roles: true },
+        });
 
-        if (!rolesError && rolesData) {
-          rolesData.forEach((ur: any) => {
-            const roleObj = ur.roles;
-            if (roleObj) {
-              const rName = roleObj.name || roleObj.role_name || roleObj.code;
-              if (rName) roles.push(rName);
+        for (const ur of userRolesPrisma) {
+          if (ur.roles && ur.roles.is_active !== false) {
+            const canonical = SessionService.normalizeRoleName(ur.roles.role_name);
+            if (canonical && !roles.includes(canonical)) {
+              roles.push(canonical);
             }
-          });
+          }
         }
       } catch (e) {
-        // Fallback silently
+        logger.warn(`[SessionService] Error loading user_roles for user ${user.user_id}`, {
+          error: (e as Error)?.message || String(e),
+        });
       }
 
-      // Prisma fallback if Supabase returns 0 roles
-      if (roles.length === 0) {
-        try {
-          const userRolesPrisma: any = await (prisma as any).user_roles.findMany({
-            where: { user_id: user.user_id },
-            include: { roles: true },
-          });
-
-          userRolesPrisma?.forEach((ur: any) => {
-            if (ur.roles) {
-              const rName = ur.roles.name || ur.roles.role_name || ur.roles.code;
-              if (rName) roles.push(rName);
-            }
-          });
-        } catch (e) {
-          // Fallback silently
+      // 4. Fallback to JWT claims if DB user_roles returns empty
+      if (roles.length === 0 && decoded.roles && Array.isArray(decoded.roles)) {
+        for (const r of decoded.roles) {
+          const canonical = SessionService.normalizeRoleName(r);
+          if (canonical && !roles.includes(canonical)) {
+            roles.push(canonical);
+          }
         }
       }
 
-      // Raw SQL query fallback
+      // 5. Fallback to parent record check (Verifies user is a registered Parent)
       if (roles.length === 0) {
-        try {
-          const rawRoles: any[] = await prisma.$queryRaw`
-            SELECT r.name, r.role_name, r.code, r.role_code
-            FROM public.user_roles ur
-            JOIN public.roles r ON ur.role_id = r.role_id
-            WHERE ur.user_id = ${user.user_id}::uuid
-          `;
-          rawRoles?.forEach((r: any) => {
-            const rName = r.name || r.role_name || r.code || r.role_code;
-            if (rName) roles.push(rName);
-          });
-        } catch (e) {
-          // Fallback silently
-        }
-      }
-
-      // Default role fallback for registered parents
-      if (roles.length === 0) {
-        if (decoded.roles && decoded.roles.length > 0) {
-          roles.push(...decoded.roles);
-        } else {
+        const parentRecord = await prisma.parents.findUnique({
+          where: { user_id: user.user_id },
+        });
+        if (parentRecord) {
           roles.push('PARENT');
         }
       }
 
+      // 6. FAIL-CLOSED RULE: If user has no valid active role, reject session!
+      // (DO NOT silently default unknown staff/admin users to PARENT)
+      if (roles.length === 0) {
+        logger.warn(
+          `[SessionService] Fail-closed: User ${user.user_id} (${user.email}) has no valid active roles. Session rejected.`,
+        );
+        return null;
+      }
+
+      // 7. Inject Stage-1 Persona Permissions
       if (roles.includes('PARENT')) {
         permissions.add('admission.view_own');
         permissions.add('admission.create');
         permissions.add('admission.application.view_own');
         permissions.add('admission.application.create');
         permissions.add('admission.application.view');
+      }
+
+      if (
+        roles.some((r) =>
+          ['FRONT_OFFICE', 'ADMIN', 'ADMISSION_OFFICER', 'COUNSELLOR', 'STAFF', 'HOI'].includes(r),
+        )
+      ) {
+        permissions.add('admission.create');
+        permissions.add('admission.view_all');
+        permissions.add('admission.review');
+        permissions.add('admission.document.view');
+        permissions.add('admission.document.verify');
+        permissions.add('admission.application.view');
+        permissions.add('admission.application.create');
       }
 
       const profile: UserProfile = {
@@ -147,6 +175,9 @@ export class SessionService {
 
       return profile;
     } catch (err) {
+      logger.error('[SessionService] Session validation failed', {
+        error: (err as Error)?.message || String(err),
+      });
       return null;
     }
   }
