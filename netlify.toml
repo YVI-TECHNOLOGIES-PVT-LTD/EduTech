@@ -1,11 +1,16 @@
 [build]
-  base = "apps/web"
-  command = "npm run build"
-  publish = "dist"
+  # Repo root is the build context (this is a pnpm/Turborepo workspace;
+  # apps/web_app depends on workspace:* packages that only pnpm resolves).
+  command = "pnpm install --frozen-lockfile && pnpm --filter @edutrack/web run build"
+  publish = "apps/web_app/dist"
 
 [context.production.environment]
   # Pointing to the Render Backend
   VITE_API_URL = "https://appsms-076a.onrender.com/api"
+  # VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are intentionally NOT set
+  # here. They must be configured in the Netlify dashboard (Site settings
+  # -> Environment variables) once the correct production Supabase project
+  # is confirmed (see Phase 2 database audit) — not committed to source.
 
 [[redirects]]
   from = "/*"

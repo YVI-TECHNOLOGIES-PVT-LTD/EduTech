@@ -21,7 +21,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { enquirySchema, EnquiryFormData } from '../schemas/enquiry.schema';
+import { enquirySchema, EnquiryFormData, EnquiryFormInput } from '../schemas/enquiry.schema';
 import { useAdmission } from '../hooks/useAdmission';
 import { ApplicationFeedbackModal } from '@/modules/admission/components/ApplicationFeedbackModal';
 import { SCHOOL_INFO } from '@/lib/public-constants';
@@ -93,7 +93,7 @@ export const EnquiryPage: React.FC = () => {
     watch,
     reset,
     formState: { errors },
-  } = useForm<EnquiryFormData>({
+  } = useForm<EnquiryFormInput, unknown, EnquiryFormData>({
     mode: 'onTouched',
     reValidateMode: 'onChange',
     resolver: zodResolver(enquirySchema),
@@ -140,10 +140,7 @@ export const EnquiryPage: React.FC = () => {
 
     if (result.success) {
       const refCode = result.reference || `ENQ-2026-${Math.floor(10000 + Math.random() * 90000)}`;
-      sessionStorage.setItem(
-        'edutrack_enquiry_session',
-        JSON.stringify({ referenceId: refCode })
-      );
+      sessionStorage.setItem('edutrack_enquiry_session', JSON.stringify({ referenceId: refCode }));
     } else {
       setFeedbackModal({
         isOpen: true,
@@ -207,7 +204,6 @@ export const EnquiryPage: React.FC = () => {
       <section className="py-8 sm:py-12 lg:py-16 bg-slate-50 flex-1">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            
             {/* LEFT COLUMN: Form Card (~60%) */}
             <div className="lg:col-span-7">
               <div className="bg-white rounded-3xl p-6 sm:p-9 border border-slate-200/90 shadow-xl shadow-slate-950/5 space-y-7">
@@ -227,7 +223,8 @@ export const EnquiryPage: React.FC = () => {
                         Enquiry Submitted Successfully!
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                        Thank you for contacting EduTrack. Our admissions team will review your enquiry and get in touch with you.
+                        Thank you for contacting EduTrack. Our admissions team will review your
+                        enquiry and get in touch with you.
                       </p>
                     </div>
 
@@ -269,8 +266,11 @@ export const EnquiryPage: React.FC = () => {
                   </motion.div>
                 ) : (
                   /* Enquiry Form */
-                  <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-7" noValidate>
-                    
+                  <form
+                    onSubmit={handleSubmit(onSubmit, onInvalidSubmit)}
+                    className="space-y-7"
+                    noValidate
+                  >
                     {/* SECTION 01: Parent / Enquirer Details */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
@@ -281,14 +281,19 @@ export const EnquiryPage: React.FC = () => {
                           <h2 className="text-base sm:text-lg font-bold text-slate-900 font-display leading-tight">
                             Parent / Enquirer Details
                           </h2>
-                          <p className="text-xs text-slate-500">Provide your contact details so our admissions team can reach out.</p>
+                          <p className="text-xs text-slate-500">
+                            Provide your contact details so our admissions team can reach out.
+                          </p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Parent Name */}
                         <div className="space-y-1.5">
-                          <label htmlFor="parentName" className="text-xs font-bold text-slate-700 block">
+                          <label
+                            htmlFor="parentName"
+                            className="text-xs font-bold text-slate-700 block"
+                          >
                             Name <span className="text-rose-500 font-bold">*</span>
                           </label>
                           <Input
@@ -303,11 +308,15 @@ export const EnquiryPage: React.FC = () => {
                             placeholder="Enter full name"
                             className={cn(
                               'h-12 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-900 rounded-xl transition-colors',
-                              errors.parentName && 'border-rose-500 bg-rose-50/30 focus:ring-rose-500'
+                              errors.parentName &&
+                                'border-rose-500 bg-rose-50/30 focus:ring-rose-500',
                             )}
                           />
                           {errors.parentName && (
-                            <p id="parentName-error" className="text-xs text-rose-600 font-semibold mt-1">
+                            <p
+                              id="parentName-error"
+                              className="text-xs text-rose-600 font-semibold mt-1"
+                            >
                               {errors.parentName.message}
                             </p>
                           )}
@@ -330,11 +339,14 @@ export const EnquiryPage: React.FC = () => {
                             placeholder="+91 00000 00000"
                             className={cn(
                               'h-12 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-900 rounded-xl transition-colors',
-                              errors.phone && 'border-rose-500 bg-rose-50/30 focus:ring-rose-500'
+                              errors.phone && 'border-rose-500 bg-rose-50/30 focus:ring-rose-500',
                             )}
                           />
                           {errors.phone && (
-                            <p id="phone-error" className="text-xs text-rose-600 font-semibold mt-1">
+                            <p
+                              id="phone-error"
+                              className="text-xs text-rose-600 font-semibold mt-1"
+                            >
                               {errors.phone.message}
                             </p>
                           )}
@@ -359,7 +371,7 @@ export const EnquiryPage: React.FC = () => {
                           placeholder="example@email.com"
                           className={cn(
                             'h-12 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-900 rounded-xl transition-colors',
-                            errors.email && 'border-rose-500 bg-rose-50/30 focus:ring-rose-500'
+                            errors.email && 'border-rose-500 bg-rose-50/30 focus:ring-rose-500',
                           )}
                         />
                         {errors.email && (
@@ -380,13 +392,18 @@ export const EnquiryPage: React.FC = () => {
                           <h2 className="text-base sm:text-lg font-bold text-slate-900 font-display leading-tight">
                             Student Details
                           </h2>
-                          <p className="text-xs text-slate-500">Provide prospective student details</p>
+                          <p className="text-xs text-slate-500">
+                            Provide prospective student details
+                          </p>
                         </div>
                       </div>
 
                       {/* Student Name */}
                       <div className="space-y-1.5">
-                        <label htmlFor="studentName" className="text-xs font-bold text-slate-700 block">
+                        <label
+                          htmlFor="studentName"
+                          className="text-xs font-bold text-slate-700 block"
+                        >
                           Student Name
                         </label>
                         <Input
@@ -404,7 +421,10 @@ export const EnquiryPage: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Grade Interested In */}
                         <div className="space-y-1.5">
-                          <label htmlFor="studentGrade" className="text-xs font-bold text-slate-700 block">
+                          <label
+                            htmlFor="studentGrade"
+                            className="text-xs font-bold text-slate-700 block"
+                          >
                             Grade / Class Interested In
                           </label>
                           <select
@@ -424,7 +444,10 @@ export const EnquiryPage: React.FC = () => {
 
                         {/* Academic Year */}
                         <div className="space-y-1.5">
-                          <label htmlFor="academicYear" className="text-xs font-bold text-slate-700 block">
+                          <label
+                            htmlFor="academicYear"
+                            className="text-xs font-bold text-slate-700 block"
+                          >
                             Academic Year
                           </label>
                           <select
@@ -452,15 +475,15 @@ export const EnquiryPage: React.FC = () => {
                           <h2 className="text-base sm:text-lg font-bold text-slate-900 font-display leading-tight">
                             Your Query
                           </h2>
-                          <p className="text-xs text-slate-500">Select enquiry categories and specify your question</p>
+                          <p className="text-xs text-slate-500">
+                            Select enquiry categories and specify your question
+                          </p>
                         </div>
                       </div>
 
                       {/* Query Type Categories with Radio Buttons */}
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-700 block">
-                          Query Type
-                        </label>
+                        <label className="text-xs font-bold text-slate-700 block">Query Type</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           {queryCategories.map((cat) => {
                             const isSelected = selectedQueryType === cat.id;
@@ -471,7 +494,7 @@ export const EnquiryPage: React.FC = () => {
                                   'px-3.5 py-3 rounded-xl text-xs font-bold border transition-all flex items-center gap-2.5 cursor-pointer min-h-[46px] select-none',
                                   isSelected
                                     ? 'bg-slate-900 text-white border-indigo-900 shadow-sm ring-1 ring-amber-400/40'
-                                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-slate-200/90'
+                                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-slate-200/90',
                                 )}
                               >
                                 <input
@@ -479,10 +502,17 @@ export const EnquiryPage: React.FC = () => {
                                   name="queryType"
                                   value={cat.id}
                                   checked={isSelected}
-                                  onChange={() => setValue('queryType', cat.id, { shouldValidate: true })}
+                                  onChange={() =>
+                                    setValue('queryType', cat.id, { shouldValidate: true })
+                                  }
                                   className="w-4 h-4 text-amber-400 focus:ring-indigo-500 accent-indigo-600 cursor-pointer shrink-0"
                                 />
-                                <span className={cn('text-xs font-bold leading-tight', isSelected ? 'text-amber-300' : 'text-slate-700')}>
+                                <span
+                                  className={cn(
+                                    'text-xs font-bold leading-tight',
+                                    isSelected ? 'text-amber-300' : 'text-slate-700',
+                                  )}
+                                >
                                   {cat.label}
                                 </span>
                               </label>
@@ -523,15 +553,21 @@ export const EnquiryPage: React.FC = () => {
                             id="enquiry-consent"
                             ref={fieldRefs.consent}
                             checked={consentValue}
-                            onChange={(e) => setValue('consent', e.target.checked, { shouldValidate: true })}
+                            onChange={(e) =>
+                              setValue('consent', e.target.checked, { shouldValidate: true })
+                            }
                             className={cn(
                               'w-4.5 h-4.5 rounded border-slate-300 text-indigo-950 focus:ring-indigo-900 cursor-pointer accent-indigo-950',
-                              errors.consent && 'border-rose-500 ring-2 ring-rose-500'
+                              errors.consent && 'border-rose-500 ring-2 ring-rose-500',
                             )}
                           />
                         </div>
-                        <label htmlFor="enquiry-consent" className="text-xs text-slate-600 cursor-pointer leading-relaxed">
-                          I agree to be contacted by the school regarding my admission enquiry. <span className="text-rose-500 font-bold">*</span>
+                        <label
+                          htmlFor="enquiry-consent"
+                          className="text-xs text-slate-600 cursor-pointer leading-relaxed"
+                        >
+                          I agree to be contacted by the school regarding my admission enquiry.{' '}
+                          <span className="text-rose-500 font-bold">*</span>
                         </label>
                       </div>
                       {errors.consent && (
@@ -572,7 +608,6 @@ export const EnquiryPage: React.FC = () => {
 
             {/* RIGHT COLUMN: Admissions Support Help Card (~40%) */}
             <div className="lg:col-span-5 space-y-6">
-              
               <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-6 lg:sticky lg:top-28">
                 <div>
                   <h3 className="text-xl sm:text-2xl font-bold font-display text-white">
@@ -587,7 +622,9 @@ export const EnquiryPage: React.FC = () => {
                       <HelpCircle className="w-4.5 h-4.5 text-amber-400" />
                     </div>
                     <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white">Admission guidance</h4>
+                      <h4 className="text-xs sm:text-sm font-bold text-white">
+                        Admission guidance
+                      </h4>
                       <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                         Personalized sessions to help you understand our values and culture.
                       </p>
@@ -599,7 +636,9 @@ export const EnquiryPage: React.FC = () => {
                       <CheckCircle2 className="w-4.5 h-4.5 text-amber-400" />
                     </div>
                     <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white">Grade availability</h4>
+                      <h4 className="text-xs sm:text-sm font-bold text-white">
+                        Grade availability
+                      </h4>
                       <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                         Real-time updates on seat availability across all grades.
                       </p>
@@ -623,7 +662,9 @@ export const EnquiryPage: React.FC = () => {
                       <BookOpen className="w-4.5 h-4.5 text-amber-400" />
                     </div>
                     <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white">Application guidance</h4>
+                      <h4 className="text-xs sm:text-sm font-bold text-white">
+                        Application guidance
+                      </h4>
                       <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                         Assistance with documentation and portal navigation.
                       </p>
@@ -636,14 +677,16 @@ export const EnquiryPage: React.FC = () => {
                   <div className="text-xs font-bold text-white uppercase tracking-wider font-display">
                     Need immediate help?
                   </div>
-                  
+
                   <p className="text-xs text-slate-400 leading-relaxed">
                     Our admissions office is open Monday to Saturday, 9 AM – 5 PM.
                   </p>
 
                   <div className="space-y-2.5 text-xs pt-1">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Phone</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                        Phone
+                      </span>
                       <a
                         href={`tel:${SCHOOL_INFO.phone}`}
                         className="flex items-center gap-2 text-slate-200 hover:text-amber-300 font-semibold transition-colors mt-0.5"
@@ -654,7 +697,9 @@ export const EnquiryPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Email</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                        Email
+                      </span>
                       <a
                         href={`mailto:${SCHOOL_INFO.email}`}
                         className="flex items-center gap-2 text-slate-200 hover:text-amber-300 font-semibold transition-colors mt-0.5 break-all"
@@ -665,10 +710,8 @@ export const EnquiryPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
-
           </div>
         </div>
       </section>
