@@ -172,7 +172,7 @@ model admission_fee_payments {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model admissions_applications {
   application_id                                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  lead_id                                         String                   @unique @db.Uuid
+  lead_id                                         String?                  @db.Uuid
   org_id                                          String                   @db.Uuid
   academic_year_id                                String                   @db.Uuid
   application_number                              String                   @unique @db.VarChar(30)
@@ -193,7 +193,7 @@ model admissions_applications {
   admission_fee_payments                          admission_fee_payments?
   academic_years                                  academic_years           @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade, onUpdate: NoAction)
   users_admissions_applications_created_byTousers users?                   @relation("admissions_applications_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  leads                                           leads                    @relation(fields: [lead_id], references: [lead_id], onDelete: Cascade, onUpdate: NoAction)
+  leads                                           leads?                   @relation(fields: [lead_id], references: [lead_id])
   organizations                                   organizations            @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
   users_admissions_applications_updated_byTousers users?                   @relation("admissions_applications_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
   application_assessments                         application_assessments?
@@ -477,7 +477,7 @@ model leads {
   contact_consent               Boolean                    @default(false)
   contact_consent_at            DateTime?                  @db.Timestamptz(6)
   parent_id                     String?                    @db.Uuid
-  admissions_applications       admissions_applications?
+  admissions_applications       admissions_applications[]
   chatbot_sessions              chatbot_sessions[]
   lead_activities               lead_activities[]
   lead_query_type_mappings      lead_query_type_mappings[]
@@ -714,6 +714,7 @@ model students {
   updated_at                       DateTime                @default(now()) @db.Timestamptz(6)
   created_by                       String?                 @db.Uuid
   updated_by                       String?                 @db.Uuid
+  nationality                      String?                 @db.VarChar(100)
   student_enrollments              student_enrollments[]
   student_parents                  student_parents[]
   admissions_applications          admissions_applications @relation(fields: [application_id], references: [application_id], onUpdate: NoAction)

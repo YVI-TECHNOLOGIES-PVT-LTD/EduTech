@@ -151,3 +151,22 @@ SET
     description = 'Government identity proof of the student',
     updated_at = now()
 WHERE document_name = 'Aadhaar Card';
+
+ALTER TABLE admissions_applications
+DROP CONSTRAINT admissions_applications_lead_id_key;
+
+ALTER TABLE admissions_applications
+ALTER COLUMN lead_id DROP NOT NULL;
+
+ALTER TABLE admissions_applications
+DROP CONSTRAINT admissions_applications_lead_id_fkey;
+
+ALTER TABLE admissions_applications
+ADD CONSTRAINT admissions_applications_lead_id_fkey
+FOREIGN KEY (lead_id)
+REFERENCES leads(lead_id)
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+
+ALTER TABLE admissions_applications
+ALTER COLUMN lead_id DROP NOT NULL;
