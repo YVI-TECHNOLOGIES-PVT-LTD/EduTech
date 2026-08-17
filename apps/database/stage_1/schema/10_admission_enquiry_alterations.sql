@@ -107,3 +107,47 @@ ADD COLUMN file_size BIGINT;
 
 ALTER TABLE admission_documents
 RENAME COLUMN file_path TO storage_path;
+
+
+UPDATE document_types
+
+SET
+
+document_name = 'Student Photo',
+description = 'Recent passport size photograph of the student',
+updated_at = now()
+
+WHERE document_name = 'Passport Size Photo';
+
+
+
+
+
+ALTER TABLE public.students
+
+ADD COLUMN nationality VARCHAR(100);
+
+
+
+
+
+ALTER TABLE public.admissions_applications
+
+ADD COLUMN nationality VARCHAR(100),
+
+ADD COLUMN previous_school_name VARCHAR(200),
+
+ADD COLUMN previous_school_address TEXT,
+
+ADD COLUMN previous_school_board VARCHAR(100),
+
+ADD COLUMN previous_grade VARCHAR(50),
+
+ADD COLUMN previous_school_year VARCHAR(20);
+
+UPDATE document_types
+SET
+    document_name = 'Student Aadhaar Card',
+    description = 'Government identity proof of the student',
+    updated_at = now()
+WHERE document_name = 'Aadhaar Card';
