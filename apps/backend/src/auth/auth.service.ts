@@ -1,11 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import { supabase } from '../config/supabase';
 import { env } from '../config/env';
 import { NativePassword, NativeJwt } from './crypto.utils';
-
+import prisma from '../lib/prismaClient';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;

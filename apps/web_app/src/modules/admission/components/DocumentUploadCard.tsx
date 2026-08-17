@@ -15,6 +15,7 @@ export interface DocumentUploadCardProps {
     file_name: string;
     file_size: string;
   };
+  isReselectRequired?: boolean;
   uploadError?: string | null;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveDoc: () => void;
@@ -27,6 +28,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
   hint = 'PDF / JPG / PNG • Max 5 MB',
   accept = '.pdf,.jpg,.jpeg,.png',
   uploadedDoc,
+  isReselectRequired = false,
   uploadError,
   onFileUpload,
   onRemoveDoc,
@@ -54,7 +56,11 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                 : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400'
             }`}
           >
-            {isUploaded ? <CheckCircle2 className="w-5.5 h-5.5" /> : <UploadCloud className="w-5.5 h-5.5" />}
+            {isUploaded ? (
+              <CheckCircle2 className="w-5.5 h-5.5" />
+            ) : (
+              <UploadCloud className="w-5.5 h-5.5" />
+            )}
           </div>
 
           <div className="space-y-1 min-w-0 flex-1">
@@ -73,26 +79,42 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                 {mandatory ? 'Required' : 'Optional'}
               </Badge>
 
-              {isUploaded && (
+              {isReselectRequired ? (
+                <Badge
+                  variant="outline"
+                  className="bg-amber-50 text-amber-800 border-amber-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1"
+                >
+                  <AlertCircle className="w-3 h-3 text-amber-600" />
+                  Re-select File Required
+                </Badge>
+              ) : isUploaded ? (
                 <Badge
                   variant="outline"
                   className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-black uppercase tracking-wider"
                 >
-                  Uploaded ✓
+                  Ready for Upload ✓
                 </Badge>
-              )}
+              ) : null}
             </div>
 
             <p className="text-xs text-slate-400 font-medium truncate">{hint}</p>
 
-            {isUploaded ? (
+            {isReselectRequired ? (
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>
+                  File binary lost on refresh ({uploadedDoc?.file_name}). Re-select file before
+                  submitting.
+                </span>
+              </p>
+            ) : isUploaded ? (
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-0.5 truncate">
                 <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span className="truncate">{uploadedDoc.file_name}</span>
                 <span className="text-slate-400 shrink-0">({uploadedDoc.file_size})</span>
               </p>
             ) : (
-              <p className="text-xs text-slate-400 italic">No file uploaded</p>
+              <p className="text-xs text-slate-400 italic">No file selected</p>
             )}
 
             {uploadError && (

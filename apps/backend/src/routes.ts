@@ -28,6 +28,9 @@ import { bulkRouter } from './modules/admin/bulk.routes';
 import { workflowRouter } from './workflows/workflow.routes';
 import { taskRouter } from './workflows/task.routes';
 import { leadRouter } from './modules/lead-management/routes/lead.routes';
+
+const isUuidStr = (str?: string) =>
+  !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 import { admissionRouter as admissionManagementRouter } from './modules/admission-management/routes/admission.routes';
 import { AdmissionController as AdmissionManagementController } from './modules/admission-management/controllers/admission.controller';
 
@@ -36,7 +39,6 @@ import { parentRouter as parentManagementRouter } from './modules/parent-managem
 import { academicRouter as academicManagementRouter } from './modules/academic-management/routes/academic.routes';
 import { staffRouter as staffManagementRouter } from './modules/staff-management/routes/staff.routes';
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
-
 
 import { env } from './config/env';
 
@@ -96,9 +98,18 @@ router.post('/admissions', authenticateOptional, AdmissionController.create);
 router.get('/v1/admission/crm/query-types', enquiryController.getQueryTypes);
 router.get('/v1/admission/query-types', enquiryController.getQueryTypes);
 router.get('/admission/query-types', enquiryController.getQueryTypes);
-router.post('/v1/admission/crm/enquiries', resolveTenantMiddleware, authenticateOptional, enquiryController.create);
-router.post('/v1/admission/enquiries', resolveTenantMiddleware, authenticateOptional, enquiryController.create);
-
+router.post(
+  '/v1/admission/crm/enquiries',
+  resolveTenantMiddleware,
+  authenticateOptional,
+  enquiryController.create,
+);
+router.post(
+  '/v1/admission/enquiries',
+  resolveTenantMiddleware,
+  authenticateOptional,
+  enquiryController.create,
+);
 
 // Public lookup for schools/organizations
 router.get('/schools', async (req: Request, res: Response) => {
@@ -240,8 +251,8 @@ router.get('/public/classes', async (req: Request, res: Response) => {
     }
 
     const { academic_year_id } = req.query;
-    let targetYearId = academic_year_id as string;
-    if (!targetYearId && targetOrgId) {
+    let targetYearId = isUuidStr(academic_year_id as string) ? (academic_year_id as string) : '';
+    if (!targetYearId && targetOrgId && isUuidStr(targetOrgId)) {
       const activeYear = await prisma.academic_years.findFirst({
         where: { org_id: targetOrgId },
         orderBy: { created_at: 'desc' },
@@ -250,7 +261,7 @@ router.get('/public/classes', async (req: Request, res: Response) => {
     }
 
     let aygList: any[] = [];
-    if (targetYearId) {
+    if (targetYearId && isUuidStr(targetYearId)) {
       aygList = await prisma.academic_year_grades.findMany({
         where: {
           academic_year_id: targetYearId,
@@ -342,8 +353,8 @@ router.get('/v1/public/classes', async (req: Request, res: Response) => {
     }
     const { academic_year_id } = req.query;
 
-    let targetYearId = academic_year_id as string;
-    if (!targetYearId && targetOrgId) {
+    let targetYearId = isUuidStr(academic_year_id as string) ? (academic_year_id as string) : '';
+    if (!targetYearId && targetOrgId && isUuidStr(targetOrgId)) {
       const activeYear = await prisma.academic_years.findFirst({
         where: { org_id: targetOrgId },
         orderBy: { created_at: 'desc' },
@@ -351,7 +362,7 @@ router.get('/v1/public/classes', async (req: Request, res: Response) => {
       targetYearId = activeYear?.academic_year_id || '';
     }
     let aygList: any[] = [];
-    if (targetYearId) {
+    if (targetYearId && isUuidStr(targetYearId)) {
       aygList = await prisma.academic_year_grades.findMany({
         where: { academic_year_id: targetYearId, is_active: true },
         include: { grades: true },

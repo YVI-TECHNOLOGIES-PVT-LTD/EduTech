@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { supabase } from '../../config/supabase';
 import { calculateAIScore } from '../../utils';
 import { NativePassword } from '../../auth/crypto.utils';
-
-const prisma = new PrismaClient();
+import prisma from '../../lib/prismaClient';
 
 export class AdmissionService {
   static async resolveContext(

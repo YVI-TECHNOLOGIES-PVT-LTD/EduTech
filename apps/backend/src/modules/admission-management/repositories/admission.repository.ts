@@ -7,7 +7,13 @@ export class AdmissionRepository {
   static async findById(application_id: string, org_id?: string, parentUserId?: string) {
     const where: any = { application_id };
     if (org_id) where.org_id = org_id;
-    if (parentUserId) where.created_by = parentUserId;
+    if (parentUserId) {
+      where.OR = [
+        { created_by: parentUserId },
+        { created_by: null },
+        { leads: { parent_id: parentUserId } },
+      ];
+    }
 
     return prisma.admissions_applications.findFirst({
       where,

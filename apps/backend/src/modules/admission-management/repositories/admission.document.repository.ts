@@ -15,8 +15,14 @@ export class AdmissionDocumentRepository {
       file_size?: number | bigint;
     },
   ) {
-    return prisma.admission_documents.create({
-      data: {
+    return prisma.admission_documents.upsert({
+      where: {
+        application_id_document_type_id: {
+          application_id: applicationId,
+          document_type_id: dto.document_type_id,
+        },
+      },
+      create: {
         application_id: applicationId,
         document_type_id: dto.document_type_id,
         storage_path: dto.storage_path,
@@ -25,6 +31,15 @@ export class AdmissionDocumentRepository {
         file_size: dto.file_size ? BigInt(dto.file_size) : null,
         verify_status: document_verify_status.pending,
         created_by: createdBy || undefined,
+      },
+      update: {
+        storage_path: dto.storage_path,
+        original_file_name: dto.original_file_name || null,
+        mime_type: dto.mime_type || null,
+        file_size: dto.file_size ? BigInt(dto.file_size) : null,
+        verify_status: document_verify_status.pending,
+        uploaded_at: new Date(),
+        updated_at: new Date(),
       },
       include: {
         document_types: true,

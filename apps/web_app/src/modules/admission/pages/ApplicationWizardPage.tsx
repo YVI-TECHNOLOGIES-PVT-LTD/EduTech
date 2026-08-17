@@ -204,14 +204,25 @@ export function ApplicationWizardPage() {
     fetchClasses();
   }, [formData.school_id, formData.academic_year_id]);
 
-  // Restore Draft on Mount
+  // Safe Restore Draft on Mount
   useEffect(() => {
     const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
     const saved = localStorage.getItem(draftKey);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.formData) setFormData((prev: any) => ({ ...prev, ...parsed.formData }));
+        if (parsed.formData && typeof parsed.formData === 'object') {
+          setFormData((prev: any) => {
+            const merged = { ...prev };
+            Object.keys(parsed.formData).forEach((key) => {
+              const val = parsed.formData[key];
+              if (val !== undefined && val !== null && val !== '') {
+                merged[key] = val;
+              }
+            });
+            return merged;
+          });
+        }
         if (parsed.uploadedDocs) setUploadedDocs(parsed.uploadedDocs);
         if (parsed.instructionsAccepted) setInstructionsAccepted(parsed.instructionsAccepted);
       } catch (e) {
@@ -281,94 +292,151 @@ export function ApplicationWizardPage() {
   };
 
   // Final Application Submission (Screen 07 -> Screen 08)
+  const [submissionProgress, setSubmissionProgress] = useState<string | null>(null);
+  const [createdAppId, setCreatedAppId] = useState<string | null>(null);
+
   const handleSubmitApplication = async () => {
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     setSubmitError(null);
+    setSubmissionProgress('Validating application data...');
 
     const isUuid = (str?: string) =>
       !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
+    // REQUIRED FILE BINARY VALIDATION:
+    const REQUIRED_DOC_IDS = [
+      { id: 'aadhaar_card', name: "Student's Aadhaar Card" },
+      { id: 'birth_certificate', name: 'Birth Certificate' },
+      { id: 'passport_photo', name: "Student's Photo" },
+    ];
+
+    const missingFileDocs = REQUIRED_DOC_IDS.filter(
+      (d) => !selectedFiles[d.id] || !uploadedDocs[d.id],
+    ).map((d) => d.name);
+
+    if (missingFileDocs.length > 0) {
+      setSubmitError(
+        `File binary missing for required document(s): ${missingFileDocs.join(', ')}. Please return to Step 5 and re-select the file(s) before submitting.`,
+      );
+      setIsSubmitting(false);
+      setSubmissionProgress(null);
+      return;
+    }
+
     try {
-      const payload = {
-        school_id: isUuid(formData.school_id) ? formData.school_id : undefined,
-        org_id: isUuid(formData.school_id) ? formData.school_id : undefined,
-        academic_year_id: isUuid(formData.academic_year_id) ? formData.academic_year_id : undefined,
-        academic_year_grade_id: isUuid(formData.academic_year_grade_id)
-          ? formData.academic_year_grade_id
-          : undefined,
-        grade_id: isUuid(formData.grade_id) ? formData.grade_id : undefined,
-        grade_applied_for: formData.grade_applied_for,
-        grade: formData.grade_applied_for || formData.grade_id || 'Grade 1',
-        curriculum_preference: formData.curriculum_preference,
-        student_first_name: (formData.student_first_name || '').trim(),
-        student_last_name: (formData.student_last_name || '').trim(),
-        student_name:
-          `${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim(),
-        date_of_birth: formData.date_of_birth,
-        gender: formData.gender,
-        nationality: (formData.nationality || 'Indian').trim(),
-        parent_name: (formData.parent_name || '').trim(),
-        parent_email: (formData.parent_email || '').trim(),
-        parent_phone: (formData.parent_phone || '').trim(),
-        contact_relationship: formData.contact_relationship,
-        previous_school_name:
-          (formData.previous_school_name || formData.previous_school || '').trim() || undefined,
-        previous_school_address: (formData.previous_school_address || '').trim() || undefined,
-        previous_school_board: formData.previous_school_board || undefined,
-        previous_grade: (formData.previous_grade || '').trim() || undefined,
-        previous_school_year: (formData.previous_school_year || '').trim() || undefined,
-        status: 'submitted',
-      };
+      let targetAppId = createdAppId;
+      let appData: any = null;
 
-      const res = await apiClient.post('/v1/applications', payload);
-      const appData = res.data;
-      const createdAppId =
-        appData.application_id ||
-        appData.id ||
-        appData.application?.application_id ||
-        appData.application?.id;
+      // Step 1: Create Application record if not already created
+      if (!targetAppId) {
+        setSubmissionProgress('Creating application record...');
 
-      if (!createdAppId) {
-        throw new Error('Failed to resolve created application ID from server response.');
+        const payload = {
+          school_id: isUuid(formData.school_id) ? formData.school_id : undefined,
+          org_id: isUuid(formData.school_id) ? formData.school_id : undefined,
+          academic_year_id: isUuid(formData.academic_year_id)
+            ? formData.academic_year_id
+            : undefined,
+          academic_year_grade_id: isUuid(formData.academic_year_grade_id)
+            ? formData.academic_year_grade_id
+            : undefined,
+          grade_id: isUuid(formData.grade_id) ? formData.grade_id : undefined,
+          grade_applied_for: formData.grade_applied_for,
+          grade: formData.grade_applied_for || formData.grade_id || 'Grade 1',
+          curriculum_preference: formData.curriculum_preference,
+          student_first_name: (formData.student_first_name || '').trim(),
+          student_last_name: (formData.student_last_name || '').trim(),
+          student_name:
+            `${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim(),
+          date_of_birth: formData.date_of_birth,
+          gender: formData.gender,
+          nationality: (formData.nationality || 'Indian').trim(),
+          parent_name: (formData.parent_name || '').trim(),
+          parent_email: (formData.parent_email || '').trim(),
+          parent_phone: (formData.parent_phone || '').trim(),
+          contact_relationship: formData.contact_relationship,
+          previous_school_name:
+            (formData.previous_school_name || formData.previous_school || '').trim() || undefined,
+          previous_school_address: (formData.previous_school_address || '').trim() || undefined,
+          previous_school_board: formData.previous_school_board || undefined,
+          previous_grade: (formData.previous_grade || '').trim() || undefined,
+          previous_school_year: (formData.previous_school_year || '').trim() || undefined,
+          status: 'submitted',
+        };
+
+        const res = await apiClient.post('/v1/applications', payload);
+        appData = res.data;
+        targetAppId =
+          appData.application_id ||
+          appData.id ||
+          appData.application?.application_id ||
+          appData.application?.id;
+
+        if (!targetAppId) {
+          throw new Error('Failed to resolve created application ID from server response.');
+        }
+
+        setCreatedAppId(targetAppId);
       }
 
-      // Step 2: Perform real binary document uploads to private Supabase Storage
+      // Step 2: Binary Document Uploads to Supabase Storage
       const fileEntries = Object.entries(selectedFiles);
-      if (fileEntries.length > 0) {
-        for (const [docCode, fileObj] of fileEntries) {
-          try {
-            const formDataBody = new FormData();
-            formDataBody.append('file', fileObj);
-            formDataBody.append('document_code', docCode);
-            formDataBody.append('document_type', docCode);
+      const failedDocs: string[] = [];
+      const totalDocs = fileEntries.length;
 
-            await apiClient.post(`/v1/applications/${createdAppId}/documents`, formDataBody, {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            });
-          } catch (uploadErr: any) {
-            console.warn(
-              `Document upload warning for ${docCode}:`,
-              uploadErr?.response?.data || uploadErr.message,
-            );
-          }
+      for (let i = 0; i < totalDocs; i++) {
+        const [docCode, fileObj] = fileEntries[i];
+        setSubmissionProgress(`Uploading documents (${i + 1} of ${totalDocs})...`);
+
+        try {
+          const formDataBody = new FormData();
+          formDataBody.append('file', fileObj);
+          formDataBody.append('document_code', docCode);
+          formDataBody.append('document_type', docCode);
+
+          await apiClient.post(`/v1/applications/${targetAppId}/documents`, formDataBody, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (uploadErr: any) {
+          console.error(`Document upload failed for ${docCode}:`, uploadErr);
+          failedDocs.push(docCode);
         }
       }
 
-      // Clear draft upon successful submission
+      // STRICT TRANSACTION INVARIANT: IF ANY DOCUMENT UPLOAD FAILED, BLOCK SUCCESS NAVIGATION
+      if (failedDocs.length > 0) {
+        const nameMap: Record<string, string> = {
+          aadhaar_card: "Student's Aadhaar Card",
+          birth_certificate: 'Birth Certificate',
+          passport_photo: "Student's Photo",
+          academic_records: 'Previous Academic Records',
+        };
+        const failedNames = failedDocs.map((d) => nameMap[d] || d).join(', ');
+        setSubmitError(
+          `Application record created (${targetAppId.substring(0, 8)}...), but document upload failed for: ${failedNames}. Please click "Retry Document Upload" to complete submission.`,
+        );
+        setIsSubmitting(false);
+        setSubmissionProgress(null);
+        return; // BLOCK SUCCESS NAVIGATION
+      }
+
+      // Clear draft ONLY upon complete successful submission
       const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
       localStorage.removeItem(draftKey);
 
       const serverAppNo =
-        appData.application_number ||
-        appData.application?.application_number ||
-        appData.data?.application_number ||
-        createdAppId;
+        appData?.application_number ||
+        appData?.application?.application_number ||
+        appData?.data?.application_number ||
+        targetAppId;
 
       setSubmittedApp({
-        id: createdAppId,
+        id: targetAppId,
         application_number: serverAppNo,
-        status: appData.status || appData.application?.status || 'submitted',
-        created_at: appData.created_at || new Date().toISOString(),
+        status: appData?.status || 'submitted',
+        created_at: new Date().toISOString(),
         student_name:
           `${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim(),
         grade_applied_for: formData.grade_applied_for,
@@ -386,6 +454,7 @@ export function ApplicationWizardPage() {
       setSubmitError(msg);
     } finally {
       setIsSubmitting(false);
+      setSubmissionProgress(null);
     }
   };
 
@@ -465,6 +534,7 @@ export function ApplicationWizardPage() {
             {currentStep === 5 && (
               <ParentDocumentsStep
                 uploadedDocs={uploadedDocs}
+                selectedFiles={selectedFiles}
                 onFileUpload={handleFileUpload}
                 onRemoveDoc={handleRemoveDoc}
                 onNext={handleNext}

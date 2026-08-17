@@ -5,6 +5,7 @@ import { DocumentUploadCard } from '../../components/DocumentUploadCard';
 
 interface ParentDocumentsStepProps {
   uploadedDocs: Record<string, { file_name: string; file_size: string }>;
+  selectedFiles: Record<string, File>;
   onFileUpload: (docType: string, e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveDoc: (docType: string) => void;
   onNext: () => void;
@@ -49,6 +50,7 @@ const REQUIRED_DOCS = [
 
 export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
   uploadedDocs,
+  selectedFiles,
   onFileUpload,
   onRemoveDoc,
   onNext,
@@ -58,11 +60,15 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleProceed = () => {
-    const missingMandatory = REQUIRED_DOCS.filter(
-      (d) => d.mandatory && !uploadedDocs[d.id],
+    const missingOrReselect = REQUIRED_DOCS.filter(
+      (d) => d.mandatory && (!selectedFiles[d.id] || !uploadedDocs[d.id]),
     );
-    if (missingMandatory.length > 0) {
-      setError(`Please upload required document: ${missingMandatory[0].name}`);
+    if (missingOrReselect.length > 0) {
+      const targetDoc = missingOrReselect[0];
+      const actionLabel = !uploadedDocs[targetDoc.id]
+        ? 'upload required document'
+        : 're-select file binary before proceeding';
+      setError(`Please ${actionLabel}: ${targetDoc.name}`);
       return;
     }
     setError(null);
@@ -105,21 +111,28 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
 
       {/* Document Upload Cards List */}
       <div className="space-y-3.5">
-        {REQUIRED_DOCS.map((doc) => (
-          <DocumentUploadCard
-            key={doc.id}
-            id={doc.id}
-            name={doc.name}
-            mandatory={doc.mandatory}
-            hint={doc.hint}
-            accept={doc.accept}
-            maxSizeMb={doc.maxSizeMb}
-            uploadedDoc={uploadedDocs[doc.id]}
-            onFileUpload={(e) => onFileUpload(doc.id, e)}
-            onRemoveDoc={() => onRemoveDoc(doc.id)}
-            isReadOnly={isReadOnly}
-          />
-        ))}
+        {REQUIRED_DOCS.map((doc) => {
+          const isUploaded = !!uploadedDocs[doc.id];
+          const hasFileObj = !!selectedFiles[doc.id];
+          const isReselectRequired = isUploaded && !hasFileObj;
+
+          return (
+            <DocumentUploadCard
+              key={doc.id}
+              id={doc.id}
+              name={doc.name}
+              mandatory={doc.mandatory}
+              hint={doc.hint}
+              accept={doc.accept}
+              maxSizeMb={doc.maxSizeMb}
+              uploadedDoc={uploadedDocs[doc.id]}
+              isReselectRequired={isReselectRequired}
+              onFileUpload={(e) => onFileUpload(doc.id, e)}
+              onRemoveDoc={() => onRemoveDoc(doc.id)}
+              isReadOnly={isReadOnly}
+            />
+          );
+        })}
       </div>
 
       {error && (

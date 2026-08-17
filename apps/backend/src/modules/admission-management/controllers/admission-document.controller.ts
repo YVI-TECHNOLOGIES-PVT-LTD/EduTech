@@ -4,6 +4,8 @@ import { uploadDocumentSchema } from '../dto/request/upload-document.dto';
 import { verifyDocumentSchema } from '../dto/request/verify-document.dto';
 import { ApplicationError } from '../errors/admission.errors';
 
+import { logger } from '../../../utils/logger';
+
 export class AdmissionDocumentController {
   static async upload(req: Request, res: Response) {
     try {
@@ -31,6 +33,11 @@ export class AdmissionDocumentController {
       if (error instanceof ApplicationError) {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });
       }
+      logger.error('[AdmissionDocumentController.upload] Unhandled error during document upload:', {
+        error: error.message,
+        stack: error.stack,
+        applicationId: req.params.id,
+      });
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

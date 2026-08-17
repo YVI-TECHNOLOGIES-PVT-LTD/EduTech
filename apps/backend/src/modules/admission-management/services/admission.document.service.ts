@@ -62,7 +62,8 @@ export class AdmissionDocumentService {
       !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
     let targetDocTypeId = dto.document_type_id;
-    const docCode = dto.document_code || dto.document_type || dto.document_type_id;
+    const docCode =
+      dto.document_code || dto.document_type || dto.document_type_code || dto.document_type_id;
     const targetOrgId = orgId || app.org_id;
 
     if (!isUuid(targetDocTypeId) && docCode) {
@@ -136,7 +137,11 @@ export class AdmissionDocumentService {
       metadata: { documentId: doc.document_id, verifyStatus: doc.verify_status },
     });
 
-    return doc;
+    return {
+      ...doc,
+      file_size:
+        doc.file_size !== null && doc.file_size !== undefined ? Number(doc.file_size) : null,
+    };
   }
 
   static async getDocumentsByApplication(
