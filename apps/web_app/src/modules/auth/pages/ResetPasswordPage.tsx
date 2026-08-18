@@ -3,15 +3,16 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { useResetPasswordMutation } from '@/shared/api/auth.api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AuthLayout } from '../components/AuthLayout';
 
 const schema = z
   .object({
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -26,6 +27,7 @@ export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetPasswordApi, { isLoading }] = useResetPasswordMutation();
@@ -40,114 +42,181 @@ export const ResetPasswordPage: React.FC = () => {
 
   const onSubmit = async (data: FormData) => {
     if (!token) {
-      setError('Invalid or missing reset token.');
+      setError('Invalid or missing reset token. Please request a new password reset link.');
       return;
     }
     try {
       setError(null);
-      await (resetPasswordApi as any)({ token, password: data.password, new_password: data.password }).unwrap();
+      await (resetPasswordApi as any)({
+        token,
+        password: data.password,
+        new_password: data.password,
+      }).unwrap();
       setSubmitted(true);
     } catch (err: any) {
-      setError(err?.data?.message || 'Password reset failed. The link may have expired.');
+      setError(
+        err?.data?.message ||
+          err?.data?.error ||
+          err?.message ||
+          'Password reset failed. The link may have expired or is invalid.',
+      );
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="text-center text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Set New Password
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-          Enter your new password below to reset your credentials
-        </p>
-      </div>
+    <AuthLayout
+      badgeText="Security Credentials"
+      title="Set New Password"
+      subtitle="Enter your new secure password below to restore access"
+      backTo={{ label: 'Back to Sign In', href: '/login' }}
+    >
+      {submitted ? (
+        <div className="text-center py-2 space-y-6">
+          <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-900 shadow-sm">
+            <CheckCircle2 className="w-9 h-9 text-emerald-600 dark:text-emerald-400" />
+          </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-card py-8 px-4 shadow-xl border border-slate-100 dark:border-border sm:rounded-3xl sm:px-10">
-          {submitted ? (
-            <div className="text-center py-4 space-y-4">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Password Updated</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Your password has been reset successfully. You can now sign in with your new
-                password.
-              </p>
-              <Button
-                onClick={() => navigate('/login')}
-                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
-              >
-                Sign In Now
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {error && (
-                <div className="rounded-2xl bg-red-50 p-4 border border-red-100 flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium text-red-700">{error}</p>
-                </div>
-              )}
+          <div className="space-y-2">
+            <h2 className="text-xl font-extrabold text-foreground">
+              Password Updated Successfully
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              Your password has been changed securely. You can now sign in with your new
+              credentials.
+            </p>
+          </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    {...register('password')}
-                    className="rounded-xl border-slate-200 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                  Confirm New Password
-                </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...register('confirmPassword')}
-                  className="rounded-xl border-slate-200"
-                />
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center space-x-2"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <span>Reset Password</span>
-                )}
-              </Button>
-            </form>
-          )}
+          <div className="pt-2">
+            <Button
+              onClick={() => navigate('/login')}
+              className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2"
+            >
+              <span>Sign In to Parent Portal</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {error && (
+            <div
+              role="alert"
+              className="rounded-2xl bg-destructive/10 p-4 border border-destructive/20 flex items-start space-x-3 text-destructive animate-in fade-in duration-200"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-xs font-semibold leading-relaxed">{error}</p>
+            </div>
+          )}
+
+          {!token && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs font-medium flex items-start space-x-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                Reset token is missing in the URL. Please verify you clicked the complete link from
+                your email.
+              </span>
+            </div>
+          )}
+
+          {/* New Password */}
+          <div>
+            <label
+              htmlFor="new-password"
+              className="block text-xs font-bold text-foreground mb-1.5"
+            >
+              New Password
+            </label>
+            <div className="relative">
+              <Input
+                id="new-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Min 6 characters"
+                autoComplete="new-password"
+                aria-invalid={errors.password ? 'true' : 'false'}
+                {...register('password')}
+                className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 pr-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+              />
+              <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="mt-1.5 text-xs text-destructive font-semibold">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          {/* Confirm New Password */}
+          <div>
+            <label
+              htmlFor="confirm-new-password"
+              className="block text-xs font-bold text-foreground mb-1.5"
+            >
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <Input
+                id="confirm-new-password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Re-enter new password"
+                autoComplete="new-password"
+                aria-invalid={errors.confirmPassword ? 'true' : 'false'}
+                {...register('confirmPassword')}
+                className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 pr-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+              />
+              <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="mt-1.5 text-xs text-destructive font-semibold">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-[#042A2B]" />
+                <span>Updating Password...</span>
+              </>
+            ) : (
+              <>
+                <span>Reset Password</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+
+          <div className="text-center pt-2">
+            <Link
+              to="/login"
+              className="text-xs font-extrabold text-[#063F40] dark:text-[#E7B76A] hover:underline transition-colors"
+            >
+              Return to Sign In
+            </Link>
+          </div>
+        </form>
+      )}
+    </AuthLayout>
   );
 };
 

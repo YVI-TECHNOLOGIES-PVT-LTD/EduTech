@@ -119,10 +119,11 @@ export const AppRouter = () => {
 
               {/* Standalone Authentication & Parent Registration Routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<Navigate to="/admission/register" replace />} />
+              <Route path="/signup" element={<Navigate to="/admission/register" replace />} />
               <Route path="/admission/register" element={<RegistrationPage />} />
               <Route path="/admission/register/otp" element={<OtpVerificationPage />} />
               <Route path="/admission/register/success" element={<RegistrationSuccessPage />} />
-
 
               {/* Auth Utility Pages */}
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />

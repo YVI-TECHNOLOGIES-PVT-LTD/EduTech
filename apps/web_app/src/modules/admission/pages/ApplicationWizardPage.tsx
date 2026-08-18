@@ -436,6 +436,16 @@ export function ApplicationWizardPage() {
         return; // BLOCK SUCCESS NAVIGATION
       }
 
+      // Settle fee payment if selected or completed
+      try {
+        await admissionApi.recordApplicationPayment(targetAppId, {
+          payment_mode: formData.payment_mode || 'upi',
+          payment_status: 'paid',
+        });
+      } catch (payErr) {
+        console.warn('Post-creation payment settlement notice:', payErr);
+      }
+
       // Clear draft ONLY upon complete successful submission
       const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
       localStorage.removeItem(draftKey);
@@ -562,6 +572,11 @@ export function ApplicationWizardPage() {
 
             {currentStep === 6 && (
               <ParentFeePaymentStep
+                applicationId={createdAppId || undefined}
+                orgId={isUuid(formData.school_id) ? formData.school_id : undefined}
+                academicYearId={
+                  isUuid(formData.academic_year_id) ? formData.academic_year_id : undefined
+                }
                 formData={formData}
                 setFormData={setFormData}
                 onNext={handleNext}

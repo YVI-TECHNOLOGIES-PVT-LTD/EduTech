@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
@@ -11,17 +11,20 @@ import {
   Phone,
   Loader2,
   ArrowRight,
-  UserPlus,
   ShieldCheck,
   Info,
   AlertCircle,
+  CheckCircle2,
+  XCircle,
+  UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AdmissionShell } from '../../components/AdmissionShell';
+import { AuthLayout } from '@/modules/auth/components/AuthLayout';
 import { registrationSchema, RegistrationFormData } from '../../schemas/registration.schema';
 import { admissionApi } from '@/modules/admission/admission.api';
+import { cn } from '@/lib/utils';
 
 export const RegistrationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +36,7 @@ export const RegistrationPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegistrationFormData>({
     mode: 'onTouched',
@@ -48,6 +52,47 @@ export const RegistrationPage: React.FC = () => {
       consent: true,
     },
   });
+
+  const passwordValue = watch('password') || '';
+  const confirmPasswordValue = watch('confirmPassword') || '';
+
+  // Password strength and live requirements computation
+  const passwordCriteria = useMemo(() => {
+    return {
+      minLength: passwordValue.length >= 6,
+      hasLetter: /[a-zA-Z]/.test(passwordValue),
+      hasNumberOrSpecial: /[0-9!@#$%^&*(),.?":{}|<>]/.test(passwordValue),
+      passwordsMatch:
+        passwordValue.length > 0 &&
+        confirmPasswordValue.length > 0 &&
+        passwordValue === confirmPasswordValue,
+    };
+  }, [passwordValue, confirmPasswordValue]);
+
+  const passwordStrength = useMemo(() => {
+    if (!passwordValue) return { score: 0, label: '', color: 'bg-muted' };
+    let score = 0;
+    if (passwordValue.length >= 6) score += 1;
+    if (passwordValue.length >= 8) score += 1;
+    if (/[A-Z]/.test(passwordValue) && /[a-z]/.test(passwordValue)) score += 1;
+    if (/[0-9]/.test(passwordValue) && /[^A-Za-z0-9]/.test(passwordValue)) score += 1;
+
+    if (score <= 1)
+      return { score: 1, label: 'Weak', color: 'bg-destructive', text: 'text-destructive' };
+    if (score === 2 || score === 3)
+      return {
+        score: 2,
+        label: 'Moderate',
+        color: 'bg-amber-500',
+        text: 'text-amber-600 dark:text-amber-400',
+      };
+    return {
+      score: 3,
+      label: 'Strong',
+      color: 'bg-emerald-500',
+      text: 'text-emerald-600 dark:text-emerald-400',
+    };
+  }, [passwordValue]);
 
   const onSubmit = async (data: RegistrationFormData) => {
     setIsLoading(true);
@@ -73,7 +118,7 @@ export const RegistrationPage: React.FC = () => {
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        'Registration failed. Please try again.';
+        'Registration failed. Please check your information and try again.';
       setApiError(errMsg);
       toast.error(errMsg);
     } finally {
@@ -82,286 +127,399 @@ export const RegistrationPage: React.FC = () => {
   };
 
   return (
-    <AdmissionShell cardContainer={false}>
-      <div className="max-w-3xl mx-auto w-full py-4 sm:py-8">
-        {/* REGISTRATION CARD CONTAINER */}
-        <div className="bg-card border border-border/80 rounded-3xl p-6 sm:p-12 shadow-[0_20px_60px_rgba(4,42,43,0.08)] relative overflow-hidden">
-          {/* Ambient Background Gradient */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-[#063F40]/10 via-transparent to-[#E7B76A]/10 rounded-full blur-3xl pointer-events-none" />
+    <AuthLayout
+      wideCard={true}
+      badgeText="Parent Self-Registration"
+      title="Create Account"
+      subtitle="Set up your secure EduTrack guardian account to track applications and view results."
+      backTo={{ label: 'Back to Sign In', href: '/login' }}
+    >
+      {/* API Error Alert */}
+      {apiError && (
+        <div
+          role="alert"
+          className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-start space-x-3 animate-in fade-in duration-200"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="leading-relaxed">{apiError}</span>
+        </div>
+      )}
 
-          {/* TOP BADGES */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 relative z-10">
-            <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-editorial-cream text-[#063F40] border border-[#063F40]/20 text-xs font-bold">
-              <UserPlus className="w-3.5 h-3.5 text-[#063F40]" />
-              <span>Create Account</span>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* SECTION 1: PERSONAL DETAILS */}
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 pb-1 border-b border-border/80">
+            <UserCheck className="w-4 h-4 text-[#063F40] dark:text-[#E7B76A]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Personal Information
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* FIRST NAME */}
+            <div>
+              <label
+                htmlFor="first-name-input"
+                className="block text-xs font-bold text-foreground mb-1.5"
+              >
+                First Name <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="first-name-input"
+                  placeholder="e.g. Robert"
+                  autoComplete="given-name"
+                  aria-invalid={errors.firstName ? 'true' : 'false'}
+                  {...register('firstName')}
+                  className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+                />
+                <User className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+              </div>
+              {errors.firstName && (
+                <p className="mt-1.5 text-xs text-destructive font-semibold">
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
-            <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-editorial-cream text-[#063F40] border border-[#063F40]/20 text-xs font-bold">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#063F40]" />
-              <span>Secure Registration</span>
+
+            {/* LAST NAME */}
+            <div>
+              <label
+                htmlFor="last-name-input"
+                className="block text-xs font-bold text-foreground mb-1.5"
+              >
+                Last Name <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="last-name-input"
+                  placeholder="e.g. Jenkins"
+                  autoComplete="family-name"
+                  aria-invalid={errors.lastName ? 'true' : 'false'}
+                  {...register('lastName')}
+                  className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+                />
+                <User className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+              </div>
+              {errors.lastName && (
+                <p className="mt-1.5 text-xs text-destructive font-semibold">
+                  {errors.lastName.message}
+                </p>
+              )}
+            </div>
+
+            {/* MOBILE NUMBER */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="mobile-input"
+                className="block text-xs font-bold text-foreground mb-1.5"
+              >
+                Mobile Phone Number <span className="text-destructive">*</span>
+              </label>
+              <div className="flex space-x-2">
+                <div className="h-11 px-3 bg-muted border border-border/80 rounded-xl text-xs font-bold flex items-center text-foreground shrink-0 select-none">
+                  +91
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    id="mobile-input"
+                    type="tel"
+                    placeholder="98765 43210"
+                    autoComplete="tel"
+                    aria-invalid={errors.mobile ? 'true' : 'false'}
+                    {...register('mobile')}
+                    className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+                  />
+                  <Phone className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+                </div>
+              </div>
+              {errors.mobile ? (
+                <p className="mt-1.5 text-xs text-destructive font-semibold">
+                  {errors.mobile.message}
+                </p>
+              ) : (
+                <p className="mt-1.5 flex items-center space-x-1.5 text-[11px] text-muted-foreground">
+                  <Info className="w-3.5 h-3.5 text-[#063F40] dark:text-[#E7B76A] shrink-0" />
+                  <span>A 6-digit OTP verification code will be sent to this number</span>
+                </p>
+              )}
+            </div>
+
+            {/* EMAIL ADDRESS */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="email-input"
+                className="block text-xs font-bold text-foreground mb-1.5"
+              >
+                Email Address <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="email-input"
+                  type="email"
+                  placeholder="parent@example.com"
+                  autoComplete="email"
+                  aria-invalid={errors.email ? 'true' : 'false'}
+                  {...register('email')}
+                  className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+                />
+                <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+              </div>
+              {errors.email ? (
+                <p className="mt-1.5 text-xs text-destructive font-semibold">
+                  {errors.email.message}
+                </p>
+              ) : (
+                <p className="mt-1.5 flex items-center space-x-1.5 text-[11px] text-muted-foreground">
+                  <Info className="w-3.5 h-3.5 text-[#063F40] dark:text-[#E7B76A] shrink-0" />
+                  <span>Official admissions updates and confirmations will be sent here</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: ACCOUNT SECURITY */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center space-x-2 pb-1 border-b border-border/80">
+            <Lock className="w-4 h-4 text-[#063F40] dark:text-[#E7B76A]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Account Security
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* PASSWORD */}
+            <div>
+              <label
+                htmlFor="register-password"
+                className="block text-xs font-bold text-foreground mb-1.5"
+              >
+                Password <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="register-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Min 6 characters"
+                  autoComplete="new-password"
+                  aria-invalid={errors.password ? 'true' : 'false'}
+                  {...register('password')}
+                  className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 pr-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+                />
+                <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1.5 text-xs text-destructive font-semibold">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* CONFIRM PASSWORD */}
+            <div>
+              <label
+                htmlFor="register-confirm-password"
+                className="block text-xs font-bold text-foreground mb-1.5"
+              >
+                Confirm Password <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="register-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Re-enter password"
+                  autoComplete="new-password"
+                  aria-invalid={errors.confirmPassword ? 'true' : 'false'}
+                  {...register('confirmPassword')}
+                  className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 pr-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+                />
+                <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1.5 text-xs text-destructive font-semibold">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* PAGE TITLE */}
-          <div className="mb-8 relative z-10">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#042A2B] dark:text-white tracking-tight">
-              Register as a Parent
-            </h1>
-            <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Create your account to start and track your child's admission application.
-            </p>
-          </div>
+          {/* PASSWORD LIVE FEEDBACK & STRENGTH INDICATOR */}
+          {passwordValue.length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5 animate-in fade-in duration-200">
+              {/* Strength bar */}
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-muted-foreground">Password Strength:</span>
+                <span className={passwordStrength.text}>{passwordStrength.label}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 h-1.5">
+                <div
+                  className={cn(
+                    'rounded-full transition-all duration-300',
+                    passwordStrength.score >= 1 ? passwordStrength.color : 'bg-muted',
+                  )}
+                />
+                <div
+                  className={cn(
+                    'rounded-full transition-all duration-300',
+                    passwordStrength.score >= 2 ? passwordStrength.color : 'bg-muted',
+                  )}
+                />
+                <div
+                  className={cn(
+                    'rounded-full transition-all duration-300',
+                    passwordStrength.score >= 3 ? passwordStrength.color : 'bg-muted',
+                  )}
+                />
+              </div>
 
-          {/* API ERROR ALERT */}
-          {apiError && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-medium flex items-start space-x-2.5">
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <span>{apiError}</span>
+              {/* Requirement checks */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                <div className="flex items-center space-x-1.5">
+                  {passwordCriteria.minLength ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <span
+                    className={
+                      passwordCriteria.minLength
+                        ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    At least 6 characters
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-1.5">
+                  {passwordCriteria.hasNumberOrSpecial ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <span
+                    className={
+                      passwordCriteria.hasNumberOrSpecial
+                        ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    Contains number or symbol
+                  </span>
+                </div>
+              </div>
             </div>
           )}
-
-          {/* FORM GRID */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 relative z-10">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* FIELD 1: FIRST NAME */}
-              <div>
-                <label className="block text-xs font-extrabold text-foreground uppercase tracking-wider mb-1.5">
-                  FIRST NAME *
-                </label>
-                <div className="relative">
-                  <Input
-                    placeholder="Enter first name"
-                    autoComplete="given-name"
-                    aria-invalid={errors.firstName ? 'true' : 'false'}
-                    {...register('firstName')}
-                    className="h-11 rounded-xl pl-10 text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
-                  />
-                  <User className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                </div>
-                {errors.firstName && (
-                  <p className="mt-1 text-xs text-red-500 font-semibold">
-                    {errors.firstName.message}
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 2: LAST NAME */}
-              <div>
-                <label className="block text-xs font-extrabold text-foreground uppercase tracking-wider mb-1.5">
-                  LAST NAME *
-                </label>
-                <div className="relative">
-                  <Input
-                    placeholder="Enter last name"
-                    autoComplete="family-name"
-                    aria-invalid={errors.lastName ? 'true' : 'false'}
-                    {...register('lastName')}
-                    className="h-11 rounded-xl pl-10 text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
-                  />
-                  <User className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                </div>
-                {errors.lastName && (
-                  <p className="mt-1 text-xs text-red-500 font-semibold">
-                    {errors.lastName.message}
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 3: MOBILE NUMBER */}
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-extrabold text-foreground uppercase tracking-wider mb-1.5">
-                  MOBILE NUMBER *
-                </label>
-                <div className="flex space-x-2">
-                  <div className="h-11 px-3 bg-muted border border-border/80 rounded-xl text-xs font-bold flex items-center text-foreground shrink-0">
-                    +91
-                  </div>
-                  <div className="relative flex-1">
-                    <Input
-                      type="tel"
-                      placeholder="98765 43210"
-                      autoComplete="tel"
-                      aria-invalid={errors.mobile ? 'true' : 'false'}
-                      {...register('mobile')}
-                      className="h-11 rounded-xl pl-10 text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
-                    />
-                    <Phone className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                  </div>
-                </div>
-                {errors.mobile ? (
-                  <p className="mt-1 text-xs text-red-500 font-semibold">{errors.mobile.message}</p>
-                ) : (
-                  <p className="mt-1.5 flex items-center space-x-1.5 text-[11px] text-muted-foreground">
-                    <Info className="w-3.5 h-3.5 text-[#063F40] shrink-0" />
-                    <span>An OTP will be sent to this number for verification</span>
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 4: EMAIL ADDRESS */}
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-extrabold text-foreground uppercase tracking-wider mb-1.5">
-                  EMAIL ADDRESS *
-                </label>
-                <div className="relative">
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    aria-invalid={errors.email ? 'true' : 'false'}
-                    {...register('email')}
-                    className="h-11 rounded-xl pl-10 text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
-                  />
-                  <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                </div>
-                {errors.email ? (
-                  <p className="mt-1 text-xs text-red-500 font-semibold">{errors.email.message}</p>
-                ) : (
-                  <p className="mt-1.5 flex items-center space-x-1.5 text-[11px] text-muted-foreground">
-                    <Info className="w-3.5 h-3.5 text-[#063F40] shrink-0" />
-                    <span>Application updates and confirmation will be sent here</span>
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 5: PASSWORD */}
-              <div>
-                <label className="block text-xs font-extrabold text-foreground uppercase tracking-wider mb-1.5">
-                  PASSWORD *
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a strong password"
-                    autoComplete="new-password"
-                    aria-invalid={errors.password ? 'true' : 'false'}
-                    {...register('password')}
-                    className="h-11 rounded-xl pl-10 pr-10 text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
-                  />
-                  <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="mt-1 text-xs text-red-500 font-semibold">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 6: CONFIRM PASSWORD */}
-              <div>
-                <label className="block text-xs font-extrabold text-foreground uppercase tracking-wider mb-1.5">
-                  CONFIRM PASSWORD *
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Re-enter your password"
-                    autoComplete="new-password"
-                    aria-invalid={errors.confirmPassword ? 'true' : 'false'}
-                    {...register('confirmPassword')}
-                    className="h-11 rounded-xl pl-10 pr-10 text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
-                  />
-                  <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-xs text-red-500 font-semibold">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 7: TERMS OF SERVICE CHECKBOX */}
-              <div className="sm:col-span-2 p-4 rounded-2xl bg-editorial-mist border border-border/80">
-                <label className="flex items-start space-x-3 cursor-pointer min-h-[44px]">
-                  <input
-                    type="checkbox"
-                    {...register('terms')}
-                    className="mt-1 w-4 h-4 text-[#063F40] border-border rounded focus:ring-[#063F40]"
-                  />
-                  <span className="text-xs text-foreground font-medium leading-relaxed">
-                    I agree to EduTrack's Terms of Service and Privacy Policy. I confirm I am the
-                    parent or legal guardian applying on behalf of the child. *
-                  </span>
-                </label>
-                {errors.terms && (
-                  <p className="mt-1.5 text-xs text-red-500 font-semibold">
-                    {errors.terms.message}
-                  </p>
-                )}
-              </div>
-
-              {/* FIELD 8: COMMUNICATION CONSENT CHECKBOX */}
-              <div className="sm:col-span-2 p-4 rounded-2xl bg-editorial-mist border border-border/80">
-                <label className="flex items-start space-x-3 cursor-pointer min-h-[44px]">
-                  <input
-                    type="checkbox"
-                    {...register('consent')}
-                    className="mt-1 w-4 h-4 text-[#063F40] border-border rounded focus:ring-[#063F40]"
-                  />
-                  <span className="text-xs text-foreground font-medium leading-relaxed">
-                    I consent to receiving admission updates, notifications, and important school
-                    communications via SMS and email.
-                  </span>
-                </label>
-              </div>
-
-              {/* FIELD 9: SUBMIT BUTTON */}
-              <div className="sm:col-span-2 pt-2">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-md transition-all active:scale-[0.98]"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-[#042A2B]" />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Create Account & Continue</span>
-                      <ArrowRight className="w-4 h-4 ml-1 text-[#042A2B]" />
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* FIELD 10: LOGIN LINK */}
-              <div className="sm:col-span-2 text-center pt-4 border-t border-border/60">
-                <p className="text-xs text-muted-foreground font-medium">
-                  Already registered?{' '}
-                  <Link
-                    to="/login"
-                    className="font-extrabold text-[#063F40] dark:text-[#E7B76A] hover:underline"
-                  >
-                    Sign in here
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </form>
         </div>
-      </div>
-    </AdmissionShell>
+
+        {/* SECTION 3: TERMS & CONSENT */}
+        <div className="space-y-3 pt-2">
+          {/* Terms checkbox */}
+          <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/80">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('terms')}
+                className="mt-0.5 w-4 h-4 text-[#063F40] border-border rounded focus:ring-[#063F40] dark:text-[#E7B76A] dark:focus:ring-[#E7B76A]"
+              />
+              <span className="text-xs text-foreground font-medium leading-relaxed select-none">
+                I agree to EduTrack&apos;s{' '}
+                <a
+                  href="#terms"
+                  className="text-[#063F40] dark:text-[#E7B76A] font-extrabold hover:underline"
+                >
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a
+                  href="#privacy"
+                  className="text-[#063F40] dark:text-[#E7B76A] font-extrabold hover:underline"
+                >
+                  Privacy Policy
+                </a>
+                . I confirm that I am the parent or legal guardian applying for the child.{' '}
+                <span className="text-destructive">*</span>
+              </span>
+            </label>
+            {errors.terms && (
+              <p className="mt-1.5 text-xs text-destructive font-semibold">
+                {errors.terms.message}
+              </p>
+            )}
+          </div>
+
+          {/* Communication consent */}
+          <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/80">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('consent')}
+                className="mt-0.5 w-4 h-4 text-[#063F40] border-border rounded focus:ring-[#063F40] dark:text-[#E7B76A] dark:focus:ring-[#E7B76A]"
+              />
+              <span className="text-xs text-muted-foreground font-medium leading-relaxed select-none">
+                I consent to receiving admission updates, examination schedules, and school
+                announcements via SMS and email.
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* SUBMIT BUTTON */}
+        <div className="pt-2">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-[#042A2B]" />
+                <span>Creating Parent Account...</span>
+              </>
+            ) : (
+              <>
+                <span>Create Account & Continue</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* LOGIN REDIRECT LINK */}
+        <div className="text-center pt-4 border-t border-border/80">
+          <p className="text-xs font-medium text-muted-foreground">
+            Already registered with EduTrack?{' '}
+            <Link
+              to="/login"
+              className="font-extrabold text-[#063F40] dark:text-[#E7B76A] hover:underline transition-colors"
+            >
+              Sign In Here
+            </Link>
+          </p>
+        </div>
+      </form>
+    </AuthLayout>
   );
 };
 

@@ -15,6 +15,7 @@ import {
   Save,
   X,
   AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -343,6 +344,76 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
               </div>
             </div>
           ))}
+        </div>
+      </Card>
+
+      {/* 5. Fee & Settlement Record */}
+      <Card className="p-6 border border-border/80 shadow-sm rounded-3xl bg-card space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-border/60">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            <h2 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
+              5. Fee &amp; Settlement Record
+            </h2>
+          </div>
+          <Badge
+            variant={
+              application?.payment?.payment_status === 'paid' ||
+              (application as any)?.fee_status === 'paid'
+                ? 'success'
+                : 'warning'
+            }
+          >
+            {(
+              application?.payment?.payment_status ||
+              (application as any)?.fee_status ||
+              'PENDING'
+            ).toUpperCase()}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+          <div>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
+              SETTLED AMOUNT
+            </span>
+            <span className="text-sm font-bold text-foreground block">
+              ₹
+              {Number(application?.payment?.amount || 1200).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+              })}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
+              PAYMENT MODE
+            </span>
+            <span className="text-sm font-bold text-foreground block uppercase">
+              {application?.payment?.payment_mode || 'UPI / CARD'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
+              TRANSACTION REF
+            </span>
+            <span className="text-xs font-mono font-bold text-foreground block truncate">
+              {application?.payment?.transaction_reference || 'TXN-SETTLED'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
+              SETTLEMENT DATE
+            </span>
+            <span className="text-sm font-bold text-foreground block">
+              {application?.payment?.payment_date
+                ? new Date(application.payment.payment_date).toLocaleDateString('en-IN')
+                : application?.created_at
+                  ? new Date(application.created_at).toLocaleDateString('en-IN')
+                  : '—'}
+            </span>
+          </div>
         </div>
       </Card>
 

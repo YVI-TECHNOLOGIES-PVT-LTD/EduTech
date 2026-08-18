@@ -2,32 +2,38 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AuthLayout } from '../components/AuthLayout';
 
 export const SessionExpiredPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-sm">
+    <AuthLayout
+      badgeText="Security Timeout"
+      title="Session Expired"
+      subtitle="Your active session timed out due to inactivity"
+    >
+      <div className="text-center space-y-6">
+        <div className="w-16 h-16 rounded-3xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 flex items-center justify-center mx-auto shadow-sm">
           <Clock className="w-8 h-8" />
         </div>
-        <h2 className="mt-6 text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Session Expired
-        </h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xs mx-auto">
-          Your session has timed out due to inactivity. Please sign in again to continue.
-        </p>
 
-        <div className="mt-8">
-          <Button
-            render={<Link to="/login" />}
-            className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 flex items-center space-x-2"
-          >
-            <span>Sign In Again</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+        <div className="space-y-2">
+          <h2 className="text-xl font-extrabold text-foreground">Please Sign In Again</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+            To protect your child&apos;s records and sensitive admission data, sessions
+            automatically expire after periods of inactivity.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Link to="/login" className="block w-full">
+            <Button className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2">
+              <span>Sign In to Continue</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 

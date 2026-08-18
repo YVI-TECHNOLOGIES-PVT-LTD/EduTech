@@ -24,6 +24,7 @@ export class AdmissionRepository {
           },
         },
         academic_years: true,
+        organizations: true,
         admission_documents: {
           include: { document_types: true },
         },

@@ -48,6 +48,11 @@ admissionRouter.get(
   AdmissionDocumentController.getDocumentTypes,
 );
 admissionRouter.get(
+  '/fee-config',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionPaymentController.getFeeConfig,
+);
+admissionRouter.get(
   '/:id',
   checkPermission(AdmissionPolicy.canView()),
   AdmissionController.getById,
@@ -131,7 +136,12 @@ admissionRouter.get(
   AdmissionDecisionController.getByApplicationId,
 );
 
-// Child Resources: Payment
+// Child Resources: Payment & Fee Calculation
+admissionRouter.get(
+  '/:id/fee',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionPaymentController.getFee,
+);
 admissionRouter.post(
   '/:id/payment',
   checkPermission(AdmissionPolicy.canManagePayments()),

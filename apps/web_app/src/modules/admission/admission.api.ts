@@ -403,6 +403,30 @@ export const admissionApi = {
       verification_remarks: remarks,
     }),
 
+  // Fee Calculation & Payment
+  getApplicationFee: (applicationId: string) =>
+    apiClient.get(`/v1/applications/${applicationId}/fee`),
+
+  getFeeConfig: (params?: { org_id?: string; academic_year_id?: string; school_id?: string }) =>
+    apiClient.get('/v1/applications/fee-config', { params }),
+
+  getApplicationPayment: (applicationId: string) =>
+    apiClient.get(`/v1/applications/${applicationId}/payment`),
+
+  recordApplicationPayment: (
+    applicationId: string,
+    payload?: {
+      payment_status?: string;
+      amount?: number;
+      payment_date?: string;
+      transaction_reference?: string;
+      payment_mode?: string;
+      card_name?: string;
+      card_last_four?: string;
+      remarks?: string;
+    },
+  ) => apiClient.post(`/v1/applications/${applicationId}/payment`, payload || {}),
+
   getApplicationProgress: (applicationId: string) =>
     apiClient.get(`/v1/admission/application/${applicationId}/progress`, { silent: true } as any),
 
