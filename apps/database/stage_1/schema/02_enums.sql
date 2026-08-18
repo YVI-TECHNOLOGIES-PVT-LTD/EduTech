@@ -320,10 +320,8 @@ CREATE TYPE chatbot_sender AS ENUM (
 
 
 CREATE TYPE admission_payment_mode AS ENUM (
-    'online',
     'cash',
     'card',
     'bank_transfer',
-    'upi',
-    'cheque'
+    'upi'
 );
