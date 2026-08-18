@@ -170,3 +170,6 @@ ON UPDATE CASCADE;
 
 ALTER TABLE admissions_applications
 ALTER COLUMN lead_id DROP NOT NULL;
+
+ALTER TABLE admission_configurations
+ADD COLUMN processing_fee NUMERIC(10,2) NOT NULL DEFAULT 0;
