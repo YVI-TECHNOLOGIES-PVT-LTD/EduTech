@@ -38,6 +38,9 @@ export class AdmissionDocumentRepository {
         mime_type: dto.mime_type || null,
         file_size: dto.file_size ? BigInt(dto.file_size) : null,
         verify_status: document_verify_status.pending,
+        verification_remarks: null,
+        verified_by: null,
+        verified_at: null,
         uploaded_at: new Date(),
         updated_at: new Date(),
       },
@@ -56,7 +59,18 @@ export class AdmissionDocumentRepository {
   static async findById(document_id: string) {
     return prisma.admission_documents.findUnique({
       where: { document_id },
-      include: { document_types: true, admissions_applications: true },
+      include: {
+        document_types: true,
+        admissions_applications: {
+          include: {
+            leads: {
+              include: {
+                parents: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 

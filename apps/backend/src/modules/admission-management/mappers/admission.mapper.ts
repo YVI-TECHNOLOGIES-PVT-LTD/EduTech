@@ -17,7 +17,10 @@ export class AdmissionMapper {
     const documents: DocumentResponseDto[] = (record.admission_documents || []).map((doc: any) => ({
       document_id: doc.document_id,
       document_type_id: doc.document_type_id,
-      file_path: doc.file_path,
+      original_file_name: doc.original_file_name || null,
+      mime_type: doc.mime_type || null,
+      file_size:
+        doc.file_size !== null && doc.file_size !== undefined ? Number(doc.file_size) : null,
       verify_status: doc.verify_status,
       verification_remarks: doc.verification_remarks || null,
       uploaded_at: doc.uploaded_at
@@ -25,6 +28,7 @@ export class AdmissionMapper {
         : new Date().toISOString(),
       verified_by: doc.verified_by || null,
       verified_at: doc.verified_at ? new Date(doc.verified_at).toISOString() : null,
+      document_type_name: doc.document_types?.document_name || undefined,
     }));
 
     const assessment: AssessmentResponseDto | null = record.application_assessments

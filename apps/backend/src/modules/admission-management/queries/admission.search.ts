@@ -6,56 +6,68 @@ export class AdmissionSearchQuery {
   static async execute(params: SearchApplicationDto) {
     const q = sanitizeApplicationSearchQuery(params);
 
-    const whereClause: any = {};
+    const andConditions: any[] = [];
 
     if (q.status) {
-      whereClause.status = q.status;
+      andConditions.push({ status: q.status });
     }
 
     if (q.academic_year_id) {
-      whereClause.academic_year_id = q.academic_year_id;
+      andConditions.push({ academic_year_id: q.academic_year_id });
     }
 
     if (q.org_id) {
-      whereClause.org_id = q.org_id;
+      andConditions.push({ org_id: q.org_id });
     }
 
     if (q.created_by) {
-      whereClause.OR = [
-        { created_by: q.created_by },
-        {
-          leads: {
-            parents: {
-              user_id: q.created_by,
+      andConditions.push({
+        OR: [
+          { created_by: q.created_by },
+          {
+            leads: {
+              parents: {
+                user_id: q.created_by,
+              },
             },
           },
-        },
-      ];
+          {
+            leads: {
+              created_by: q.created_by,
+            },
+          },
+        ],
+      });
     }
 
     if (q.startDate || q.endDate) {
-      whereClause.created_at = {};
-      if (q.startDate) whereClause.created_at.gte = q.startDate;
-      if (q.endDate) whereClause.created_at.lte = q.endDate;
+      const dateFilter: any = {};
+      if (q.startDate) dateFilter.gte = q.startDate;
+      if (q.endDate) dateFilter.lte = q.endDate;
+      andConditions.push({ created_at: dateFilter });
     }
 
     if (q.searchText && q.searchText.trim() !== '') {
       const text = q.searchText.trim();
-      whereClause.OR = [
-        { application_number: { contains: text, mode: 'insensitive' } },
-        {
-          leads: {
-            OR: [
-              { student_first_name: { contains: text, mode: 'insensitive' } },
-              { student_last_name: { contains: text, mode: 'insensitive' } },
-              { contact_name: { contains: text, mode: 'insensitive' } },
-              { contact_phone: { contains: text, mode: 'insensitive' } },
-              { contact_email: { contains: text, mode: 'insensitive' } },
-            ],
+      andConditions.push({
+        OR: [
+          { application_number: { contains: text, mode: 'insensitive' } },
+          {
+            leads: {
+              OR: [
+                { student_first_name: { contains: text, mode: 'insensitive' } },
+                { student_last_name: { contains: text, mode: 'insensitive' } },
+                { contact_name: { contains: text, mode: 'insensitive' } },
+                { contact_phone: { contains: text, mode: 'insensitive' } },
+                { contact_email: { contains: text, mode: 'insensitive' } },
+              ],
+            },
           },
-        },
-      ];
+        ],
+      });
     }
+
+    const whereClause = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const total = await prisma.admissions_applications.count({
       where: whereClause,
