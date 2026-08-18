@@ -109,18 +109,45 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
             {def.label}
           </span>
           {editable && (
-            <Badge variant="outline" className="text-[9px] font-bold text-amber-600 bg-amber-50 border-amber-300 py-0">
+            <Badge
+              variant="outline"
+              className="text-[9px] font-bold text-amber-600 bg-amber-50 border-amber-300 py-0"
+            >
               EDITABLE
             </Badge>
           )}
         </div>
 
         {editable ? (
-          <Input
-            value={currentValue}
-            onChange={(e) => handleChange(fieldKey, e.target.value)}
-            className="h-9 text-xs font-semibold rounded-xl border-amber-300 focus:ring-amber-500 bg-amber-50/30 dark:bg-amber-950/20 text-slate-900 dark:text-white"
-          />
+          fieldKey === 'previous_school_address' ? (
+            <textarea
+              rows={2}
+              value={currentValue}
+              onChange={(e) => handleChange(fieldKey, e.target.value)}
+              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-amber-300 focus:ring-amber-500 bg-amber-50/30 dark:bg-amber-950/20 text-slate-900 dark:text-white outline-none resize-none"
+            />
+          ) : fieldKey === 'previous_school_board' ? (
+            <select
+              value={currentValue}
+              onChange={(e) => handleChange(fieldKey, e.target.value)}
+              className="w-full h-9 px-3 text-xs font-semibold rounded-xl border border-amber-300 focus:ring-amber-500 bg-amber-50/30 dark:bg-amber-950/20 text-slate-900 dark:text-white outline-none cursor-pointer"
+            >
+              <option value="">-- Select Board --</option>
+              <option value="CBSE">CBSE</option>
+              <option value="ICSE">ICSE</option>
+              <option value="STATE BOARD">State Board</option>
+              <option value="IB">IB</option>
+              <option value="CAMBRIDGE">Cambridge (IGCSE)</option>
+              <option value="NIOS">NIOS</option>
+              <option value="OTHER">Other</option>
+            </select>
+          ) : (
+            <Input
+              value={currentValue}
+              onChange={(e) => handleChange(fieldKey, e.target.value)}
+              className="h-9 text-xs font-semibold rounded-xl border-amber-300 focus:ring-amber-500 bg-amber-50/30 dark:bg-amber-950/20 text-slate-900 dark:text-white"
+            />
+          )
         ) : (
           <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block truncate">
             {currentValue || '—'}
@@ -181,7 +208,8 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
               </span>
             </div>
             <p className="text-xs font-medium text-muted-foreground">
-              Submitted on <span className="font-bold text-foreground">{submittedDate}</span> • Application Number:{' '}
+              Submitted on <span className="font-bold text-foreground">{submittedDate}</span> •
+              Application Number:{' '}
               <span className="font-bold text-indigo-600 dark:text-indigo-400">{appNumber}</span>
             </p>
           </div>
@@ -195,14 +223,16 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
               <span>Correction Authorized by Front Office</span>
             </div>
             <p className="text-amber-800 dark:text-amber-300 font-medium pl-6 leading-relaxed">
-              Front Office has requested corrections to this application. Only the highlighted fields can be edited. All other fields remain locked.
+              Front Office has requested corrections to this application. Only the highlighted
+              fields can be edited. All other fields remain locked.
             </p>
           </div>
         ) : (
           <div className="p-3.5 bg-muted/40 rounded-2xl border border-border/80 flex items-center space-x-3 text-muted-foreground text-xs font-medium">
             <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
             <span>
-              This application is in <strong className="text-foreground">Read-Only Mode</strong> because it has already been submitted to the admission office.
+              This application is in <strong className="text-foreground">Read-Only Mode</strong>{' '}
+              because it has already been submitted to the admission office.
             </span>
           </div>
         )}
@@ -237,6 +267,7 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
           {renderField('student_name')}
           {renderField('date_of_birth')}
           {renderField('gender')}
+          {renderField('nationality')}
           {renderField('grade_applied_for')}
           {renderField('curriculum_preference')}
           {renderField('academic_year_id')}
@@ -275,7 +306,12 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
           {renderField('previous_school_name')}
+          {renderField('previous_school_board')}
           {renderField('previous_grade')}
+          {renderField('previous_school_year')}
+          <div className="sm:col-span-2 md:col-span-3">
+            {renderField('previous_school_address')}
+          </div>
         </div>
       </Card>
 
@@ -340,4 +376,4 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
       )}
     </div>
   );
-}
+};

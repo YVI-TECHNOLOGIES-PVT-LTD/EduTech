@@ -312,13 +312,17 @@ export class AuthService {
     });
 
     const year = new Date().getFullYear();
-    const leadCount = await tx.leads.count();
-    let leadSeq = leadCount + 1;
-    let leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
-    while (await tx.leads.findUnique({ where: { lead_number: leadNumber } })) {
-      leadSeq++;
-      leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
+    const lastLead = await tx.leads.findFirst({
+      where: { lead_number: { startsWith: `LEAD-${year}-` } },
+      orderBy: { lead_number: 'desc' },
+      select: { lead_number: true },
+    });
+    let nextLeadSeq = 1;
+    if (lastLead?.lead_number) {
+      const match = lastLead.lead_number.match(/(\d+)$/);
+      if (match) nextLeadSeq = parseInt(match[1], 10) + 1;
     }
+    const leadNumber = `LEAD-${year}-${String(nextLeadSeq).padStart(5, '0')}`;
 
     const newLead = await tx.leads.create({
       data: {
@@ -366,96 +370,100 @@ export class AuthService {
     const resolvedSource = validSources.includes(rawSource) ? rawSource : 'website';
     const cleanEmail = data.email.trim().toLowerCase();
 
-    return await prisma.$transaction(async (tx) => {
-      const existing = await tx.users.findFirst({
-        where: { email: cleanEmail },
-      });
+    // Perform CPU-intensive password hashing pre-transaction
+    const passwordHash = await NativePassword.hash(data.password);
+    const nameParts = data.full_name.trim().split(' ');
+    const firstName = nameParts[0] || 'Parent';
+    const lastName = nameParts.slice(1).join(' ') || undefined;
 
-      if (existing) {
-        throw new Error('An account with this email address already exists. Please log in.');
-      }
-
-      let targetOrgId = data.org_id;
-      if (!targetOrgId) {
-        const activeOrg = await tx.organizations.findFirst({
-          where: { status: 'active' },
-          select: { org_id: true },
+    return await prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.users.findFirst({
+          where: { email: cleanEmail },
         });
-        targetOrgId = activeOrg?.org_id || '';
-      }
 
-      if (!targetOrgId) {
-        throw new Error('Organization context is required for registration.');
-      }
+        if (existing) {
+          throw new Error('An account with this email address already exists. Please log in.');
+        }
 
-      const passwordHash = await NativePassword.hash(data.password);
-      const nameParts = data.full_name.trim().split(' ');
-      const firstName = nameParts[0] || 'Parent';
-      const lastName = nameParts.slice(1).join(' ') || undefined;
+        let targetOrgId = data.org_id;
+        if (!targetOrgId) {
+          const activeOrg = await tx.organizations.findFirst({
+            where: { status: 'active' },
+            select: { org_id: true },
+          });
+          targetOrgId = activeOrg?.org_id || '';
+        }
 
-      const newUser = await tx.users.create({
-        data: {
-          org_id: targetOrgId,
-          first_name: firstName,
-          last_name: lastName,
-          email: cleanEmail,
-          phone: data.phone.trim(),
-          password_hash: passwordHash,
-          status: 'active',
-        },
-      });
+        if (!targetOrgId) {
+          throw new Error('Organization context is required for registration.');
+        }
 
-      // Assign PARENT role
-      const parentRole = await tx.roles.findFirst({
-        where: { role_name: 'PARENT' },
-      });
-
-      if (parentRole) {
-        await tx.user_roles.create({
+        const newUser = await tx.users.create({
           data: {
-            user_id: newUser.user_id,
-            role_id: parentRole.role_id,
+            org_id: targetOrgId,
+            first_name: firstName,
+            last_name: lastName,
+            email: cleanEmail,
+            phone: data.phone.trim(),
+            password_hash: passwordHash,
+            status: 'active',
           },
         });
-      }
 
-      // Create parents entity
-      const newParent = await tx.parents.create({
-        data: {
-          org_id: targetOrgId,
+        // Assign PARENT role
+        const parentRole = await tx.roles.findFirst({
+          where: { role_name: 'PARENT' },
+        });
+
+        if (parentRole) {
+          await tx.user_roles.create({
+            data: {
+              user_id: newUser.user_id,
+              role_id: parentRole.role_id,
+            },
+          });
+        }
+
+        // Create parents entity
+        const newParent = await tx.parents.create({
+          data: {
+            org_id: targetOrgId,
+            user_id: newUser.user_id,
+            first_name: firstName,
+            last_name: lastName,
+            phone: data.phone.trim(),
+            email: cleanEmail,
+          },
+        });
+
+        // Execute Lead Claiming & Creation Algorithm
+        const leadResult = await AuthService.resolveOrClaimLeadForParent({
+          tx,
+          orgId: targetOrgId,
+          parentId: newParent.parent_id,
+          verifiedEmail: cleanEmail,
+          verifiedPhone: data.phone.trim(),
+          fullName: data.full_name.trim(),
+          firstName,
+          lastName,
+          source: resolvedSource,
+        });
+
+        return {
+          success: true,
           user_id: newUser.user_id,
-          first_name: firstName,
-          last_name: lastName,
-          phone: data.phone.trim(),
+          parent_id: newParent.parent_id,
+          lead_id: leadResult.lead_id,
+          claimed: leadResult.claimed,
           email: cleanEmail,
-        },
-      });
-
-      // Execute Lead Claiming & Creation Algorithm
-      const leadResult = await AuthService.resolveOrClaimLeadForParent({
-        tx,
-        orgId: targetOrgId,
-        parentId: newParent.parent_id,
-        verifiedEmail: cleanEmail,
-        verifiedPhone: data.phone.trim(),
-        fullName: data.full_name.trim(),
-        firstName,
-        lastName,
-        source: resolvedSource,
-      });
-
-      return {
-        success: true,
-        user_id: newUser.user_id,
-        parent_id: newParent.parent_id,
-        lead_id: leadResult.lead_id,
-        claimed: leadResult.claimed,
-        email: cleanEmail,
-        phone: data.phone.trim(),
-        source: resolvedSource,
-        message: 'Registration initiated successfully. Verification OTP sent.',
-      };
-    });
+          phone: data.phone.trim(),
+          source: resolvedSource,
+          message: 'Registration initiated successfully. Verification OTP sent.',
+        };
+      },
+      { maxWait: 5000, timeout: 10000 },
+    );
   }
 
   static async verifyOtp(data: { email?: string; phone?: string; otp: string }) {

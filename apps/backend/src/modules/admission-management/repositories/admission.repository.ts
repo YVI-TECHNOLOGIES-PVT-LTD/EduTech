@@ -9,16 +9,20 @@ export class AdmissionRepository {
     if (org_id) where.org_id = org_id;
     if (parentUserId) {
       where.OR = [
+        { leads: { parents: { user_id: parentUserId } } },
         { created_by: parentUserId },
-        { created_by: null },
-        { leads: { parent_id: parentUserId } },
+        { leads: { created_by: parentUserId } },
       ];
     }
 
     return prisma.admissions_applications.findFirst({
       where,
       include: {
-        leads: true,
+        leads: {
+          include: {
+            parents: true,
+          },
+        },
         academic_years: true,
         admission_documents: {
           include: { document_types: true },
@@ -49,13 +53,17 @@ export class AdmissionRepository {
 
   static async create(dto: CreateApplicationDto, createdBy?: string | null) {
     const year = new Date().getFullYear();
-    const count = await prisma.admissions_applications.count();
-    let appSeq = count + 1;
-    let application_number = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-    while (await prisma.admissions_applications.findUnique({ where: { application_number } })) {
-      appSeq++;
-      application_number = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+    const lastApp = await prisma.admissions_applications.findFirst({
+      where: { application_number: { startsWith: `APP-${year}-` } },
+      orderBy: { application_number: 'desc' },
+      select: { application_number: true },
+    });
+    let appSeq = 1;
+    if (lastApp?.application_number) {
+      const match = lastApp.application_number.match(/(\d+)$/);
+      if (match) appSeq = parseInt(match[1], 10) + 1;
     }
+    const application_number = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
 
     return prisma.admissions_applications.create({
       data: {

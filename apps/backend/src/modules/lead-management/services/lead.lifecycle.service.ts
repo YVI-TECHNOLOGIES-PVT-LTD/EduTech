@@ -66,7 +66,7 @@ export class LeadLifecycleService {
     }
 
     // Check if application already exists for this lead
-    const existingApp = await prisma.admissions_applications.findUnique({
+    const existingApp = await prisma.admissions_applications.findFirst({
       where: { lead_id: leadId },
     });
     if (existingApp) {

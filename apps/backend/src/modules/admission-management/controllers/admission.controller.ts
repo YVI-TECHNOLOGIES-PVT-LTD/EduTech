@@ -23,10 +23,15 @@ export class AdmissionController {
       const result = await AdmissionService.createApplication(parsed.data, userId, userOrgId);
       return res.status(201).json(result);
     } catch (error: any) {
+      console.error('[AdmissionController.create Error]:', error);
       if (error instanceof ApplicationError) {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });
       }
-      return res.status(500).json({ error: error.message || 'Internal server error' });
+      return res.status(500).json({
+        error: error.message || 'Internal server error',
+        details: error.message,
+        stack: error.stack,
+      });
     }
   }
 
@@ -131,19 +136,30 @@ export class AdmissionController {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const orgId = user?.org_id || user?.school_id;
+      const orgId =
+        (req.query.org_id as string) ||
+        (req.query.school_id as string) ||
+        user?.org_id ||
+        user?.school_id;
       const searchParams: any = {
         created_by: userId,
         org_id: orgId,
-        page: 1,
-        pageSize: 50,
-        sort: 'created_at',
-        order: 'desc',
+        page: parseInt((req.query.page as string) || '1', 10),
+        pageSize: parseInt((req.query.pageSize as string) || '50', 10),
+        sort: (req.query.sort as string) || 'created_at',
+        order: (req.query.order as string) || 'desc',
       };
 
       const result = await AdmissionService.searchApplications(searchParams);
+      console.log('[AdmissionController.getMine]:', {
+        userId,
+        orgId,
+        resultCount: result.data ? result.data.length : 0,
+        total: result.meta ? result.meta.total : 0,
+      });
       return res.json(result);
     } catch (error: any) {
+      console.error('[AdmissionController.getMine Error]:', error);
       if (error instanceof ApplicationError) {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });
       }

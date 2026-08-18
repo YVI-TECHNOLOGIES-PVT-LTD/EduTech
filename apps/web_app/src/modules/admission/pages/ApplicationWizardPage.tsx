@@ -11,10 +11,14 @@ import { ParentDocumentsStep } from './parent/ParentDocumentsStep';
 import { ParentFeePaymentStep } from './parent/ParentFeePaymentStep';
 import { ParentReviewSubmitStep } from './parent/ParentReviewSubmitStep';
 import { ParentConfirmationStep } from './parent/ParentConfirmationStep';
+import { admissionApi } from '../admission.api';
 import { PageContainer, PageHeader, PageErrorState } from '@/components/layout/PageLayout';
 import { Badge } from '@/components/ui/badge';
 
 const DRAFT_KEY_PREFIX = 'edutrack_parent_app_draft_';
+
+const isUuid = (str?: string) =>
+  !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 export function ApplicationWizardPage() {
   const navigate = useNavigate();
@@ -302,27 +306,41 @@ export function ApplicationWizardPage() {
     setSubmitError(null);
     setSubmissionProgress('Validating application data...');
 
-    const isUuid = (str?: string) =>
-      !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-
-    // REQUIRED FILE BINARY VALIDATION:
-    const REQUIRED_DOC_IDS = [
-      { id: 'aadhaar_card', name: "Student's Aadhaar Card" },
-      { id: 'birth_certificate', name: 'Birth Certificate' },
-      { id: 'passport_photo', name: "Student's Photo" },
-    ];
-
-    const missingFileDocs = REQUIRED_DOC_IDS.filter(
-      (d) => !selectedFiles[d.id] || !uploadedDocs[d.id],
-    ).map((d) => d.name);
-
-    if (missingFileDocs.length > 0) {
-      setSubmitError(
-        `File binary missing for required document(s): ${missingFileDocs.join(', ')}. Please return to Step 5 and re-select the file(s) before submitting.`,
+    // DYNAMIC MANDATORY DOCUMENT VALIDATION:
+    try {
+      const dtRes = await admissionApi.getDocumentTypes(
+        createdAppId
+          ? { application_id: createdAppId }
+          : isUuid(formData.school_id)
+            ? { org_id: formData.school_id }
+            : undefined,
       );
-      setIsSubmitting(false);
-      setSubmissionProgress(null);
-      return;
+      const mandatoryDocTypes = Array.isArray(dtRes.data)
+        ? dtRes.data.filter((dt: any) => dt.is_mandatory)
+        : [];
+
+      const missingFileDocs: string[] = [];
+      for (const mDoc of mandatoryDocTypes) {
+        const hasFile =
+          selectedFiles[mDoc.document_type_id] ||
+          selectedFiles[mDoc.document_name] ||
+          selectedFiles[mDoc.document_name.toLowerCase().replace(/[^a-z0-9]/g, '_')];
+
+        if (!hasFile) {
+          missingFileDocs.push(mDoc.document_name);
+        }
+      }
+
+      if (missingFileDocs.length > 0) {
+        setSubmitError(
+          `File binary missing for required document(s): ${missingFileDocs.join(', ')}. Please return to Step 5 and re-select the file(s) before submitting.`,
+        );
+        setIsSubmitting(false);
+        setSubmissionProgress(null);
+        return;
+      }
+    } catch (e) {
+      console.warn('Could not fetch mandatory document types for validation', e);
     }
 
     try {
@@ -387,35 +405,31 @@ export function ApplicationWizardPage() {
       const totalDocs = fileEntries.length;
 
       for (let i = 0; i < totalDocs; i++) {
-        const [docCode, fileObj] = fileEntries[i];
+        const [docTypeId, fileObj] = fileEntries[i];
         setSubmissionProgress(`Uploading documents (${i + 1} of ${totalDocs})...`);
 
         try {
           const formDataBody = new FormData();
           formDataBody.append('file', fileObj);
-          formDataBody.append('document_code', docCode);
-          formDataBody.append('document_type', docCode);
+          if (isUuid(docTypeId)) {
+            formDataBody.append('document_type_id', docTypeId);
+          }
+          formDataBody.append('document_code', docTypeId);
+          formDataBody.append('document_type', docTypeId);
 
           await apiClient.post(`/v1/applications/${targetAppId}/documents`, formDataBody, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
         } catch (uploadErr: any) {
-          console.error(`Document upload failed for ${docCode}:`, uploadErr);
-          failedDocs.push(docCode);
+          console.error(`Document upload failed for ${docTypeId}:`, uploadErr);
+          failedDocs.push(docTypeId);
         }
       }
 
       // STRICT TRANSACTION INVARIANT: IF ANY DOCUMENT UPLOAD FAILED, BLOCK SUCCESS NAVIGATION
       if (failedDocs.length > 0) {
-        const nameMap: Record<string, string> = {
-          aadhaar_card: "Student's Aadhaar Card",
-          birth_certificate: 'Birth Certificate',
-          passport_photo: "Student's Photo",
-          academic_records: 'Previous Academic Records',
-        };
-        const failedNames = failedDocs.map((d) => nameMap[d] || d).join(', ');
         setSubmitError(
-          `Application record created (${targetAppId.substring(0, 8)}...), but document upload failed for: ${failedNames}. Please click "Retry Document Upload" to complete submission.`,
+          `Application record created (${targetAppId.substring(0, 8)}...), but document upload failed for ${failedDocs.length} document(s). Please click "Retry Document Upload" to complete submission.`,
         );
         setIsSubmitting(false);
         setSubmissionProgress(null);
@@ -533,6 +547,9 @@ export function ApplicationWizardPage() {
 
             {currentStep === 5 && (
               <ParentDocumentsStep
+                applicationId={createdAppId || undefined}
+                orgId={isUuid(formData.school_id) ? formData.school_id : undefined}
+                schoolId={isUuid(formData.school_id) ? formData.school_id : undefined}
                 uploadedDocs={uploadedDocs}
                 selectedFiles={selectedFiles}
                 onFileUpload={handleFileUpload}

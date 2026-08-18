@@ -16,16 +16,15 @@ export const APPLICATION_FIELDS: Record<string, ApplicationFieldDef> = {
       (app?.leads
         ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`.trim()
         : app?.lead
-        ? `${app.lead.student_first_name || ''} ${app.lead.student_last_name || ''}`.trim()
-        : 'Applicant'),
+          ? `${app.lead.student_first_name || ''} ${app.lead.student_last_name || ''}`.trim()
+          : 'Applicant'),
   },
   date_of_birth: {
     key: 'date_of_birth',
     label: 'Date of Birth',
     section: 'student',
     getValue: (app, view) => {
-      const raw =
-        (view as any)?.dob || app?.date_of_birth || app?.lead?.date_of_birth;
+      const raw = (view as any)?.dob || app?.date_of_birth || app?.lead?.date_of_birth;
       return raw ? new Date(raw).toLocaleDateString() : '';
     },
   },
@@ -34,6 +33,13 @@ export const APPLICATION_FIELDS: Record<string, ApplicationFieldDef> = {
     label: 'Gender',
     section: 'student',
     getValue: (app) => app?.gender || app?.lead?.gender || '',
+  },
+  nationality: {
+    key: 'nationality',
+    label: 'Nationality',
+    section: 'student',
+    getValue: (app, view) =>
+      view?.nationality || app?.nationality || app?.students?.nationality || 'Indian',
   },
   grade_applied_for: {
     key: 'grade_applied_for',
@@ -46,8 +52,7 @@ export const APPLICATION_FIELDS: Record<string, ApplicationFieldDef> = {
     key: 'curriculum_preference',
     label: 'Curriculum Preference',
     section: 'student',
-    getValue: (app) =>
-      app?.curriculum_preference || app?.lead?.curriculum_preference || 'CBSE',
+    getValue: (app) => app?.curriculum_preference || app?.lead?.curriculum_preference || 'CBSE',
   },
   parent_name: {
     key: 'parent_name',
@@ -93,21 +98,37 @@ export const APPLICATION_FIELDS: Record<string, ApplicationFieldDef> = {
     key: 'academic_year_id',
     label: 'Academic Year',
     section: 'academic',
-    getValue: (app) =>
-      app?.academic_years?.year_label || app?.academic_year_id || '2026-2027',
+    getValue: (app) => app?.academic_years?.year_label || app?.academic_year_id || '2026-2027',
   },
   previous_school_name: {
     key: 'previous_school_name',
     label: 'Previous School',
     section: 'academic',
-    getValue: (app) =>
-      app?.previous_school_name || app?.lead?.previous_school || '',
+    getValue: (app) => app?.previous_school_name || app?.lead?.previous_school || '',
+  },
+  previous_school_board: {
+    key: 'previous_school_board',
+    label: 'Previous Board / Curriculum',
+    section: 'academic',
+    getValue: (app) => app?.previous_school_board || app?.lead?.previous_school_board || '',
   },
   previous_grade: {
     key: 'previous_grade',
     label: 'Previous Grade / Class',
     section: 'academic',
     getValue: (app) => app?.previous_grade || app?.lead?.previous_grade || '',
+  },
+  previous_school_year: {
+    key: 'previous_school_year',
+    label: 'Previous Academic Year',
+    section: 'academic',
+    getValue: (app) => app?.previous_school_year || app?.lead?.previous_school_year || '',
+  },
+  previous_school_address: {
+    key: 'previous_school_address',
+    label: 'Previous School Address',
+    section: 'academic',
+    getValue: (app) => app?.previous_school_address || app?.lead?.previous_school_address || '',
   },
 };
 

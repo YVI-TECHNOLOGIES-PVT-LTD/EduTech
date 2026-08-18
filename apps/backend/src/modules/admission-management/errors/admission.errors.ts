@@ -48,3 +48,9 @@ export class ApplicationValidationError extends ApplicationError {
     super(message, 400, 'APPLICATION_VALIDATION_ERROR');
   }
 }
+
+export class ApplicationForbiddenError extends ApplicationError {
+  constructor(message: string = 'Forbidden: insufficient permissions') {
+    super(message, 403, 'APPLICATION_FORBIDDEN');
+  }
+}

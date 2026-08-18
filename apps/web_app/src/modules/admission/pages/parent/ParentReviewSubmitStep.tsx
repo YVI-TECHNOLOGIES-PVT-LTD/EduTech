@@ -187,18 +187,22 @@ export const ParentReviewSubmitStep: React.FC<ParentReviewSubmitStepProps> = ({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {['Birth Certificate', 'Aadhaar Card', 'Passport Size Photo', 'Address Proof'].map(
-            (docName) => (
+          {Object.entries(uploadedDocs).length > 0 ? (
+            Object.entries(uploadedDocs).map(([docId, docMeta]) => (
               <div
-                key={docName}
+                key={docId}
                 className="flex items-center space-x-2 p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 text-emerald-900 text-xs font-bold"
               >
                 <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">
                   ✓
                 </div>
-                <span className="truncate">{docName}</span>
+                <span className="truncate" title={docMeta.file_name}>
+                  {docMeta.file_name || docId}
+                </span>
               </div>
-            ),
+            ))
+          ) : (
+            <p className="text-xs text-gray-500 italic col-span-4">No documents attached yet</p>
           )}
         </div>
       </div>

@@ -181,15 +181,17 @@ export const admissionApi = {
     return apiClient.post<any>('/v1/admission/enquiries', payload, { silent: true } as any);
   },
 
-
-
   updateLead: (id: string, data: any) => apiClient.patch<any>(`/v1/leads/${id}`, data),
   updateEnquiry: (id: string, data?: any) => apiClient.patch<any>(`/v1/leads/${id}`, data),
 
   deleteEnquiry: (id: string) => apiClient.delete<any>(`/v1/leads/${id}`),
 
   assignLead: (id: string, counselor_id?: string, remarks?: string, reassign?: boolean) =>
-    apiClient.patch(`/v1/leads/${id}/assign`, { assigned_counsellor_id: counselor_id, remarks, reassign }),
+    apiClient.patch(`/v1/leads/${id}/assign`, {
+      assigned_counsellor_id: counselor_id,
+      remarks,
+      reassign,
+    }),
 
   qualifyLead: (id: string) => apiClient.post(`/v1/leads/${id}/qualify`),
 
@@ -296,7 +298,9 @@ export const admissionApi = {
   recordExamMarks: (data: any) => apiClient.post('/v1/admission/evaluation/exam/result', data),
 
   getExamResults: (applicationId: string) =>
-    apiClient.get(`/v1/admission/evaluation/exam/results/${applicationId}`, { silent: true } as any),
+    apiClient.get(`/v1/admission/evaluation/exam/results/${applicationId}`, {
+      silent: true,
+    } as any),
 
   scheduleInterview: (data: any) =>
     apiClient.post('/v1/admission/evaluation/interview/schedule', data),
@@ -350,7 +354,11 @@ export const admissionApi = {
   listCrmDocuments: (applicationId: string) =>
     apiClient.get(`/v1/applications/${applicationId}/documents`),
 
-  uploadCrmDocument: (applicationId: string, documentTypeId: string, fileOrPath: File | string): Promise<any> => {
+  uploadCrmDocument: (
+    applicationId: string,
+    documentTypeId: string,
+    fileOrPath: File | string,
+  ): Promise<any> => {
     if (typeof fileOrPath === 'string') {
       return apiClient.post(`/v1/applications/${applicationId}/documents`, {
         document_type_id: documentTypeId,
@@ -369,8 +377,13 @@ export const admissionApi = {
   deleteCrmDocument: (documentId: string) =>
     apiClient.delete(`/v1/applications/documents/${documentId}`),
 
+  getDocumentTypes: (params?: { application_id?: string; org_id?: string; school_id?: string }) =>
+    apiClient.get('/v1/applications/document-types', { params }),
+
   getCrmDocumentDownloadUrl: (documentId: string) =>
-    apiClient.get(`/v1/applications/documents/${documentId}/download-url`),
+    apiClient.get<{ signed_url: string; expires_at: string }>(
+      `/v1/applications/documents/${documentId}/signed-url`,
+    ),
 
   verifyCrmDocument: (documentId: string, remarks?: string) =>
     apiClient.patch(`/v1/applications/documents/${documentId}/verify`, {

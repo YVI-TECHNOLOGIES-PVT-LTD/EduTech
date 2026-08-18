@@ -1,12 +1,15 @@
 export interface DocumentResponseDto {
   document_id: string;
   document_type_id: string;
-  file_path: string;
+  original_file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
   verify_status: string;
   verification_remarks: string | null;
   uploaded_at: string;
   verified_by: string | null;
   verified_at: string | null;
+  document_type_name?: string;
 }
 
 export interface AssessmentResponseDto {

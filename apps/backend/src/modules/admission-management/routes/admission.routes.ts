@@ -43,6 +43,11 @@ admissionRouter.get(
   AdmissionController.getMine,
 );
 admissionRouter.get(
+  '/document-types',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionDocumentController.getDocumentTypes,
+);
+admissionRouter.get(
   '/:id',
   checkPermission(AdmissionPolicy.canView()),
   AdmissionController.getById,
