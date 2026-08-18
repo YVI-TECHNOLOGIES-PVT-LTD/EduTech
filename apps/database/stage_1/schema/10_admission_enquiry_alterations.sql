@@ -173,3 +173,8 @@ ALTER COLUMN lead_id DROP NOT NULL;
 
 ALTER TABLE admission_configurations
 ADD COLUMN processing_fee NUMERIC(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE admission_fee_payments
+ADD COLUMN card_name VARCHAR(100) NULL,
+ADD COLUMN card_last_four CHAR(4) NULL;
+
