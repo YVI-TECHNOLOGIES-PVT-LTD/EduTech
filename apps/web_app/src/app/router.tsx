@@ -49,12 +49,28 @@ const RoleBasedDefaultRedirect: React.FC = () => {
   const userRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
 
   if (
-    userRoles.includes('FRONT_OFFICE') ||
-    userRoles.includes('FO') ||
-    userRoles.includes('STAFF') ||
-    userRoles.includes('ADMISSION_OFFICER') ||
-    userRoles.includes('ADMIN') ||
-    userRoles.includes('SUPERADMIN')
+    userRoles.some((r: string) =>
+      [
+        'ADMIN',
+        'SUPERADMIN',
+        'SUPER_ADMIN',
+        'FRONT_OFFICE',
+        'FO',
+        'FRONT_OFFICE_STAFF',
+        'STAFF',
+        'ADMISSION_OFFICER',
+        'COUNSELLOR',
+        'COUNSELOR',
+        'HOI',
+        'PRINCIPAL',
+        'HEAD_OF_INSTITUTE',
+        'TEACHER',
+        'FINANCE',
+        'FINANCE_OFFICER',
+        'EXAM_CELL_ADMIN',
+        'EXAM_CELL',
+      ].includes(r),
+    )
   ) {
     return <Navigate to="/app/workspace" replace />;
   }

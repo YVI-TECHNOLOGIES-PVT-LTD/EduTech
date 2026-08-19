@@ -10,10 +10,13 @@ import FinanceDashboard from './FinanceDashboard';
 import { AlertCircle } from 'lucide-react';
 
 export function WorkspaceDashboard() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasRole } = useAuth();
 
   // Dispatch dashboard component based on permission profiles
-  if (hasPermission('parent.dashboard.view') || hasPermission('student.dashboard.view')) {
+  if (
+    hasRole('PARENT') &&
+    (hasPermission('parent.dashboard.view') || hasPermission('student.dashboard.view'))
+  ) {
     return <ApplicationWizardPage />;
   }
   if (hasPermission('admission.enquiry.create')) {

@@ -84,6 +84,7 @@ export function MasterDataProvider({ children }: { children: React.ReactNode }) 
         name: g.grade_name,
         school_id: g.school_id || activeSchoolId,
         academic_year_id: activeAcademicYearId,
+        academic_year_grade_id: g.academic_year_grade_id || null,
       })) || []
     );
   }, [configQuery.data?.grades, activeSchoolId, activeAcademicYearId]);

@@ -3,6 +3,20 @@ import { PermissionCode } from './permissions';
 import { logger } from '../utils/logger';
 
 const ROLE_ALIASES: Record<string, string[]> = {
+  SUPERADMIN: ['SUPERADMIN', 'SUPER_ADMIN'],
+  SUPER_ADMIN: ['SUPERADMIN', 'SUPER_ADMIN'],
+  ADMIN: ['ADMIN', 'ORG_ADMIN'],
+  ORG_ADMIN: ['ADMIN', 'ORG_ADMIN'],
+  FRONT_OFFICE: [
+    'FRONT_OFFICE',
+    'RECEPTIONIST',
+    'ADMISSION_OFFICER',
+    'ADMISSIONS_OFFICER',
+    'STAFF',
+  ],
+  RECEPTIONIST: ['FRONT_OFFICE', 'RECEPTIONIST', 'STAFF'],
+  ADMISSION_OFFICER: ['FRONT_OFFICE', 'ADMISSION_OFFICER', 'ADMISSIONS_OFFICER', 'STAFF'],
+  ADMISSIONS_OFFICER: ['FRONT_OFFICE', 'ADMISSION_OFFICER', 'ADMISSIONS_OFFICER', 'STAFF'],
   HEAD_OF_INSTITUTE: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
   HOI: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
   PRINCIPAL: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
@@ -68,7 +82,16 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
     if (roles.includes('SUPERADMIN')) {
       return next();
     }
-    if (roles.includes('PARENT') && requiredPermission.startsWith('admission.')) {
+    if (
+      roles.includes('PARENT') &&
+      [
+        'admission.view_own',
+        'admission.create',
+        'admission.application.create',
+        'admission.application.view_own',
+        'admission.application.view',
+      ].includes(requiredPermission)
+    ) {
       return next();
     }
 
@@ -77,7 +100,13 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
     if (
       permissions.includes(requiredPermission) ||
       (requiredPermission === 'admission.view_own' &&
-        (permissions.includes('admission.view_all') || permissions.includes('admission.review')))
+        (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) ||
+      ((requiredPermission === 'admission.leads.manage' ||
+        requiredPermission === 'admission.enquiry.view') &&
+        (permissions.includes('admission.leads.manage') ||
+          permissions.includes('admission.enquiry.view') ||
+          permissions.includes('admission.review') ||
+          permissions.includes('admission.view_all')))
     ) {
       return next();
     }

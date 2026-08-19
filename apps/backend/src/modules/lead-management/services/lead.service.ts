@@ -1,7 +1,8 @@
 import { LeadRepository } from '../repositories/lead.repository';
 import { LeadSearchRepository } from '../repositories/lead.search.repository';
 import { LeadValidator } from '../validators/lead.validator';
-import { LeadNotFoundError } from '../errors/lead.errors';
+import { LeadNotFoundError, LeadValidationError } from '../errors/lead.errors';
+import prisma from '../../../lib/prismaClient';
 import { CreateLeadDto } from '../dto/request/create-lead.dto';
 import { UpdateLeadDto } from '../dto/request/update-lead.dto';
 import { SearchLeadDto } from '../dto/request/search-lead.dto';
@@ -53,8 +54,8 @@ export class LeadService {
     return LeadMapper.toResponseDto(lead);
   }
 
-  static async getLeadById(id: string): Promise<LeadResponseDto> {
-    const lead = await LeadRepository.findById(id);
+  static async getLeadById(id: string, orgId?: string): Promise<LeadResponseDto> {
+    const lead = await LeadRepository.findById(id, orgId);
     if (!lead) {
       throw new LeadNotFoundError(id);
     }
@@ -65,8 +66,9 @@ export class LeadService {
     id: string,
     dto: UpdateLeadDto,
     performedBy?: string | null,
+    orgId?: string,
   ): Promise<LeadResponseDto> {
-    const existing = await LeadRepository.findById(id);
+    const existing = await LeadRepository.findById(id, orgId);
     if (!existing) {
       throw new LeadNotFoundError(id);
     }
@@ -87,10 +89,24 @@ export class LeadService {
     return LeadMapper.toResponseDto(updated);
   }
 
-  static async deleteLead(id: string, performedBy?: string | null): Promise<{ success: boolean }> {
-    const existing = await LeadRepository.findById(id);
+  static async deleteLead(
+    id: string,
+    performedBy?: string | null,
+    orgId?: string,
+  ): Promise<{ success: boolean }> {
+    const existing = await LeadRepository.findById(id, orgId);
     if (!existing) {
       throw new LeadNotFoundError(id);
+    }
+
+    // Business constraint: Check if application already exists for this lead
+    const linkedApp = await (prisma as any).admissions_applications.findFirst({
+      where: { lead_id: id },
+    });
+    if (linkedApp) {
+      throw new LeadValidationError(
+        `Cannot delete lead ${existing.lead_number} because admission application (${linkedApp.application_number}) is linked to it.`,
+      );
     }
 
     await LeadRepository.delete(id);

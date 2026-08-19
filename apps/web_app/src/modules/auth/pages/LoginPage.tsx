@@ -59,19 +59,25 @@ export const LoginPage: React.FC = () => {
       setErrorMessage(null);
       const res = await (loginApi as any)({ email: data.email, password: data.password }).unwrap();
       const rawUser = res.user || res;
+      const rawRoles: string[] = Array.isArray(rawUser.roles)
+        ? rawUser.roles
+        : rawUser.role
+          ? [rawUser.role]
+          : ['PARENT'];
+
       const enrichedUser: EnrichedUser = {
         id: rawUser.id || rawUser.user_id || 'user-1',
         email: rawUser.email || data.email,
         school_id: rawUser.school_id || rawUser.organizationId || rawUser.tenantId || 'school-main',
-        roles: Array.isArray(rawUser.roles)
-          ? rawUser.roles
-          : rawUser.role
-            ? [rawUser.role]
-            : ['PARENT'],
+        roles: rawRoles,
         permissions: Array.isArray(rawUser.permissions)
           ? rawUser.permissions
           : res.permissions || [],
         full_name: rawUser.full_name || rawUser.firstName || rawUser.name || '',
+        phone_number: rawUser.phone_number || rawUser.phone,
+        login_status: rawUser.login_status || 'APPROVED',
+        login_decision_reason: rawUser.login_decision_reason,
+        enabledFeatures: rawUser.enabledFeatures,
       };
 
       dispatch(
@@ -99,11 +105,36 @@ export const LoginPage: React.FC = () => {
         );
       }
 
-      const role = enrichedUser?.roles?.[0] || (enrichedUser as any)?.role || 'PARENT';
-      if (role === 'PARENT') {
-        navigate('/app/admissions/my', { replace: true });
+      const normalizedRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
+      const isStaffUser = normalizedRoles.some((r: string) =>
+        [
+          'ADMIN',
+          'SUPERADMIN',
+          'SUPER_ADMIN',
+          'FRONT_OFFICE',
+          'FO',
+          'FRONT_OFFICE_STAFF',
+          'STAFF',
+          'ADMISSION_OFFICER',
+          'COUNSELLOR',
+          'COUNSELOR',
+          'HOI',
+          'PRINCIPAL',
+          'HEAD_OF_INSTITUTE',
+          'TEACHER',
+          'FINANCE',
+          'FINANCE_OFFICER',
+          'EXAM_CELL_ADMIN',
+          'EXAM_CELL',
+        ].includes(r),
+      );
+
+      if (isStaffUser) {
+        const dest = from && from !== '/app' && from !== '/login' ? from : '/app/workspace';
+        navigate(dest, { replace: true });
       } else {
-        navigate(from, { replace: true });
+        // Parent persona routes to Parent Portal applications dashboard
+        navigate('/app/admissions/my', { replace: true });
       }
     } catch (err: any) {
       const msg =

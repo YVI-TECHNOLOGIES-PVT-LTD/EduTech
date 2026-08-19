@@ -153,3 +153,8 @@ admissionRouter.get(
   checkPermission(AdmissionPolicy.canView()),
   AdmissionPaymentController.getByApplicationId,
 );
+admissionRouter.get(
+  '/:id/receipt',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionPaymentController.getReceipt,
+);

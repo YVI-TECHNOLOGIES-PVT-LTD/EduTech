@@ -9,7 +9,10 @@ export function useLeadsQuery(params?: Record<string, unknown>, options?: { enab
   return useGetLeadsQuery(undefined, { skip: !isEnabled });
 }
 
-export function useInquiriesQuery(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
+export function useInquiriesQuery(
+  params?: Record<string, unknown>,
+  options?: { enabled?: boolean },
+) {
   const { hasPermission } = useAuth();
   const canView = hasPermission('admission.enquiry.view');
   const isEnabled = options?.enabled ?? canView;
@@ -18,9 +21,10 @@ export function useInquiriesQuery(params?: Record<string, unknown>, options?: { 
 
 export function useLeads(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
   const query = useLeadsQuery(params, options);
+  const leads = Array.isArray(query.data) ? query.data : query.data?.data || [];
 
   return {
-    leads: query.data || [],
+    leads,
     raw: query.data,
     isLoading: query.isLoading,
     error: query.error,
@@ -32,8 +36,15 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
   const leadsQuery = useGetLeadsQuery(undefined);
   const visitsQuery = useGetCampusVisitsQuery(undefined);
 
-  const leads = useMemo(() => leadsQuery.data || [], [leadsQuery.data]);
-  const visitors = useMemo(() => visitsQuery.data || [], [visitsQuery.data]);
+  const leads = useMemo(() => {
+    if (Array.isArray(leadsQuery.data)) return leadsQuery.data;
+    return leadsQuery.data?.data || [];
+  }, [leadsQuery.data]);
+
+  const visitors = useMemo(() => {
+    if (Array.isArray(visitsQuery.data)) return visitsQuery.data;
+    return visitsQuery.data?.items || visitsQuery.data?.data || [];
+  }, [visitsQuery.data]);
 
   return {
     leads,
@@ -48,10 +59,6 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
     },
     allRecords: leads,
     isLoading: leadsQuery.isLoading || visitsQuery.isLoading,
-    refetch: () =>
-      Promise.all([
-        leadsQuery.refetch(),
-        visitsQuery.refetch(),
-      ]),
+    refetch: () => Promise.all([leadsQuery.refetch(), visitsQuery.refetch()]),
   };
 }

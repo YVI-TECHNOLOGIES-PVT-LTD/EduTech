@@ -1,25 +1,27 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdmissionService = void 0;
-const client_1 = require("@prisma/client");
 const supabase_1 = require("../../config/supabase");
 const utils_1 = require("../../utils");
 const crypto_utils_1 = require("../../auth/crypto.utils");
-const prisma = new client_1.PrismaClient();
+const prismaClient_1 = __importDefault(require("../../lib/prismaClient"));
 class AdmissionService {
     static async resolveContext(academicYearName) {
-        const org = (await prisma.organizations.findFirst({
+        const org = (await prismaClient_1.default.organizations.findFirst({
             where: { status: 'active' },
             select: { org_id: true },
         })) ||
-            (await prisma.organizations.findFirst({
+            (await prismaClient_1.default.organizations.findFirst({
                 select: { org_id: true },
             }));
         if (!org || !org.org_id) {
             throw new Error('No active organization found in database.');
         }
         const orgId = org.org_id;
-        const year = (await prisma.academic_years.findFirst({
+        const year = (await prismaClient_1.default.academic_years.findFirst({
             where: {
                 org_id: orgId,
                 ...(academicYearName ? { academic_year_name: academicYearName } : {}),
@@ -30,7 +32,7 @@ class AdmissionService {
             orderBy: { start_date: 'desc' },
             select: { academic_year_id: true },
         })) ||
-            (await prisma.academic_years.findFirst({
+            (await prismaClient_1.default.academic_years.findFirst({
                 where: {
                     org_id: orgId,
                     status: {
@@ -40,7 +42,7 @@ class AdmissionService {
                 orderBy: { start_date: 'desc' },
                 select: { academic_year_id: true },
             })) ||
-            (await prisma.academic_years.findFirst({
+            (await prismaClient_1.default.academic_years.findFirst({
                 where: { org_id: orgId },
                 orderBy: { start_date: 'desc' },
                 select: { academic_year_id: true },
@@ -100,14 +102,14 @@ class AdmissionService {
         let userId = null;
         if (data.parent_password && data.parent_email) {
             const cleanEmail = data.parent_email.trim().toLowerCase();
-            const existingUser = await prisma.users.findFirst({
+            const existingUser = await prismaClient_1.default.users.findFirst({
                 where: { email: cleanEmail },
             });
             if (existingUser) {
                 throw new Error('A user with this email already exists. Please login to apply.');
             }
             const passwordHash = await crypto_utils_1.NativePassword.hash(data.parent_password);
-            const newUser = await prisma.users.create({
+            const newUser = await prismaClient_1.default.users.create({
                 data: {
                     org_id: data.school_id,
                     first_name: data.parent_name,
@@ -118,23 +120,23 @@ class AdmissionService {
                 },
             });
             userId = newUser.user_id;
-            const parentRole = await prisma.roles.findFirst({
+            const parentRole = await prismaClient_1.default.roles.findFirst({
                 where: { role_name: 'PARENT' },
             });
             if (parentRole) {
-                await prisma.user_roles.create({
+                await prismaClient_1.default.user_roles.create({
                     data: {
                         user_id: userId,
                         role_id: parentRole.role_id,
                     },
                 });
             }
-            const existingParent = await prisma.parents.findUnique({
+            const existingParent = await prismaClient_1.default.parents.findUnique({
                 where: { user_id: userId },
             });
             if (!existingParent) {
                 const pParts = (data.parent_name || '').trim().split(' ');
-                await prisma.parents.create({
+                await prismaClient_1.default.parents.create({
                     data: {
                         org_id: data.school_id,
                         user_id: userId,
@@ -349,7 +351,7 @@ class AdmissionService {
     static async decideLogin(id, adminId, status, reason) {
         const admission = await this.getApplicationById(id);
         if (admission?.applicant_user_id) {
-            await prisma.users.update({
+            await prismaClient_1.default.users.update({
                 where: { user_id: admission.applicant_user_id },
                 data: { status: status === 'APPROVED' ? 'active' : 'suspended' },
             });

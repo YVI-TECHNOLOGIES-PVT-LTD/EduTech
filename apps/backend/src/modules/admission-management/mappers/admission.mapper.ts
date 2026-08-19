@@ -8,14 +8,10 @@ import {
 import { ApplicationSummaryDto } from '../dto/response/application-summary.dto';
 
 export class AdmissionMapper {
-  static toResponseDto(record: any): ApplicationResponseDto {
-    const lead = record.leads;
-    const studentFullName = lead
-      ? [lead.student_first_name, lead.student_last_name].filter(Boolean).join(' ')
-      : 'N/A';
-
-    const documents: DocumentResponseDto[] = (record.admission_documents || []).map((doc: any) => ({
+  static toDocumentResponseDto(doc: any): DocumentResponseDto {
+    return {
       document_id: doc.document_id,
+      application_id: doc.application_id,
       document_type_id: doc.document_type_id,
       original_file_name: doc.original_file_name || null,
       mime_type: doc.mime_type || null,
@@ -29,7 +25,18 @@ export class AdmissionMapper {
       verified_by: doc.verified_by || null,
       verified_at: doc.verified_at ? new Date(doc.verified_at).toISOString() : null,
       document_type_name: doc.document_types?.document_name || undefined,
-    }));
+    };
+  }
+
+  static toResponseDto(record: any): ApplicationResponseDto {
+    const lead = record.leads;
+    const studentFullName = lead
+      ? [lead.student_first_name, lead.student_last_name].filter(Boolean).join(' ')
+      : 'N/A';
+
+    const documents: DocumentResponseDto[] = (record.admission_documents || []).map((doc: any) =>
+      AdmissionMapper.toDocumentResponseDto(doc),
+    );
 
     const assessment: AssessmentResponseDto | null = record.application_assessments
       ? {
@@ -82,6 +89,22 @@ export class AdmissionMapper {
         }
       : null;
 
+    const documentsSummary = {
+      total: documents.length,
+      verified: documents.filter((d) => d.verify_status === 'verified').length,
+      pending: documents.filter((d) => d.verify_status === 'pending').length,
+      rejected: documents.filter(
+        (d) => d.verify_status === 'rejected' || d.verify_status === 'resubmission_requested',
+      ).length,
+    };
+
+    const gradeName = lead?.academic_year_grades?.grades?.grade_name || null;
+    const gradeId = lead?.academic_year_grades?.grades?.grade_id || null;
+    const counselorStaff = lead?.staff?.users_staff_user_idTousers;
+    const counselorName = counselorStaff
+      ? `${counselorStaff.first_name} ${counselorStaff.last_name || ''}`.trim()
+      : null;
+
     return {
       application_id: record.application_id,
       id: record.application_id,
@@ -105,6 +128,9 @@ export class AdmissionMapper {
       previous_school_board: record.previous_school_board || null,
       previous_grade: record.previous_grade || null,
       previous_school_year: record.previous_school_year || null,
+      student_name: studentFullName || lead?.student_first_name || 'N/A',
+      grade_id: gradeId,
+      grade_name: gradeName,
       lead: lead
         ? {
             lead_id: lead.lead_id,
@@ -115,6 +141,14 @@ export class AdmissionMapper {
             contact_name: lead.contact_name,
             contact_phone: lead.contact_phone,
             contact_email: lead.contact_email || null,
+            contact_relationship: lead.contact_relationship || null,
+            gender: lead.gender || null,
+            dob: lead.dob ? new Date(lead.dob).toISOString() : null,
+            curriculum_preference: lead.curriculum_preference || null,
+            grade_id: gradeId,
+            grade_name: gradeName,
+            assigned_counsellor_id: lead.assigned_counsellor_id || null,
+            counselor_name: counselorName,
           }
         : null,
       academic_year: record.academic_years
@@ -124,6 +158,7 @@ export class AdmissionMapper {
           }
         : null,
       documents,
+      documents_summary: documentsSummary,
       assessment,
       decision,
       payment,

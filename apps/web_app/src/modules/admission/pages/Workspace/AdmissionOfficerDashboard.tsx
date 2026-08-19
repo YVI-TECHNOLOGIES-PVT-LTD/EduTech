@@ -46,10 +46,10 @@ export function AdmissionOfficerDashboard() {
   const handleWorkspaceChange = (workspaceId: string) => {
     switch (workspaceId) {
       case 'DASHBOARD':
-        navigate('/app/admissions/dashboard');
+        navigate('/app/admissions/applications');
         break;
       case 'APPLICATIONS':
-        navigate('/app/admissions/review');
+        navigate('/app/admissions/applications');
         break;
       case 'QUEUES':
         navigate('/app/admissions/queues');
@@ -79,7 +79,7 @@ export function AdmissionOfficerDashboard() {
         navigate('/app/admissions/settings');
         break;
       default:
-        navigate('/app/admissions/dashboard');
+        navigate('/app/admissions/applications');
     }
   };
 

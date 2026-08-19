@@ -16,6 +16,9 @@ import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashbo
 import WorkspaceDashboard from '../modules/admission/pages/Workspace';
 import Applicant360Page from '../modules/admission/pages/Applicant360';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
+import { ApplicationsManagementPage } from '../modules/admission/pages/front-office/ApplicationsManagementPage';
+import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
+import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 
@@ -45,7 +48,6 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <ParentDocumentCenterPage />,
     layout: 'parent_admission',
   },
-  { path: 'admissions/fees', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'admissions/status', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
 
   // PARENT ALIASES
@@ -53,6 +55,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   { path: 'parent/applications', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'parent/documents', element: <ParentDocumentCenterPage />, layout: 'parent_admission' },
   { path: 'parent/payments', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
+  { path: 'parent/fees', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'parent/decision', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
   { path: 'parent/my-child', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'parent/notifications', element: <MyApplications />, layout: 'parent_admission' },
@@ -116,10 +119,28 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     permission: 'admission.enquiry.view',
   },
   {
-    path: 'admissions/review',
-    element: <WorkspaceDashboard />,
+    path: 'front-office/leads',
+    element: <InquiryListPage />,
     layout: 'admission_workspace',
-    permission: 'admission.review',
+    permission: 'admission.enquiry.view',
+  },
+  {
+    path: 'admissions/applications',
+    element: <ApplicationsManagementPage />,
+    layout: 'admission_workspace',
+    permission: 'admission.application.view',
+  },
+  {
+    path: 'front-office/applications',
+    element: <ApplicationsManagementPage />,
+    layout: 'admission_workspace',
+    permission: 'admission.application.view',
+  },
+  {
+    path: 'admissions/review',
+    element: <ApplicationsManagementPage />,
+    layout: 'admission_workspace',
+    permission: 'admission.application.view',
   },
   {
     path: 'admissions/:id',
@@ -129,13 +150,19 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'admissions/verification',
-    element: <WorkspaceDashboard />,
+    element: <DocumentVerificationPage />,
     layout: 'admission_workspace',
     permission: 'admission.review',
   },
   {
     path: 'admissions/queues',
-    element: <WorkspaceDashboard />,
+    element: <DocumentVerificationPage />,
+    layout: 'admission_workspace',
+    permission: 'admission.review',
+  },
+  {
+    path: 'front-office/verification',
+    element: <DocumentVerificationPage />,
     layout: 'admission_workspace',
     permission: 'admission.review',
   },
@@ -210,9 +237,15 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'admissions/fees',
-    element: <WorkspaceDashboard />,
+    element: <FeeCollectionPage />,
     layout: 'admission_workspace',
-    permission: 'fees.payment.collect',
+    permissions: ['fees.payment.collect', 'fees.view', 'admission.view_all'],
+  },
+  {
+    path: 'front-office/fees',
+    element: <FeeCollectionPage />,
+    layout: 'admission_workspace',
+    permissions: ['fees.payment.collect', 'fees.view', 'admission.view_all'],
   },
   {
     path: 'admissions/enrollment',

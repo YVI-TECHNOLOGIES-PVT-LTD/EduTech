@@ -11,6 +11,12 @@ export interface LeadResponseDto {
   org_id: string;
   lead_number: string;
   academic_year_grade_id: string;
+  grade_name?: string | null;
+  academic_year_name?: string | null;
+  grade_id?: string | null;
+  academic_year_id?: string | null;
+  grade?: { grade_id: string; grade_name: string } | null;
+  academic_year?: { academic_year_id: string; academic_year_name: string } | null;
   student_first_name: string;
   student_last_name: string | null;
   student_name: string; // Computed full name

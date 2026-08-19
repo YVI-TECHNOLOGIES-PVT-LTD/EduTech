@@ -17,12 +17,32 @@ export class LeadMapper {
         ? `Staff (${counselorStaff.employee_code})`
         : null;
 
+    const ayg = leadRecord.academic_year_grades || null;
+    const gradeObj = ayg?.grades || null;
+    const ayObj = ayg?.academic_years || null;
+
     return {
       lead_id: leadRecord.lead_id,
       id: leadRecord.lead_id,
       org_id: leadRecord.org_id,
       lead_number: leadRecord.lead_number,
       academic_year_grade_id: leadRecord.academic_year_grade_id,
+      grade_name: gradeObj?.grade_name || null,
+      academic_year_name: ayObj?.academic_year_name || null,
+      grade_id: gradeObj?.grade_id || ayg?.grade_id || null,
+      academic_year_id: ayObj?.academic_year_id || ayg?.academic_year_id || null,
+      grade: gradeObj
+        ? {
+            grade_id: gradeObj.grade_id,
+            grade_name: gradeObj.grade_name,
+          }
+        : null,
+      academic_year: ayObj
+        ? {
+            academic_year_id: ayObj.academic_year_id,
+            academic_year_name: ayObj.academic_year_name,
+          }
+        : null,
       student_first_name: leadRecord.student_first_name,
       student_last_name: leadRecord.student_last_name || null,
       student_name: studentFullName || leadRecord.student_first_name,

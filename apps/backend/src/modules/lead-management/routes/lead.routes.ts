@@ -87,6 +87,11 @@ leadRouter.patch(
   checkPermission(LeadPolicy.canUpdate()),
   LeadActivityController.update,
 );
+leadRouter.delete(
+  '/activities/:id',
+  checkPermission(LeadPolicy.canDelete()),
+  LeadActivityController.delete,
+);
 
 // Lead Visits & Counselling
 leadRouter.post(
@@ -99,4 +104,9 @@ leadRouter.get(
   '/:id/visits',
   checkPermission(LeadPolicy.canView()),
   LeadVisitController.getByLeadId,
+);
+leadRouter.delete(
+  '/visits/:id',
+  checkPermission(LeadPolicy.canDelete()),
+  LeadVisitController.delete,
 );

@@ -126,7 +126,9 @@ export function SchoolOperationsWorkspace() {
               <RefreshCw className={`w-4 h-4 ${isMetricsLoading ? 'animate-spin' : ''}`} />
             </button>
             <div className="bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800 text-right">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Persona</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                Persona
+              </p>
               <p className="text-xs font-black text-emerald-400">
                 {user?.roles?.includes('SUPER_ADMIN') ? 'Super Admin' : 'Front Office Desk'}
               </p>
@@ -304,7 +306,7 @@ export function SchoolOperationsWorkspace() {
               },
               {
                 title: 'Application Review',
-                route: '/app/admissions/dashboard',
+                route: '/app/admissions/applications',
                 icon: FileText,
                 desc: 'Audit submitted forms and candidate files.',
               },
@@ -479,7 +481,9 @@ export function SchoolOperationsWorkspace() {
       {activeTab === 'settings' && (
         <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-sm space-y-6">
           <div className="border-b border-border/60 pb-4">
-            <h2 className="text-lg font-extrabold text-foreground">System & Operational Settings</h2>
+            <h2 className="text-lg font-extrabold text-foreground">
+              System & Operational Settings
+            </h2>
             <p className="text-xs text-muted-foreground">
               Categorized system administration: Organization, Security & System Templates, and
               Customization.

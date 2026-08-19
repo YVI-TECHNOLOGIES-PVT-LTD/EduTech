@@ -48,6 +48,7 @@ export class LeadActivityRepository {
     return prisma.lead_activities.findUnique({
       where: { activity_id },
       include: {
+        leads: true,
         users_lead_activities_created_byTousers: {
           select: {
             user_id: true,
@@ -79,6 +80,12 @@ export class LeadActivityRepository {
           },
         },
       },
+    });
+  }
+
+  static async delete(activity_id: string) {
+    return prisma.lead_activities.delete({
+      where: { activity_id },
     });
   }
 }

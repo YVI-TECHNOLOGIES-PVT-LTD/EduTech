@@ -46,8 +46,8 @@ export const getSidebarNavigation = (): NavSection[] => {
           permission: 'application:read',
           children: [
             { title: 'Applications', path: '/app/admissions/applications', icon: null },
-            { title: 'Assessments', path: '/app/admissions/assessments', icon: null },
-            { title: 'Fee Payment', path: '/app/admissions/fees', icon: null },
+            { title: 'Document Verification', path: '/app/admissions/verification', icon: null },
+            { title: 'Fee Collection', path: '/app/admissions/fees', icon: null },
           ],
         },
         {

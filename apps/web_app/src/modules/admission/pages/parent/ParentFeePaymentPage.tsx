@@ -45,7 +45,7 @@ export function ParentFeePaymentPage() {
           primaryApp && (
             <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
               <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
-              <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+              <span className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
                 {primaryApp.application_number || primaryApp.id || 'APP-2026-00368'}
               </span>
             </div>
@@ -89,9 +89,7 @@ export function ParentFeePaymentPage() {
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-sm font-extrabold text-foreground truncate">
-                    {txn.desc}
-                  </h4>
+                  <h4 className="text-sm font-extrabold text-foreground truncate">{txn.desc}</h4>
                   <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">
                     Ref: {txn.id} • {txn.mode} • {txn.date}
                   </p>
@@ -99,9 +97,7 @@ export function ParentFeePaymentPage() {
               </div>
 
               <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border/60 shrink-0">
-                <span className="text-sm font-extrabold text-foreground">
-                  {txn.amount}
-                </span>
+                <span className="text-sm font-extrabold text-foreground">{txn.amount}</span>
                 <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
                   {txn.status}
                 </span>

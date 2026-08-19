@@ -184,19 +184,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (
         normalized.includes('ADMIN') ||
         normalized.includes('SUPERADMIN') ||
+        normalized.includes('SUPER_ADMIN') ||
+        normalized.includes('ORG_ADMIN') ||
         normalized.includes('EXAM_CELL_ADMIN')
       )
         return true;
       if (
         normalized.includes('FRONT_OFFICE') ||
         normalized.includes('FO') ||
+        normalized.includes('RECEPTIONIST') ||
+        normalized.includes('FRONT_OFFICE_STAFF') ||
         normalized.includes('STAFF') ||
+        normalized.includes('FACULTY') ||
         normalized.includes('ADMISSION_OFFICER') ||
-        normalized.includes('COUNSELLOR')
+        normalized.includes('ADMISSIONS_OFFICER') ||
+        normalized.includes('COUNSELLOR') ||
+        normalized.includes('COUNSELOR') ||
+        normalized.includes('HOI') ||
+        normalized.includes('HEAD_OF_INSTITUTE') ||
+        normalized.includes('PRINCIPAL')
       ) {
         return true;
       }
-      if (normalized.includes('PARENT')) {
+      if (normalized.includes('PARENT') || normalized.includes('GUARDIAN')) {
         const parentPermissions = [
           'admission.view_own',
           'admission.create',

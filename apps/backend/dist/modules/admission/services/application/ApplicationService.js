@@ -105,22 +105,45 @@ class ApplicationService extends BaseService_1.BaseService {
             }
             if (orConditions.length > 0) {
                 const candidates = await prismaClient_1.default.leads.findMany({
-                    where: { OR: orConditions },
-                    orderBy: { created_at: 'desc' },
+                    where: { org_id: targetOrgId, OR: orConditions },
+                    include: {
+                        admissions_applications: {
+                            select: { application_id: true, status: true },
+                        },
+                    },
+                    orderBy: { created_at: 'asc' },
                 });
                 if (candidates.length > 0) {
                     if (inputFirstName) {
-                        const matched = candidates.find((c) => (c.student_first_name || '').trim().toLowerCase() === inputFirstName);
-                        if (matched) {
-                            lead = matched;
+                        // First check if an existing lead belongs specifically to this child
+                        const matchedChild = candidates.find((c) => {
+                            const fn = (c.student_first_name || '').trim().toLowerCase();
+                            return (fn === inputFirstName &&
+                                !['applicant', 'student', ''].includes(fn) &&
+                                !fn.endsWith("'s ward"));
+                        });
+                        if (matchedChild) {
+                            lead = matchedChild;
+                        }
+                        else if (parentRec?.parent_id) {
+                            // If no child match, check for an unassigned/registration-created Lead under this parent
+                            const unassignedLead = candidates.find((c) => {
+                                const fn = (c.student_first_name || '').trim().toLowerCase();
+                                const isPlaceholder = ['applicant', 'student', ''].includes(fn) || fn.endsWith("'s ward");
+                                const hasNoActiveApps = !c.admissions_applications ||
+                                    c.admissions_applications.length === 0 ||
+                                    c.admissions_applications.every((a) => a.status === 'draft' || a.status === 'withdrawn');
+                                return c.parent_id === parentRec.parent_id && isPlaceholder && hasNoActiveApps;
+                            });
+                            if (unassignedLead) {
+                                lead = unassignedLead;
+                            }
                         }
                     }
                     else {
                         // Match latest lead only if it has an active DRAFT application
                         const candidate = candidates[0];
-                        const draftApp = await prismaClient_1.default.admissions_applications.findFirst({
-                            where: { lead_id: candidate.lead_id, status: 'draft' },
-                        });
+                        const draftApp = candidate.admissions_applications?.find((a) => a.status === 'draft');
                         if (draftApp) {
                             lead = candidate;
                         }
@@ -169,7 +192,7 @@ class ApplicationService extends BaseService_1.BaseService {
                 org_id: targetOrgId,
                 lead_number: leadNumber,
                 academic_year_grade_id: targetAygId,
-                student_first_name: payload.student_first_name || payload.student_name || 'Student',
+                student_first_name: payload.student_first_name || payload.student_name || 'Applicant',
                 student_last_name: payload.student_last_name || undefined,
                 dob: dob,
                 gender: payload.gender ? payload.gender.toLowerCase() : undefined,

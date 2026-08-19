@@ -7,7 +7,13 @@ export const usePermission = () => {
   const userRole = userRoles[0] || '';
   const userPermissions = user?.permissions || [];
 
-  const isSuperAdmin = userRoles.includes(ROLES.SUPER_ADMIN);
+  const isSuperAdmin = userRoles.some(
+    (r) =>
+      r.toUpperCase() === 'SUPERADMIN' ||
+      r.toUpperCase() === 'SUPER_ADMIN' ||
+      r.toUpperCase() === 'ADMIN' ||
+      r.toUpperCase() === 'ORG_ADMIN',
+  );
 
   const hasPermission = (permission: string): boolean => {
     if (isSuperAdmin) return true;
@@ -26,7 +32,8 @@ export const usePermission = () => {
 
   const hasRole = (role: string): boolean => {
     if (isSuperAdmin) return true;
-    return userRoles.includes(role);
+    const searchNorm = role.toUpperCase().replace(/[\s_-]+/g, '_');
+    return userRoles.some((r) => r.toUpperCase().replace(/[\s_-]+/g, '_') === searchNorm);
   };
 
   return {

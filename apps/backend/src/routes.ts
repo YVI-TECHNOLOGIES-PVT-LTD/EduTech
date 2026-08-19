@@ -517,7 +517,16 @@ const admissionConfigHandler = async (req: Request, res: Response): Promise<void
       ? await prisma.grades.findMany({
           where: { org_id: targetOrgId, is_active: true },
           orderBy: { display_order: 'asc' },
-          select: { grade_id: true, grade_name: true },
+          select: {
+            grade_id: true,
+            grade_name: true,
+            academic_year_grades: {
+              where: activeYear
+                ? { academic_year_id: activeYear.id, is_active: true }
+                : { is_active: true },
+              select: { academic_year_grade_id: true, academic_year_id: true },
+            },
+          },
         })
       : [];
     res.json({
@@ -525,7 +534,11 @@ const admissionConfigHandler = async (req: Request, res: Response): Promise<void
       schools: schools.map((s) => ({ id: s.org_id, name: s.org_name, code: s.org_code })),
       school: targetOrgId ? schools.find((s) => s.org_id === targetOrgId) || null : null,
       academicYear: activeYear,
-      grades: grades.map((g) => ({ id: g.grade_id, grade_name: g.grade_name })),
+      grades: grades.map((g) => ({
+        id: g.grade_id,
+        grade_name: g.grade_name,
+        academic_year_grade_id: g.academic_year_grades?.[0]?.academic_year_grade_id || null,
+      })),
       requiredDocuments: [
         { type: 'birth_certificate', label: 'Birth Certificate', required: true },
         { type: 'transfer_certificate', label: 'Transfer Certificate', required: false },

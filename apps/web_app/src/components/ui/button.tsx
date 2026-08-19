@@ -13,12 +13,9 @@ const buttonVariants = cva(
         primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm',
         outline:
           'border-border bg-background hover:bg-muted hover:text-foreground border-slate-200 dark:border-border',
-        secondary:
-          'bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm',
-        ghost:
-          'hover:bg-muted hover:text-foreground dark:hover:bg-muted/50',
-        destructive:
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm',
+        ghost: 'hover:bg-muted hover:text-foreground dark:hover:bg-muted/50',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm',
         link: 'text-primary underline-offset-4 hover:underline',
         cta: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md',
         hero: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg',
@@ -44,39 +41,36 @@ const buttonVariants = cva(
   },
 );
 
-
 export interface ButtonProps extends ButtonPrimitive.Props, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
-function Button({
-  className,
-  variant = 'default',
-  size = 'default',
-  asChild,
-  children,
-  ...props
-}: ButtonProps) {
-  if (asChild && React.isValidElement(children)) {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'default', size = 'default', asChild, children, ...props }, ref) => {
+    if (asChild && React.isValidElement(children)) {
+      return (
+        <ButtonPrimitive
+          ref={ref}
+          data-slot="button"
+          render={children}
+          className={cn(buttonVariants({ variant, size, className }))}
+          {...props}
+        />
+      );
+    }
+
     return (
       <ButtonPrimitive
+        ref={ref}
         data-slot="button"
-        render={children}
         className={cn(buttonVariants({ variant, size, className }))}
         {...props}
-      />
+      >
+        {children}
+      </ButtonPrimitive>
     );
-  }
-
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    >
-      {children}
-    </ButtonPrimitive>
-  );
-}
+  },
+);
+Button.displayName = 'Button';
 
 export { Button, buttonVariants };

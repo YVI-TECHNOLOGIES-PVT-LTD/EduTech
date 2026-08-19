@@ -101,12 +101,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       .join('')
       .slice(0, 2) || 'U';
 
+  const homeUrl = navGroups[0]?.items[0]?.url || '/app/workspace';
+
   return (
     <Sidebar collapsible="icon" className={className}>
       {/* 1. Header with EduTrack Logo & Context Label */}
       <SidebarHeader className="p-3.5 border-b border-sidebar-border group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
         <Link
-          to="/app/admissions/dashboard"
+          to={homeUrl}
           className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center"
         >
           <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-indigo-600/30 shrink-0">

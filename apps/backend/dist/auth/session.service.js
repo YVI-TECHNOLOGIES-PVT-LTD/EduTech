@@ -22,16 +22,22 @@ class SessionService {
         if (lower === 'frontoffice' ||
             lower === 'receptionist' ||
             lower === 'admissionofficer' ||
-            lower === 'frontofficeexecutive') {
+            lower === 'admissionsofficer' ||
+            lower === 'frontofficeexecutive' ||
+            lower === 'frontofficestaff' ||
+            lower === 'admissionsdesk') {
             return 'FRONT_OFFICE';
         }
         if (lower === 'parent' || lower === 'guardian') {
             return 'PARENT';
         }
-        if (lower === 'superadmin' || lower === 'superadministrator') {
+        if (lower === 'superadmin' || lower === 'superadministrator' || lower === 'super_admin') {
             return 'SUPERADMIN';
         }
-        if (lower === 'admin' || lower === 'administrator') {
+        if (lower === 'admin' ||
+            lower === 'administrator' ||
+            lower === 'orgadmin' ||
+            lower === 'org_admin') {
             return 'ADMIN';
         }
         if (lower === 'counselor' || lower === 'counsellor') {
@@ -116,7 +122,23 @@ class SessionService {
                 permissions.add('admission.application.create');
                 permissions.add('admission.application.view');
             }
-            if (roles.some((r) => ['FRONT_OFFICE', 'ADMIN', 'ADMISSION_OFFICER', 'COUNSELLOR', 'STAFF', 'HOI'].includes(r))) {
+            if (roles.some((r) => [
+                'SUPERADMIN',
+                'SUPER_ADMIN',
+                'ADMIN',
+                'ORG_ADMIN',
+                'FRONT_OFFICE',
+                'RECEPTIONIST',
+                'ADMISSION_OFFICER',
+                'ADMISSIONS_OFFICER',
+                'COUNSELLOR',
+                'COUNSELOR',
+                'STAFF',
+                'FACULTY',
+                'HOI',
+                'HEAD_OF_INSTITUTE',
+                'PRINCIPAL',
+            ].includes(r))) {
                 permissions.add('admission.create');
                 permissions.add('admission.view_all');
                 permissions.add('admission.review');
@@ -124,6 +146,19 @@ class SessionService {
                 permissions.add('admission.document.verify');
                 permissions.add('admission.application.view');
                 permissions.add('admission.application.create');
+                permissions.add('admission.application.update');
+                permissions.add('admission.application.delete');
+                permissions.add('admission.enquiry.view');
+                permissions.add('admission.enquiry.create');
+                permissions.add('admission.leads.manage');
+                permissions.add('admission.visitors.manage');
+                permissions.add('admin.dashboard.view');
+                permissions.add('fees.view');
+                permissions.add('fees.payment.collect');
+                permissions.add('fees.receipt.generate');
+                permissions.add('fees.payment.view');
+                permissions.add('fees.structure.view');
+                permissions.add('admission.fees.initialize');
             }
             const profile = {
                 id: user.user_id,
