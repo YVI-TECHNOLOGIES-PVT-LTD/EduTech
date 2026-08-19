@@ -283,11 +283,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
         </div>
       )}
 
-      {/* Command Palette Modal Integration */}
-      <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {/* Navigation Search Integration */}
+      {isSearchOpen && (
+        <div className="max-w-xl mx-auto px-4 mt-2">
+          <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+        </div>
+      )}
     </>
   );
 };
 
 export default Navbar;
-

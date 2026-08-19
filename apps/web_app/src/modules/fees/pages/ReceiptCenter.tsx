@@ -3,8 +3,7 @@ import { apiClient } from '../../../lib/api-client';
 import { Search, RefreshCw, Printer, Mail, Eye, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const GLASS =
-  'bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl shadow-sm';
+const GLASS = 'bg-card text-card-foreground border border-border/80 rounded-2xl shadow-sm';
 const TYPE_COLORS: Record<string, string> = {
   ORIGINAL: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
   REPRINT: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',

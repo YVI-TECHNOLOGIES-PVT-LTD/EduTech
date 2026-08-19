@@ -15,7 +15,7 @@ export const AppShell: React.FC = () => {
 
       {/* Inset Main View Area (Header + Main Page Outlet) */}
       <SidebarInset className="flex-1 flex flex-col min-w-0 bg-background">
-        {/* Canonical Global Top Navbar */}
+        {/* Canonical Global Top Navbar with Inline Search */}
         <AppNavbar />
 
         {/* Main Application Page Outlet */}

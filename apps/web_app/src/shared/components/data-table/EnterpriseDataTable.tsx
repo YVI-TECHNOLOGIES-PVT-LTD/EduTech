@@ -84,7 +84,7 @@ export function EnterpriseDataTable<TData, TValue>({
   const selectedRowCount = Object.keys(rowSelection).length;
 
   return (
-    <div className="w-full space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="w-full space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm text-foreground">
       {/* Header Bar */}
       {(title || subtitle || onExportCsv || bulkActions) && (
         <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
@@ -132,9 +132,9 @@ export function EnterpriseDataTable<TData, TValue>({
       </div>
 
       {/* Main Table */}
-      <div className="relative overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
-          <thead className="bg-slate-50 uppercase text-slate-500 font-semibold dark:bg-slate-800/80 dark:text-slate-400">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-left text-xs text-foreground">
+          <thead className="bg-card uppercase text-muted-foreground font-semibold border-b border-border">
             {table.getHeaderGroups().map((headerGroup: HeaderGroup<TData>) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header: Header<TData, unknown>) => (
@@ -149,7 +149,7 @@ export function EnterpriseDataTable<TData, TValue>({
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
                         {header.column.getCanSort() && (
-                          <ArrowUpDown className="ml-1 h-3 w-3 text-slate-400" />
+                          <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground" />
                         )}
                       </div>
                     )}
@@ -158,12 +158,12 @@ export function EnterpriseDataTable<TData, TValue>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+          <tbody className="divide-y divide-border">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row: Row<TData>) => (
                 <tr
                   key={row.id}
-                  className="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
+                  className="transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900 data-[state=selected]:bg-black data-[state=selected]:text-white dark:data-[state=selected]:bg-white dark:data-[state=selected]:text-black"
                   data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell: Cell<TData, unknown>) => (

@@ -28,7 +28,7 @@ export const OrganizationSettingsTab: React.FC = () => {
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
           >
             <option value="INR">INR (₹) - Indian Rupee</option>
             <option value="USD">USD ($) - US Dollar</option>
@@ -41,7 +41,7 @@ export const OrganizationSettingsTab: React.FC = () => {
           <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
           >
             <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
             <option value="UTC">UTC (Coordinated Universal Time)</option>
@@ -53,7 +53,7 @@ export const OrganizationSettingsTab: React.FC = () => {
           <select
             value={sessionTimeout}
             onChange={(e) => setSessionTimeout(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
           >
             <option value="30">30 Minutes</option>
             <option value="60">60 Minutes (Default)</option>

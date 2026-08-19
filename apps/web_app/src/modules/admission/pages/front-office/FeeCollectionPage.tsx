@@ -500,11 +500,11 @@ export const FeeCollectionPage: React.FC = () => {
       )}
 
       {/* Production-Grade Fee Data Table */}
-      <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden rounded-xl">
+      <Card className="bg-card border border-border shadow-xs overflow-hidden rounded-xl">
         <div className="overflow-x-auto">
           <Table className="w-full min-w-[1300px] border-collapse">
-            <TableHeader className="bg-slate-50/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800">
-              <TableRow className="border-b border-slate-200 dark:border-slate-800 divide-x divide-slate-200 dark:divide-slate-800">
+            <TableHeader className="bg-card border-b border-border">
+              <TableRow className="border-b border-border divide-x divide-border">
                 <TableHead className="w-12 px-3 text-center">
                   <Checkbox
                     checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
@@ -616,10 +616,10 @@ export const FeeCollectionPage: React.FC = () => {
                     <TableRow
                       key={appId}
                       className={cn(
-                        'divide-x divide-slate-200 dark:divide-slate-800 transition-colors',
+                        'divide-x divide-border transition-colors',
                         itemSelected
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20'
-                          : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40',
+                          ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900',
                       )}
                     >
                       {/* Checkbox */}
@@ -770,7 +770,7 @@ export const FeeCollectionPage: React.FC = () => {
         </div>
 
         {/* Server-side Pagination Bar */}
-        <div className="p-4 bg-slate-50/80 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="p-4 bg-card border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
             <span>Rows per page:</span>
             <Select value={String(pageSize)} onValueChange={(val) => updateFilter('pageSize', val)}>

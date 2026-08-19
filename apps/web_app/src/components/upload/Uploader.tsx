@@ -134,7 +134,7 @@ export const Uploader = ({
         className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
           dragActive
             ? 'border-primary bg-primary/10 scale-[1.01]'
-            : 'border-border bg-muted/20 hover:bg-muted/40'
+            : 'border-border bg-card hover:bg-neutral-50 dark:hover:bg-neutral-900'
         }`}
       >
         <input
@@ -165,7 +165,7 @@ export const Uploader = ({
           {files.map((f) => (
             <div
               key={f.id}
-              className="flex items-center justify-between gap-4 p-2 bg-muted/40 rounded-lg text-left"
+              className="flex items-center justify-between gap-4 p-2 bg-card border border-border/60 rounded-lg text-left"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <File className="w-5 h-5 text-muted-foreground shrink-0" />

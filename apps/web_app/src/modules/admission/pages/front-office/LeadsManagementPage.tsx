@@ -642,7 +642,9 @@ export const LeadsManagementPage: React.FC = () => {
                       key={leadId}
                       data-state={rowSelected ? 'selected' : undefined}
                       className={`border-b border-border/80 transition-colors cursor-pointer group ${
-                        rowSelected ? 'bg-indigo-50/60 dark:bg-indigo-950/30' : 'hover:bg-muted/35'
+                        rowSelected
+                          ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
                       }`}
                       onClick={() => openDetails(leadId)}
                     >

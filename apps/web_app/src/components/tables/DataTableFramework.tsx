@@ -296,10 +296,10 @@ export function DataTableFramework<T extends { id?: string | number }>({
       {/* Grid Table with Sticky Header and Full Grid Borders */}
       <div className="border border-border/80 rounded-2xl overflow-hidden max-h-[60vh] overflow-y-auto custom-scrollbar relative">
         <Table className="border-collapse w-full">
-          <TableHeader className="bg-gray-50/50 dark:bg-muted/10 sticky top-0 z-10 border-b border-border shadow-sm">
+          <TableHeader className="bg-card sticky top-0 z-10 border-b border-border shadow-sm">
             <TableRow className="hover:bg-transparent border-b border-border">
               {bulkActions && (
-                <TableHead className="w-12 text-center bg-gray-50/80 dark:bg-muted/10 border-r border-border/70 p-0">
+                <TableHead className="w-12 text-center bg-card border-r border-border/70 p-0">
                   <div className="flex items-center justify-center">
                     <Checkbox
                       checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
@@ -309,13 +309,13 @@ export function DataTableFramework<T extends { id?: string | number }>({
                   </div>
                 </TableHead>
               )}
-              <TableHead className="w-14 text-center text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest bg-gray-50/80 dark:bg-muted/10 py-3.5 border-r border-border/70 px-1">
+              <TableHead className="w-14 text-center text-xs font-black text-foreground uppercase tracking-widest bg-card py-3.5 border-r border-border/70 px-1">
                 S.NO
               </TableHead>
               {visibleColumns.map((col, idx) => (
                 <TableHead
                   key={col.key}
-                  className={`text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest bg-gray-50/80 dark:bg-muted/10 py-3.5 px-4 ${idx < visibleColumns.length - 1 ? 'border-r border-border/70' : ''}`}
+                  className={`text-xs font-black text-foreground uppercase tracking-widest bg-card py-3.5 px-4 ${idx < visibleColumns.length - 1 ? 'border-r border-border/70' : ''}`}
                 >
                   {col.header}
                 </TableHead>
@@ -327,7 +327,7 @@ export function DataTableFramework<T extends { id?: string | number }>({
               <TableRow>
                 <TableCell
                   colSpan={visibleColumns.length + 1 + (bulkActions ? 1 : 0)}
-                  className="text-center py-16 text-xs text-gray-500 font-semibold italic"
+                  className="text-center py-16 text-xs text-muted-foreground font-semibold italic"
                 >
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -339,48 +339,56 @@ export function DataTableFramework<T extends { id?: string | number }>({
               <TableRow>
                 <TableCell
                   colSpan={visibleColumns.length + 1 + (bulkActions ? 1 : 0)}
-                  className="text-center py-16 text-xs text-gray-400 font-semibold italic"
+                  className="text-center py-16 text-xs text-muted-foreground font-semibold italic"
                 >
                   No records matching searches found.
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedData.map((row, idx) => (
-                <TableRow
-                  key={row.id || idx}
-                  className="transition-colors hover:bg-gray-50/30 dark:hover:bg-muted/5 border-b border-border/50"
-                >
-                  {bulkActions && (
-                    <TableCell
-                      className="text-center p-0 border-r border-border/50"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-center">
-                        {row.id ? (
-                          <Checkbox
-                            checked={!!selectedRows[row.id]}
-                            onCheckedChange={(checked) =>
-                              handleSelectRow(row.id!, checked === true)
-                            }
-                            aria-label={`Select row ${idx + 1}`}
-                          />
-                        ) : null}
-                      </div>
+              paginatedData.map((row, idx) => {
+                const isRowSelected = Boolean(row.id && selectedRows[row.id]);
+                return (
+                  <TableRow
+                    key={row.id || idx}
+                    data-state={isRowSelected ? 'selected' : undefined}
+                    className={`transition-colors border-b border-border/50 ${
+                      isRowSelected
+                        ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                        : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                    }`}
+                  >
+                    {bulkActions && (
+                      <TableCell
+                        className="text-center p-0 border-r border-border/50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-center">
+                          {row.id ? (
+                            <Checkbox
+                              checked={!!selectedRows[row.id]}
+                              onCheckedChange={(checked) =>
+                                handleSelectRow(row.id!, checked === true)
+                              }
+                              aria-label={`Select row ${idx + 1}`}
+                            />
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    )}
+                    <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground border-r border-border/50 py-3 px-1">
+                      {(currentPage - 1) * pageSize + idx + 1}
                     </TableCell>
-                  )}
-                  <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground border-r border-border/50 py-3 px-1">
-                    {(currentPage - 1) * pageSize + idx + 1}
-                  </TableCell>
-                  {visibleColumns.map((col, colIdx) => (
-                    <TableCell
-                      key={col.key}
-                      className={`${cellPaddingClass} font-semibold text-gray-700 dark:text-gray-300 ${colIdx < visibleColumns.length - 1 ? 'border-r border-border/50' : ''}`}
-                    >
-                      {col.render ? col.render(row) : (row as any)[col.key]}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+                    {visibleColumns.map((col, colIdx) => (
+                      <TableCell
+                        key={col.key}
+                        className={`${cellPaddingClass} font-semibold text-gray-700 dark:text-gray-300 ${colIdx < visibleColumns.length - 1 ? 'border-r border-border/50' : ''}`}
+                      >
+                        {col.render ? col.render(row) : (row as any)[col.key]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -426,12 +434,12 @@ export function DataTableFramework<T extends { id?: string | number }>({
               initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.95 }}
-              className="flex items-center gap-3 bg-gray-900 text-white px-5 py-2.5 rounded-2xl shadow-xl shadow-premium-lg border border-gray-800 pointer-events-auto"
+              className="flex items-center gap-3 bg-black text-white dark:bg-white dark:text-black px-5 py-2.5 rounded-2xl shadow-xl shadow-premium-lg border border-border pointer-events-auto"
             >
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">
+              <span className="text-[10px] font-black uppercase tracking-widest text-inherit">
                 {selectedList.length} Selected
               </span>
-              <div className="h-4 w-[1px] bg-white/20" />
+              <div className="h-4 w-[1px] bg-current opacity-30" />
               <div className="flex gap-1.5">
                 {bulkActions.map((action) => (
                   <Button

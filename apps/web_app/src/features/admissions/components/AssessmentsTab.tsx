@@ -11,25 +11,23 @@ export const AssessmentsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm text-card-foreground space-y-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          <h3 className="text-base font-bold text-foreground">
             Entrance Assessment & Interview Scoring
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Record evaluation scores and evaluator remarks for admission decisions
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Application #
-            </label>
+            <label className="text-xs font-semibold text-foreground">Application #</label>
             <Input
               defaultValue="APP-2026-042 (Aarav Sharma)"
               readOnly
-              className="text-xs h-9 bg-slate-50 dark:bg-slate-950"
+              className="text-xs h-9 bg-muted"
             />
           </div>
 

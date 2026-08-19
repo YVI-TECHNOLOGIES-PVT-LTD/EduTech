@@ -14,7 +14,7 @@ interface FilterBarProps {
 
 export const FilterBar = ({ options, selected, onChange, children }: FilterBarProps) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-muted/30 rounded-2xl border border-border w-full text-left">
+    <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-card rounded-2xl border border-border w-full text-left">
       <div className="flex flex-wrap items-center gap-2">
         {options.map((opt) => (
           <button
@@ -22,8 +22,8 @@ export const FilterBar = ({ options, selected, onChange, children }: FilterBarPr
             onClick={() => onChange(opt.value)}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               selected === opt.value
-                ? 'bg-primary text-primary-foreground shadow shadow-primary/10'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+                ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm border border-transparent'
+                : 'bg-card border border-border text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
             }`}
           >
             {opt.label}
@@ -49,8 +49,8 @@ export const QuickFilter = ({
       onClick={onClick}
       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
         active
-          ? 'bg-primary/10 border-primary text-primary font-bold'
-          : 'bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+          ? 'bg-black text-white dark:bg-white dark:text-black border-transparent font-bold shadow-sm'
+          : 'bg-card border-border text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
       }`}
     >
       {label}

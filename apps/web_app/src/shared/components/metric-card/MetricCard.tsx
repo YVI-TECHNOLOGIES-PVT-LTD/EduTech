@@ -28,12 +28,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
+        'relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md text-card-foreground',
         className,
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </span>
         {Icon && (
@@ -44,9 +44,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       <div className="mt-3 flex items-baseline justify-between">
-        <span className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          {value}
-        </span>
+        <span className="text-2xl font-extrabold tracking-tight text-foreground">{value}</span>
         {trend && (
           <div
             className={cn(

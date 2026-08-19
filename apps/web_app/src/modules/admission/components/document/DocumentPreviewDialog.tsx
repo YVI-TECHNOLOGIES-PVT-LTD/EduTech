@@ -365,10 +365,10 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
           </div>
 
           {/* 2. Independently Scrollable Document Viewport (flex-1 min-h-0 overflow-auto) */}
-          <div className="flex-1 min-h-0 bg-slate-950/90 dark:bg-slate-950 p-4 sm:p-6 overflow-auto flex flex-col items-center justify-center relative custom-scrollbar">
+          <div className="flex-1 min-h-0 bg-black p-4 sm:p-6 overflow-auto flex flex-col items-center justify-center relative custom-scrollbar">
             {/* Floating Zoom Toolbar for Images (Contained in viewport) */}
             {isImage && isDocumentReady && (
-              <div className="sticky bottom-4 ml-auto mr-4 z-20 flex items-center bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-xl p-1 text-slate-200 shadow-2xl">
+              <div className="sticky bottom-4 ml-auto mr-4 z-20 flex items-center bg-black/90 backdrop-blur-md border border-neutral-800 rounded-xl p-1 text-white shadow-2xl">
                 <Button
                   type="button"
                   variant="ghost"
@@ -577,7 +577,7 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
           </div>
 
           {/* 3. Fixed Verification Footer Region (flex-shrink-0) */}
-          <div className="flex-shrink-0 px-6 py-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs z-10">
+          <div className="flex-shrink-0 px-6 py-4 bg-card border-t border-border flex flex-wrap items-center justify-between gap-4 text-xs z-10">
             {/* Left: Current Verification Status & Remarks */}
             <div className="flex items-center gap-3 flex-wrap">
               <DocumentStatusBadge status={document.verify_status} />
