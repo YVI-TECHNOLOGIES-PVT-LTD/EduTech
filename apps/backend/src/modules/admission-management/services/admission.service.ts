@@ -474,6 +474,21 @@ export class AdmissionService {
       throw new ApplicationNotFoundError(id);
     }
 
+    // Downstream integrity check: If application has recorded decisions, paid fee records, or assessments, disallow hard delete
+    const hasDecisions = !!existing.admission_decisions;
+    const hasPaidFees =
+      existing.admission_fee_payments &&
+      (existing.admission_fee_payments.payment_status === 'paid' ||
+        existing.admission_fee_payments.payment_status === 'partial');
+    const hasCompletedAssessment =
+      existing.application_assessments && existing.application_assessments.result !== null;
+
+    if (hasDecisions || hasPaidFees || hasCompletedAssessment) {
+      throw new ApplicationValidationError(
+        'Cannot hard-delete an application with recorded decisions, paid fees, or assessments. Please transition the status to "withdrawn" instead.',
+      );
+    }
+
     const documentStoragePaths = (existing.admission_documents || [])
       .map((d: any) => d.storage_path)
       .filter(Boolean);

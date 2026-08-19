@@ -18,7 +18,13 @@ export function useAdmission(schoolId?: string) {
   }, [query.refetch]);
 
   return {
-    stats: query.data ? { totalApplications: (query.data as any[]).length } : null,
+    stats: query.data
+      ? {
+          totalApplications: Array.isArray(query.data)
+            ? query.data.length
+            : query.data.total ?? query.data.data?.length ?? 0,
+        }
+      : null,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,

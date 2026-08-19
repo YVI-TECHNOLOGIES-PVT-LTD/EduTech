@@ -11,6 +11,7 @@ import { UploadDocumentDto } from '../dto/request/upload-document.dto';
 import { VerifyDocumentDto } from '../dto/request/verify-document.dto';
 import { AdmissionEvents, ApplicationEventType } from '../events/admission.events';
 import { StorageService } from '../../../services/storage.service';
+import { AdmissionMapper } from '../mappers/admission.mapper';
 import { logger } from '../../../utils/logger';
 import crypto from 'crypto';
 
@@ -281,17 +282,29 @@ export class AdmissionDocumentService {
       }
     }
 
+    if (
+      !existing.storage_path ||
+      typeof existing.storage_path !== 'string' ||
+      !existing.storage_path.trim()
+    ) {
+      throw new ApplicationValidationError(
+        'Document record does not contain a valid storage reference',
+      );
+    }
+
     const result = await StorageService.getSignedUrl({
       path: existing.storage_path,
       expiresInSeconds: 3600,
     });
+
+    const mappedDocument = AdmissionMapper.toDocumentResponseDto(existing);
 
     return {
       document_id: existing.document_id,
       application_id: existing.application_id,
       signed_url: result.signedUrl,
       expires_at: result.expiresAt,
-      document: existing,
+      document: mappedDocument,
     };
   }
 

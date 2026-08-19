@@ -14,7 +14,15 @@ import { LeadScoringService } from '../services/lead.scoring.service';
 export class LeadController {
   static async create(req: Request, res: Response) {
     try {
-      const parsed = createLeadSchema.safeParse(req.body);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const targetOrgId =
+        user?.org_id || user?.school_id || (req as any).user?.org_id || req.body.org_id;
+      if (!targetOrgId) {
+        return res.status(400).json({ error: 'Organization ID parameter is required' });
+      }
+
+      const parsed = createLeadSchema.safeParse({ ...req.body, org_id: targetOrgId });
       if (!parsed.success) {
         return res.status(400).json({
           error: 'Validation failed',
@@ -22,15 +30,7 @@ export class LeadController {
         });
       }
 
-      const user = req.context?.user;
-      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
-      const targetOrgId = parsed.data.org_id || user?.org_id || user?.school_id;
-      if (!targetOrgId) {
-        return res.status(400).json({ error: 'Organization ID (org_id) parameter is required' });
-      }
-      const payload = { ...parsed.data, org_id: targetOrgId };
-
-      const result = await LeadService.createLead(payload, userId);
+      const result = await LeadService.createLead(parsed.data, userId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -43,7 +43,9 @@ export class LeadController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await LeadService.getLeadById(id);
+      const user = req.context?.user;
+      const targetOrgId = user?.org_id || user?.school_id || (req as any).user?.org_id;
+      const result = await LeadService.getLeadById(id, targetOrgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -64,8 +66,10 @@ export class LeadController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadService.updateLead(id, parsed.data, userId);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const targetOrgId = user?.org_id || user?.school_id || (req as any).user?.org_id;
+      const result = await LeadService.updateLead(id, parsed.data, userId, targetOrgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -78,8 +82,10 @@ export class LeadController {
   static async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadService.deleteLead(id, userId);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const targetOrgId = user?.org_id || user?.school_id || (req as any).user?.org_id;
+      const result = await LeadService.deleteLead(id, userId, targetOrgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {

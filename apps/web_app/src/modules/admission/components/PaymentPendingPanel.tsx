@@ -249,7 +249,7 @@ export const FeeComponentCard = ({ fee, isSelected, onToggle, disabled }: any) =
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4 flex-1">
                     <Switch
-                        checked={isSelected}
+                        checked={Boolean(isSelected)}
                         onCheckedChange={onToggle}
                         disabled={disabled || fee.isMandatory}
                     />

@@ -30,6 +30,16 @@ export class LeadSearchQuery {
       whereClause.academic_year_grade_id = q.academic_year_grade_id;
     }
 
+    if (q.academic_year_id || q.grade_id) {
+      whereClause.academic_year_grades = {};
+      if (q.academic_year_id) {
+        whereClause.academic_year_grades.academic_year_id = q.academic_year_id;
+      }
+      if (q.grade_id) {
+        whereClause.academic_year_grades.grade_id = q.grade_id;
+      }
+    }
+
     if (q.org_id) {
       whereClause.org_id = q.org_id;
     }
@@ -80,7 +90,12 @@ export class LeadSearchQuery {
             },
           },
         },
-        academic_year_grades: true,
+        academic_year_grades: {
+          include: {
+            grades: true,
+            academic_years: true,
+          },
+        },
       },
       orderBy: {
         [sortKey]: q.order,

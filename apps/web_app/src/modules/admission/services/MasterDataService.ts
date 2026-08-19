@@ -19,6 +19,7 @@ export interface GradeMaster {
     name: string; // e.g. "Class 1", "Grade 1"
     school_id: string;
     academic_year_id: string;
+    academic_year_grade_id?: string | null;
     sections?: { id: string; name: string }[];
 }
 

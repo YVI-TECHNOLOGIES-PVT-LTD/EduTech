@@ -119,4 +119,21 @@ export class LeadVisitController {
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
+
+  static async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+
+      const result = await LeadVisitService.deleteVisit(id, userId, orgId);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof LeadError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
 }

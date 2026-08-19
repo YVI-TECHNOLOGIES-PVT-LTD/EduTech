@@ -7,9 +7,13 @@ import { UpdateLeadDto } from '../dto/request/update-lead.dto';
 const db: any = prisma;
 
 export class LeadRepository {
-  static async findById(lead_id: string) {
-    return db.leads.findUnique({
-      where: { lead_id },
+  static async findById(lead_id: string, org_id?: string) {
+    const where: any = { lead_id };
+    if (org_id) {
+      where.org_id = org_id;
+    }
+    return db.leads.findFirst({
+      where,
       include: {
         staff: {
           include: {
@@ -24,7 +28,12 @@ export class LeadRepository {
             },
           },
         },
-        academic_year_grades: true,
+        academic_year_grades: {
+          include: {
+            grades: true,
+            academic_years: true,
+          },
+        },
       },
     });
   }
@@ -98,6 +107,12 @@ export class LeadRepository {
             },
           },
         },
+        academic_year_grades: {
+          include: {
+            grades: true,
+            academic_years: true,
+          },
+        },
       },
     });
   }
@@ -112,9 +127,13 @@ export class LeadRepository {
     if (dto.contact_name !== undefined) data.contact_name = dto.contact_name;
     if (dto.contact_phone !== undefined) data.contact_phone = dto.contact_phone;
     if (dto.contact_email !== undefined) data.contact_email = dto.contact_email;
+    if (dto.contact_relationship !== undefined)
+      data.contact_relationship = dto.contact_relationship;
     if (dto.source !== undefined) data.source = dto.source;
     if (dto.stage !== undefined) data.stage = dto.stage;
     if ((dto as any).status !== undefined) data.stage = (dto as any).status;
+    if (dto.academic_year_grade_id !== undefined)
+      data.academic_year_grade_id = dto.academic_year_grade_id;
 
     if (dto.priority !== undefined) data.priority = dto.priority;
     if (dto.ai_lead_score !== undefined) data.ai_lead_score = dto.ai_lead_score;
@@ -143,6 +162,12 @@ export class LeadRepository {
                 email: true,
               },
             },
+          },
+        },
+        academic_year_grades: {
+          include: {
+            grades: true,
+            academic_years: true,
           },
         },
       },
@@ -174,6 +199,12 @@ export class LeadRepository {
             },
           },
         },
+        academic_year_grades: {
+          include: {
+            grades: true,
+            academic_years: true,
+          },
+        },
       },
     });
   }
@@ -201,6 +232,12 @@ export class LeadRepository {
                 email: true,
               },
             },
+          },
+        },
+        academic_year_grades: {
+          include: {
+            grades: true,
+            academic_years: true,
           },
         },
       },

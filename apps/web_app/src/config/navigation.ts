@@ -15,6 +15,7 @@ import {
   UserCheck,
   BarChart3,
   Sparkles,
+  Receipt,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -63,7 +64,7 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
         url: '/app/admissions/documents',
         icon: FolderCheck,
       },
-      { id: 'p_fees', title: 'Fee & Payment', url: '/app/admissions/fees', icon: CreditCard },
+      { id: 'p_fees', title: 'Fee & Payment', url: '/app/parent/payments', icon: CreditCard },
       {
         id: 'p_status',
         title: 'Admission Status',
@@ -85,7 +86,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
         id: 'fo_admissions',
         title: 'Admissions',
         icon: ClipboardList,
-        url: '/app/admissions/review',
+        url: '/app/admissions/applications',
         items: [
           {
             id: 'fo_enquiries',
@@ -95,9 +96,21 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           },
           {
             id: 'fo_applications',
-            title: 'Applications Review',
-            url: '/app/admissions/review',
+            title: 'Applications',
+            url: '/app/admissions/applications',
             icon: FileText,
+          },
+          {
+            id: 'fo_verification',
+            title: 'Document Verification',
+            url: '/app/admissions/verification',
+            icon: CheckCircle2,
+          },
+          {
+            id: 'fo_fees',
+            title: 'Fee Collection',
+            url: '/app/admissions/fees',
+            icon: Receipt,
           },
           {
             id: 'fo_visits',
@@ -114,12 +127,6 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
         ],
       },
       { id: 'fo_students', title: 'Students', url: '/app/people/students', icon: Users },
-      {
-        id: 'fo_queues',
-        title: 'Verification Queues',
-        url: '/app/admissions/queues',
-        icon: CheckCircle2,
-      },
       { id: 'fo_settings', title: 'Settings', url: '/app/settings', icon: Settings },
     ],
   },

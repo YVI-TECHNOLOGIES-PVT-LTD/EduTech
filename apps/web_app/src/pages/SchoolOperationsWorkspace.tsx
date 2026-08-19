@@ -304,7 +304,7 @@ export function SchoolOperationsWorkspace() {
               },
               {
                 title: 'Application Review',
-                route: '/app/admissions/dashboard',
+                route: '/app/admissions/applications',
                 icon: FileText,
                 desc: 'Audit submitted forms and candidate files.',
               },

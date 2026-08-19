@@ -42,7 +42,8 @@ export const ApplicationsListTab: React.FC = () => {
     },
   ];
 
-  const tableData = apps && apps.length > 0 ? apps : dummyApps;
+  const appsList = Array.isArray(apps) ? apps : apps?.data || [];
+  const tableData = appsList.length > 0 ? appsList : dummyApps;
 
   const columns: ColumnDef<ApplicationRecord>[] = [
     {

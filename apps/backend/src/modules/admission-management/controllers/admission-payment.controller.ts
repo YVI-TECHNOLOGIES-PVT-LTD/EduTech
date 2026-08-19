@@ -126,4 +126,31 @@ export class AdmissionPaymentController {
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
+
+  /**
+   * GET /v1/applications/:id/receipt
+   * Retrieve formal receipt details for a settled application fee payment.
+   */
+  static async getReceipt(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = (req as any).context?.user || (req as any).user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const userRoles = user?.roles || [];
+      const isOnlyParent =
+        userRoles.includes('PARENT') &&
+        !userRoles.some((r: string) =>
+          ['SUPERADMIN', 'ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
+      const orgId = user?.org_id || user?.school_id;
+
+      const result = await AdmissionPaymentService.getReceipt(id, orgId, userId, isOnlyParent);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof ApplicationError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
 }

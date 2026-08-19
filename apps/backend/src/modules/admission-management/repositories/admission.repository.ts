@@ -21,6 +21,17 @@ export class AdmissionRepository {
         leads: {
           include: {
             parents: true,
+            academic_year_grades: {
+              include: {
+                grades: true,
+                academic_years: true,
+              },
+            },
+            staff: {
+              include: {
+                users_staff_user_idTousers: true,
+              },
+            },
           },
         },
         academic_years: true,
@@ -42,9 +53,26 @@ export class AdmissionRepository {
     return prisma.admissions_applications.findFirst({
       where,
       include: {
-        leads: true,
+        leads: {
+          include: {
+            parents: true,
+            academic_year_grades: {
+              include: {
+                grades: true,
+                academic_years: true,
+              },
+            },
+            staff: {
+              include: {
+                users_staff_user_idTousers: true,
+              },
+            },
+          },
+        },
         academic_years: true,
-        admission_documents: true,
+        admission_documents: {
+          include: { document_types: true },
+        },
         application_assessments: true,
         admission_decisions: true,
         admission_fee_payments: true,

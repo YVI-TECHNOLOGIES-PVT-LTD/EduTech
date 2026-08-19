@@ -1,5 +1,6 @@
 export interface DocumentResponseDto {
   document_id: string;
+  application_id?: string;
   document_type_id: string;
   original_file_name?: string | null;
   mime_type?: string | null;
@@ -62,6 +63,9 @@ export interface ApplicationResponseDto {
   previous_school_board?: string | null;
   previous_grade?: string | null;
   previous_school_year?: string | null;
+  student_name?: string | null;
+  grade_id?: string | null;
+  grade_name?: string | null;
   lead?: {
     lead_id: string;
     lead_number: string;
@@ -71,12 +75,26 @@ export interface ApplicationResponseDto {
     contact_name: string;
     contact_phone: string;
     contact_email: string | null;
+    contact_relationship?: string | null;
+    gender?: string | null;
+    dob?: string | null;
+    curriculum_preference?: string | null;
+    grade_id?: string | null;
+    grade_name?: string | null;
+    assigned_counsellor_id?: string | null;
+    counselor_name?: string | null;
   } | null;
   academic_year?: {
     academic_year_id: string;
     academic_year_name: string;
   } | null;
   documents?: DocumentResponseDto[];
+  documents_summary?: {
+    total: number;
+    verified: number;
+    pending: number;
+    rejected: number;
+  };
   assessment?: AssessmentResponseDto | null;
   decision?: DecisionResponseDto | null;
   payment?: FeePaymentResponseDto | null;

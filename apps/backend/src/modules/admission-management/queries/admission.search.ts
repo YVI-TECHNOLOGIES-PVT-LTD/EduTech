@@ -12,8 +12,39 @@ export class AdmissionSearchQuery {
       andConditions.push({ status: q.status });
     }
 
+    if (q.payment_status) {
+      if (q.payment_status === 'pending') {
+        andConditions.push({
+          OR: [
+            { admission_fee_payments: null },
+            { admission_fee_payments: { payment_status: 'pending' } },
+          ],
+        });
+      } else {
+        andConditions.push({
+          admission_fee_payments: { payment_status: q.payment_status },
+        });
+      }
+    }
+
+    if (q.payment_mode) {
+      andConditions.push({
+        admission_fee_payments: { payment_mode: q.payment_mode },
+      });
+    }
+
     if (q.academic_year_id) {
       andConditions.push({ academic_year_id: q.academic_year_id });
+    }
+
+    if (q.grade_id) {
+      andConditions.push({
+        leads: {
+          academic_year_grades: {
+            grade_id: q.grade_id,
+          },
+        },
+      });
     }
 
     if (q.org_id) {
@@ -53,6 +84,11 @@ export class AdmissionSearchQuery {
         OR: [
           { application_number: { contains: text, mode: 'insensitive' } },
           {
+            admission_fee_payments: {
+              transaction_reference: { contains: text, mode: 'insensitive' },
+            },
+          },
+          {
             leads: {
               OR: [
                 { student_first_name: { contains: text, mode: 'insensitive' } },
@@ -60,6 +96,7 @@ export class AdmissionSearchQuery {
                 { contact_name: { contains: text, mode: 'insensitive' } },
                 { contact_phone: { contains: text, mode: 'insensitive' } },
                 { contact_email: { contains: text, mode: 'insensitive' } },
+                { lead_number: { contains: text, mode: 'insensitive' } },
               ],
             },
           },
@@ -78,9 +115,28 @@ export class AdmissionSearchQuery {
     const items = await prisma.admissions_applications.findMany({
       where: whereClause,
       include: {
-        leads: true,
+        leads: {
+          include: {
+            academic_year_grades: {
+              include: {
+                grades: true,
+                academic_years: true,
+              },
+            },
+            parents: true,
+            staff: {
+              include: {
+                users_staff_user_idTousers: true,
+              },
+            },
+          },
+        },
         academic_years: true,
-        admission_documents: true,
+        admission_documents: {
+          include: {
+            document_types: true,
+          },
+        },
         application_assessments: true,
         admission_decisions: true,
         admission_fee_payments: true,

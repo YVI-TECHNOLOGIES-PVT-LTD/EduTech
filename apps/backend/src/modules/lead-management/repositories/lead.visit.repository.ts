@@ -137,4 +137,10 @@ export class LeadVisitRepository {
       },
     });
   }
+
+  static async delete(visit_id: string) {
+    return prisma.lead_visits.delete({
+      where: { visit_id },
+    });
+  }
 }

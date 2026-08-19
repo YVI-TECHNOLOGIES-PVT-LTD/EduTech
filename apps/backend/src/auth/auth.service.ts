@@ -3,6 +3,7 @@ import { env } from '../config/env';
 import { NativePassword, NativeJwt } from './crypto.utils';
 import prisma from '../lib/prismaClient';
 import { logger } from '../utils/logger';
+import { sessionService } from './session.service';
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
@@ -154,6 +155,8 @@ export class AuthService {
     console.log('JWT Generated Successfully');
     console.log('======================================');
 
+    const userProfile = await sessionService.validateSession(accessToken);
+
     return {
       accessToken,
       refreshToken,
@@ -163,8 +166,8 @@ export class AuthService {
         email: user.email,
         school_id: user.org_id,
         full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
-        roles,
-        permissions,
+        roles: userProfile?.roles || roles,
+        permissions: userProfile?.permissions || permissions,
         login_status: 'APPROVED',
       },
     };

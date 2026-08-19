@@ -15,8 +15,10 @@ export class LeadActivityController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await LeadActivityService.createActivity(id, userId, parsed.data);
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await LeadActivityService.createActivity(id, userId, parsed.data, orgId);
       return res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -29,7 +31,9 @@ export class LeadActivityController {
   static async getByLeadId(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await LeadActivityService.getActivitiesByLead(id);
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await LeadActivityService.getActivitiesByLead(id, orgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -50,7 +54,25 @@ export class LeadActivityController {
         });
       }
 
-      const result = await LeadActivityService.updateActivity(id, parsed.data);
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await LeadActivityService.updateActivity(id, parsed.data, orgId);
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof LeadError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.context?.user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await LeadActivityService.deleteActivity(id, userId, orgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
@@ -63,7 +85,9 @@ export class LeadActivityController {
   static async getTimeline(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await LeadActivityService.getTimeline(id);
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id;
+      const result = await LeadActivityService.getTimeline(id, orgId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {

@@ -32,20 +32,64 @@ export const ProtectedRoute = () => {
 };
 
 export const LoginApprovalGate = ({ children }: { children: React.ReactNode }) => {
-  const { user, hasRole } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
 
   if (!user) return null;
 
-  // Admins and Exam Cell Admins always bypass the gate
-  if (hasRole('ADMIN') || hasRole('EXAM_CELL_ADMIN')) return <>{children}</>;
+  // Resolve user roles canonically
+  const rawRoles =
+    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalizedRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
 
-  // Define paths that are allowed for PENDING/REJECTED users
-  const allowedPaths = ['/app/admissions/my', '/app/admissions/'];
-  const isAllowedPath = allowedPaths.some((path) => location.pathname.startsWith(path));
+  // Institutional Staff and Admin roles always bypass the Parent Login Approval Gate
+  const isStaffOrAdmin = normalizedRoles.some((r: string) =>
+    [
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'FRONT_OFFICE',
+      'FO',
+      'FRONT_OFFICE_STAFF',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+      'TEACHER',
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'EXAM_CELL_ADMIN',
+      'EXAM_CELL',
+    ].includes(r),
+  );
 
-  if (user.login_status !== 'APPROVED' && !isAllowedPath) {
-    return <PendingApprovalPage />;
+  if (isStaffOrAdmin) {
+    return <>{children}</>;
+  }
+
+  // Only PARENT persona accounts are evaluated for admission login approval status
+  const isParent = normalizedRoles.includes('PARENT');
+  if (isParent) {
+    // Define paths that are allowed for PENDING/REJECTED parents to view admission status
+    const allowedPaths = [
+      '/app/admissions/my',
+      '/app/admissions/status',
+      '/app/admissions/wizard',
+      '/app/parent',
+    ];
+    const isAllowedPath = allowedPaths.some((path) => location.pathname.startsWith(path));
+
+    // If parent's login status is PENDING, REJECTED, or BLOCKED and not on allowed path
+    if (
+      user.login_status &&
+      user.login_status !== 'APPROVED' &&
+      !isAllowedPath
+    ) {
+      return <PendingApprovalPage />;
+    }
   }
 
   return <>{children}</>;

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Checkbox } from '../ui/checkbox';
 import { Button } from '../ui/button';
 import {
     ChevronLeft,
@@ -167,6 +168,9 @@ export function DataTableFramework<T extends { id?: string | number }>({
         spacious: 'py-5 px-6 text-sm'
     }[density];
 
+    const isAllSelected = paginatedData.length > 0 && paginatedData.every(row => row.id && selectedRows[row.id]);
+    const isSomeSelected = paginatedData.some(row => row.id && selectedRows[row.id]) && !isAllSelected;
+
     return (
         <div className="space-y-4 w-full bg-white dark:bg-card rounded-3xl border border-border/60 p-6 relative overflow-hidden shadow-premium-sm">
             {/* Header controls: Search, Columns visibility, density, exports */}
@@ -218,14 +222,13 @@ export function DataTableFramework<T extends { id?: string | number }>({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl w-48 max-h-72 overflow-y-auto custom-scrollbar">
-                            <DropdownMenuLabel className="text-[10px] font-black uppercase text-gray-400">Show/Hide Columns</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-[10px] font-black uppercase text-gray-400">Toggle Columns</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {columns.map(col => (
                                 <DropdownMenuCheckboxItem
                                     key={col.key}
                                     checked={visibleKeys.has(col.key)}
                                     onCheckedChange={() => toggleColumn(col.key)}
-                                    disabled={visibleKeys.has(col.key) && visibleKeys.size === 1}
                                     className="text-xs rounded-lg cursor-pointer font-semibold"
                                 >
                                     {col.header}
@@ -258,22 +261,27 @@ export function DataTableFramework<T extends { id?: string | number }>({
                 </div>
             </div>
 
-            {/* Grid Table with Sticky Header */}
+            {/* Grid Table with Sticky Header and Full Grid Borders */}
             <div className="border border-border/80 rounded-2xl overflow-hidden max-h-[60vh] overflow-y-auto custom-scrollbar relative">
-                <Table className="border-collapse">
+                <Table className="border-collapse w-full">
                     <TableHeader className="bg-gray-50/50 dark:bg-muted/10 sticky top-0 z-10 border-b border-border shadow-sm">
-                        <TableRow className="hover:bg-transparent">
+                        <TableRow className="hover:bg-transparent border-b border-border">
                             {bulkActions && (
-                                <TableHead className="w-12 text-center bg-gray-50/80 dark:bg-muted/10">
-                                    <input
-                                        type="checkbox"
-                                        onChange={(e) => handleSelectAll(e.target.checked)}
-                                        className="rounded border-border focus:ring-primary w-4 h-4 text-primary"
-                                    />
+                                <TableHead className="w-12 text-center bg-gray-50/80 dark:bg-muted/10 border-r border-border/70 p-0">
+                                    <div className="flex items-center justify-center">
+                                        <Checkbox
+                                            checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                                            onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                                            aria-label="Select all rows"
+                                        />
+                                    </div>
                                 </TableHead>
                             )}
-                            {visibleColumns.map(col => (
-                                <TableHead key={col.key} className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest bg-gray-50/80 dark:bg-muted/10 py-3.5">
+                            <TableHead className="w-14 text-center text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest bg-gray-50/80 dark:bg-muted/10 py-3.5 border-r border-border/70 px-1">
+                                S.NO
+                            </TableHead>
+                            {visibleColumns.map((col, idx) => (
+                                <TableHead key={col.key} className={`text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest bg-gray-50/80 dark:bg-muted/10 py-3.5 px-4 ${idx < visibleColumns.length - 1 ? 'border-r border-border/70' : ''}`}>
                                     {col.header}
                                 </TableHead>
                             ))}
@@ -282,7 +290,7 @@ export function DataTableFramework<T extends { id?: string | number }>({
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={visibleColumns.length + (bulkActions ? 1 : 0)} className="text-center py-16 text-xs text-gray-500 font-semibold italic">
+                                <TableCell colSpan={visibleColumns.length + 1 + (bulkActions ? 1 : 0)} className="text-center py-16 text-xs text-gray-500 font-semibold italic">
                                     <div className="flex flex-col items-center justify-center gap-3">
                                         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                                         <span>Fetching data repository...</span>
@@ -291,7 +299,7 @@ export function DataTableFramework<T extends { id?: string | number }>({
                             </TableRow>
                         ) : paginatedData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={visibleColumns.length + (bulkActions ? 1 : 0)} className="text-center py-16 text-xs text-gray-400 font-semibold italic">
+                                <TableCell colSpan={visibleColumns.length + 1 + (bulkActions ? 1 : 0)} className="text-center py-16 text-xs text-gray-400 font-semibold italic">
                                     No records matching searches found.
                                 </TableCell>
                             </TableRow>
@@ -299,20 +307,26 @@ export function DataTableFramework<T extends { id?: string | number }>({
                             paginatedData.map((row, idx) => (
                                 <TableRow
                                     key={row.id || idx}
-                                    className="transition-colors hover:bg-gray-50/30 dark:hover:bg-muted/5 border-b border-border/40"
+                                    className="transition-colors hover:bg-gray-50/30 dark:hover:bg-muted/5 border-b border-border/50"
                                 >
-                                    {bulkActions && row.id && (
-                                        <TableCell className="text-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={!!selectedRows[row.id]}
-                                                onChange={(e) => handleSelectRow(row.id!, e.target.checked)}
-                                                className="rounded border-border focus:ring-primary w-4 h-4 text-primary"
-                                            />
+                                    {bulkActions && (
+                                        <TableCell className="text-center p-0 border-r border-border/50" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center justify-center">
+                                                {row.id ? (
+                                                    <Checkbox
+                                                        checked={!!selectedRows[row.id]}
+                                                        onCheckedChange={(checked) => handleSelectRow(row.id!, checked === true)}
+                                                        aria-label={`Select row ${idx + 1}`}
+                                                    />
+                                                ) : null}
+                                            </div>
                                         </TableCell>
                                     )}
-                                    {visibleColumns.map(col => (
-                                        <TableCell key={col.key} className={`${cellPaddingClass} font-semibold text-gray-700 dark:text-gray-300`}>
+                                    <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground border-r border-border/50 py-3 px-1">
+                                        {(currentPage - 1) * pageSize + idx + 1}
+                                    </TableCell>
+                                    {visibleColumns.map((col, colIdx) => (
+                                        <TableCell key={col.key} className={`${cellPaddingClass} font-semibold text-gray-700 dark:text-gray-300 ${colIdx < visibleColumns.length - 1 ? 'border-r border-border/50' : ''}`}>
                                             {col.render ? col.render(row) : (row as any)[col.key]}
                                         </TableCell>
                                     ))}

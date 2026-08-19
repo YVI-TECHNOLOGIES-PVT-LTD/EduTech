@@ -10,6 +10,7 @@ import {
   detectBufferMimeType,
   validateFileBufferSignature,
 } from '../../../middlewares/upload.middleware';
+import { recordPaymentSchema } from '../dto/request/record-payment.dto';
 
 export async function runAdmissionModuleTests() {
   console.log('[Admission Application Management] Running unit tests...');
@@ -108,6 +109,44 @@ export async function runAdmissionModuleTests() {
     } as Express.Multer.File;
 
     assert.throws(() => validateFileBufferSignature(exeFile), ApplicationValidationError);
+  });
+
+  // 3. Admission Fee Payment DTO Validation Tests
+  test('recordPaymentSchema accepts valid cash payment', () => {
+    const valid = recordPaymentSchema.safeParse({
+      amount: 1200,
+      payment_status: 'paid',
+      payment_mode: 'cash',
+      payment_date: new Date().toISOString(),
+      remarks: 'Cash collected at desk',
+    });
+    assert.strictEqual(valid.success, true);
+  });
+
+  test('recordPaymentSchema accepts valid bank transfer payment with UTR', () => {
+    const valid = recordPaymentSchema.safeParse({
+      amount: 1200,
+      payment_status: 'paid',
+      payment_mode: 'bank_transfer',
+      transaction_reference: 'SBI94820194820',
+      payment_date: new Date().toISOString(),
+    });
+    assert.strictEqual(valid.success, true);
+  });
+
+  test('recordPaymentSchema rejects non-positive amounts', () => {
+    const negative = recordPaymentSchema.safeParse({ amount: -500 });
+    assert.strictEqual(negative.success, false);
+
+    const zero = recordPaymentSchema.safeParse({ amount: 0 });
+    assert.strictEqual(zero.success, false);
+  });
+
+  test('recordPaymentSchema rejects invalid payment status enum', () => {
+    const invalidStatus = recordPaymentSchema.safeParse({
+      payment_status: 'UNKNOWN_STATUS' as any,
+    });
+    assert.strictEqual(invalidStatus.success, false);
   });
 
   console.log(

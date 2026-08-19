@@ -48,27 +48,12 @@ export class LeadVisitService {
       activity_date: visitDate.toISOString(),
     });
 
-    // Update lead stage if appropriate
-    const targetStage: lead_stage =
-      dto.visit_type === visit_type.virtual
-        ? lead_stage.counselling_scheduled
-        : lead_stage.campus_visit;
-
-    await LeadRepository.update(dto.lead_id, { stage: targetStage });
-
     logger.info(`Lead visit/counselling scheduled: ${visit.visit_id} for lead ${dto.lead_id}`, {
       visitId: visit.visit_id,
       leadId: dto.lead_id,
       visitType: dto.visit_type,
       scheduledAt: dto.scheduled_at,
       performedBy,
-    });
-
-    await LeadEvents.publish(LeadEventType.STATUS_CHANGED, {
-      leadId: dto.lead_id,
-      performedBy,
-      timestamp: new Date().toISOString(),
-      metadata: { visitId: visit.visit_id, visitType: dto.visit_type, stage: targetStage },
     });
 
     return visit;
@@ -137,5 +122,21 @@ export class LeadVisitService {
     });
 
     return updated;
+  }
+
+  static async deleteVisit(visitId: string, performedBy?: string | null, orgId?: string) {
+    const visit = await LeadVisitRepository.findById(visitId);
+    if (!visit) {
+      throw new LeadValidationError(`Visit not found: ${visitId}`);
+    }
+
+    if (orgId && visit.leads?.org_id && visit.leads.org_id !== orgId) {
+      throw new LeadValidationError(`Visit not found: ${visitId}`);
+    }
+
+    await LeadVisitRepository.delete(visitId);
+
+    logger.info(`Lead visit deleted: ${visitId}`, { visitId, performedBy });
+    return { success: true };
   }
 }

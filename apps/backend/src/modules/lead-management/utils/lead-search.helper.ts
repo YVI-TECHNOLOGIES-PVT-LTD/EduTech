@@ -14,6 +14,8 @@ export function sanitizeSearchQuery(params: SearchLeadDto) {
     assigned_counsellor_id: params.assigned_counsellor_id || params.assignedTo || undefined,
     assignedTo: params.assigned_counsellor_id || params.assignedTo || undefined,
     academic_year_grade_id: params.academic_year_grade_id || undefined,
+    academic_year_id: params.academic_year_id || undefined,
+    grade_id: params.grade_id || undefined,
     org_id: params.org_id || undefined,
     startDate: params.startDate ? new Date(params.startDate) : undefined,
     endDate: params.endDate ? new Date(params.endDate) : undefined,

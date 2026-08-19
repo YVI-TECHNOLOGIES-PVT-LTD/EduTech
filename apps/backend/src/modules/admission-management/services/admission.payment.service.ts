@@ -308,4 +308,84 @@ export class AdmissionPaymentService {
 
     return AdmissionPaymentRepository.findByApplicationId(applicationId);
   }
+
+  /**
+   * Authoritative Receipt generation and retrieval for Stage-1 application fee payment.
+   */
+  static async getReceipt(
+    applicationId: string,
+    orgId?: string,
+    userId?: string | null,
+    isParentOnly?: boolean,
+  ) {
+    const app = await AdmissionRepository.findById(
+      applicationId,
+      orgId,
+      isParentOnly ? userId || undefined : undefined,
+    );
+    if (!app) {
+      throw new ApplicationNotFoundError(applicationId);
+    }
+
+    const payment = await prisma.admission_fee_payments.findUnique({
+      where: { application_id: applicationId },
+    });
+    if (!payment) {
+      throw new ApplicationNotFoundError(`Fee payment for application ${applicationId}`);
+    }
+
+    const config = await prisma.admission_configurations.findFirst({
+      where: {
+        org_id: app.org_id,
+        academic_year_id: app.academic_year_id,
+      },
+    });
+
+    const applicationFee = config?.application_fee ? Number(config.application_fee) : 1000;
+    const processingFee = config?.processing_fee ? Number(config.processing_fee) : 200;
+
+    const lead = app.leads;
+    const studentName = lead
+      ? `${lead.student_first_name} ${lead.student_last_name || ''}`.trim()
+      : 'Applicant';
+    const gradeName = lead?.academic_year_grades?.grades?.grade_name || null;
+    const academicYearName = lead?.academic_year_grades?.academic_years?.academic_year_name || null;
+    const contactName = lead?.contact_name || null;
+    const contactPhone = lead?.contact_phone || null;
+    const contactEmail = lead?.contact_email || null;
+    const orgName = (app as any).organizations?.org_name || 'EduTrack Academy';
+
+    return {
+      receipt_id: `REC-${payment.payment_id.slice(0, 8).toUpperCase()}`,
+      receipt_number: `REC-${payment.payment_id.slice(0, 8).toUpperCase()}`,
+      payment_id: payment.payment_id,
+      application_id: app.application_id,
+      application_number:
+        app.application_number || `APP-${app.application_id.slice(0, 8).toUpperCase()}`,
+      student_name: studentName,
+      grade_name: gradeName,
+      academic_year_name: academicYearName,
+      contact_name: contactName,
+      contact_phone: contactPhone,
+      contact_email: contactEmail,
+      org_id: app.org_id,
+      org_name: orgName,
+      amount: Number(payment.amount),
+      application_fee: applicationFee,
+      processing_fee: processingFee,
+      total_fee: Number(payment.amount),
+      currency: 'INR',
+      payment_status: payment.payment_status,
+      payment_mode: payment.payment_mode || 'cash',
+      transaction_reference:
+        payment.transaction_reference || `TXN-${payment.payment_id.slice(0, 8).toUpperCase()}`,
+      payment_date: payment.payment_date
+        ? payment.payment_date.toISOString()
+        : payment.created_at.toISOString(),
+      remarks: payment.remarks || null,
+      issued_at: payment.updated_at
+        ? payment.updated_at.toISOString()
+        : payment.created_at.toISOString(),
+    };
+  }
 }

@@ -49,34 +49,42 @@ export interface ButtonProps extends ButtonPrimitive.Props, VariantProps<typeof 
   asChild?: boolean;
 }
 
-function Button({
-  className,
-  variant = 'default',
-  size = 'default',
-  asChild,
-  children,
-  ...props
-}: ButtonProps) {
-  if (asChild && React.isValidElement(children)) {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant = 'default',
+      size = 'default',
+      asChild,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    if (asChild && React.isValidElement(children)) {
+      return (
+        <ButtonPrimitive
+          ref={ref}
+          data-slot="button"
+          render={children}
+          className={cn(buttonVariants({ variant, size, className }))}
+          {...props}
+        />
+      );
+    }
+
     return (
       <ButtonPrimitive
+        ref={ref}
         data-slot="button"
-        render={children}
         className={cn(buttonVariants({ variant, size, className }))}
         {...props}
-      />
+      >
+        {children}
+      </ButtonPrimitive>
     );
-  }
-
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    >
-      {children}
-    </ButtonPrimitive>
-  );
-}
+  },
+);
+Button.displayName = 'Button';
 
 export { Button, buttonVariants };

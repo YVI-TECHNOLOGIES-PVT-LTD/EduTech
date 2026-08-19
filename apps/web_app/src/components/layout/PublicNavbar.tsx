@@ -52,9 +52,26 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
         ? [(user as any).role]
         : ['PARENT'];
   const isStaff = userRoles.some((r: string) =>
-    ['ADMIN', 'SUPERADMIN', 'FRONT_OFFICE', 'FO', 'STAFF', 'ADMISSION_OFFICER'].includes(
-      r.toUpperCase().replace(/[\s_-]+/g, '_'),
-    ),
+    [
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'FRONT_OFFICE',
+      'FO',
+      'FRONT_OFFICE_STAFF',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+      'TEACHER',
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'EXAM_CELL_ADMIN',
+      'EXAM_CELL',
+    ].includes(r.toUpperCase().replace(/[\s_-]+/g, '_')),
   );
   const portalRedirectPath = isStaff ? '/app/workspace' : '/app/admissions/my';
 

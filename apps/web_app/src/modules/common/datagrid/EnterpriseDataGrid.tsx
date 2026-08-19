@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
+import { Checkbox } from '../../../components/ui/checkbox';
 import { ArrowUpDown, Pin } from 'lucide-react';
 import { useGridState } from '../hooks/useGridState';
 import { GridToolbar } from './GridToolbar';
@@ -65,45 +66,64 @@ export function EnterpriseDataGrid<T extends { id?: string | number }>({
 
     const cellPadding = DENSITY_PADDING[grid.density];
 
-    const renderRow = (row: T, idx: number) => (
-        <TableRow
-            key={row.id ?? idx}
-            onClick={() => onRowClick?.(row)}
-            className={`transition-colors hover:bg-muted/30 border-b border-border/40 ${onRowClick ? 'cursor-pointer' : ''}`}
-            tabIndex={0}
-        >
-            {bulkActions && row.id != null && (
-                <TableCell className="text-center w-12" onClick={e => e.stopPropagation()}>
-                    <input
-                        type="checkbox"
-                        checked={!!grid.selectedRows[row.id]}
-                        onChange={e => handleSelectRow(row.id!, e.target.checked)}
-                        className="rounded border-border w-4 h-4"
-                    />
-                </TableCell>
-            )}
-            {grid.orderedColumns.map(col => {
-                const isPinned = grid.pinnedKeys.includes(col.key);
-                const width = grid.columnWidths[col.key] ?? col.width;
-                return (
-                    <TableCell
-                        key={col.key}
-                        className={`${cellPadding} font-semibold ${isPinned ? 'sticky left-0 z-[5] bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]' : ''}`}
-                        style={width ? { width, minWidth: col.minWidth ?? 80 } : undefined}
-                    >
-                        {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
+    const isAllSelected =
+        grid.paginatedData.length > 0 &&
+        grid.paginatedData.every(row => row.id != null && grid.selectedRows[row.id]);
+    const isSomeSelected =
+        grid.paginatedData.some(row => row.id != null && grid.selectedRows[row.id]) &&
+        !isAllSelected;
+
+    const renderRow = (row: T, idx: number) => {
+        const isRowSelected = row.id != null && !!grid.selectedRows[row.id];
+        return (
+            <TableRow
+                key={row.id ?? idx}
+                onClick={() => onRowClick?.(row)}
+                data-state={isRowSelected ? 'selected' : undefined}
+                className={`transition-colors border-b border-border/50 ${
+                    isRowSelected ? 'bg-primary/5' : 'hover:bg-muted/30'
+                } ${onRowClick ? 'cursor-pointer' : ''}`}
+                tabIndex={0}
+            >
+                {bulkActions && (
+                    <TableCell className="text-center w-12 p-0 border-r border-border/50" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-center">
+                            {row.id != null ? (
+                                <Checkbox
+                                    checked={isRowSelected}
+                                    onCheckedChange={checked => handleSelectRow(row.id!, checked === true)}
+                                    aria-label={`Select row ${idx + 1}`}
+                                />
+                            ) : null}
+                        </div>
                     </TableCell>
-                );
-            })}
-        </TableRow>
-    );
+                )}
+                <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground border-r border-border/50 py-3 px-1">
+                    {(grid.currentPage - 1) * pageSize + idx + 1}
+                </TableCell>
+                {grid.orderedColumns.map((col, colIdx) => {
+                    const isPinned = grid.pinnedKeys.includes(col.key);
+                    const width = grid.columnWidths[col.key] ?? col.width;
+                    return (
+                        <TableCell
+                            key={col.key}
+                            className={`${cellPadding} font-semibold ${colIdx < grid.orderedColumns.length - 1 ? 'border-r border-border/50' : ''} ${isPinned ? 'sticky left-0 z-[5] bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]' : ''}`}
+                            style={width ? { width, minWidth: col.minWidth ?? 80 } : undefined}
+                        >
+                            {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
+                        </TableCell>
+                    );
+                })}
+            </TableRow>
+        );
+    };
 
     const renderTableBody = () => {
         if (loading) {
             return (
                 <TableRow>
                     <TableCell
-                        colSpan={grid.orderedColumns.length + (bulkActions ? 1 : 0)}
+                        colSpan={grid.orderedColumns.length + 1 + (bulkActions ? 1 : 0)}
                         className="text-center py-16"
                     >
                         <div className="flex flex-col items-center gap-3">
@@ -121,7 +141,7 @@ export function EnterpriseDataGrid<T extends { id?: string | number }>({
             return (
                 <TableRow>
                     <TableCell
-                        colSpan={grid.orderedColumns.length + (bulkActions ? 1 : 0)}
+                        colSpan={grid.orderedColumns.length + 1 + (bulkActions ? 1 : 0)}
                         className="text-center py-16 text-xs text-muted-foreground italic"
                     >
                         No records found.
@@ -132,9 +152,9 @@ export function EnterpriseDataGrid<T extends { id?: string | number }>({
 
         if (grid.groupedData) {
             return Object.entries(grid.groupedData).flatMap(([group, rows]) => [
-                <TableRow key={`group-${group}`} className="bg-muted/20">
+                <TableRow key={`group-${group}`} className="bg-muted/20 border-b border-border/50">
                     <TableCell
-                        colSpan={grid.orderedColumns.length + (bulkActions ? 1 : 0)}
+                        colSpan={grid.orderedColumns.length + 1 + (bulkActions ? 1 : 0)}
                         className="py-2 px-4 text-xs font-black uppercase tracking-wider text-primary"
                     >
                         {group} ({rows.length})
@@ -204,25 +224,32 @@ export function EnterpriseDataGrid<T extends { id?: string | number }>({
             )}
 
             <div className="border border-border/80 rounded-2xl overflow-auto max-h-[60vh] custom-scrollbar relative">
-                <Table className="border-collapse">
+                <Table className="border-collapse w-full">
                     <TableHeader className="bg-muted/30 sticky top-0 z-10 border-b border-border">
-                        <TableRow className="hover:bg-transparent">
+                        <TableRow className="hover:bg-transparent border-b border-border">
                             {bulkActions && (
-                                <TableHead className="w-12 text-center bg-muted/50">
-                                    <input
-                                        type="checkbox"
-                                        onChange={e => handleSelectAll(e.target.checked)}
-                                        className="rounded border-border w-4 h-4"
-                                    />
+                                <TableHead className="w-12 text-center bg-muted/50 border-r border-border/70 p-0">
+                                    <div className="flex items-center justify-center">
+                                        <Checkbox
+                                            checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                                            onCheckedChange={checked => handleSelectAll(checked === true)}
+                                            aria-label="Select all rows"
+                                        />
+                                    </div>
                                 </TableHead>
                             )}
-                            {grid.orderedColumns.map(col => {
+                            <TableHead className="w-14 text-center text-xs font-black uppercase tracking-widest bg-muted/50 py-3.5 border-r border-border/70 px-1">
+                                S.NO
+                            </TableHead>
+                            {grid.orderedColumns.map((col, idx) => {
                                 const isPinned = grid.pinnedKeys.includes(col.key);
                                 const width = grid.columnWidths[col.key] ?? col.width;
                                 return (
                                     <TableHead
                                         key={col.key}
-                                        className={`text-xs font-black uppercase tracking-widest bg-muted/50 py-3.5 group ${
+                                        className={`text-xs font-black uppercase tracking-widest bg-muted/50 py-3.5 px-4 group ${
+                                            idx < grid.orderedColumns.length - 1 ? 'border-r border-border/70' : ''
+                                        } ${
                                             isPinned ? 'sticky left-0 z-[6] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]' : ''
                                         }`}
                                         style={width ? { width, minWidth: col.minWidth ?? 80 } : undefined}

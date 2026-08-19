@@ -28,6 +28,7 @@ const bulk_routes_1 = require("./modules/admin/bulk.routes");
 const workflow_routes_1 = require("./workflows/workflow.routes");
 const task_routes_1 = require("./workflows/task.routes");
 const lead_routes_1 = require("./modules/lead-management/routes/lead.routes");
+const isUuidStr = (str) => !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 const admission_routes_1 = require("./modules/admission-management/routes/admission.routes");
 const admission_controller_2 = require("./modules/admission-management/controllers/admission.controller");
 const student_routes_1 = require("./modules/student-management/routes/student.routes");
@@ -218,8 +219,8 @@ exports.router.get('/public/classes', async (req, res) => {
                 .json({ error: 'School ID (school_id or org_id) parameter is required' });
         }
         const { academic_year_id } = req.query;
-        let targetYearId = academic_year_id;
-        if (!targetYearId && targetOrgId) {
+        let targetYearId = isUuidStr(academic_year_id) ? academic_year_id : '';
+        if (!targetYearId && targetOrgId && isUuidStr(targetOrgId)) {
             const activeYear = await prismaClient_1.default.academic_years.findFirst({
                 where: { org_id: targetOrgId },
                 orderBy: { created_at: 'desc' },
@@ -227,7 +228,7 @@ exports.router.get('/public/classes', async (req, res) => {
             targetYearId = activeYear?.academic_year_id || '';
         }
         let aygList = [];
-        if (targetYearId) {
+        if (targetYearId && isUuidStr(targetYearId)) {
             aygList = await prismaClient_1.default.academic_year_grades.findMany({
                 where: {
                     academic_year_id: targetYearId,
@@ -309,8 +310,8 @@ exports.router.get('/v1/public/classes', async (req, res) => {
                 .json({ error: 'School ID (school_id or org_id) parameter is required' });
         }
         const { academic_year_id } = req.query;
-        let targetYearId = academic_year_id;
-        if (!targetYearId && targetOrgId) {
+        let targetYearId = isUuidStr(academic_year_id) ? academic_year_id : '';
+        if (!targetYearId && targetOrgId && isUuidStr(targetOrgId)) {
             const activeYear = await prismaClient_1.default.academic_years.findFirst({
                 where: { org_id: targetOrgId },
                 orderBy: { created_at: 'desc' },
@@ -318,7 +319,7 @@ exports.router.get('/v1/public/classes', async (req, res) => {
             targetYearId = activeYear?.academic_year_id || '';
         }
         let aygList = [];
-        if (targetYearId) {
+        if (targetYearId && isUuidStr(targetYearId)) {
             aygList = await prismaClient_1.default.academic_year_grades.findMany({
                 where: { academic_year_id: targetYearId, is_active: true },
                 include: { grades: true },
@@ -458,7 +459,14 @@ const admissionConfigHandler = async (req, res) => {
             ? await prismaClient_1.default.grades.findMany({
                 where: { org_id: targetOrgId, is_active: true },
                 orderBy: { display_order: 'asc' },
-                select: { grade_id: true, grade_name: true },
+                select: {
+                    grade_id: true,
+                    grade_name: true,
+                    academic_year_grades: {
+                        where: activeYear ? { academic_year_id: activeYear.id, is_active: true } : { is_active: true },
+                        select: { academic_year_grade_id: true, academic_year_id: true },
+                    },
+                },
             })
             : [];
         res.json({
@@ -466,7 +474,11 @@ const admissionConfigHandler = async (req, res) => {
             schools: schools.map((s) => ({ id: s.org_id, name: s.org_name, code: s.org_code })),
             school: targetOrgId ? schools.find((s) => s.org_id === targetOrgId) || null : null,
             academicYear: activeYear,
-            grades: grades.map((g) => ({ id: g.grade_id, grade_name: g.grade_name })),
+            grades: grades.map((g) => ({
+                id: g.grade_id,
+                grade_name: g.grade_name,
+                academic_year_grade_id: g.academic_year_grades?.[0]?.academic_year_grade_id || null,
+            })),
             requiredDocuments: [
                 { type: 'birth_certificate', label: 'Birth Certificate', required: true },
                 { type: 'transfer_certificate', label: 'Transfer Certificate', required: false },

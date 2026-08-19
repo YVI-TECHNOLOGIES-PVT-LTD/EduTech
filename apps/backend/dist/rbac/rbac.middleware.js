@@ -3,6 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireRole = exports.requirePermission = exports.checkRole = exports.checkPermission = exports.getEffectiveRoles = void 0;
 const logger_1 = require("../utils/logger");
 const ROLE_ALIASES = {
+    SUPERADMIN: ['SUPERADMIN', 'SUPER_ADMIN'],
+    SUPER_ADMIN: ['SUPERADMIN', 'SUPER_ADMIN'],
+    ADMIN: ['ADMIN', 'ORG_ADMIN'],
+    ORG_ADMIN: ['ADMIN', 'ORG_ADMIN'],
+    FRONT_OFFICE: ['FRONT_OFFICE', 'RECEPTIONIST', 'ADMISSION_OFFICER', 'ADMISSIONS_OFFICER', 'STAFF'],
+    RECEPTIONIST: ['FRONT_OFFICE', 'RECEPTIONIST', 'STAFF'],
+    ADMISSION_OFFICER: ['FRONT_OFFICE', 'ADMISSION_OFFICER', 'ADMISSIONS_OFFICER', 'STAFF'],
+    ADMISSIONS_OFFICER: ['FRONT_OFFICE', 'ADMISSION_OFFICER', 'ADMISSIONS_OFFICER', 'STAFF'],
     HEAD_OF_INSTITUTE: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
     HOI: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
     PRINCIPAL: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
@@ -65,14 +73,27 @@ const checkPermission = (requiredPermission) => {
         if (roles.includes('SUPERADMIN')) {
             return next();
         }
-        if (roles.includes('PARENT') && requiredPermission.startsWith('admission.')) {
+        if (roles.includes('PARENT') &&
+            [
+                'admission.view_own',
+                'admission.create',
+                'admission.application.create',
+                'admission.application.view_own',
+                'admission.application.view',
+            ].includes(requiredPermission)) {
             return next();
         }
         // 3. Dynamic Permission Hierarchy Evaluation
         // Allow higher-level permission hierarchies (e.g., view_all grants view_own)
         if (permissions.includes(requiredPermission) ||
             (requiredPermission === 'admission.view_own' &&
-                (permissions.includes('admission.view_all') || permissions.includes('admission.review')))) {
+                (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) ||
+            ((requiredPermission === 'admission.leads.manage' ||
+                requiredPermission === 'admission.enquiry.view') &&
+                (permissions.includes('admission.leads.manage') ||
+                    permissions.includes('admission.enquiry.view') ||
+                    permissions.includes('admission.review') ||
+                    permissions.includes('admission.view_all')))) {
             return next();
         }
         // 4. Deny Access — Dynamic RBAC Enforcement

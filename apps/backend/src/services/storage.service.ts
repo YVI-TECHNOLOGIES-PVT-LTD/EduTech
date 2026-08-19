@@ -55,23 +55,60 @@ export class StorageService {
    */
   static async getSignedUrl({ bucket, path, expiresInSeconds = 3600 }: SignedUrlParams) {
     const targetBucket = bucket || this.defaultBucket;
+    if (!path || typeof path !== 'string' || !path.trim()) {
+      throw new Error('Invalid storage path provided for signed URL generation');
+    }
+
+    // Direct HTTP(S) URLs require no storage signing
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+      return { signedUrl: path, expiresAt };
+    }
+
+    // Normalize path: strip leading slashes and redundant bucket prefix
+    let cleanPath = path.trim().replace(/^[/\\]+/, '');
+    if (cleanPath.startsWith(targetBucket + '/')) {
+      cleanPath = cleanPath.substring(targetBucket.length + 1);
+    }
+
     try {
-      const { data, error } = await supabase.storage
+      let { data, error } = await supabase.storage
         .from(targetBucket)
-        .createSignedUrl(path, expiresInSeconds);
+        .createSignedUrl(cleanPath, expiresInSeconds);
+
+      // Auto-create bucket if missing
+      if (
+        error &&
+        (error.message?.includes('Bucket not found') ||
+          (error as any).statusCode === 404 ||
+          (error as any).statusCode === '404')
+      ) {
+        try {
+          await supabase.storage.createBucket(targetBucket, { public: false });
+          const retry = await supabase.storage
+            .from(targetBucket)
+            .createSignedUrl(cleanPath, expiresInSeconds);
+          data = retry.data;
+          error = retry.error;
+        } catch (bErr: any) {
+          logger.warn(`[StorageService] Failed auto-creating bucket ${targetBucket}`, {
+            error: bErr?.message,
+          });
+        }
+      }
 
       if (error || !data?.signedUrl) {
-        logger.error(`[StorageService] Signed URL generation failed for ${path}`, {
+        logger.error(`[StorageService] Signed URL generation failed for ${cleanPath}`, {
           error: error?.message,
           bucket: targetBucket,
         });
-        throw new Error(`Failed to generate signed URL: ${error?.message || 'Unknown error'}`);
+        throw new Error(`Failed to generate signed URL: ${error?.message || 'Unknown storage error'}`);
       }
 
       const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
       return { signedUrl: data.signedUrl, expiresAt };
     } catch (err: any) {
-      logger.error(`[StorageService] Exception generating signed URL for ${path}`, {
+      logger.error(`[StorageService] Exception generating signed URL for ${cleanPath}`, {
         error: err.message,
       });
       throw err;
