@@ -176,7 +176,7 @@ export const admissionApi = {
       query_type: data?.query_type || '',
       remarks: data?.remarks || data?.message || '',
       contact_consent: data?.contact_consent ?? data?.consent ?? true,
-      source: data?.source || 'Website',
+      source: 'website',
     };
     return apiClient.post<any>('/v1/admission/enquiries', payload, { silent: true } as any);
   },

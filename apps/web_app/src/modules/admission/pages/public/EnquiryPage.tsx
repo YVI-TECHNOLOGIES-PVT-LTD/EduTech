@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { AdmissionShell } from '../../components/AdmissionShell';
 import { admissionApi } from '@/modules/admission/admission.api';
 import apiClient from '@/lib/api-client';
-import { SCHOOL_INFO, LEAD_SOURCE_OPTIONS } from '@/lib/public-constants';
+import { SCHOOL_INFO } from '@/lib/public-constants';
 import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
 
 const enquirySchema = z.object({
@@ -43,7 +43,6 @@ const enquirySchema = z.object({
   grade_applied_for: z.string().min(1, 'Please select grade'),
   query_type: z.string().min(1, 'Please select a query type'),
   message: z.string().optional(),
-  source: z.string().optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to be contacted to submit enquiry' }),
   }),
@@ -100,7 +99,6 @@ export const EnquiryPage: React.FC = () => {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
@@ -112,16 +110,9 @@ export const EnquiryPage: React.FC = () => {
       grade_applied_for: '',
       query_type: 'Admission Availability',
       message: '',
-      source: '',
       consent: true,
     },
   });
-
-  useEffect(() => {
-    if (gradesList.length > 0) {
-      setValue('grade_applied_for', gradesList[0].id);
-    }
-  }, [gradesList, setValue]);
 
   const handleSelectQueryType = (type: string) => {
     setSelectedQueryType(type);
@@ -139,7 +130,7 @@ export const EnquiryPage: React.FC = () => {
         grade_applied_for: data.grade_applied_for,
         query_type: data.query_type,
         remarks: data.message || '',
-        source: data.source || 'Website',
+        source: 'website',
         consent: data.consent,
       });
 
@@ -303,6 +294,7 @@ export const EnquiryPage: React.FC = () => {
                       {...register('grade_applied_for')}
                       className="w-full h-11 px-3 bg-card border border-border/80 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#063F40] text-foreground"
                     >
+                      <option value="">Select Grade</option>
                       {gradesList.length > 0 ? (
                         gradesList.map((g) => (
                           <option key={g.id} value={g.id}>
@@ -411,26 +403,6 @@ export const EnquiryPage: React.FC = () => {
                     rows={3}
                     className="w-full p-3.5 bg-card border border-border/80 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#063F40] resize-none text-foreground"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-foreground mb-1.5">
-                    {t('enquiry.sourceLabel', 'How Did You Hear About Us?')}{' '}
-                    <span className="normal-case font-normal text-muted-foreground">
-                      (Optional)
-                    </span>
-                  </label>
-                  <select
-                    {...register('source')}
-                    className="w-full h-11 px-3.5 bg-card border border-border/80 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#063F40] text-foreground"
-                  >
-                    <option value="">Select an option</option>
-                    {LEAD_SOURCE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Consent Checkbox Area */}

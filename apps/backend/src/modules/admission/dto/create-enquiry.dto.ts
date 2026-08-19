@@ -16,7 +16,7 @@ export const createEnquirySchema = z.object({
       /^\+?[0-9]{10,15}$/,
       'Enter a valid phone number with country code (e.g. +919876543210)',
     ),
-  source: z.string().optional().default('Website'),
+  source: z.string().optional().default('website'),
   date_of_birth: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), {
@@ -31,6 +31,5 @@ export const createEnquirySchema = z.object({
   query_type: z.string().optional().nullable(),
   contact_consent: z.boolean().optional().default(false),
 });
-
 
 export type CreateEnquiryDto = z.infer<typeof createEnquirySchema>;

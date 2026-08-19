@@ -63,7 +63,7 @@ export class EnquiryService extends BaseService {
       validated.parent_name,
       validated.parent_email,
       validated.parent_phone,
-      (validated.source || 'Website') as EnquirySource,
+      'website' as EnquirySource,
       'new',
       new Date(),
       new Date(),
