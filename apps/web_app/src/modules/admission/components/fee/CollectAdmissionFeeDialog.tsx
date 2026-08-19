@@ -71,21 +71,20 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
   // Form State
   const [paymentMode, setPaymentMode] = useState<'cash' | 'bank_transfer' | 'card' | 'upi'>('cash');
   const [amount, setAmount] = useState<number>(0);
-  const [paymentDate, setPaymentDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [transactionReference, setTransactionReference] = useState<string>('');
   const [cardName, setCardName] = useState<string>('');
   const [cardLastFour, setCardLastFour] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
-  const [paymentStatus, setPaymentStatus] = useState<
-    'paid' | 'partial' | 'pending' | 'waived'
-  >('paid');
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'partial' | 'pending' | 'waived'>(
+    'paid',
+  );
 
   // Sync amount when feeData loads
   useEffect(() => {
     if (feeData) {
-      const defaultTotal = feeData.total_fee || (feeData.application_fee + feeData.processing_fee) || 1200;
+      const defaultTotal =
+        feeData.total_fee || feeData.application_fee + feeData.processing_fee || 1200;
       setAmount(defaultTotal);
     }
   }, [feeData]);
@@ -169,7 +168,8 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
     } catch (err: any) {
       toast({
         title: 'Payment Recording Failed',
-        description: err?.data?.error || err?.message || 'Unable to record payment. Please try again.',
+        description:
+          err?.data?.error || err?.message || 'Unable to record payment. Please try again.',
         variant: 'destructive',
       });
     }
@@ -199,7 +199,10 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
         </div>
 
         {/* Scrollable Content */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 min-h-0 overflow-y-auto p-6 space-y-5 custom-scrollbar"
+        >
           {/* Applicant & Fee Summary Card */}
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -257,7 +260,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   'p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2',
                   paymentMode === 'cash'
                     ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300',
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -277,12 +280,14 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   'p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2',
                   paymentMode === 'bank_transfer'
                     ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20'
-                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300',
                 )}
               >
                 <div className="flex items-center justify-between">
                   <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  {paymentMode === 'bank_transfer' && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+                  {paymentMode === 'bank_transfer' && (
+                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  )}
                 </div>
                 <div>
                   <div className="text-xs font-bold">Bank Transfer</div>
@@ -297,7 +302,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   'p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2',
                   paymentMode === 'card'
                     ? 'border-purple-600 bg-purple-50/50 dark:bg-purple-950/30 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500/20'
-                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300',
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -317,7 +322,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   'p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2',
                   paymentMode === 'upi'
                     ? 'border-amber-600 bg-amber-50/50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/20'
-                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300',
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -340,23 +345,32 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   <Building2 className="w-4 h-4 text-blue-600" />
                   Institution Bank Account Details
                 </span>
-                <span className="text-[10px] text-blue-600 dark:text-blue-400">Official Remittance</span>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400">
+                  Official Remittance
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
                 <div>
                   <span className="text-slate-500 block">Bank Name</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{bankDetails.bankName}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {bankDetails.bankName}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-500 block">Account Name</span>
-                  <span className="font-semibold text-slate-900 dark:text-white truncate block" title={bankDetails.accountName}>
+                  <span
+                    className="font-semibold text-slate-900 dark:text-white truncate block"
+                    title={bankDetails.accountName}
+                  >
                     {bankDetails.accountName}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-500 block">Account Number</span>
                   <div className="flex items-center gap-1">
-                    <span className="font-mono font-bold text-slate-900 dark:text-white">{bankDetails.accountNumber}</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                      {bankDetails.accountNumber}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleCopy(bankDetails.accountNumber, 'Account Number')}
@@ -369,7 +383,9 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                 <div>
                   <span className="text-slate-500 block">IFSC Code</span>
                   <div className="flex items-center gap-1">
-                    <span className="font-mono font-bold text-slate-900 dark:text-white">{bankDetails.ifscCode}</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                      {bankDetails.ifscCode}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleCopy(bankDetails.ifscCode, 'IFSC Code')}
@@ -387,11 +403,16 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Amount */}
             <div className="space-y-1.5">
-              <Label htmlFor="amount" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Label
+                htmlFor="amount"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Amount Collected (₹) *
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">
+                  ₹
+                </span>
                 <Input
                   id="amount"
                   type="number"
@@ -407,7 +428,10 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
 
             {/* Payment Date */}
             <div className="space-y-1.5">
-              <Label htmlFor="paymentDate" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Label
+                htmlFor="paymentDate"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Payment Date *
               </Label>
               <Input
@@ -422,14 +446,17 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
 
             {/* Transaction Reference Number */}
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="txnRef" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Label
+                htmlFor="txnRef"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 {paymentMode === 'cash'
                   ? 'Cash Receipt / Voucher Ref (Optional)'
                   : paymentMode === 'bank_transfer'
-                  ? 'Bank UTR / Transaction Reference *'
-                  : paymentMode === 'upi'
-                  ? 'UPI Transaction ID / Ref *'
-                  : 'Card Transaction Reference / Slip ID *'}
+                    ? 'Bank UTR / Transaction Reference *'
+                    : paymentMode === 'upi'
+                      ? 'UPI Transaction ID / Ref *'
+                      : 'Card Transaction Reference / Slip ID *'}
               </Label>
               <Input
                 id="txnRef"
@@ -438,8 +465,8 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   paymentMode === 'cash'
                     ? 'e.g., REC-CASH-001'
                     : paymentMode === 'bank_transfer'
-                    ? 'e.g., UTR982018472910'
-                    : 'e.g., TXN-9482019482'
+                      ? 'e.g., UTR982018472910'
+                      : 'e.g., TXN-9482019482'
                 }
                 value={transactionReference}
                 onChange={(e) => setTransactionReference(e.target.value)}
@@ -452,7 +479,10 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
             {paymentMode === 'card' && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cardName" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Label
+                    htmlFor="cardName"
+                    className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
                     Cardholder Name (Optional)
                   </Label>
                   <Input
@@ -465,7 +495,10 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cardLastFour" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Label
+                    htmlFor="cardLastFour"
+                    className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
                     Card Last 4 Digits (Optional)
                   </Label>
                   <Input
@@ -486,10 +519,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Payment Status
               </Label>
-              <Select
-                value={paymentStatus}
-                onValueChange={(val: any) => setPaymentStatus(val)}
-              >
+              <Select value={paymentStatus} onValueChange={(val: any) => setPaymentStatus(val)}>
                 <SelectTrigger className="h-10 text-xs">
                   <SelectValue placeholder="Select Status" />
                 </SelectTrigger>
@@ -504,7 +534,10 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
 
             {/* Remarks */}
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="remarks" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Label
+                htmlFor="remarks"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Staff Remarks / Notes (Optional)
               </Label>
               <Textarea

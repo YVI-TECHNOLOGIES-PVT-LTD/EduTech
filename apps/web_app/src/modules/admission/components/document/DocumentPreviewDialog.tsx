@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
   FileText,
@@ -60,8 +57,10 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
   document,
   onVerificationSuccess,
 }) => {
-  const [getSignedUrl, { isLoading: isQueryLoading, isFetching: isQueryFetching, isError: isQueryError }] =
-    useLazyGetDocumentSignedUrlQuery();
+  const [
+    getSignedUrl,
+    { isLoading: isQueryLoading, isFetching: isQueryFetching, isError: isQueryError },
+  ] = useLazyGetDocumentSignedUrlQuery();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [fetchFailed, setFetchFailed] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -236,7 +235,10 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
 
   // State Machine Evaluation: Loading -> Ready -> Actual Error
   const isLoading =
-    isInitializing || isQueryLoading || isQueryFetching || (!signedUrl && !fetchFailed && !isQueryError);
+    isInitializing ||
+    isQueryLoading ||
+    isQueryFetching ||
+    (!signedUrl && !fetchFailed && !isQueryError);
   const hasError = !isLoading && !signedUrl && (fetchFailed || isQueryError);
   const isDocumentReady = !isLoading && Boolean(signedUrl);
 
@@ -251,7 +253,7 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
             // Refined desktop modal sizing with more breathing room (88vw-92vw, max-w-[1400px])
             'w-[calc(100vw-48px)] sm:w-[90vw] max-w-[1400px] sm:max-w-none lg:max-w-[1400px]',
             'h-[90vh] max-h-[90vh] p-0 gap-0',
-            'flex flex-col rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden outline-none'
+            'flex flex-col rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden outline-none',
           )}
         >
           {/* 1. Fixed Header Region (flex-shrink-0) */}
@@ -420,9 +422,7 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
                   <Loader2 className="w-7 h-7 animate-spin" />
                 </div>
                 <div className="space-y-1">
-                  <div className="text-base font-bold text-white">
-                    Loading document…
-                  </div>
+                  <div className="text-base font-bold text-white">Loading document…</div>
                   <p className="text-xs text-slate-400">
                     Retrieving pre-signed access URL from storage vault...
                   </p>
@@ -437,11 +437,10 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
                   <AlertCircle className="w-7 h-7" />
                 </div>
                 <div className="space-y-1.5">
-                  <h4 className="text-lg font-bold text-white">
-                    Unable to Load Document Preview
-                  </h4>
+                  <h4 className="text-lg font-bold text-white">Unable to Load Document Preview</h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    The document security token may have expired, or the file is temporarily inaccessible.
+                    The document security token may have expired, or the file is temporarily
+                    inaccessible.
                   </p>
                 </div>
                 <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
@@ -456,7 +455,8 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
                         getSignedUrl(document.document_id)
                           .unwrap()
                           .then((res: any) => {
-                            const url = res?.signed_url || res?.signedUrl || res?.url || res?.file_url;
+                            const url =
+                              res?.signed_url || res?.signedUrl || res?.url || res?.file_url;
                             if (url) {
                               setSignedUrl(url);
                               setFetchFailed(false);
@@ -496,7 +496,10 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
                   <img
                     src={signedUrl!}
                     alt={fileName}
-                    style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'center center' }}
+                    style={{
+                      transform: `scale(${zoomLevel / 100})`,
+                      transformOrigin: 'center center',
+                    }}
                     className="max-w-full max-h-[70vh] object-contain rounded-lg transition-transform duration-150 ease-out"
                   />
                 </div>
@@ -521,11 +524,11 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
                   <FileQuestion className="w-8 h-8" />
                 </div>
                 <div className="space-y-1.5">
-                  <h4 className="text-lg font-bold text-white">
-                    Preview Not Supported in Browser
-                  </h4>
+                  <h4 className="text-lg font-bold text-white">Preview Not Supported in Browser</h4>
                   <p className="text-xs text-slate-400">
-                    Direct in-modal preview is not available for <strong>.{fileExt || 'bin'}</strong> files ({formatFileSize(document.file_size)}).
+                    Direct in-modal preview is not available for{' '}
+                    <strong>.{fileExt || 'bin'}</strong> files ({formatFileSize(document.file_size)}
+                    ).
                   </p>
                 </div>
                 <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 text-left text-xs text-slate-300 space-y-1">
@@ -533,7 +536,8 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
                     {fileName}
                   </div>
                   <div className="text-slate-500 text-[11px]">
-                    Uploaded: {document.uploaded_at ? new Date(document.uploaded_at).toLocaleString() : '—'}
+                    Uploaded:{' '}
+                    {document.uploaded_at ? new Date(document.uploaded_at).toLocaleString() : '—'}
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-3 pt-2">

@@ -49,10 +49,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTableSelection } from '@/hooks/useTableSelection';
-import {
-  useGetApplicationsQuery,
-  ApplicationItem,
-} from '@/shared/api/admission.api';
+import { useGetApplicationsQuery, ApplicationItem } from '@/shared/api/admission.api';
 import { useGetGradesQuery, useGetAcademicYearsQuery } from '@/shared/api/academic.api';
 import { ApplicationStatusBadge } from '../../components/application/ApplicationStatusBadge';
 import { ApplicationDetailsSheet } from '../../components/application/ApplicationDetailsSheet';
@@ -84,7 +81,9 @@ export const ApplicationsManagementPage: React.FC = () => {
   const [selectedAppForDetails, setSelectedAppForDetails] = useState<ApplicationItem | null>(null);
   const [selectedAppForStatus, setSelectedAppForStatus] = useState<ApplicationItem | null>(null);
   const [selectedAppForEdit, setSelectedAppForEdit] = useState<ApplicationItem | null>(null);
-  const [selectedAppForWithdraw, setSelectedAppForWithdraw] = useState<ApplicationItem | null>(null);
+  const [selectedAppForWithdraw, setSelectedAppForWithdraw] = useState<ApplicationItem | null>(
+    null,
+  );
   const [selectedAppForPayment, setSelectedAppForPayment] = useState<ApplicationItem | null>(null);
   const [selectedAppForReceipt, setSelectedAppForReceipt] = useState<ApplicationItem | null>(null);
 
@@ -187,7 +186,8 @@ export const ApplicationsManagementPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-slate-500">
-            Review applicant files, track admission pipeline progress, and manage application statuses.
+            Review applicant files, track admission pipeline progress, and manage application
+            statuses.
           </p>
         </div>
 
@@ -274,7 +274,10 @@ export const ApplicationsManagementPage: React.FC = () => {
 
       {/* Filter Toolbar (Uniform h-10 Controls) */}
       <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3"
+        >
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -296,15 +299,33 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectValue placeholder="All Stages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL" className="text-xs">All Stages</SelectItem>
-                <SelectItem value="submitted" className="text-xs">Submitted</SelectItem>
-                <SelectItem value="documents_pending" className="text-xs">Documents Pending</SelectItem>
-                <SelectItem value="assessment_pending" className="text-xs">Assessment Pending</SelectItem>
-                <SelectItem value="under_review" className="text-xs">Under Review</SelectItem>
-                <SelectItem value="approved" className="text-xs">Approved</SelectItem>
-                <SelectItem value="waitlisted" className="text-xs">Waitlisted</SelectItem>
-                <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
-                <SelectItem value="withdrawn" className="text-xs">Withdrawn</SelectItem>
+                <SelectItem value="ALL" className="text-xs">
+                  All Stages
+                </SelectItem>
+                <SelectItem value="submitted" className="text-xs">
+                  Submitted
+                </SelectItem>
+                <SelectItem value="documents_pending" className="text-xs">
+                  Documents Pending
+                </SelectItem>
+                <SelectItem value="assessment_pending" className="text-xs">
+                  Assessment Pending
+                </SelectItem>
+                <SelectItem value="under_review" className="text-xs">
+                  Under Review
+                </SelectItem>
+                <SelectItem value="approved" className="text-xs">
+                  Approved
+                </SelectItem>
+                <SelectItem value="waitlisted" className="text-xs">
+                  Waitlisted
+                </SelectItem>
+                <SelectItem value="rejected" className="text-xs">
+                  Rejected
+                </SelectItem>
+                <SelectItem value="withdrawn" className="text-xs">
+                  Withdrawn
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -319,9 +340,15 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectValue placeholder="All Grades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL" className="text-xs">All Grades</SelectItem>
+                <SelectItem value="ALL" className="text-xs">
+                  All Grades
+                </SelectItem>
                 {gradesData.map((g: any) => (
-                  <SelectItem key={g.grade_id || g.id} value={g.grade_id || g.id} className="text-xs">
+                  <SelectItem
+                    key={g.grade_id || g.id}
+                    value={g.grade_id || g.id}
+                    className="text-xs"
+                  >
                     {g.grade_name || g.name}
                   </SelectItem>
                 ))}
@@ -339,7 +366,9 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectValue placeholder="All Academic Years" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL" className="text-xs">All Academic Years</SelectItem>
+                <SelectItem value="ALL" className="text-xs">
+                  All Academic Years
+                </SelectItem>
                 {academicYearsData.map((ay: any) => (
                   <SelectItem
                     key={ay.academic_year_id || ay.id}
@@ -458,7 +487,12 @@ export const ApplicationsManagementPage: React.FC = () => {
                     <div className="flex flex-col items-center justify-center gap-2 text-xs text-red-600 dark:text-red-400">
                       <AlertCircle className="w-6 h-6" />
                       <span className="font-semibold">Failed to load applications</span>
-                      <Button size="sm" variant="outline" onClick={() => refetch()} className="h-8 text-xs mt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => refetch()}
+                        className="h-8 text-xs mt-1"
+                      >
                         Retry
                       </Button>
                     </div>
@@ -473,7 +507,8 @@ export const ApplicationsManagementPage: React.FC = () => {
                         No applications found
                       </span>
                       <span className="text-[11px] text-slate-400">
-                        Try adjusting search filters or convert enquiries to create new applications.
+                        Try adjusting search filters or convert enquiries to create new
+                        applications.
                       </span>
                     </div>
                   </TableCell>
@@ -491,7 +526,9 @@ export const ApplicationsManagementPage: React.FC = () => {
                     'Applicant';
                   const gName = app.grade_name || lead?.grade_name || '—';
                   const ayName = app.academic_year?.academic_year_name || '—';
-                  const dateStr = new Date(app.application_date || app.created_at).toLocaleDateString('en-IN', {
+                  const dateStr = new Date(
+                    app.application_date || app.created_at,
+                  ).toLocaleDateString('en-IN', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',
@@ -499,7 +536,9 @@ export const ApplicationsManagementPage: React.FC = () => {
 
                   // Docs summary chip
                   const docs = app.documents || [];
-                  const docsVerifiedCount = docs.filter((d) => d.verify_status === 'verified').length;
+                  const docsVerifiedCount = docs.filter(
+                    (d) => d.verify_status === 'verified',
+                  ).length;
                   const totalDocs = docs.length;
 
                   // Assessment result chip
@@ -690,7 +729,9 @@ export const ApplicationsManagementPage: React.FC = () => {
                             {lead?.lead_number && (
                               <DropdownMenuItem
                                 onClick={() =>
-                                  navigate(`/app/admissions/inquiries?searchText=${lead.lead_number}`)
+                                  navigate(
+                                    `/app/admissions/inquiries?searchText=${lead.lead_number}`,
+                                  )
                                 }
                                 className="gap-2 cursor-pointer"
                               >
@@ -738,10 +779,18 @@ export const ApplicationsManagementPage: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="10" className="text-xs">10</SelectItem>
-                  <SelectItem value="20" className="text-xs">20</SelectItem>
-                  <SelectItem value="50" className="text-xs">50</SelectItem>
-                  <SelectItem value="100" className="text-xs">100</SelectItem>
+                  <SelectItem value="10" className="text-xs">
+                    10
+                  </SelectItem>
+                  <SelectItem value="20" className="text-xs">
+                    20
+                  </SelectItem>
+                  <SelectItem value="50" className="text-xs">
+                    50
+                  </SelectItem>
+                  <SelectItem value="100" className="text-xs">
+                    100
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

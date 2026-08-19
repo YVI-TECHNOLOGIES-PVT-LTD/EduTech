@@ -100,7 +100,11 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
             Edit Application Details
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Editing application <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{application.application_number}</span> for {application.student_name || application.lead?.student_name || 'Applicant'}.
+            Editing application{' '}
+            <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+              {application.application_number}
+            </span>{' '}
+            for {application.student_name || application.lead?.student_name || 'Applicant'}.
           </DialogDescription>
         </DialogHeader>
 
@@ -198,12 +202,24 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
                       <SelectValue placeholder="Board" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CBSE" className="text-xs">CBSE</SelectItem>
-                      <SelectItem value="ICSE" className="text-xs">ICSE</SelectItem>
-                      <SelectItem value="State Board" className="text-xs">State Board</SelectItem>
-                      <SelectItem value="IB" className="text-xs">IB</SelectItem>
-                      <SelectItem value="Cambridge" className="text-xs">Cambridge</SelectItem>
-                      <SelectItem value="Other" className="text-xs">Other</SelectItem>
+                      <SelectItem value="CBSE" className="text-xs">
+                        CBSE
+                      </SelectItem>
+                      <SelectItem value="ICSE" className="text-xs">
+                        ICSE
+                      </SelectItem>
+                      <SelectItem value="State Board" className="text-xs">
+                        State Board
+                      </SelectItem>
+                      <SelectItem value="IB" className="text-xs">
+                        IB
+                      </SelectItem>
+                      <SelectItem value="Cambridge" className="text-xs">
+                        Cambridge
+                      </SelectItem>
+                      <SelectItem value="Other" className="text-xs">
+                        Other
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

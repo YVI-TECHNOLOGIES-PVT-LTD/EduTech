@@ -58,7 +58,8 @@ export const VerifyDocumentDialog: React.FC<VerifyDocumentDialogProps> = ({
     } catch (err: any) {
       toast({
         title: 'Verification Failed',
-        description: err?.data?.error || err?.message || 'Failed to verify document. Please try again.',
+        description:
+          err?.data?.error || err?.message || 'Failed to verify document. Please try again.',
         variant: 'destructive',
       });
     }

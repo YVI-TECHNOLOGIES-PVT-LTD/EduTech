@@ -65,7 +65,8 @@ export const RejectDocumentDialog: React.FC<RejectDocumentDialogProps> = ({
     } catch (err: any) {
       toast({
         title: 'Action Failed',
-        description: err?.data?.error || err?.message || 'Failed to reject document. Please try again.',
+        description:
+          err?.data?.error || err?.message || 'Failed to reject document. Please try again.',
         variant: 'destructive',
       });
     }
@@ -112,7 +113,9 @@ export const RejectDocumentDialog: React.FC<RejectDocumentDialogProps> = ({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-              <span>Rejection Reason / Remarks <span className="text-rose-500">*</span></span>
+              <span>
+                Rejection Reason / Remarks <span className="text-rose-500">*</span>
+              </span>
               <span className="text-[11px] text-slate-400 font-normal">Mandatory</span>
             </label>
             <Textarea

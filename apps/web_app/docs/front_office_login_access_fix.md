@@ -5,7 +5,7 @@
 ## 1. Symptom
 
 - **Issue Reported**: Front Office staff users (e.g. `Delhi Front Office`) were authenticating successfully at `/login`, but were immediately redirected to the Parent Portal **"Login Access Pending"** page (`/pages/PendingApproval.tsx`) displaying:
-  > *"Login Access Pending — Hello, Delhi Front Office. Your account registration is complete, but your login access is currently PENDING. A school administrator will review your application and approve your dashboard access... [ View Admission Status ] [ Sign Out ]"*
+  > _"Login Access Pending — Hello, Delhi Front Office. Your account registration is complete, but your login access is currently PENDING. A school administrator will review your application and approve your dashboard access... [ View Admission Status ] [ Sign Out ]"_
 - **Expected Behavior**: Front Office users authenticate, bypass the parent registration approval gate, and land directly on the **Front Office Workspace** (`/app/workspace`) with `FRONT_OFFICE` navigation and permissions active.
 
 ---
@@ -75,14 +75,17 @@ Rendered <PendingApprovalPage />
 ## 5. Fix Implemented
 
 ### A. Role-Aware `LoginApprovalGate` ([ProtectedRoute.tsx](file:///c:/Users/DELL/Desktop/EduTech/apps/web_app/src/components/auth/ProtectedRoute.tsx))
+
 - All institutional staff and admin roles (`ADMIN`, `SUPERADMIN`, `SUPER_ADMIN`, `FRONT_OFFICE`, `FO`, `FRONT_OFFICE_STAFF`, `STAFF`, `ADMISSION_OFFICER`, `COUNSELLOR`, `COUNSELOR`, `HOI`, `PRINCIPAL`, `HEAD_OF_INSTITUTE`, `TEACHER`, `FINANCE`, `FINANCE_OFFICER`, `EXAM_CELL_ADMIN`, `EXAM_CELL`) bypass the Parent Admission Login Approval Gate immediately.
 - `LoginApprovalGate` is strictly scoped to the `PARENT` persona.
 
 ### B. Complete `EnrichedUser` Mapping ([LoginPage.tsx](file:///c:/Users/DELL/Desktop/EduTech/apps/web_app/src/modules/auth/pages/LoginPage.tsx))
+
 - Added `login_status: rawUser.login_status || 'APPROVED'`, `login_decision_reason`, `phone_number`, and `enabledFeatures` to `enrichedUser`.
 - Added role-based post-login redirection directly to `/app/workspace` for staff users.
 
 ### C. Default Route Redirects ([router.tsx](file:///c:/Users/DELL/Desktop/EduTech/apps/web_app/src/app/router.tsx) & [PublicNavbar.tsx](file:///c:/Users/DELL/Desktop/EduTech/apps/web_app/src/components/layout/PublicNavbar.tsx))
+
 - Updated `RoleBasedDefaultRedirect` in `router.tsx` to route all staff roles to `/app/workspace`.
 - Updated `PublicNavbar.tsx` `portalRedirectPath` to route authenticated staff members to `/app/workspace` and parents to `/app/admissions/my`.
 - Updated `LandingResolver.ts` fallback route to `/app/workspace`.
@@ -91,15 +94,15 @@ Rendered <PendingApprovalPage />
 
 ## 6. Role-Based Routing & Approval Matrix
 
-| User Role | Persona Type | Parent Approval Gate | Allowed / Destination Route | Sidebar Navigation Group |
-|---|---|---|---|---|
-| `FRONT_OFFICE` / `FO` | Institutional Staff | **BYPASS (NO)** | `/app/workspace` | `FRONT_OFFICE_NAVIGATION` |
-| `ADMISSION_OFFICER` | Institutional Staff | **BYPASS (NO)** | `/app/workspace` | `FRONT_OFFICE_NAVIGATION` |
-| `ADMIN` / `SUPERADMIN` | Institutional Admin | **BYPASS (NO)** | `/app/workspace` or `/app/admin/dashboard` | `ADMIN_NAVIGATION` |
-| `EXAM_CELL_ADMIN` | Institutional Admin | **BYPASS (NO)** | `/app/workspace` or `/app/admissions/entrance-exam` | `ADMIN_NAVIGATION` |
-| `PARENT` (`login_status: 'APPROVED'`) | Parent / Guardian | **EVALUATED (PASS)** | `/app/admissions/my` | `PARENT_NAVIGATION` |
-| `PARENT` (`login_status: 'PENDING'`) | Parent / Guardian | **EVALUATED (GATE)** | `/app/admissions/my` (Status) or `PendingApprovalPage` | `PARENT_NAVIGATION` |
-| `PARENT` (`login_status: 'REJECTED'`) | Parent / Guardian | **EVALUATED (GATE)** | `PendingApprovalPage` (Rejection Reason) | `PARENT_NAVIGATION` |
+| User Role                             | Persona Type        | Parent Approval Gate | Allowed / Destination Route                            | Sidebar Navigation Group  |
+| ------------------------------------- | ------------------- | -------------------- | ------------------------------------------------------ | ------------------------- |
+| `FRONT_OFFICE` / `FO`                 | Institutional Staff | **BYPASS (NO)**      | `/app/workspace`                                       | `FRONT_OFFICE_NAVIGATION` |
+| `ADMISSION_OFFICER`                   | Institutional Staff | **BYPASS (NO)**      | `/app/workspace`                                       | `FRONT_OFFICE_NAVIGATION` |
+| `ADMIN` / `SUPERADMIN`                | Institutional Admin | **BYPASS (NO)**      | `/app/workspace` or `/app/admin/dashboard`             | `ADMIN_NAVIGATION`        |
+| `EXAM_CELL_ADMIN`                     | Institutional Admin | **BYPASS (NO)**      | `/app/workspace` or `/app/admissions/entrance-exam`    | `ADMIN_NAVIGATION`        |
+| `PARENT` (`login_status: 'APPROVED'`) | Parent / Guardian   | **EVALUATED (PASS)** | `/app/admissions/my`                                   | `PARENT_NAVIGATION`       |
+| `PARENT` (`login_status: 'PENDING'`)  | Parent / Guardian   | **EVALUATED (GATE)** | `/app/admissions/my` (Status) or `PendingApprovalPage` | `PARENT_NAVIGATION`       |
+| `PARENT` (`login_status: 'REJECTED'`) | Parent / Guardian   | **EVALUATED (GATE)** | `PendingApprovalPage` (Rejection Reason)               | `PARENT_NAVIGATION`       |
 
 ---
 

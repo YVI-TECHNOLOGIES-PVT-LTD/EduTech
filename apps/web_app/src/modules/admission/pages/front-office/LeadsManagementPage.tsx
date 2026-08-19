@@ -68,10 +68,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const STAGE_CONFIG: Record<
-  string,
-  { label: string; bg: string; text: string; border: string }
-> = {
+const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   enquiry_received: {
     label: 'Enquiry Received',
     bg: 'bg-blue-50 dark:bg-blue-950/40',
@@ -187,8 +184,7 @@ export const LeadsManagementPage: React.FC = () => {
       sort: sortField,
       order: sortOrder,
     };
-    const UUID_REGEX =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (searchText.trim()) params.searchText = searchText.trim();
     if (selectedStage !== 'ALL') params.stage = selectedStage as LeadStage;
     if (selectedPriority !== 'ALL') params.priority = selectedPriority as LeadPriority;
@@ -211,9 +207,13 @@ export const LeadsManagementPage: React.FC = () => {
     pageSize,
   ]);
 
-  const { data: leadsResponse, isLoading, isFetching, isError, refetch } = useGetLeadsQuery(
-    queryParams,
-  );
+  const {
+    data: leadsResponse,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetLeadsQuery(queryParams);
 
   const leads = leadsResponse?.data || [];
   const meta = leadsResponse?.meta || {
@@ -305,7 +305,8 @@ export const LeadsManagementPage: React.FC = () => {
             Front Office Leads & Inquiries
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground font-normal">
-            Manage prospective student leads, track communications, schedule campus visits, and drive admissions.
+            Manage prospective student leads, track communications, schedule campus visits, and
+            drive admissions.
           </p>
         </div>
 
@@ -337,7 +338,9 @@ export const LeadsManagementPage: React.FC = () => {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               🔥 Hot Priority
             </p>
-            <p className="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">{stats.hot}</p>
+            <p className="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">
+              {stats.hot}
+            </p>
           </div>
           <div className="size-10 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-100 dark:border-red-900/40 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
             <Flame className="w-5 h-5" />
@@ -349,7 +352,9 @@ export const LeadsManagementPage: React.FC = () => {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Qualified Leads
             </p>
-            <p className="text-2xl font-bold tracking-tight text-teal-600 dark:text-teal-400">{stats.qualified}</p>
+            <p className="text-2xl font-bold tracking-tight text-teal-600 dark:text-teal-400">
+              {stats.qualified}
+            </p>
           </div>
           <div className="size-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-100 dark:border-teal-900/40 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
             <CheckCircle2 className="w-5 h-5" />
@@ -361,7 +366,9 @@ export const LeadsManagementPage: React.FC = () => {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Visits & Sessions
             </p>
-            <p className="text-2xl font-bold tracking-tight text-purple-600 dark:text-purple-400">{stats.visits}</p>
+            <p className="text-2xl font-bold tracking-tight text-purple-600 dark:text-purple-400">
+              {stats.visits}
+            </p>
           </div>
           <div className="size-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
             <MapPin className="w-5 h-5" />
@@ -582,7 +589,9 @@ export const LeadsManagementPage: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={14} className="py-12 text-center">
                     <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-foreground">Failed to load leads data</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      Failed to load leads data
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
                       There was an error communicating with the server. Please try again.
                     </p>
@@ -602,7 +611,8 @@ export const LeadsManagementPage: React.FC = () => {
                     <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
                     <p className="text-sm font-bold text-foreground">No leads found</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                      Try adjusting your filters or search keywords, or create a new lead to get started.
+                      Try adjusting your filters or search keywords, or create a new lead to get
+                      started.
                     </p>
                     <Button
                       size="sm"
@@ -632,9 +642,7 @@ export const LeadsManagementPage: React.FC = () => {
                       key={leadId}
                       data-state={rowSelected ? 'selected' : undefined}
                       className={`border-b border-border/80 transition-colors cursor-pointer group ${
-                        rowSelected
-                          ? 'bg-indigo-50/60 dark:bg-indigo-950/30'
-                          : 'hover:bg-muted/35'
+                        rowSelected ? 'bg-indigo-50/60 dark:bg-indigo-950/30' : 'hover:bg-muted/35'
                       }`}
                       onClick={() => openDetails(leadId)}
                     >
@@ -718,7 +726,10 @@ export const LeadsManagementPage: React.FC = () => {
 
                       {/* 8. Source */}
                       <TableCell className="border-r border-border/80 px-3 py-3">
-                        <Badge variant="outline" className="text-[10px] capitalize font-medium px-2 py-0.5 rounded-md">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] capitalize font-medium px-2 py-0.5 rounded-md"
+                        >
                           {lead.source?.replace(/_/g, ' ') || 'Direct'}
                         </Badge>
                       </TableCell>
@@ -752,7 +763,9 @@ export const LeadsManagementPage: React.FC = () => {
                             <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
                               <div
                                 className="h-full bg-indigo-600 rounded-full"
-                                style={{ width: `${Math.min(100, Math.max(0, lead.ai_lead_score))}%` }}
+                                style={{
+                                  width: `${Math.min(100, Math.max(0, lead.ai_lead_score))}%`,
+                                }}
                               />
                             </div>
                             <span className="text-[11px] font-mono font-bold text-foreground">
@@ -772,9 +785,7 @@ export const LeadsManagementPage: React.FC = () => {
                             <span className="truncate">{lead.counselor.name}</span>
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">
-                            Unassigned
-                          </span>
+                          <span className="text-xs text-muted-foreground italic">Unassigned</span>
                         )}
                       </TableCell>
 
@@ -798,7 +809,10 @@ export const LeadsManagementPage: React.FC = () => {
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 rounded-xl p-1.5 shadow-md">
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-48 rounded-xl p-1.5 shadow-md"
+                          >
                             <DropdownMenuItem
                               onClick={() => openDetails(leadId)}
                               className="text-xs font-semibold gap-2 cursor-pointer rounded-lg"

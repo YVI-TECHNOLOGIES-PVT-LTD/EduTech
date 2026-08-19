@@ -11,4 +11,3 @@ export function InquiryListPage() {
 }
 
 export default InquiryListPage;
-

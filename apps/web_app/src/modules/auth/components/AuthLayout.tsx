@@ -71,8 +71,8 @@ export const AuthBrandPanel: React.FC = () => {
             <span className="text-[#E7B76A]">all in one place.</span>
           </h1>
           <p className="text-emerald-100/90 text-xs sm:text-sm leading-relaxed font-normal">
-            Manage applications, documents, fees and admission progress from a single, secure
-            parent portal designed for institutional excellence.
+            Manage applications, documents, fees and admission progress from a single, secure parent
+            portal designed for institutional excellence.
           </p>
         </div>
 

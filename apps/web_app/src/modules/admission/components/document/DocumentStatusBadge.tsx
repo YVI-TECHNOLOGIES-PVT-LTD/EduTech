@@ -2,7 +2,8 @@ import React from 'react';
 import { CheckCircle2, Clock, XCircle, RotateCcw, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DocumentVerifyStatus = 'pending' | 'verified' | 'rejected' | 'resubmission_requested' | string;
+export type DocumentVerifyStatus =
+  'pending' | 'verified' | 'rejected' | 'resubmission_requested' | string;
 
 interface DocumentStatusBadgeProps {
   status?: DocumentVerifyStatus | null;
@@ -24,10 +25,12 @@ export const DocumentStatusBadge: React.FC<DocumentStatusBadgeProps> = ({
           className={cn(
             'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider',
             'bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-            className
+            className,
           )}
         >
-          {showIcon && <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+          {showIcon && (
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          )}
           Verified
         </span>
       );
@@ -38,7 +41,7 @@ export const DocumentStatusBadge: React.FC<DocumentStatusBadgeProps> = ({
           className={cn(
             'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider',
             'bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
-            className
+            className,
           )}
         >
           {showIcon && <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />}
@@ -52,10 +55,12 @@ export const DocumentStatusBadge: React.FC<DocumentStatusBadgeProps> = ({
           className={cn(
             'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider',
             'bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
-            className
+            className,
           )}
         >
-          {showIcon && <RotateCcw className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />}
+          {showIcon && (
+            <RotateCcw className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+          )}
           Resubmission Required
         </span>
       );
@@ -67,7 +72,7 @@ export const DocumentStatusBadge: React.FC<DocumentStatusBadgeProps> = ({
           className={cn(
             'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider',
             'bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
-            className
+            className,
           )}
         >
           {showIcon && <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />}

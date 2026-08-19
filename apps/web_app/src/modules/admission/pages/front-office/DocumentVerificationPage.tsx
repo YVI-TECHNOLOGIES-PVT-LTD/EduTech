@@ -34,7 +34,10 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DocumentStatusBadge } from '../../components/document/DocumentStatusBadge';
-import { DocumentPreviewDialog, DocumentPreviewItem } from '../../components/document/DocumentPreviewDialog';
+import {
+  DocumentPreviewDialog,
+  DocumentPreviewItem,
+} from '../../components/document/DocumentPreviewDialog';
 import { VerifyDocumentDialog } from '../../components/document/VerifyDocumentDialog';
 import { RejectDocumentDialog } from '../../components/document/RejectDocumentDialog';
 import { RequestResubmissionDialog } from '../../components/document/RequestResubmissionDialog';
@@ -159,7 +162,13 @@ export const DocumentVerificationPage: React.FC = () => {
         const matchesFileName = doc.original_file_name?.toLowerCase().includes(q) || false;
         const matchesLead = doc.lead_number?.toLowerCase().includes(q) || false;
 
-        if (!matchesAppNum && !matchesStudent && !matchesDocName && !matchesFileName && !matchesLead) {
+        if (
+          !matchesAppNum &&
+          !matchesStudent &&
+          !matchesDocName &&
+          !matchesFileName &&
+          !matchesLead
+        ) {
           return false;
         }
       }
@@ -258,7 +267,9 @@ export const DocumentVerificationPage: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="min-h-[92px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Documents</span>
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+              Total Documents
+            </span>
             <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
               {isAppsLoading ? '—' : kpis.total}
             </div>
@@ -509,7 +520,10 @@ export const DocumentVerificationPage: React.FC = () => {
             <TableBody>
               {isAppsLoading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
-                  <TableRow key={`skeleton-${idx}`} className="border-b border-slate-200/80 dark:border-slate-800/80">
+                  <TableRow
+                    key={`skeleton-${idx}`}
+                    className="border-b border-slate-200/80 dark:border-slate-800/80"
+                  >
                     <TableCell colSpan={10} className="py-4 px-4 text-center">
                       <div className="h-5 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-full" />
                     </TableCell>
@@ -517,7 +531,10 @@ export const DocumentVerificationPage: React.FC = () => {
                 ))
               ) : appsError ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-12 text-center text-rose-500 font-semibold text-xs">
+                  <TableCell
+                    colSpan={10}
+                    className="py-12 text-center text-rose-500 font-semibold text-xs"
+                  >
                     <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-80" />
                     Failed to load document verification queue. Please refresh.
                   </TableCell>
@@ -647,7 +664,10 @@ export const DocumentVerificationPage: React.FC = () => {
                               {new Date(doc.verified_at).toLocaleDateString()}
                             </span>
                             {doc.verification_remarks && (
-                              <span className="text-[10px] text-slate-400 italic truncate block max-w-[140px]" title={doc.verification_remarks}>
+                              <span
+                                className="text-[10px] text-slate-400 italic truncate block max-w-[140px]"
+                                title={doc.verification_remarks}
+                              >
                                 {doc.verification_remarks}
                               </span>
                             )}
@@ -700,8 +720,8 @@ export const DocumentVerificationPage: React.FC = () => {
           <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">
               Showing {(page - 1) * pageSize + 1} to{' '}
-              {Math.min(page * pageSize, filteredDocuments.length)} of{' '}
-              {filteredDocuments.length} documents
+              {Math.min(page * pageSize, filteredDocuments.length)} of {filteredDocuments.length}{' '}
+              documents
             </span>
 
             <div className="flex items-center gap-1.5">

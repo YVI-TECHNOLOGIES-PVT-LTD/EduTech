@@ -102,7 +102,9 @@ export class StorageService {
           error: error?.message,
           bucket: targetBucket,
         });
-        throw new Error(`Failed to generate signed URL: ${error?.message || 'Unknown storage error'}`);
+        throw new Error(
+          `Failed to generate signed URL: ${error?.message || 'Unknown storage error'}`,
+        );
       }
 
       const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();

@@ -307,7 +307,10 @@ export const crmApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    deleteLeadActivity: builder.mutation<{ success: boolean }, { activityId: string; leadId: string }>({
+    deleteLeadActivity: builder.mutation<
+      { success: boolean },
+      { activityId: string; leadId: string }
+    >({
       query: ({ activityId }) => ({
         url: `${ENDPOINTS.CRM.LEADS}/activities/${activityId}`,
         method: 'DELETE',

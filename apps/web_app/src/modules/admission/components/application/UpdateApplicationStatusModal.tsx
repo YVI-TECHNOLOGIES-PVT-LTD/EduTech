@@ -29,38 +29,12 @@ interface UpdateApplicationStatusModalProps {
 }
 
 const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
-  submitted: [
-    'documents_pending',
-    'assessment_pending',
-    'under_review',
-    'rejected',
-    'withdrawn',
-  ],
-  documents_pending: [
-    'assessment_pending',
-    'under_review',
-    'rejected',
-    'withdrawn',
-  ],
-  assessment_pending: [
-    'under_review',
-    'approved',
-    'waitlisted',
-    'rejected',
-    'withdrawn',
-  ],
-  under_review: [
-    'approved',
-    'waitlisted',
-    'rejected',
-    'withdrawn',
-  ],
+  submitted: ['documents_pending', 'assessment_pending', 'under_review', 'rejected', 'withdrawn'],
+  documents_pending: ['assessment_pending', 'under_review', 'rejected', 'withdrawn'],
+  assessment_pending: ['under_review', 'approved', 'waitlisted', 'rejected', 'withdrawn'],
+  under_review: ['approved', 'waitlisted', 'rejected', 'withdrawn'],
   approved: ['withdrawn'],
-  waitlisted: [
-    'approved',
-    'rejected',
-    'withdrawn',
-  ],
+  waitlisted: ['approved', 'rejected', 'withdrawn'],
   rejected: ['submitted'],
   withdrawn: [],
 };
@@ -122,7 +96,11 @@ export const UpdateApplicationStatusModal: React.FC<UpdateApplicationStatusModal
             Update Application Status
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Progress application <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{application.application_number}</span> through the admission pipeline.
+            Progress application{' '}
+            <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+              {application.application_number}
+            </span>{' '}
+            through the admission pipeline.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +154,8 @@ export const UpdateApplicationStatusModal: React.FC<UpdateApplicationStatusModal
               </Select>
             ) : (
               <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-300">
-                This application is in a terminal state (<strong>{currentStatus}</strong>) and cannot be transitioned further.
+                This application is in a terminal state (<strong>{currentStatus}</strong>) and
+                cannot be transitioned further.
               </div>
             )}
           </div>

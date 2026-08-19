@@ -83,11 +83,7 @@ export const LoginApprovalGate = ({ children }: { children: React.ReactNode }) =
     const isAllowedPath = allowedPaths.some((path) => location.pathname.startsWith(path));
 
     // If parent's login status is PENDING, REJECTED, or BLOCKED and not on allowed path
-    if (
-      user.login_status &&
-      user.login_status !== 'APPROVED' &&
-      !isAllowedPath
-    ) {
+    if (user.login_status && user.login_status !== 'APPROVED' && !isAllowedPath) {
       return <PendingApprovalPage />;
     }
   }

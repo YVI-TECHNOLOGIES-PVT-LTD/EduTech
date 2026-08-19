@@ -22,11 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  useCreateLeadActivityMutation,
-  ActivityType,
-  ActivityStatus,
-} from '@/shared/api/crm.api';
+import { useCreateLeadActivityMutation, ActivityType, ActivityStatus } from '@/shared/api/crm.api';
 import { Activity, Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
@@ -194,7 +190,11 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 <Label htmlFor="next_followup_date" className="text-xs font-bold">
                   Next Follow-up (Optional)
                 </Label>
-                <Input id="next_followup_date" type="datetime-local" {...register('next_followup_date')} />
+                <Input
+                  id="next_followup_date"
+                  type="datetime-local"
+                  {...register('next_followup_date')}
+                />
               </div>
 
               <div className="md:col-span-2 space-y-1.5">

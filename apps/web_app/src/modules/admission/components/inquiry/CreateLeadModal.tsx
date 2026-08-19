@@ -42,7 +42,10 @@ const formSchema = z.object({
   student_first_name: z.string().min(1, 'Student first name is required'),
   student_last_name: z.string().optional().nullable(),
   dob: z.string().optional().nullable(),
-  gender: z.enum(['male', 'female', 'other', 'undisclosed'] as const).optional().nullable(),
+  gender: z
+    .enum(['male', 'female', 'other', 'undisclosed'] as const)
+    .optional()
+    .nullable(),
   academic_year_grade_id: z.string().min(1, 'Grade / Academic year is required'),
   curriculum_preference: z.string().optional().nullable(),
   scholarship_interest: z.boolean(),
@@ -165,7 +168,9 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
         ...values,
         dob: values.dob ? values.dob : undefined,
         contact_email: values.contact_email ? values.contact_email : undefined,
-        assigned_counsellor_id: values.assigned_counsellor_id ? values.assigned_counsellor_id : undefined,
+        assigned_counsellor_id: values.assigned_counsellor_id
+          ? values.assigned_counsellor_id
+          : undefined,
         remarks: values.remarks ? values.remarks : undefined,
       };
 
@@ -195,7 +200,10 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
         {duplicateData?.isDuplicate && (
           <div className="px-6 pt-4">
-            <Alert variant="destructive" className="bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+            <Alert
+              variant="destructive"
+              className="bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200"
+            >
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <AlertTitle className="text-xs font-bold">Potential Duplicate Detected</AlertTitle>
               <AlertDescription className="text-xs mt-1">
@@ -216,15 +224,24 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
           <div className="p-6 pt-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-4 w-full mb-6">
-                <TabsTrigger value="student" className="text-xs flex items-center gap-1.5 font-bold">
+                <TabsTrigger
+                  value="student"
+                  className="text-xs flex items-center gap-1.5 font-bold"
+                >
                   <User className="w-3.5 h-3.5" />
                   Student
                 </TabsTrigger>
-                <TabsTrigger value="academic" className="text-xs flex items-center gap-1.5 font-bold">
+                <TabsTrigger
+                  value="academic"
+                  className="text-xs flex items-center gap-1.5 font-bold"
+                >
                   <BookOpen className="w-3.5 h-3.5" />
                   Academic
                 </TabsTrigger>
-                <TabsTrigger value="contact" className="text-xs flex items-center gap-1.5 font-bold">
+                <TabsTrigger
+                  value="contact"
+                  className="text-xs flex items-center gap-1.5 font-bold"
+                >
                   <Phone className="w-3.5 h-3.5" />
                   Contact
                 </TabsTrigger>
@@ -325,10 +342,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         {grades.map((g) => (
-                          <SelectItem
-                            key={g.id}
-                            value={g.academic_year_grade_id || g.id}
-                          >
+                          <SelectItem key={g.id} value={g.academic_year_grade_id || g.id}>
                             {g.name}
                           </SelectItem>
                         ))}
@@ -592,7 +606,8 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                         <SelectItem value="unassigned">-- Leave Unassigned --</SelectItem>
                         {staffList.map((s) => (
                           <SelectItem key={s.id} value={s.id}>
-                            {s.firstName} {s.lastName} ({s.department || s.designation || s.employeeId})
+                            {s.firstName} {s.lastName} (
+                            {s.department || s.designation || s.employeeId})
                           </SelectItem>
                         ))}
                       </SelectContent>

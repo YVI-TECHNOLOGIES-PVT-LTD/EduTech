@@ -137,7 +137,11 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
                   className="text-slate-400 hover:text-slate-600 transition-colors p-1"
                   title="Copy Application Number"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
                 </button>
               </div>
               <DocumentStatusBadge status={document.verify_status} />
@@ -163,20 +167,28 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Student Name</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{document.student_name}</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                    {document.student_name}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">Grade Applying</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{document.grade_name || '—'}</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                    {document.grade_name || '—'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">Academic Year</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{document.academic_year_name || '—'}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {document.academic_year_name || '—'}
+                  </span>
                 </div>
                 {document.lead_number && (
                   <div>
                     <span className="text-slate-400 block text-[11px]">Lead Reference</span>
-                    <span className="font-mono text-slate-700 dark:text-slate-300">#{document.lead_number}</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300">
+                      #{document.lead_number}
+                    </span>
                   </div>
                 )}
               </div>
@@ -194,9 +206,13 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
                   <span className="text-slate-400 block text-[11px]">Requirement Type</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
                     {document.is_mandatory ? (
-                      <span className="text-rose-600 dark:text-rose-400 font-bold">Mandatory Required</span>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">
+                        Mandatory Required
+                      </span>
                     ) : (
-                      <span className="text-slate-600 dark:text-slate-400 font-medium">Optional Supporting</span>
+                      <span className="text-slate-600 dark:text-slate-400 font-medium">
+                        Optional Supporting
+                      </span>
                     )}
                   </span>
                 </div>
@@ -215,7 +231,8 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
                 <div>
                   <span className="text-slate-400 block text-[11px]">File Size & Format</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    {formatFileSize(document.file_size)} {document.mime_type ? `(${document.mime_type})` : ''}
+                    {formatFileSize(document.file_size)}{' '}
+                    {document.mime_type ? `(${document.mime_type})` : ''}
                   </span>
                 </div>
               </div>

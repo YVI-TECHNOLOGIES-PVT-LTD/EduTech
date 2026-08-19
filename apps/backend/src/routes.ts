@@ -521,7 +521,9 @@ const admissionConfigHandler = async (req: Request, res: Response): Promise<void
             grade_id: true,
             grade_name: true,
             academic_year_grades: {
-              where: activeYear ? { academic_year_id: activeYear.id, is_active: true } : { is_active: true },
+              where: activeYear
+                ? { academic_year_id: activeYear.id, is_active: true }
+                : { is_active: true },
               select: { academic_year_grade_id: true, academic_year_id: true },
             },
           },

@@ -1,4 +1,5 @@
 # EduTrack ERP — Authentication Layout Refinement Report
+
 **Duplicate Branding Removal, Fixed Left Brand Panel & Independently Scrollable Right Auth Content**
 
 ---

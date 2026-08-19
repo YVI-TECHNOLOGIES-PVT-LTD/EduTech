@@ -39,7 +39,10 @@ const formSchema = z.object({
   student_first_name: z.string().min(1, 'Student first name is required'),
   student_last_name: z.string().optional().nullable(),
   dob: z.string().optional().nullable(),
-  gender: z.enum(['male', 'female', 'other', 'undisclosed'] as const).optional().nullable(),
+  gender: z
+    .enum(['male', 'female', 'other', 'undisclosed'] as const)
+    .optional()
+    .nullable(),
   academic_year_grade_id: z.string().min(1, 'Grade is required'),
   curriculum_preference: z.string().optional().nullable(),
   scholarship_interest: z.boolean(),
@@ -126,7 +129,9 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
         ...values,
         dob: values.dob ? values.dob : null,
         contact_email: values.contact_email ? values.contact_email : null,
-        assigned_counsellor_id: values.assigned_counsellor_id ? values.assigned_counsellor_id : null,
+        assigned_counsellor_id: values.assigned_counsellor_id
+          ? values.assigned_counsellor_id
+          : null,
         remarks: values.remarks ? values.remarks : null,
       };
 
@@ -239,10 +244,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {grades.map((g) => (
-                        <SelectItem
-                          key={g.id}
-                          value={g.academic_year_grade_id || g.id}
-                        >
+                        <SelectItem key={g.id} value={g.academic_year_grade_id || g.id}>
                           {g.name}
                         </SelectItem>
                       ))}

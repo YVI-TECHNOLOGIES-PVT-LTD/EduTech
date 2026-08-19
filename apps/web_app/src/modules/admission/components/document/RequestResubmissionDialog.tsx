@@ -64,7 +64,8 @@ export const RequestResubmissionDialog: React.FC<RequestResubmissionDialogProps>
     } catch (err: any) {
       toast({
         title: 'Action Failed',
-        description: err?.data?.error || err?.message || 'Failed to request resubmission. Please try again.',
+        description:
+          err?.data?.error || err?.message || 'Failed to request resubmission. Please try again.',
         variant: 'destructive',
       });
     }
@@ -111,7 +112,9 @@ export const RequestResubmissionDialog: React.FC<RequestResubmissionDialogProps>
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-              <span>Instructions / Reason for Resubmission <span className="text-purple-500">*</span></span>
+              <span>
+                Instructions / Reason for Resubmission <span className="text-purple-500">*</span>
+              </span>
               <span className="text-[11px] text-slate-400 font-normal">Mandatory</span>
             </label>
             <Textarea

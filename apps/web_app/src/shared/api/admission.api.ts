@@ -406,7 +406,10 @@ export const admissionApi = apiSlice.injectEndpoints({
       query: () => '/v1/applications/dashboard',
       providesTags: [{ type: 'Application', id: 'DASHBOARD' }],
     }),
-    getDocumentTypes: builder.query<DocumentTypeDto[], { application_id?: string; org_id?: string } | void>({
+    getDocumentTypes: builder.query<
+      DocumentTypeDto[],
+      { application_id?: string; org_id?: string } | void
+    >({
       query: (params) => ({
         url: ENDPOINTS.ADMISSIONS.DOCUMENT_TYPES,
         params: params || undefined,
@@ -435,13 +438,12 @@ export const admissionApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { applicationId }) => [
         { type: 'Application', id: 'LIST' },
-        ...(applicationId ? [{ type: 'Application' as const, id: applicationId }] : [{ type: 'Application' as const }]),
+        ...(applicationId
+          ? [{ type: 'Application' as const, id: applicationId }]
+          : [{ type: 'Application' as const }]),
       ],
     }),
-    uploadAdmissionDocument: builder.mutation<
-      any,
-      { applicationId: string; formData: FormData }
-    >({
+    uploadAdmissionDocument: builder.mutation<any, { applicationId: string; formData: FormData }>({
       query: ({ applicationId, formData }) => ({
         url: ENDPOINTS.ADMISSIONS.DOCUMENTS(applicationId),
         method: 'POST',
@@ -452,10 +454,7 @@ export const admissionApi = apiSlice.injectEndpoints({
         { type: 'Application', id: 'LIST' },
       ],
     }),
-    deleteAdmissionDocument: builder.mutation<
-      any,
-      { documentId: string; applicationId?: string }
-    >({
+    deleteAdmissionDocument: builder.mutation<any, { documentId: string; applicationId?: string }>({
       query: ({ documentId }) => ({
         url: ENDPOINTS.ADMISSIONS.DOCUMENT_DELETE(documentId),
         method: 'DELETE',
@@ -504,10 +503,7 @@ export const admissionApi = apiSlice.injectEndpoints({
         { type: 'FeePayment', id },
       ],
     }),
-    recordApplicationPayment: builder.mutation<
-      any,
-      RecordApplicationPaymentPayload
-    >({
+    recordApplicationPayment: builder.mutation<any, RecordApplicationPaymentPayload>({
       query: ({ applicationId, ...body }) => ({
         url: ENDPOINTS.ADMISSIONS.PAYMENT(applicationId),
         method: 'POST',

@@ -23,10 +23,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import {
-  useGetApplicationReceiptQuery,
-  ApplicationItem,
-} from '@/shared/api/admission.api';
+import { useGetApplicationReceiptQuery, ApplicationItem } from '@/shared/api/admission.api';
 import { PaymentStatusBadge } from './PaymentStatusBadge';
 
 interface AdmissionFeeReceiptDialogProps {
@@ -165,7 +162,10 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                     {receiptNumber}
                   </div>
                   <div className="text-[10px] text-slate-500">
-                    Date: {new Date(receipt.payment_date || receipt.issued_at).toLocaleDateString('en-IN')}
+                    Date:{' '}
+                    {new Date(receipt.payment_date || receipt.issued_at).toLocaleDateString(
+                      'en-IN',
+                    )}
                   </div>
                 </div>
               </div>
@@ -264,9 +264,7 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                     </tbody>
                     <tfoot className="bg-slate-50 font-bold border-t border-slate-200">
                       <tr>
-                        <td className="p-2.5 pl-3 text-slate-900 uppercase">
-                          Total Amount Paid
-                        </td>
+                        <td className="p-2.5 pl-3 text-slate-900 uppercase">Total Amount Paid</td>
                         <td className="p-2.5 text-right pr-3 font-mono text-emerald-700 text-sm">
                           ₹{receipt.amount.toLocaleString('en-IN')}
                         </td>

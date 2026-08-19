@@ -67,7 +67,15 @@ export const WithdrawApplicationDialog: React.FC<WithdrawApplicationDialogProps>
             Withdraw Application
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Are you sure you want to withdraw application <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{application.application_number}</span> for <strong>{application.student_name || application.lead?.student_name || 'Applicant'}</strong>?
+            Are you sure you want to withdraw application{' '}
+            <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+              {application.application_number}
+            </span>{' '}
+            for{' '}
+            <strong>
+              {application.student_name || application.lead?.student_name || 'Applicant'}
+            </strong>
+            ?
           </DialogDescription>
         </DialogHeader>
 
@@ -79,7 +87,8 @@ export const WithdrawApplicationDialog: React.FC<WithdrawApplicationDialogProps>
           )}
 
           <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
-            Withdrawing will transition the application status to <strong>Withdrawn</strong>. This retains historical audit and prevents downstream processing.
+            Withdrawing will transition the application status to <strong>Withdrawn</strong>. This
+            retains historical audit and prevents downstream processing.
           </div>
 
           <div className="space-y-1.5">

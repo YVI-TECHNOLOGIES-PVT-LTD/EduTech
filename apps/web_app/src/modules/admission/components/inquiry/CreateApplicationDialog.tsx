@@ -58,19 +58,26 @@ export const CreateApplicationDialog: React.FC<CreateApplicationDialogProps> = (
           </AlertDialogTitle>
           <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
             You are about to initiate an official Admission Application for{' '}
-            <span className="font-semibold text-foreground">{lead.student_name}</span> ({lead.lead_number}).
+            <span className="font-semibold text-foreground">{lead.student_name}</span> (
+            {lead.lead_number}).
             <br />
             <br />
             This will:
             <ul className="list-disc pl-4 mt-1.5 space-y-1 font-normal">
               <li>Create a unique formal Application Number in the system.</li>
-              <li>Advance lead stage to <span className="font-semibold text-foreground">Application Submitted</span>.</li>
+              <li>
+                Advance lead stage to{' '}
+                <span className="font-semibold text-foreground">Application Submitted</span>.
+              </li>
               <li>Enable document verification, assessment scheduling, and fee payment.</li>
             </ul>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-4 flex gap-2">
-          <AlertDialogCancel disabled={isLoading} className="text-xs font-semibold rounded-xl h-10 px-4">
+          <AlertDialogCancel
+            disabled={isLoading}
+            className="text-xs font-semibold rounded-xl h-10 px-4"
+          >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction

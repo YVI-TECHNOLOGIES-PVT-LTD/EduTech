@@ -44,10 +44,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { useTableSelection } from '@/hooks/useTableSelection';
-import {
-  useGetApplicationsQuery,
-  ApplicationItem,
-} from '@/shared/api/admission.api';
+import { useGetApplicationsQuery, ApplicationItem } from '@/shared/api/admission.api';
 import { useGetGradesQuery, useGetAcademicYearsQuery } from '@/shared/api/academic.api';
 import { PaymentStatusBadge } from '../../components/fee/PaymentStatusBadge';
 import { CollectAdmissionFeeDialog } from '../../components/fee/CollectAdmissionFeeDialog';
@@ -98,7 +95,17 @@ export const FeeCollectionPage: React.FC = () => {
       sort,
       order,
     };
-  }, [page, pageSize, searchText, paymentStatusFilter, paymentModeFilter, gradeFilter, academicYearFilter, sort, order]);
+  }, [
+    page,
+    pageSize,
+    searchText,
+    paymentStatusFilter,
+    paymentModeFilter,
+    gradeFilter,
+    academicYearFilter,
+    sort,
+    order,
+  ]);
 
   const {
     data: applicationsResponse,
@@ -128,7 +135,7 @@ export const FeeCollectionPage: React.FC = () => {
     clearSelection,
   } = useTableSelection(
     applications,
-    (item: ApplicationItem) => item.application_id || item.id || ''
+    (item: ApplicationItem) => item.application_id || item.id || '',
   );
 
   // Calculate Operational KPIs
@@ -412,10 +419,7 @@ export const FeeCollectionPage: React.FC = () => {
 
           {/* Grade Filter */}
           <div className="lg:col-span-2">
-            <Select
-              value={gradeFilter}
-              onValueChange={(val) => updateFilter('grade_id', val)}
-            >
+            <Select value={gradeFilter} onValueChange={(val) => updateFilter('grade_id', val)}>
               <SelectTrigger className="h-10 text-xs">
                 <SelectValue placeholder="All Grades" />
               </SelectTrigger>
@@ -442,7 +446,10 @@ export const FeeCollectionPage: React.FC = () => {
               <SelectContent>
                 <SelectItem value="ALL">All Academic Years</SelectItem>
                 {academicYearsData.map((ay: any) => (
-                  <SelectItem key={ay.academic_year_id || ay.id} value={ay.academic_year_id || ay.id}>
+                  <SelectItem
+                    key={ay.academic_year_id || ay.id}
+                    value={ay.academic_year_id || ay.id}
+                  >
                     {ay.academic_year_name || ay.name || ay.year_label}
                   </SelectItem>
                 ))}
@@ -547,7 +554,10 @@ export const FeeCollectionPage: React.FC = () => {
             <TableBody className="divide-y divide-slate-200 dark:divide-slate-800">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
-                  <TableRow key={idx} className="animate-pulse divide-x divide-slate-100 dark:divide-slate-800">
+                  <TableRow
+                    key={idx}
+                    className="animate-pulse divide-x divide-slate-100 dark:divide-slate-800"
+                  >
                     <TableCell colSpan={13} className="py-4 px-4 text-center">
                       <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded w-full" />
                     </TableCell>
@@ -609,7 +619,7 @@ export const FeeCollectionPage: React.FC = () => {
                         'divide-x divide-slate-200 dark:divide-slate-800 transition-colors',
                         itemSelected
                           ? 'bg-emerald-50/40 dark:bg-emerald-950/20'
-                          : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                          : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40',
                       )}
                     >
                       {/* Checkbox */}
@@ -763,10 +773,7 @@ export const FeeCollectionPage: React.FC = () => {
         <div className="p-4 bg-slate-50/80 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
             <span>Rows per page:</span>
-            <Select
-              value={String(pageSize)}
-              onValueChange={(val) => updateFilter('pageSize', val)}
-            >
+            <Select value={String(pageSize)} onValueChange={(val) => updateFilter('pageSize', val)}>
               <SelectTrigger className="h-8 w-16 text-xs">
                 <SelectValue />
               </SelectTrigger>

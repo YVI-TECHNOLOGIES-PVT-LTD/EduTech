@@ -9,7 +9,10 @@ export function useLeadsQuery(params?: Record<string, unknown>, options?: { enab
   return useGetLeadsQuery(undefined, { skip: !isEnabled });
 }
 
-export function useInquiriesQuery(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
+export function useInquiriesQuery(
+  params?: Record<string, unknown>,
+  options?: { enabled?: boolean },
+) {
   const { hasPermission } = useAuth();
   const canView = hasPermission('admission.enquiry.view');
   const isEnabled = options?.enabled ?? canView;
@@ -56,10 +59,6 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
     },
     allRecords: leads,
     isLoading: leadsQuery.isLoading || visitsQuery.isLoading,
-    refetch: () =>
-      Promise.all([
-        leadsQuery.refetch(),
-        visitsQuery.refetch(),
-      ]),
+    refetch: () => Promise.all([leadsQuery.refetch(), visitsQuery.refetch()]),
   };
 }

@@ -67,10 +67,7 @@ interface LeadDetailsSheetProps {
   onLeadUpdated?: () => void;
 }
 
-const STAGE_CONFIG: Record<
-  string,
-  { label: string; bg: string; text: string; border: string }
-> = {
+const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   enquiry_received: {
     label: 'Enquiry Received',
     bg: 'bg-blue-50 dark:bg-blue-950/40',
@@ -453,7 +450,9 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                                 {lead.contact_email}
                               </a>
                               <button
-                                onClick={() => copyToClipboard(lead.contact_email!, 'email address')}
+                                onClick={() =>
+                                  copyToClipboard(lead.contact_email!, 'email address')
+                                }
                                 className="text-muted-foreground hover:text-foreground p-0.5"
                               >
                                 <Copy className="w-3 h-3" />
@@ -569,7 +568,9 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                     ) : activities.length === 0 ? (
                       <div className="p-8 text-center border border-dashed border-border rounded-xl">
                         <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-foreground">No activities logged yet</p>
+                        <p className="text-xs font-bold text-foreground">
+                          No activities logged yet
+                        </p>
                         <p className="text-[11px] text-muted-foreground mt-1">
                           Log follow-up calls, emails, WhatsApp messages, or meeting notes.
                         </p>
@@ -763,24 +764,24 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                               {lead.counselor.name} ({lead.counselor.email || 'Staff'})
                             </span>
                           ) : (
-                            <span className="text-muted-foreground italic">No counsellor currently assigned</span>
+                            <span className="text-muted-foreground italic">
+                              No counsellor currently assigned
+                            </span>
                           )}
                         </p>
                       </div>
 
                       <div className="space-y-3 pt-2">
                         <Label className="text-xs font-bold">Reassign to Staff Member</Label>
-                        <Select
-                          value={selectedStaffId}
-                          onValueChange={setSelectedStaffId}
-                        >
+                        <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
                           <SelectTrigger className="text-xs font-medium">
                             <SelectValue placeholder="Select staff member..." />
                           </SelectTrigger>
                           <SelectContent>
                             {staffList.map((s) => (
                               <SelectItem key={s.id} value={s.id}>
-                                {s.firstName} {s.lastName} ({s.department || s.designation || s.employeeId})
+                                {s.firstName} {s.lastName} (
+                                {s.department || s.designation || s.employeeId})
                               </SelectItem>
                             ))}
                           </SelectContent>

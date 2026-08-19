@@ -7,7 +7,7 @@ export interface UseTableSelectionOptions<T> {
 
 export function useTableSelection<T>(
   optionsOrData?: UseTableSelectionOptions<T> | T[] | null,
-  idExtractorOrKey?: ((item: T) => string | number) | keyof T
+  idExtractorOrKey?: ((item: T) => string | number) | keyof T,
 ) {
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
 
@@ -44,18 +44,12 @@ export function useTableSelection<T>(
       return (optionsOrData as UseTableSelectionOptions<T>).getId!;
     }
     return (item: any) =>
-      item?.id ||
-      item?.document_id ||
-      item?.lead_id ||
-      item?.application_id ||
-      '';
+      item?.id || item?.document_id || item?.lead_id || item?.application_id || '';
   }, [idExtractorOrKey, optionsOrData]);
 
   const currentIds = useMemo(() => {
     if (!Array.isArray(safeData) || safeData.length === 0) return [];
-    return safeData
-      .map(getId)
-      .filter((id) => id !== undefined && id !== null && id !== '');
+    return safeData.map(getId).filter((id) => id !== undefined && id !== null && id !== '');
   }, [safeData, getId]);
 
   const isAllSelected = useMemo(() => {
@@ -72,8 +66,7 @@ export function useTableSelection<T>(
   const toggleSelectAll = useCallback(() => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      const allSelected =
-        currentIds.length > 0 && currentIds.every((id) => next.has(id));
+      const allSelected = currentIds.length > 0 && currentIds.every((id) => next.has(id));
       if (allSelected) {
         currentIds.forEach((id) => next.delete(id));
       } else {
@@ -95,10 +88,7 @@ export function useTableSelection<T>(
     });
   }, []);
 
-  const isSelected = useCallback(
-    (id: string | number) => selectedIds.has(id),
-    [selectedIds],
-  );
+  const isSelected = useCallback((id: string | number) => selectedIds.has(id), [selectedIds]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());

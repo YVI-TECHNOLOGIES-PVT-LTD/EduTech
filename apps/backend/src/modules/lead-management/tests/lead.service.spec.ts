@@ -1,5 +1,13 @@
 import assert from 'assert';
-import { lead_stage, lead_source, lead_priority, lead_activity_type, activity_status, visit_type, visit_status } from '@prisma/client';
+import {
+  lead_stage,
+  lead_source,
+  lead_priority,
+  lead_activity_type,
+  activity_status,
+  visit_type,
+  visit_status,
+} from '@prisma/client';
 import { LeadService } from '../services/lead.service';
 import { LeadValidator } from '../validators/lead.validator';
 import { InvalidLeadStatusTransitionError, LeadValidationError } from '../errors/lead.errors';

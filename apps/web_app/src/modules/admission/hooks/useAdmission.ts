@@ -22,7 +22,7 @@ export function useAdmission(schoolId?: string) {
       ? {
           totalApplications: Array.isArray(query.data)
             ? query.data.length
-            : query.data.total ?? query.data.data?.length ?? 0,
+            : (query.data.total ?? query.data.data?.length ?? 0),
         }
       : null,
     isLoading: query.isLoading,
