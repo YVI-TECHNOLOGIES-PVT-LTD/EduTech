@@ -186,7 +186,7 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
 
         <Badge
           variant="outline"
-          className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50/50 border-indigo-200"
+          className="text-[10px] font-bold font-mono uppercase tracking-wider text-indigo-600 bg-indigo-50/50 border-indigo-200"
         >
           {appNumber}
         </Badge>
@@ -211,7 +211,9 @@ export const ParentReadOnlyApplicationView: React.FC<ParentReadOnlyApplicationVi
             <p className="text-xs font-medium text-muted-foreground">
               Submitted on <span className="font-bold text-foreground">{submittedDate}</span> •
               Application Number:{' '}
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">{appNumber}</span>
+              <span className="font-bold font-mono text-indigo-600 dark:text-indigo-400">
+                {appNumber}
+              </span>
             </p>
           </div>
         </div>

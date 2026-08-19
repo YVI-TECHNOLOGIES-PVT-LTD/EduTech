@@ -17,6 +17,18 @@ export interface TokenPayload {
   roles: string[];
 }
 
+export function normalizePhoneNumber(phone?: string | null): string {
+  if (!phone) return '';
+  const digitsOnly = phone.replace(/\D/g, '');
+  if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+    return digitsOnly.slice(2);
+  }
+  if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
+    return digitsOnly.slice(1);
+  }
+  return digitsOnly;
+}
+
 export class AuthService {
   static async login(email: string, passwordInput: string) {
     const cleanEmail = email.trim().toLowerCase();
@@ -234,20 +246,11 @@ export class AuthService {
     lastName?: string;
     source?: string;
   }): Promise<{ lead_id: string; claimed: boolean }> {
-    const {
-      tx,
-      orgId,
-      parentId,
-      verifiedEmail,
-      verifiedPhone,
-      fullName,
-      firstName,
-      lastName,
-      source,
-    } = params;
+    const { tx, orgId, parentId, verifiedEmail, verifiedPhone, fullName, source } = params;
 
     const cleanEmail = verifiedEmail.trim().toLowerCase();
     const cleanPhone = verifiedPhone.trim();
+    const normalizedTargetPhone = normalizePhoneNumber(verifiedPhone);
 
     // 1. Fetch candidate unlinked leads in the exact same organization
     const unlinkedLeads = await tx.leads.findMany({
@@ -259,11 +262,13 @@ export class AuthService {
 
     let claimedLead: any = null;
 
-    // Priority 1: Exact Verified Email AND Phone
+    // Priority 1: Exact Verified Email AND Phone (with phone normalization)
     const match1 = unlinkedLeads.filter(
       (l: any) =>
         l.contact_email?.trim().toLowerCase() === cleanEmail &&
-        l.contact_phone?.trim() === cleanPhone,
+        (l.contact_phone?.trim() === cleanPhone ||
+          (normalizedTargetPhone &&
+            normalizePhoneNumber(l.contact_phone) === normalizedTargetPhone)),
     );
 
     if (match1.length === 1) {
@@ -276,8 +281,13 @@ export class AuthService {
       if (match2.length === 1) {
         claimedLead = match2[0];
       } else if (match2.length === 0) {
-        // Priority 3: Exact Verified Phone
-        const match3 = unlinkedLeads.filter((l: any) => l.contact_phone?.trim() === cleanPhone);
+        // Priority 3: Exact Verified Phone (with phone normalization)
+        const match3 = unlinkedLeads.filter(
+          (l: any) =>
+            l.contact_phone?.trim() === cleanPhone ||
+            (normalizedTargetPhone &&
+              normalizePhoneNumber(l.contact_phone) === normalizedTargetPhone),
+        );
         if (match3.length === 1) {
           claimedLead = match3[0];
         }
@@ -285,6 +295,7 @@ export class AuthService {
     }
 
     // Attempt atomic update with concurrency protection
+    // CRITICAL: Claiming preserves existing student_first_name & student_last_name untouched!
     if (claimedLead) {
       const updateResult = await tx.leads.updateMany({
         where: {
@@ -309,7 +320,11 @@ export class AuthService {
       );
     }
 
-    // Fallback: Create new lead for parent
+    // Fallback: Create new unassigned registration lead for parent
+    // CRITICAL BUSINESS RULE:
+    // Registration name represents the PARENT / CONTACT PERSON (fullName).
+    // It MUST NOT be written into student_first_name or student_last_name.
+    // student_first_name is set to standard neutral placeholder 'Applicant'.
     const ayg = await tx.academic_year_grades.findFirst({
       where: { academic_years: { org_id: orgId } },
     });
@@ -332,8 +347,8 @@ export class AuthService {
         org_id: orgId,
         lead_number: leadNumber,
         academic_year_grade_id: ayg?.academic_year_grade_id || crypto.randomUUID(),
-        student_first_name: firstName || 'Applicant',
-        student_last_name: lastName || undefined,
+        student_first_name: 'Applicant',
+        student_last_name: undefined,
         contact_name: fullName,
         contact_phone: cleanPhone,
         contact_email: cleanEmail,

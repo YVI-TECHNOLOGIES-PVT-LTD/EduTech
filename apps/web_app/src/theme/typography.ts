@@ -1,7 +1,7 @@
 export const TYPOGRAPHY = {
   fontFamily: {
-    sans: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    mono: 'JetBrains Mono, Fira Code, monospace',
+    sans: '"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    mono: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
   },
   fontSize: {
     xs: ['0.75rem', { lineHeight: '1rem' }],

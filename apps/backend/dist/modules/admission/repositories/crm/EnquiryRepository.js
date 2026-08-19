@@ -110,9 +110,16 @@ class EnquiryRepository {
     async save(enquiry, extra) {
         const aygId = await this.resolveAcademicYearGradeId(enquiry.schoolId, enquiry.academicYearId, enquiry.gradeAppliedFor);
         // Split student name
-        const parts = enquiry.studentName.trim().split(/\s+/);
-        const firstName = parts[0] || `${enquiry.parentName}'s Ward`;
-        const lastName = parts.length > 1 ? parts.slice(1).join(' ') : null;
+        const rawStudentName = (enquiry.studentName || '').trim();
+        let firstName = 'Applicant';
+        let lastName = null;
+        if (rawStudentName &&
+            !rawStudentName.includes("'s Ward") &&
+            rawStudentName.toLowerCase() !== 'applicant') {
+            const parts = rawStudentName.split(/\s+/);
+            firstName = parts[0] || 'Applicant';
+            lastName = parts.length > 1 ? parts.slice(1).join(' ') : null;
+        }
         const isConsent = extra?.contact_consent ?? false;
         const shortId = enquiry.id.slice(0, 8).toUpperCase();
         const leadNumber = `ENQ-2026-${shortId}`;

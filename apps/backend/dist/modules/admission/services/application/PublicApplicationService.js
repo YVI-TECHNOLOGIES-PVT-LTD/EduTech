@@ -260,6 +260,22 @@ class PublicApplicationService {
                 }
                 console.log('[PUBLIC-APPLY] user role linked');
             }
+            // Resolve or create Parent entity
+            let parentRecord = await tx.parents.findFirst({
+                where: { user_id: user.user_id },
+            });
+            if (!parentRecord) {
+                parentRecord = await tx.parents.create({
+                    data: {
+                        org_id: finalOrgId,
+                        user_id: user.user_id,
+                        first_name: canonical.parent_first_name || targetParentName || 'Parent',
+                        last_name: canonical.parent_last_name || undefined,
+                        phone: phone,
+                        email: targetEmail,
+                    },
+                });
+            }
             // c. Create Lead record with unique lead_number check
             const year = new Date().getFullYear();
             const leadCount = await tx.leads.count();
@@ -274,9 +290,10 @@ class PublicApplicationService {
             const lead = await tx.leads.create({
                 data: {
                     org_id: finalOrgId,
+                    parent_id: parentRecord.parent_id,
                     lead_number: leadNumber,
                     academic_year_grade_id: targetAyg.academic_year_grade_id,
-                    student_first_name: rawStudentFirst || 'Student',
+                    student_first_name: rawStudentFirst || 'Applicant',
                     student_last_name: rawStudentLast || undefined,
                     dob: validDob,
                     gender: canonical.gender,

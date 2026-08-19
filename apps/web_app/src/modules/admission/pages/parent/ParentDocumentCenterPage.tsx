@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { useApplicationList } from '../../hooks/useApplication';
-import {
-  PageContainer,
-  PageHeader,
-  SectionHeader,
-} from '@/components/layout/PageLayout';
+import { PageContainer, PageHeader, SectionHeader } from '@/components/layout/PageLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DocumentVerificationCard } from '../../components/DocumentVerificationCard';
@@ -110,7 +106,7 @@ export function ParentDocumentCenterPage() {
           primaryApp && (
             <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
               <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
-              <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+              <span className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
                 {primaryApp.application_number || primaryApp.id || 'APP-2026-00368'}
               </span>
             </div>
@@ -146,10 +142,7 @@ export function ParentDocumentCenterPage() {
                 onRemove={uploaded ? () => handleRemoveDoc(def.key) : undefined}
                 onView={
                   uploaded
-                    ? () =>
-                        alert(
-                          `Viewing document: ${uploaded.file_name} (${uploaded.status})`,
-                        )
+                    ? () => alert(`Viewing document: ${uploaded.file_name} (${uploaded.status})`)
                     : undefined
                 }
               />

@@ -38,7 +38,10 @@ export function MyApplications() {
         title="My Admission Applications"
         description="Track evaluation status, submitted certificates, and processing fee clearance for your children."
         badge={
-          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200">
+          <Badge
+            variant="outline"
+            className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
+          >
             Parent Self-Service
           </Badge>
         }
@@ -110,7 +113,10 @@ export function MyApplications() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-foreground text-base">{studentName}</h3>
-                        <Badge variant="outline" className="text-[10px] font-bold text-indigo-600 bg-indigo-50/50 border-indigo-200">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold font-mono tracking-wider text-indigo-600 bg-indigo-50/50 border-indigo-200"
+                        >
                           {appNumber}
                         </Badge>
                       </div>
@@ -137,7 +143,10 @@ export function MyApplications() {
                     </span>
                     <div className="flex items-center gap-2">
                       <Link to={`/app/admissions/${app.application_id || app.id}`}>
-                        <Button size="sm" className="font-bold text-xs flex items-center gap-1.5 shadow-sm">
+                        <Button
+                          size="sm"
+                          className="font-bold text-xs flex items-center gap-1.5 shadow-sm"
+                        >
                           <FileText className="w-3.5 h-3.5" />
                           <span>View Application</span>
                           <ChevronRight className="w-3.5 h-3.5 opacity-80" />
@@ -156,4 +165,3 @@ export function MyApplications() {
 }
 
 export default MyApplications;
-

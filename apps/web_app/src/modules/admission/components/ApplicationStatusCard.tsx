@@ -1,6 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, CalendarDays, CheckCircle2, Clock, Eye, FileText, ArrowRight } from 'lucide-react';
+import {
+  GraduationCap,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Eye,
+  FileText,
+  ArrowRight,
+} from 'lucide-react';
 import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +27,9 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
     application.student_name ||
     (application.leads
       ? `${application.leads.student_first_name || ''} ${application.leads.student_last_name || ''}`.trim()
-      : (application.lead
-          ? `${application.lead.student_first_name || ''} ${application.lead.student_last_name || ''}`.trim()
-          : 'Applicant'));
+      : application.lead
+        ? `${application.lead.student_first_name || ''} ${application.lead.student_last_name || ''}`.trim()
+        : 'Applicant');
 
   const displayName = studentName || 'Applicant';
 
@@ -65,12 +73,10 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           </div>
           <div>
             <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
-              <h3 className="text-base font-bold text-foreground">
-                {displayName}
-              </h3>
+              <h3 className="text-base font-bold text-foreground">{displayName}</h3>
               <Badge
                 variant="outline"
-                className="text-[10px] font-bold text-indigo-600 bg-indigo-50/50 border-indigo-200"
+                className="text-[10px] font-bold font-mono tracking-wider text-indigo-600 bg-indigo-50/50 border-indigo-200"
               >
                 {appNumber}
               </Badge>

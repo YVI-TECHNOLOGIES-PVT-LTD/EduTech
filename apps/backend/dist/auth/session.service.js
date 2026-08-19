@@ -34,7 +34,10 @@ class SessionService {
         if (lower === 'superadmin' || lower === 'superadministrator' || lower === 'super_admin') {
             return 'SUPERADMIN';
         }
-        if (lower === 'admin' || lower === 'administrator' || lower === 'orgadmin' || lower === 'org_admin') {
+        if (lower === 'admin' ||
+            lower === 'administrator' ||
+            lower === 'orgadmin' ||
+            lower === 'org_admin') {
             return 'ADMIN';
         }
         if (lower === 'counselor' || lower === 'counsellor') {

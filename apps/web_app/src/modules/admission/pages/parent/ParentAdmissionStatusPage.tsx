@@ -56,7 +56,7 @@ export function ParentAdmissionStatusPage() {
           primaryApp && (
             <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
               <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
-              <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+              <span className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
                 {primaryApp.application_number || primaryApp.id || 'APP-2026-00368'}
               </span>
             </div>
@@ -70,7 +70,11 @@ export function ParentAdmissionStatusPage() {
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 APPLICATION REF:{' '}
-                {primaryApp.application_number || primaryApp.applicationNumber || 'APP-2026-00368'}
+                <span className="font-mono">
+                  {primaryApp.application_number ||
+                    primaryApp.applicationNumber ||
+                    'APP-2026-00368'}
+                </span>
               </span>
               <h3 className="text-lg font-bold text-foreground mt-0.5">
                 {primaryApp.student_name ||
@@ -160,9 +164,7 @@ export function ParentAdmissionStatusPage() {
           {/* Action Recommendations Box */}
           <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-0.5">
-              <h5 className="text-xs font-bold text-foreground">
-                Recommended Next Step
-              </h5>
+              <h5 className="text-xs font-bold text-foreground">Recommended Next Step</h5>
               <p className="text-xs text-muted-foreground">
                 Check and ensure all required verification certificates are uploaded.
               </p>

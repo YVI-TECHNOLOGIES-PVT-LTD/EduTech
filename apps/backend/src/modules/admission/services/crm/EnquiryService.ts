@@ -52,7 +52,7 @@ export class EnquiryService extends BaseService {
     const studentName =
       validated.student_name && validated.student_name.trim()
         ? validated.student_name.trim()
-        : `${validated.parent_name.trim()}'s Ward`;
+        : 'Applicant';
 
     const enquiry = new AdmissionEnquiry(
       id,
@@ -111,9 +111,7 @@ export class EnquiryService extends BaseService {
       existing.id,
       existing.schoolId,
       existing.academicYearId,
-      validated.student_name
-        ? validated.student_name
-        : existing.studentName || `${existing.parentName}'s Ward`,
+      validated.student_name ? validated.student_name : existing.studentName || 'Applicant',
       validated.grade_applied_for !== undefined
         ? validated.grade_applied_for
         : existing.gradeAppliedFor,

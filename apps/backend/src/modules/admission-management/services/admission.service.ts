@@ -66,12 +66,14 @@ export class AdmissionService {
 
     let application: any;
 
+    // 1. Resolve Parent Record if performedBy is present
+    let parentRecord: any = null;
     if (performedBy) {
-      let parent: any = await prisma.parents.findUnique({
+      parentRecord = await prisma.parents.findUnique({
         where: { user_id: performedBy },
       });
 
-      if (!parent) {
+      if (!parentRecord) {
         const user = await prisma.users.findUnique({ where: { user_id: performedBy } });
         if (user) {
           let pFirst = dto.parent_first_name || '';
@@ -87,20 +89,20 @@ export class AdmissionService {
 
           const existingUnlinkedParent = await prisma.parents.findFirst({
             where: {
-              org_id: targetOrgId,
+              org_id: safeOrgId,
               OR: [...(pEmail ? [{ email: pEmail }] : []), ...(pPhone ? [{ phone: pPhone }] : [])],
             },
           });
 
           if (existingUnlinkedParent) {
-            parent = await prisma.parents.update({
+            parentRecord = await prisma.parents.update({
               where: { parent_id: existingUnlinkedParent.parent_id },
               data: { user_id: performedBy },
             });
           } else {
-            parent = await prisma.parents.create({
+            parentRecord = await prisma.parents.create({
               data: {
-                org_id: targetOrgId,
+                org_id: safeOrgId,
                 user_id: performedBy,
                 first_name: pFirst || user.first_name || 'Parent',
                 last_name: pLast || user.last_name || undefined,
@@ -113,164 +115,198 @@ export class AdmissionService {
       }
     }
 
-    if (targetLeadId) {
-      const lead = await prisma.leads.findUnique({
-        where: { lead_id: targetLeadId },
+    // 2. Pre-transaction resolution for grade offering
+    let aygId = dto.academic_year_grade_id;
+    if (!aygId && dto.grade_id) {
+      const ayg = await prisma.academic_year_grades.findFirst({
+        where: { academic_year_id: safeAcademicYearId, grade_id: dto.grade_id },
+        select: { academic_year_grade_id: true },
       });
-      if (!lead) {
-        throw new ApplicationValidationError(`Lead ${targetLeadId} not found`);
-      }
-      if (lead.org_id !== targetOrgId) {
-        throw new ApplicationValidationError(
-          'Unauthorized: Lead belongs to a different organization',
-        );
-      }
-      if (performedBy) {
-        const parent = await prisma.parents.findUnique({ where: { user_id: performedBy } });
-        if (parent) {
-          const isOwner = lead.parent_id === parent.parent_id || lead.created_by === performedBy;
-          if (!isOwner) {
-            throw new ApplicationValidationError('Unauthorized: You do not own this child profile');
-          }
-        }
-      }
-
-      const existingLeadApp = await prisma.admissions_applications.findFirst({
-        where: {
-          lead_id: targetLeadId,
-          org_id: targetOrgId,
-        },
-        include: {
-          leads: true,
-          academic_years: true,
-          admission_documents: true,
-          application_assessments: true,
-          admission_decisions: true,
-          admission_fee_payments: true,
-        },
+      aygId = ayg?.academic_year_grade_id;
+    }
+    if (!aygId && dto.grade_applied_for) {
+      const matchedGrade = await prisma.grades.findFirst({
+        where: { org_id: safeOrgId, grade_name: dto.grade_applied_for },
+        select: { grade_id: true },
       });
-
-      if (existingLeadApp) {
-        logger.info(
-          `Child-specific duplicate check: Lead ${targetLeadId} already has application ${existingLeadApp.application_id}`,
-        );
-        return AdmissionMapper.toResponseDto(existingLeadApp);
-      }
-
-      application = await AdmissionRepository.create(
-        {
-          ...dto,
-          lead_id: targetLeadId,
-          org_id: targetOrgId,
-          academic_year_id: targetAcademicYearId,
-        },
-        performedBy,
-      );
-    } else {
-      // Child-specific duplicate check for new child creation flow
-      let sFirst = (dto.student_first_name || '').trim();
-      let sLast = (dto.student_last_name || '').trim();
-      if (!sFirst && dto.student_name) {
-        const parts = dto.student_name.trim().split(' ');
-        sFirst = parts[0];
-        sLast = parts.slice(1).join(' ');
-      }
-      sFirst = sFirst.trim();
-      sLast = sLast.trim();
-
-      const parsedDob = dto.date_of_birth ? new Date(dto.date_of_birth) : undefined;
-      const validDob = parsedDob && !isNaN(parsedDob.getTime()) ? parsedDob : undefined;
-
-      // Pre-transaction resolution for grade offering
-      let aygId = dto.academic_year_grade_id;
-      if (!aygId && dto.grade_id) {
+      if (matchedGrade) {
         const ayg = await prisma.academic_year_grades.findFirst({
-          where: { academic_year_id: safeAcademicYearId, grade_id: dto.grade_id },
+          where: { academic_year_id: safeAcademicYearId, grade_id: matchedGrade.grade_id },
           select: { academic_year_grade_id: true },
         });
         aygId = ayg?.academic_year_grade_id;
       }
-      if (!aygId && dto.grade_applied_for) {
-        const matchedGrade = await prisma.grades.findFirst({
-          where: { org_id: safeOrgId, grade_name: dto.grade_applied_for },
-          select: { grade_id: true },
-        });
-        if (matchedGrade) {
-          const ayg = await prisma.academic_year_grades.findFirst({
-            where: { academic_year_id: safeAcademicYearId, grade_id: matchedGrade.grade_id },
-            select: { academic_year_grade_id: true },
+    }
+    if (!aygId) {
+      const ayg = await prisma.academic_year_grades.findFirst({
+        where: { academic_year_id: safeAcademicYearId, is_active: true },
+        select: { academic_year_grade_id: true },
+      });
+      aygId = ayg?.academic_year_grade_id;
+    }
+    if (!aygId) {
+      throw new ApplicationValidationError('Grade offering not found for academic year');
+    }
+
+    // 3. Child identity extraction
+    let sFirst = (dto.student_first_name || '').trim();
+    let sLast = (dto.student_last_name || '').trim();
+    if (!sFirst && dto.student_name) {
+      const parts = dto.student_name.trim().split(' ');
+      sFirst = parts[0];
+      sLast = parts.slice(1).join(' ');
+    }
+    sFirst = sFirst.trim();
+    sLast = sLast.trim();
+
+    const parsedDob = dto.date_of_birth ? new Date(dto.date_of_birth) : undefined;
+    const validDob = parsedDob && !isNaN(parsedDob.getTime()) ? parsedDob : undefined;
+
+    let pFirst = dto.parent_first_name || '';
+    let pLast = dto.parent_last_name || '';
+    if (!pFirst && dto.parent_name) {
+      const parts = dto.parent_name.trim().split(' ');
+      pFirst = parts[0];
+      pLast = parts.slice(1).join(' ');
+    }
+    const parentFullName = `${pFirst} ${pLast}`.trim() || 'Parent User';
+
+    // 4. Atomic transaction for Lead Resolution + Application Creation
+    application = await prisma.$transaction(
+      async (tx) => {
+        let resolvedLead: any = null;
+
+        // Case A: Explicit targetLeadId supplied
+        if (targetLeadId) {
+          const lead = await tx.leads.findUnique({
+            where: { lead_id: targetLeadId },
           });
-          aygId = ayg?.academic_year_grade_id;
+          if (!lead) {
+            throw new ApplicationValidationError(`Lead ${targetLeadId} not found`);
+          }
+          if (lead.org_id !== safeOrgId) {
+            throw new ApplicationValidationError(
+              'Unauthorized: Lead belongs to a different organization',
+            );
+          }
+          if (performedBy && parentRecord) {
+            const isOwner =
+              lead.parent_id === parentRecord.parent_id || lead.created_by === performedBy;
+            if (!isOwner) {
+              throw new ApplicationValidationError(
+                'Unauthorized: You do not own this child profile',
+              );
+            }
+          }
+          resolvedLead = lead;
         }
-      }
-      if (!aygId) {
-        const ayg = await prisma.academic_year_grades.findFirst({
-          where: { academic_year_id: safeAcademicYearId, is_active: true },
-          select: { academic_year_grade_id: true },
-        });
-        aygId = ayg?.academic_year_grade_id;
-      }
-      if (!aygId) {
-        throw new ApplicationValidationError('Grade offering not found for academic year');
-      }
 
-      // Pre-transaction parent record resolution
-      let parentRecord: any = null;
-      if (performedBy) {
-        parentRecord = await prisma.parents.findUnique({
-          where: { user_id: performedBy },
-        });
-      }
-
-      // Pre-transaction duplicate application check
-      if (performedBy && sFirst) {
-        const existingChildApp = await prisma.admissions_applications.findFirst({
-          where: {
-            org_id: targetOrgId,
-            OR: [
-              { created_by: performedBy },
-              ...(parentRecord ? [{ leads: { parent_id: parentRecord.parent_id } }] : []),
-            ],
-            leads: {
+        // Case B: No targetLeadId, but parentRecord exists -> Deterministic child matching under Parent
+        if (!resolvedLead && parentRecord && sFirst) {
+          // B.1 Check for existing Lead explicitly matching this child
+          const matchingChildLead = await tx.leads.findFirst({
+            where: {
+              org_id: safeOrgId,
+              parent_id: parentRecord.parent_id,
               student_first_name: { equals: sFirst, mode: 'insensitive' },
               ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
               ...(validDob ? { dob: validDob } : {}),
             },
-          },
-          include: {
-            leads: true,
-            academic_years: true,
-            admission_documents: true,
-            application_assessments: true,
-            admission_decisions: true,
-            admission_fee_payments: true,
-          },
-          orderBy: { created_at: 'desc' },
-        });
+            orderBy: { created_at: 'asc' },
+          });
 
-        if (existingChildApp) {
-          logger.info(
-            `Child-specific duplicate check: Child "${sFirst}" already has application ${existingChildApp.application_id} for user ${performedBy}`,
-          );
-          return AdmissionMapper.toResponseDto(existingChildApp);
+          if (matchingChildLead) {
+            resolvedLead = matchingChildLead;
+          } else if (!(dto as any).is_new_child) {
+            // B.2 Check if parent has an unassigned / registration-created Lead to claim for this first child
+            const parentLeads = await tx.leads.findMany({
+              where: {
+                org_id: safeOrgId,
+                parent_id: parentRecord.parent_id,
+              },
+              include: {
+                admissions_applications: {
+                  select: { application_id: true, status: true },
+                },
+              },
+              orderBy: { created_at: 'asc' },
+            });
+
+            const unassignedLead = parentLeads.find((l) => {
+              const fn = (l.student_first_name || '').trim().toLowerCase();
+              const isPlaceholder =
+                ['applicant', 'student', ''].includes(fn) || fn.endsWith("'s ward");
+              const hasNoActiveApps =
+                !l.admissions_applications ||
+                l.admissions_applications.length === 0 ||
+                l.admissions_applications.every(
+                  (a) => (a.status as string) === 'draft' || (a.status as string) === 'withdrawn',
+                );
+              return isPlaceholder && hasNoActiveApps;
+            });
+
+            if (unassignedLead) {
+              // Update the registration lead with actual child details
+              resolvedLead = await tx.leads.update({
+                where: { lead_id: unassignedLead.lead_id },
+                data: {
+                  student_first_name: sFirst,
+                  student_last_name: sLast || undefined,
+                  dob: validDob || unassignedLead.dob,
+                  gender: (dto.gender?.toLowerCase() as any) || unassignedLead.gender,
+                  academic_year_grade_id: aygId || unassignedLead.academic_year_grade_id,
+                  stage: 'application_submitted' as any,
+                  updated_at: new Date(),
+                  updated_by: performedBy || undefined,
+                },
+              });
+            }
+          }
         }
-      }
 
-      let pFirst = dto.parent_first_name || '';
-      let pLast = dto.parent_last_name || '';
-      if (!pFirst && dto.parent_name) {
-        const parts = dto.parent_name.trim().split(' ');
-        pFirst = parts[0];
-        pLast = parts.slice(1).join(' ');
-      }
-      const parentFullName = `${pFirst} ${pLast}`.trim() || 'Parent User';
+        // Case C: No targetLeadId, unlinked parent but performedBy user exists
+        if (!resolvedLead && performedBy && sFirst) {
+          resolvedLead = await tx.leads.findFirst({
+            where: {
+              org_id: safeOrgId,
+              created_by: performedBy,
+              student_first_name: { equals: sFirst, mode: 'insensitive' },
+              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+              ...(validDob ? { dob: validDob } : {}),
+            },
+            orderBy: { created_at: 'asc' },
+          });
+        }
 
-      // Atomic write transaction (lean and fast)
-      application = await prisma.$transaction(
-        async (tx) => {
+        // Case D: Public / Anonymous submission matching by contact phone + child name
+        if (!resolvedLead && !performedBy && (dto.contact_phone || dto.parent_phone) && sFirst) {
+          resolvedLead = await tx.leads.findFirst({
+            where: {
+              org_id: safeOrgId,
+              contact_phone: dto.contact_phone || dto.parent_phone,
+              student_first_name: { equals: sFirst, mode: 'insensitive' },
+              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+              ...(validDob ? { dob: validDob } : {}),
+            },
+            orderBy: { created_at: 'asc' },
+          });
+        }
+
+        // If lead was found: preserve lead identity and update stage to application_submitted
+        if (resolvedLead) {
+          if (resolvedLead.stage !== 'application_submitted' && resolvedLead.stage !== 'enrolled') {
+            await tx.leads.update({
+              where: { lead_id: resolvedLead.lead_id },
+              data: {
+                stage: 'application_submitted' as any,
+                updated_at: new Date(),
+                updated_by: performedBy || undefined,
+              },
+            });
+          }
+        } else {
+          // If lead NOT found: create new Lead for this child under parent
           const year = new Date().getFullYear();
-
-          // Fast deterministic lead number from latest allocated sequence
           const lastLead = await tx.leads.findFirst({
             where: { lead_number: { startsWith: `LEAD-${year}-` } },
             orderBy: { lead_number: 'desc' },
@@ -283,9 +319,9 @@ export class AdmissionService {
           }
           const leadNumber = `LEAD-${year}-${String(nextLeadSeq).padStart(5, '0')}`;
 
-          const newLead = await tx.leads.create({
+          resolvedLead = await tx.leads.create({
             data: {
-              org_id: targetOrgId!,
+              org_id: safeOrgId,
               lead_number: leadNumber,
               academic_year_grade_id: aygId!,
               student_first_name: sFirst,
@@ -304,47 +340,49 @@ export class AdmissionService {
               created_by: performedBy || undefined,
             },
           });
+        }
 
-          // Fast deterministic application number from latest allocated sequence
-          const lastApp = await tx.admissions_applications.findFirst({
-            where: { application_number: { startsWith: `APP-${year}-` } },
-            orderBy: { application_number: 'desc' },
-            select: { application_number: true },
-          });
-          let nextAppSeq = 1;
-          if (lastApp?.application_number) {
-            const match = lastApp.application_number.match(/(\d+)$/);
-            if (match) nextAppSeq = parseInt(match[1], 10) + 1;
-          }
-          const applicationNumber = `APP-${year}-${String(nextAppSeq).padStart(5, '0')}`;
+        // Generate application number
+        const year = new Date().getFullYear();
+        const lastApp = await tx.admissions_applications.findFirst({
+          where: { application_number: { startsWith: `APP-${year}-` } },
+          orderBy: { application_number: 'desc' },
+          select: { application_number: true },
+        });
+        let nextAppSeq = 1;
+        if (lastApp?.application_number) {
+          const match = lastApp.application_number.match(/(\d+)$/);
+          if (match) nextAppSeq = parseInt(match[1], 10) + 1;
+        }
+        const applicationNumber = `APP-${year}-${String(nextAppSeq).padStart(5, '0')}`;
 
-          const newApp = await tx.admissions_applications.create({
-            data: {
-              lead_id: newLead.lead_id,
-              org_id: targetOrgId!,
-              academic_year_id: safeAcademicYearId!,
-              application_number: applicationNumber,
-              application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
-              status: dto.status || application_status.submitted,
-              created_by: performedBy || undefined,
-              nationality: dto.nationality || undefined,
-              previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
-              previous_school_address: dto.previous_school_address || undefined,
-              previous_school_board: dto.previous_school_board || undefined,
-              previous_grade: dto.previous_grade || undefined,
-              previous_school_year: dto.previous_school_year || undefined,
-            } as any,
-            include: {
-              leads: true,
-              academic_years: true,
-            },
-          });
+        // Create the application linked to resolvedLead.lead_id
+        const newApp = await tx.admissions_applications.create({
+          data: {
+            lead_id: resolvedLead.lead_id,
+            org_id: safeOrgId,
+            academic_year_id: safeAcademicYearId,
+            application_number: applicationNumber,
+            application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
+            status: dto.status || application_status.submitted,
+            created_by: performedBy || undefined,
+            nationality: dto.nationality || undefined,
+            previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
+            previous_school_address: dto.previous_school_address || undefined,
+            previous_school_board: dto.previous_school_board || undefined,
+            previous_grade: dto.previous_grade || undefined,
+            previous_school_year: dto.previous_school_year || undefined,
+          } as any,
+          include: {
+            leads: true,
+            academic_years: true,
+          },
+        });
 
-          return newApp;
-        },
-        { maxWait: 5000, timeout: 10000 },
-      );
-    }
+        return newApp;
+      },
+      { maxWait: 5000, timeout: 10000 },
+    );
 
     logger.info(`Admission application created: ${application.application_id}`, {
       applicationId: application.application_id,
