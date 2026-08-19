@@ -1,24 +1,11 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import translationEN from './locales/en/translation.json';
-import translationTE from './locales/te/translation.json';
+import { applyDocumentLanguage, getInitialLanguage } from './direction';
+import { translationManager } from '@/services/translation';
 
-const resources = {
-    en: {
-        translation: translationEN,
-    },
-    te: {
-        translation: translationTE,
-    },
-};
+// Initialize document language and enforce strict LTR on startup
+const initialLang = getInitialLanguage();
+applyDocumentLanguage(initialLang);
 
-i18n.use(initReactI18next).init({
-    resources,
-    lng: localStorage.getItem('erp-language') || 'en',
-    fallbackLng: 'en',
-    interpolation: {
-        escapeValue: false,
-    },
-});
-
-export default i18n;
+export * from './config/languages';
+export * from './direction';
+export { translationManager };
+export default translationManager;

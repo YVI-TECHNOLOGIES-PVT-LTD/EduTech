@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Sparkles, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -128,18 +129,19 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
         </nav>
 
         {/* 3. RIGHT: Authentication Action Controls */}
-        <div className="hidden sm:flex items-center space-x-3">
+        <div className="hidden sm:flex items-center gap-3">
+          <LanguageSwitcher variant="compact" />
           <ThemeSwitcher className="text-emerald-100/80 hover:text-white hover:bg-white/10" />
 
           {isAuthenticated ? (
             <Button
               onClick={() => navigate(portalRedirectPath)}
               size="sm"
-              className="h-9 px-4 text-xs font-extrabold rounded-xl bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] shadow-md flex items-center space-x-1.5 transition-all active:scale-[0.98]"
+              className="h-9 px-4 text-xs font-extrabold rounded-xl bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] shadow-md flex items-center gap-1.5 transition-all active:scale-[0.98]"
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Go to Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           ) : (
             <>
@@ -162,7 +164,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
                 <Button
                   size="sm"
                   className={cn(
-                    'h-9 px-4 text-xs font-extrabold rounded-xl bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] shadow-md transition-all flex items-center space-x-1.5 active:scale-[0.98]',
+                    'h-9 px-4 text-xs font-extrabold rounded-xl bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] shadow-md transition-all flex items-center gap-1.5 active:scale-[0.98]',
                     isRegisterActive && 'ring-2 ring-[#E7B76A]/50',
                   )}
                 >
@@ -174,8 +176,9 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
           )}
         </div>
 
-        {/* 4. MOBILE: Hamburger Menu Toggle Button */}
-        <div className="flex md:hidden items-center space-x-1">
+        {/* 4. MOBILE: Language Switcher & Hamburger Menu Toggle Button */}
+        <div className="flex md:hidden items-center gap-1.5">
+          <LanguageSwitcher variant="compact" />
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
             className="p-2 text-white hover:text-[#E7B76A] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E7B76A]"

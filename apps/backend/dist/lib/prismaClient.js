@@ -14,14 +14,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 // ── Singleton factory ────────────────────────────────────────────────────────
-const prisma = global.__prisma ??
+const prisma = globalThis.__prisma ??
     new client_1.PrismaClient({
-        log: process.env.NODE_ENV === 'development'
-            ? ['query', 'info', 'warn', 'error']
-            : ['warn', 'error'],
+        log: ['warn', 'error'],
     });
 // Persist across hot-reloads in development only
 if (process.env.NODE_ENV !== 'production') {
-    global.__prisma = prisma;
+    globalThis.__prisma = prisma;
 }
 exports.default = prisma;

@@ -88,4 +88,71 @@ export class LeadActivityRepository {
       where: { activity_id },
     });
   }
+
+  static async findFollowUpsDue(params: {
+    org_id?: string;
+    staff_id?: string;
+    date?: string;
+    status?: activity_status;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const where: any = {
+      next_followup_date: { not: null },
+    };
+
+    if (params.org_id) {
+      where.leads = { org_id: params.org_id };
+    }
+
+    if (params.status) {
+      where.status = params.status;
+    } else {
+      where.status = { in: [activity_status.scheduled, activity_status.completed] };
+    }
+
+    if (params.date) {
+      where.next_followup_date = { lte: new Date(params.date) };
+    }
+
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 20;
+
+    const [total, items] = await Promise.all([
+      prisma.lead_activities.count({ where }),
+      prisma.lead_activities.findMany({
+        where,
+        include: {
+          leads: {
+            include: {
+              academic_year_grades: {
+                include: {
+                  grades: true,
+                },
+              },
+            },
+          },
+          users_lead_activities_created_byTousers: {
+            select: {
+              user_id: true,
+              first_name: true,
+              last_name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { next_followup_date: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    return {
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      items,
+    };
+  }
 }

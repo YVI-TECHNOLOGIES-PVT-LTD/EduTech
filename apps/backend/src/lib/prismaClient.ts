@@ -21,17 +21,14 @@ declare global {
 
 // ── Singleton factory ────────────────────────────────────────────────────────
 const prisma: PrismaClient =
-  global.__prisma ??
+  globalThis.__prisma ??
   new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'info', 'warn', 'error']
-        : ['warn', 'error'],
+    log: ['warn', 'error'],
   });
 
 // Persist across hot-reloads in development only
 if (process.env.NODE_ENV !== 'production') {
-  global.__prisma = prisma;
+  globalThis.__prisma = prisma;
 }
 
 export default prisma;

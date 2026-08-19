@@ -78,6 +78,8 @@ export class LeadVisitController {
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const pageSize = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
 
+      const searchStr = (req.query.search as string) || (req.query.searchText as string) || undefined;
+
       const result = await LeadVisitService.getQueue({
         org_id: orgId,
         staff_id,
@@ -85,6 +87,7 @@ export class LeadVisitController {
         status: statusStr as visit_status,
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
+        search: searchStr,
         page,
         pageSize,
       });

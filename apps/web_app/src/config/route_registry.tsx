@@ -19,6 +19,7 @@ import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
 import { ApplicationsManagementPage } from '../modules/admission/pages/front-office/ApplicationsManagementPage';
 import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
 import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
+import { CampusVisitsPage } from '../modules/admission/pages/front-office/CampusVisitsPage';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 
@@ -71,6 +72,8 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
 
   // CORE DASHBOARDS
   { path: 'dashboard', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'front-office', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
+  { path: 'front-office/dashboard', element: <SchoolOperationsWorkspace />, layout: 'dashboard' },
 
   {
     path: 'student/dashboard',
@@ -198,9 +201,39 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'admissions/interviews',
-    element: <WorkspaceDashboard />,
+    element: <CampusVisitsPage />,
     layout: 'admission_workspace',
-    permissions: ['admission.review', 'admission.interview.manage', 'admission.interview.evaluate'],
+    permissions: [
+      'admission.review',
+      'admission.interview.manage',
+      'admission.interview.evaluate',
+      'admission.enquiry.view',
+      'admission.leads.manage',
+    ],
+  },
+  {
+    path: 'admissions/visits',
+    element: <CampusVisitsPage />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.interview.manage',
+      'admission.interview.evaluate',
+      'admission.enquiry.view',
+      'admission.leads.manage',
+    ],
+  },
+  {
+    path: 'front-office/visits',
+    element: <CampusVisitsPage />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.interview.manage',
+      'admission.interview.evaluate',
+      'admission.enquiry.view',
+      'admission.leads.manage',
+    ],
   },
   {
     path: 'admissions/merit',

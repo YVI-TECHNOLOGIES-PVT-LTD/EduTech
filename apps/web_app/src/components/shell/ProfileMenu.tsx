@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/context/LanguageContext';
 import { User, LogOut, Settings, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const ProfileMenu: React.FC = () => {
+  const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -82,29 +84,29 @@ export const ProfileMenu: React.FC = () => {
           className="text-xs font-semibold cursor-pointer rounded-xl"
         >
           <User className="w-4 h-4 mr-2 text-slate-400" />
-          User Profile
+          {t('common.profile', 'User Profile')}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => navigate('/app/admissions/my')}
           className="text-xs font-semibold cursor-pointer rounded-xl"
         >
           <FileText className="w-4 h-4 mr-2 text-slate-400" />
-          My Applications
+          {t('navigation.myApplications', 'My Applications')}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => navigate('/app/settings')}
           className="text-xs font-semibold cursor-pointer rounded-xl"
         >
           <Settings className="w-4 h-4 mr-2 text-slate-400" />
-          Settings
+          {t('common.settings', 'Settings')}
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-slate-100" />
+        <DropdownMenuSeparator className="bg-slate-100 dark:bg-zinc-800" />
         <DropdownMenuItem
           onClick={() => signOut()}
           className="text-xs font-bold text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer rounded-xl"
         >
           <LogOut className="w-4 h-4 mr-2 text-red-500" />
-          Sign Out
+          {t('common.logout', 'Sign Out')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

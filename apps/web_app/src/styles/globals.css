@@ -13,8 +13,8 @@
 @tailwind utilities;
 
 :root {
-  /* Typography Tokens */
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Typography Tokens (Primary: Plus Jakarta Sans with Arabic & Indic font fallbacks) */
+  --font-sans: "Plus Jakarta Sans", "Noto Sans Arabic", "Noto Sans Telugu", "Noto Sans Devanagari", "Noto Sans Tamil", "Noto Sans Kannada", "Noto Sans Malayalam", "Segoe UI", Roboto, Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --foreground-rgb: 15, 23, 42;
@@ -371,6 +371,20 @@ textarea {
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 1rem);
 }
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 1rem);
+/* Localized RTL Text Handling for Arabic / Urdu Content (Within Strict LTR Shell) */
+.rtl-text,
+[dir="rtl"] {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  text-align: start;
 }
+
+/* Technical Identifier & Numerical LTR Preserver (Always LTR) */
+.font-mono,
+.ltr-isolate,
+[data-ltr="true"],
+[dir="ltr"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}

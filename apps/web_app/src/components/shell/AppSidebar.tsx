@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/context/LanguageContext';
 import { Sparkles, ChevronDown, User, LogOut, Settings, Building } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getNavigationForUser, NavigationGroup, NavigationItem } from '@/config/navigation';
@@ -36,6 +37,7 @@ interface AppSidebarProps {
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
+  const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -94,6 +96,31 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
   const homeUrl = navGroups[0]?.items[0]?.url || '/app/workspace';
 
+  const getNavTitle = (item: { id?: string; title: string }) => {
+    const idMap: Record<string, string> = {
+      p_dashboard: 'common.dashboard',
+      p_my: 'navigation.myApplications',
+      p_wizard: 'navigation.applicationWizard',
+      p_docs: 'navigation.documentCenter',
+      p_fees: 'navigation.paymentHistory',
+      fo_command: 'navigation.commandCenter',
+      fo_inquiries: 'navigation.inquiries',
+      fo_applications: 'navigation.applicationsQueue',
+      fo_verification: 'navigation.documentVerification',
+      fo_fees: 'navigation.feeCollection',
+      fo_visits: 'navigation.interviews',
+      admin_overview: 'navigation.overview',
+      admin_school: 'navigation.schoolSetup',
+      admin_staff: 'navigation.staffManagement',
+      admin_roles: 'navigation.rolePermissions',
+    };
+
+    if (item.id && idMap[item.id]) {
+      return t(idMap[item.id], item.title);
+    }
+    return item.title;
+  };
+
   return (
     <Sidebar collapsible="icon" className={className}>
       {/* 1. Header with EduTrack Logo & Context Label */}
@@ -135,6 +162,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                   const Icon = item.icon || Building;
                   const active = isItemActive(item);
                   const hasSubItems = Boolean(item.items && item.items.length > 0);
+                  const itemTitle = getNavTitle(item);
 
                   if (hasSubItems) {
                     return (
@@ -145,7 +173,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                         <SidebarMenuButton
                           render={<Link to={item.url} />}
                           isActive={active}
-                          tooltip={item.title}
+                          tooltip={itemTitle}
                           className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
                             active
                               ? 'bg-black text-white dark:bg-white dark:text-black shadow-md hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
@@ -156,7 +184,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                             <Icon
                               className={`w-4 h-4 shrink-0 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
                             />
-                            {!isCollapsed && <span>{item.title}</span>}
+                            {!isCollapsed && <span>{itemTitle}</span>}
                           </div>
                           {!isCollapsed && (
                             <ChevronDown
@@ -166,11 +194,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                         </SidebarMenuButton>
 
                         {!isCollapsed && (
-                          <SidebarMenuSub className="ml-4 border-l border-sidebar-border pl-2 my-1 space-y-1">
+                          <SidebarMenuSub className="ms-4 border-s border-sidebar-border ps-2 my-1 space-y-1">
                             {item.items!.map((subItem) => {
                               const subActive =
                                 currentPath === subItem.url || currentPath.startsWith(subItem.url);
                               const SubIcon = subItem.icon || Building;
+                              const subTitle = getNavTitle(subItem);
 
                               return (
                                 <SidebarMenuSubItem key={subItem.id}>
@@ -186,7 +215,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                                     <SubIcon
                                       className={`w-3.5 h-3.5 ${subActive ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
                                     />
-                                    <span>{subItem.title}</span>
+                                    <span>{subTitle}</span>
                                   </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
                               );
@@ -205,8 +234,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                       <SidebarMenuButton
                         render={<Link to={item.url} />}
                         isActive={active}
-                        tooltip={item.title}
-                        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
+                        tooltip={itemTitle}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
                           active
                             ? 'bg-black text-white dark:bg-white dark:text-black shadow-md hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -215,7 +244,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                         <Icon
                           className={`w-4 h-4 shrink-0 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
                         />
-                        {!isCollapsed && <span>{item.title}</span>}
+                        {!isCollapsed && <span>{itemTitle}</span>}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -226,24 +255,28 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
         ))}
       </SidebarContent>
 
-      {/* 3. Footer with User Profile Dropdown */}
-      <SidebarFooter className="p-3 border-t border-sidebar-border group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+      {/* 3. Footer with Profile Menu & Theme */}
+      <SidebarFooter className="p-2 border-t border-sidebar-border">
         <DropdownMenu>
-          <DropdownMenuTrigger className="w-full flex items-center justify-between p-2 rounded-2xl hover:bg-sidebar-accent transition-colors focus:outline-none text-left cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
-            <div className="flex items-center space-x-2.5 min-w-0 group-data-[collapsible=icon]:justify-center">
-              <Avatar className="w-8 h-8 border border-indigo-200 shrink-0">
-                <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-xs">
+          <DropdownMenuTrigger
+            className={`w-full flex items-center gap-3 p-2 rounded-2xl hover:bg-sidebar-accent transition-all cursor-pointer text-start ${
+              isCollapsed ? 'justify-center' : 'justify-between'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar className="w-8 h-8 rounded-xl border border-sidebar-border shrink-0">
+                <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground font-black text-xs">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
 
               {!isCollapsed && (
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-sidebar-foreground truncate">
+                <div className="flex flex-col min-w-0 text-start">
+                  <span className="text-xs font-black text-sidebar-foreground truncate">
                     {displayName}
                   </span>
-                  <span className="text-[9px] font-bold text-sidebar-foreground/50 truncate">
-                    {user?.email || 'user@edutrack.com'}
+                  <span className="text-[10px] font-bold text-sidebar-foreground/60 truncate font-mono">
+                    {user?.email || 'authenticated'}
                   </span>
                 </div>
               )}
@@ -256,7 +289,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
           <DropdownMenuContent
             align="end"
-            className="w-56 rounded-2xl border-sidebar-border p-1.5 shadow-xl"
+            className="w-56 rounded-2xl border-sidebar-border p-1.5 shadow-xl bg-white dark:bg-black"
           >
             <DropdownMenuLabel className="px-3 py-2">
               <p className="text-xs font-bold text-sidebar-foreground">{displayName}</p>
@@ -269,23 +302,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
               onClick={() => navigate('/app/profile')}
               className="text-xs font-semibold cursor-pointer rounded-xl"
             >
-              <User className="w-4 h-4 mr-2 text-sidebar-foreground/60" />
-              User Profile
+              <User className="w-4 h-4 me-2 text-sidebar-foreground/60" />
+              {t('common.profile', 'User Profile')}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate('/app/settings')}
               className="text-xs font-semibold cursor-pointer rounded-xl"
             >
-              <Settings className="w-4 h-4 mr-2 text-sidebar-foreground/60" />
-              Settings
+              <Settings className="w-4 h-4 me-2 text-sidebar-foreground/60" />
+              {t('common.settings', 'Settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => signOut()}
               className="text-xs font-bold text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer rounded-xl"
             >
-              <LogOut className="w-4 h-4 mr-2 text-red-500" />
-              Sign Out
+              <LogOut className="w-4 h-4 me-2 text-red-500" />
+              {t('common.logout', 'Sign Out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

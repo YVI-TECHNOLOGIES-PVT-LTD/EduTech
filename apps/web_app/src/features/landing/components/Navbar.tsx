@@ -4,7 +4,7 @@ import { Sparkles, Search, Globe, Menu, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CommandPalette } from '@/components/search/CommandPalette';
 import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
-import i18n from '@/i18n';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface NavbarProps {
   onEnquireClick?: () => void;
@@ -15,7 +15,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState(i18n.language || 'en');
+  const { language, setLanguage, supportedLanguages } = useLanguage();
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -32,10 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
   }, []);
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLang = e.target.value;
-    i18n.changeLanguage(newLang);
-    setCurrentLang(newLang);
-    localStorage.setItem('erp-language', newLang);
+    setLanguage(e.target.value);
   };
 
   const handleEnquire = () => {
@@ -50,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
     <>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative z-30">
         {/* School Logo */}
-        <Link to="/" className="flex items-center space-x-2.5 group">
+        <Link to="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-2xl bg-[#E7B76A] text-[#063F40] flex items-center justify-center font-black text-sm shadow-md group-hover:scale-105 transition-transform">
             <Sparkles className="w-5 h-5 text-[#063F40]" />
           </div>
@@ -60,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <div className="hidden lg:flex items-center space-x-6 text-xs font-bold text-emerald-100/80">
+        <div className="hidden lg:flex items-center gap-6 text-xs font-bold text-emerald-100/80">
           <Link
             to="/about"
             className={
@@ -124,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
         </div>
 
         {/* Desktop Utility Controls & Primary CTA */}
-        <div className="hidden md:flex items-center space-x-3">
+        <div className="hidden md:flex items-center gap-3">
           {/* Theme Switcher */}
           <ThemeSwitcher className="text-emerald-100/80 hover:text-white hover:bg-white/10" />
 
@@ -140,15 +137,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
 
           {/* Language Selector */}
           <div className="relative flex items-center">
-            <Globe className="w-3.5 h-3.5 text-emerald-200/60 absolute left-2.5 pointer-events-none" />
+            <Globe className="w-3.5 h-3.5 text-emerald-200/60 absolute start-2.5 pointer-events-none" />
             <select
-              value={currentLang}
+              value={language}
               onChange={handleLanguageChange}
-              className="h-8 pl-7 pr-2 text-xs font-bold bg-[#082F35] border border-white/15 text-emerald-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#E7B76A] cursor-pointer"
+              translate="no"
+              className="h-8 ps-7 pe-2 text-xs font-bold bg-[#082F35] border border-white/15 text-emerald-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#E7B76A] cursor-pointer notranslate"
               aria-label="Language Selector"
             >
-              <option value="en">English (EN)</option>
-              <option value="te">Telugu (TE)</option>
+              {Object.values(supportedLanguages).map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.nativeName}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -166,7 +167,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
           <Button
             onClick={() => navigate('/admission/register')}
             size="sm"
-            className="h-9 px-4 text-xs font-bold rounded-xl bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center space-x-1.5"
+            className="h-9 px-4 text-xs font-bold rounded-xl bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center gap-1.5"
           >
             <span>Apply Now</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -174,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
         </div>
 
         {/* Mobile Hamburger Toggle Button */}
-        <div className="flex md:hidden items-center space-x-2">
+        <div className="flex md:hidden items-center gap-2">
           <button
             onClick={() => setIsSearchOpen(true)}
             className="p-2 text-[#E7B76A] hover:text-white"
@@ -243,12 +244,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
                 Language
               </span>
               <select
-                value={currentLang}
+                value={language}
                 onChange={handleLanguageChange}
-                className="h-8 px-3 text-xs font-bold bg-slate-900 border border-slate-800 text-slate-200 rounded-lg"
+                translate="no"
+                className="h-8 px-3 text-xs font-bold bg-slate-900 border border-slate-800 text-slate-200 rounded-lg notranslate"
               >
-                <option value="en">English (EN)</option>
-                <option value="te">Telugu (TE)</option>
+                {Object.values(supportedLanguages).map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.nativeName}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -259,7 +264,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
                 setIsMobileOpen(false);
                 navigate('/admission/register');
               }}
-              className="w-full h-11 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex items-center justify-center space-x-2"
+              className="w-full h-11 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex items-center justify-center gap-2"
             >
               <span>Apply Now</span>
               <ArrowRight className="w-4 h-4" />
@@ -285,3 +290,4 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
 };
 
 export default Navbar;
+

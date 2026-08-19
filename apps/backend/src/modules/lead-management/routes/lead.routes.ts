@@ -65,7 +65,12 @@ leadRouter.post(
   LeadController.convert,
 );
 
-// Lead Activities & Timeline
+// Lead Activities & Timeline & Follow-ups Due
+leadRouter.get(
+  '/followups/due',
+  checkPermission(LeadPolicy.canView()),
+  LeadActivityController.getDueFollowUps,
+);
 leadRouter.post(
   '/:id/activities',
   checkPermission(LeadPolicy.canUpdate()),

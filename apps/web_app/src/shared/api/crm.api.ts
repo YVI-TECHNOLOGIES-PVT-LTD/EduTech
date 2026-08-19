@@ -137,6 +137,21 @@ export interface LeadActivityItem {
     last_name?: string;
     email?: string;
   } | null;
+  leads?: {
+    lead_id: string;
+    lead_number?: string;
+    student_first_name?: string;
+    student_last_name?: string | null;
+    contact_name?: string;
+    contact_phone?: string;
+    student_name?: string;
+  } | null;
+  lead?: {
+    lead_id?: string;
+    lead_number?: string;
+    student_name?: string;
+    contact_phone?: string;
+  } | null;
 }
 
 export interface LeadVisitItem {
@@ -158,6 +173,69 @@ export interface LeadVisitItem {
       email?: string;
     };
   } | null;
+  leads?: {
+    lead_id: string;
+    lead_number: string;
+    student_first_name: string;
+    student_last_name?: string | null;
+    contact_name: string;
+    contact_phone: string;
+    contact_email?: string | null;
+    academic_year_grades?: {
+      grades?: {
+        grade_name: string;
+      };
+      academic_years?: {
+        academic_year_name: string;
+      };
+    };
+  } | null;
+  lead?: {
+    lead_id?: string;
+    lead_number?: string;
+    student_name?: string;
+    student_first_name?: string;
+    student_last_name?: string | null;
+    contact_name?: string;
+    contact_phone?: string;
+  } | null;
+}
+
+export interface SearchVisitParams {
+  search?: string;
+  searchText?: string;
+  visit_type?: VisitType | string;
+  type?: string;
+  status?: VisitStatus | string;
+  staff_id?: string;
+  counsellor_id?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedVisitsResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  items: LeadVisitItem[];
+  metrics?: {
+    today: number;
+    upcoming: number;
+    completed: number;
+    cancelledOrNoShow: number;
+  };
+}
+
+export interface PaginatedFollowUpsResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  items: LeadActivityItem[];
 }
 
 export interface DuplicateCheckResponse {
@@ -175,8 +253,24 @@ export interface DuplicateCheckResponse {
   }>;
 }
 
+export interface LeadDashboardData {
+  total_leads: number;
+  today_leads: number;
+  qualified_leads: number;
+  lost_leads: number;
+  converted_leads: number;
+  pending_followups: number;
+  leads_by_source: Record<string, number>;
+  leads_by_status: Record<string, number>;
+}
+
 export const crmApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getLeadDashboard: builder.query<LeadDashboardData, void>({
+      query: () => `${ENDPOINTS.CRM.LEADS}/dashboard`,
+      providesTags: [{ type: 'Lead', id: 'DASHBOARD' }],
+    }),
+
     getLeads: builder.query<PaginatedLeadsResponse, SearchLeadParams | void>({
       query: (params) => ({
         url: ENDPOINTS.CRM.LEADS,
@@ -289,6 +383,7 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
+        { type: 'LeadActivity', id: 'DUE_LIST' },
         { type: 'Lead', id: leadId },
       ],
     }),
@@ -304,6 +399,7 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
+        { type: 'LeadActivity', id: 'DUE_LIST' },
       ],
     }),
 
@@ -317,6 +413,7 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
+        { type: 'LeadActivity', id: 'DUE_LIST' },
       ],
     }),
 
@@ -347,7 +444,9 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { lead_id }) => [
         { type: 'CampusVisit', id: `LEAD_${lead_id}` },
+        { type: 'CampusVisit', id: 'LIST' },
         { type: 'LeadActivity', id: `LEAD_${lead_id}` },
+        { type: 'LeadActivity', id: 'DUE_LIST' },
         { type: 'Lead', id: lead_id },
       ],
     }),
@@ -371,7 +470,9 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'CampusVisit', id: `LEAD_${leadId}` },
+        { type: 'CampusVisit', id: 'LIST' },
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
+        { type: 'LeadActivity', id: 'DUE_LIST' },
         { type: 'Lead', id: leadId },
       ],
     }),
@@ -383,16 +484,37 @@ export const crmApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'CampusVisit', id: `LEAD_${leadId}` },
+        { type: 'CampusVisit', id: 'LIST' },
         { type: 'Lead', id: leadId },
       ],
     }),
 
-    getCampusVisits: builder.query<any, any>({
+    getCampusVisits: builder.query<PaginatedVisitsResponse, SearchVisitParams | void>({
       query: (params) => ({
         url: ENDPOINTS.CRM.CAMPUS_VISITS,
-        params,
+        params: params || {},
       }),
-      providesTags: ['CampusVisit'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ visit_id }) => ({
+                type: 'CampusVisit' as const,
+                id: visit_id,
+              })),
+              { type: 'CampusVisit', id: 'LIST' },
+            ]
+          : [{ type: 'CampusVisit', id: 'LIST' }],
+    }),
+
+    getDueFollowUps: builder.query<
+      PaginatedFollowUpsResponse,
+      { date?: string; status?: ActivityStatus; page?: number; limit?: number } | void
+    >({
+      query: (params) => ({
+        url: `${ENDPOINTS.CRM.LEADS}/followups/due`,
+        params: params || {},
+      }),
+      providesTags: [{ type: 'LeadActivity', id: 'DUE_LIST' }],
     }),
 
     checkDuplicates: builder.query<
@@ -408,6 +530,7 @@ export const crmApi = apiSlice.injectEndpoints({
 });
 
 export const {
+  useGetLeadDashboardQuery,
   useGetLeadsQuery,
   useGetLeadByIdQuery,
   useCreateLeadMutation,
@@ -422,6 +545,7 @@ export const {
   useDeleteLeadActivityMutation,
   useGetLeadVisitsQuery,
   useGetCampusVisitsQuery,
+  useGetDueFollowUpsQuery,
   useScheduleVisitMutation,
   useUpdateVisitStatusMutation,
   useDeleteVisitMutation,

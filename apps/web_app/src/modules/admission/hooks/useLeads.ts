@@ -42,8 +42,9 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
   }, [leadsQuery.data]);
 
   const visitors = useMemo(() => {
+    if (!visitsQuery.data) return [];
     if (Array.isArray(visitsQuery.data)) return visitsQuery.data;
-    return visitsQuery.data?.items || visitsQuery.data?.data || [];
+    return visitsQuery.data.items || [];
   }, [visitsQuery.data]);
 
   return {

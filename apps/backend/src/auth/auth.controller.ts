@@ -15,8 +15,48 @@ export class AuthController {
       const result = await AuthService.login(email, userPassword);
       return res.json(result);
     } catch (err: any) {
-      console.error('[AuthController] Login Exception:', err.message || err);
-      return res.status(401).json({ error: err.message || 'Invalid login credentials' });
+      const errMsg = err?.message || String(err);
+      console.error('[AuthController] Login Exception:', errMsg);
+
+      // Check for Database / Infrastructure / Prisma connection failures
+      const isDbError =
+        err?.name === 'PrismaClientInitializationError' ||
+        err?.name === 'PrismaClientRustPanicError' ||
+        err?.name === 'PrismaClientUnknownRequestError' ||
+        errMsg.includes('FATAL') ||
+        errMsg.includes('connection slots') ||
+        errMsg.includes('max clients') ||
+        errMsg.includes('ECONNREFUSED') ||
+        errMsg.includes('ETIMEDOUT') ||
+        errMsg.includes('Can\'t reach database server') ||
+        errMsg.includes('database server was not found') ||
+        errMsg.includes('Invalid `prisma.');
+
+      if (isDbError) {
+        return res.status(503).json({
+          error: 'Sign-in is temporarily unavailable. Please try again in a moment.',
+          code: 'SERVICE_UNAVAILABLE',
+        });
+      }
+
+      if (errMsg.includes('Account is currently') || errMsg.includes('Access denied')) {
+        return res.status(403).json({
+          error: errMsg,
+          code: 'ACCOUNT_STATUS_FORBIDDEN',
+        });
+      }
+
+      if (errMsg.includes('User has no password set')) {
+        return res.status(400).json({
+          error: errMsg,
+          code: 'NO_PASSWORD_SET',
+        });
+      }
+
+      return res.status(401).json({
+        error: 'Invalid login credentials',
+        code: 'INVALID_CREDENTIALS',
+      });
     }
   }
 

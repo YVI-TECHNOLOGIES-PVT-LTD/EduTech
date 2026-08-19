@@ -96,4 +96,30 @@ export class LeadActivityController {
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
+
+  static async getDueFollowUps(req: Request, res: Response) {
+    try {
+      const user = req.context?.user;
+      const orgId = user?.org_id || user?.school_id || (req.query.org_id as string) || undefined;
+      const dateStr = req.query.date as string;
+      const statusStr = req.query.status as any;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const pageSize = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+
+      const result = await LeadActivityService.getDueFollowUps({
+        org_id: orgId,
+        date: dateStr,
+        status: statusStr,
+        page,
+        pageSize,
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      if (error instanceof LeadError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
 }

@@ -437,13 +437,20 @@ exports.router.get('/public/admission/grades', async (req, res) => {
 // so there is exactly ONE implementation — no dual-implementation risk.
 const admissionConfigHandler = async (req, res) => {
     try {
-        const targetOrgId = (req.query.school_id ||
-            req.query.org_id ||
-            req.context?.user?.org_id ||
-            req.context?.user?.school_id) || '';
+        const rawSchoolId = (req.query.school_id || req.query.org_id);
+        const cleanSchoolId = typeof rawSchoolId === 'string' &&
+            rawSchoolId.trim() !== '' &&
+            rawSchoolId !== 'undefined' &&
+            rawSchoolId !== 'null'
+            ? rawSchoolId.trim()
+            : '';
+        const targetOrgId = cleanSchoolId ||
+            (req.context?.user?.org_id || req.context?.user?.school_id) ||
+            '';
         const schools = await prismaClient_1.default.organizations.findMany({
             where: { status: 'active' },
             select: { org_id: true, org_name: true, org_code: true },
+            orderBy: { org_name: 'asc' },
         });
         let activeYear = null;
         if (targetOrgId) {
@@ -492,7 +499,11 @@ const admissionConfigHandler = async (req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('[admissionConfigHandler] Error:', error?.message || error);
+        res.status(503).json({
+            error: 'Admission configuration is temporarily unavailable. Please try again.',
+            code: 'SERVICE_UNAVAILABLE',
+        });
     }
 };
 // Consolidated public configuration for admissions (versioned metadata)

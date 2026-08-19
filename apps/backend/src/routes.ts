@@ -495,15 +495,26 @@ router.get('/public/admission/grades', async (req: Request, res: Response) => {
 // so there is exactly ONE implementation — no dual-implementation risk.
 const admissionConfigHandler = async (req: Request, res: Response): Promise<void> => {
   try {
+    const rawSchoolId = (req.query.school_id || req.query.org_id) as string | undefined;
+    const cleanSchoolId =
+      typeof rawSchoolId === 'string' &&
+      rawSchoolId.trim() !== '' &&
+      rawSchoolId !== 'undefined' &&
+      rawSchoolId !== 'null'
+        ? rawSchoolId.trim()
+        : '';
+
     const targetOrgId =
-      ((req.query.school_id ||
-        req.query.org_id ||
-        req.context?.user?.org_id ||
-        req.context?.user?.school_id) as string) || '';
+      cleanSchoolId ||
+      ((req.context?.user?.org_id || req.context?.user?.school_id) as string) ||
+      '';
+
     const schools = await prisma.organizations.findMany({
       where: { status: 'active' },
       select: { org_id: true, org_name: true, org_code: true },
+      orderBy: { org_name: 'asc' },
     });
+
     let activeYear = null;
     if (targetOrgId) {
       const yr = await prisma.academic_years.findFirst({
@@ -513,6 +524,7 @@ const admissionConfigHandler = async (req: Request, res: Response): Promise<void
       });
       if (yr) activeYear = { id: yr.academic_year_id, year_label: yr.academic_year_name };
     }
+
     const grades = targetOrgId
       ? await prisma.grades.findMany({
           where: { org_id: targetOrgId, is_active: true },
@@ -529,6 +541,7 @@ const admissionConfigHandler = async (req: Request, res: Response): Promise<void
           },
         })
       : [];
+
     res.json({
       version: new Date().toISOString(),
       schools: schools.map((s) => ({ id: s.org_id, name: s.org_name, code: s.org_code })),
@@ -549,7 +562,11 @@ const admissionConfigHandler = async (req: Request, res: Response): Promise<void
       admissionCalendar: { opens: '2026-10-01', closes: '2026-12-15', classStarts: '2026-08-15' },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[admissionConfigHandler] Error:', error?.message || error);
+    res.status(503).json({
+      error: 'Admission configuration is temporarily unavailable. Please try again.',
+      code: 'SERVICE_UNAVAILABLE',
+    });
   }
 };
 

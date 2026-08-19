@@ -114,7 +114,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           },
           {
             id: 'fo_visits',
-            title: 'Campus Visits & Interviews',
+            title: 'Campus Visits & Sessions',
             url: '/app/admissions/interviews',
             icon: Calendar,
           },

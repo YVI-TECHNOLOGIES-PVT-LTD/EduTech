@@ -12,6 +12,7 @@ import { setActiveTenant } from '@/shared/store/tenantSlice';
 import { useLoginMutation } from '@/shared/api/auth.api';
 import { ROUTES } from '@/shared/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AuthLayout } from '../components/AuthLayout';
@@ -29,6 +30,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginPage: React.FC = () => {
+  const { t } = useLanguage();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -137,27 +139,78 @@ export const LoginPage: React.FC = () => {
         navigate('/app/admissions/my', { replace: true });
       }
     } catch (err: any) {
-      const msg =
-        err?.data?.message ||
-        err?.data?.error ||
-        err?.message ||
-        'We could not sign you in. Please check your credentials and try again.';
-      setErrorMessage(msg);
+      const status = err?.status || err?.data?.statusCode;
+      const rawError =
+        typeof err?.data?.error === 'string'
+          ? err.data.error
+          : typeof err?.data?.message === 'string'
+            ? err.data.message
+            : typeof err?.message === 'string'
+              ? err.message
+              : '';
+
+      // Protect end-users from seeing raw internal database/Prisma error strings
+      const isTechnicalError =
+        typeof rawError === 'string' &&
+        (rawError.includes('prisma.') ||
+          rawError.includes('findFirst') ||
+          rawError.includes('FATAL') ||
+          rawError.includes('connection slots') ||
+          rawError.includes('pool_size') ||
+          rawError.includes('P1001') ||
+          rawError.includes('P1002') ||
+          rawError.includes('P2002') ||
+          rawError.includes('PostgreSQL') ||
+          rawError.includes('SQL') ||
+          rawError.includes('database server'));
+
+      let displayMessage: string;
+
+      if (status === 503 || isTechnicalError) {
+        displayMessage = t(
+          'auth.errors.serviceUnavailable',
+          'Sign-in is temporarily unavailable. Please try again in a moment.',
+        );
+      } else if (status === 401) {
+        displayMessage = t(
+          'auth.errors.invalidCredentials',
+          'Invalid email or password. Please check your credentials and try again.',
+        );
+      } else if (status === 403) {
+        displayMessage =
+          rawError && !isTechnicalError
+            ? rawError
+            : t('auth.errors.accessDenied', 'Account access denied or pending approval.');
+      } else if (err?.status === 'FETCH_ERROR' || !navigator.onLine) {
+        displayMessage = t(
+          'auth.errors.networkError',
+          'Unable to connect to the server. Please check your internet connection.',
+        );
+      } else if (rawError && !isTechnicalError && rawError.length < 120) {
+        displayMessage = rawError;
+      } else {
+        displayMessage = t(
+          'auth.errors.generic',
+          'Unable to sign in right now. Please check your credentials and try again.',
+        );
+      }
+
+      setErrorMessage(displayMessage);
     }
   };
 
   return (
     <AuthLayout
-      badgeText="Parent Portal Sign In"
-      title="Welcome back"
-      subtitle="Sign in to manage your child's admission journey and view updates"
+      badgeText={t('auth.login.title', 'Parent Portal Sign In')}
+      title={t('auth.login.title', 'Welcome back')}
+      subtitle={t('auth.login.subtitle', "Sign in to manage your child's admission journey and view updates")}
     >
       <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
         {/* Error Alert Message */}
         {errorMessage && (
           <div
             role="alert"
-            className="rounded-2xl bg-destructive/10 p-4 border border-destructive/20 flex items-start space-x-3 text-destructive animate-in fade-in slide-in-from-top-2 duration-200"
+            className="rounded-2xl bg-destructive/10 p-4 border border-destructive/20 flex items-start gap-3 text-destructive animate-in fade-in slide-in-from-top-2 duration-200"
           >
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="text-xs font-semibold leading-relaxed">{errorMessage}</p>
@@ -167,22 +220,23 @@ export const LoginPage: React.FC = () => {
         {/* Email Field */}
         <div>
           <label htmlFor="email-input" className="block text-xs font-bold text-foreground mb-1.5">
-            Email Address
+            {t('auth.login.emailLabel', 'Email Address')}
           </label>
           <div className="relative">
             <Input
               id="email-input"
               type="email"
-              placeholder="parent@example.com"
+              placeholder={t('auth.login.emailPlaceholder', 'parent@example.com')}
               autoComplete="email"
+              dir="ltr"
               aria-invalid={errors.email ? 'true' : 'false'}
               {...register('email')}
-              className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+              className="h-11 rounded-xl text-xs font-medium border-border/80 ps-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
             />
-            <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+            <Mail className="w-4 h-4 text-muted-foreground absolute start-3.5 top-3.5 pointer-events-none" />
           </div>
           {errors.email && (
-            <p className="mt-1.5 text-xs font-semibold text-destructive flex items-center space-x-1">
+            <p className="mt-1.5 text-xs font-semibold text-destructive flex items-center gap-1">
               <span>{errors.email.message}</span>
             </p>
           )}
@@ -192,13 +246,13 @@ export const LoginPage: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label htmlFor="password-input" className="block text-xs font-bold text-foreground">
-              Password
+              {t('auth.login.passwordLabel', 'Password')}
             </label>
             <Link
               to="/forgot-password"
               className="text-xs font-extrabold text-[#063F40] dark:text-[#E7B76A] hover:underline transition-colors"
             >
-              Forgot password?
+              {t('auth.login.forgotPassword', 'Forgot password?')}
             </Link>
           </div>
           <div className="relative">
@@ -207,38 +261,38 @@ export const LoginPage: React.FC = () => {
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               autoComplete="current-password"
+              dir="ltr"
               aria-invalid={errors.password ? 'true' : 'false'}
               {...register('password')}
-              className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 pr-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
+              className="h-11 rounded-xl text-xs font-medium border-border/80 ps-10 pe-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
             />
-            <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
+            <Lock className="w-4 h-4 text-muted-foreground absolute start-3.5 top-3.5 pointer-events-none" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-muted-foreground hover:text-foreground focus:outline-none"
+              className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-muted-foreground hover:text-foreground focus:outline-none"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
           {errors.password && (
-            <p className="mt-1.5 text-xs font-semibold text-destructive flex items-center space-x-1">
+            <p className="mt-1.5 text-xs font-semibold text-destructive flex items-center gap-1">
               <span>{errors.password.message}</span>
             </p>
           )}
         </div>
 
-        {/* Remember Me Toggle */}
-        <div className="flex items-center justify-between pt-0.5">
-          <label className="flex items-center space-x-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              {...register('rememberMe')}
-              className="w-4 h-4 rounded border-border text-[#063F40] focus:ring-[#063F40] dark:text-[#E7B76A] dark:focus:ring-[#E7B76A]"
-            />
-            <span className="text-xs text-muted-foreground font-medium select-none">
-              Remember this device
-            </span>
+        {/* Remember Me */}
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            type="checkbox"
+            {...register('rememberMe')}
+            className="h-4 w-4 rounded-md border-border text-[#063F40] focus:ring-[#063F40] dark:text-[#E7B76A] dark:focus:ring-[#E7B76A] cursor-pointer"
+          />
+          <label htmlFor="remember-me" className="ms-2 block text-xs font-bold text-foreground cursor-pointer">
+            {t('auth.login.rememberMe', 'Remember this device for 30 days')}
           </label>
         </div>
 
@@ -246,16 +300,16 @@ export const LoginPage: React.FC = () => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full h-11 rounded-xl bg-foreground text-background font-bold text-xs shadow-md hover:bg-foreground/90 transition-all flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-[#042A2B]" />
-              <span>Signing in...</span>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>{t('auth.login.signingIn', 'Signing In...')}</span>
             </>
           ) : (
             <>
-              <span>Sign In to Portal</span>
+              <span>{t('auth.login.signInButton', 'Sign In')}</span>
               <ArrowRight className="w-4 h-4" />
             </>
           )}

@@ -48,8 +48,16 @@ export interface CounselorMaster {
 
 export const MasterDataService = {
   getPublicConfig: async (schoolId?: string): Promise<any> => {
+    const cleanSchoolId =
+      typeof schoolId === 'string' &&
+      schoolId.trim() !== '' &&
+      schoolId !== 'undefined' &&
+      schoolId !== 'null'
+        ? schoolId.trim()
+        : undefined;
+
     const res = await apiClient.get<any>('/public/admission/config', {
-      params: { school_id: schoolId },
+      params: cleanSchoolId ? { school_id: cleanSchoolId } : undefined,
       silent: true,
     } as ApiRequestConfig);
     return res.data;
