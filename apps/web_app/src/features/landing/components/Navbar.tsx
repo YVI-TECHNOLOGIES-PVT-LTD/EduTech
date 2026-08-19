@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, Search, Globe, Menu, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CommandPalette } from '@/components/search/CommandPalette';
+import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
 import i18n from '@/i18n';
 
 interface NavbarProps {
@@ -62,37 +63,61 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
         <div className="hidden lg:flex items-center space-x-6 text-xs font-bold text-emerald-100/80">
           <Link
             to="/about"
-            className={location.pathname === '/about' ? 'text-[#E7B76A]' : 'hover:text-white transition-colors'}
+            className={
+              location.pathname === '/about'
+                ? 'text-[#E7B76A]'
+                : 'hover:text-white transition-colors'
+            }
           >
             About
           </Link>
           <Link
             to="/academics"
-            className={location.pathname === '/academics' ? 'text-[#E7B76A]' : 'hover:text-white transition-colors'}
+            className={
+              location.pathname === '/academics'
+                ? 'text-[#E7B76A]'
+                : 'hover:text-white transition-colors'
+            }
           >
             Academics
           </Link>
           <Link
             to="/admissions"
-            className={location.pathname === '/admissions' ? 'text-[#E7B76A]' : 'hover:text-white transition-colors'}
+            className={
+              location.pathname === '/admissions'
+                ? 'text-[#E7B76A]'
+                : 'hover:text-white transition-colors'
+            }
           >
             Admissions
           </Link>
           <Link
             to="/gallery"
-            className={location.pathname === '/gallery' ? 'text-[#E7B76A]' : 'hover:text-white transition-colors'}
+            className={
+              location.pathname === '/gallery'
+                ? 'text-[#E7B76A]'
+                : 'hover:text-white transition-colors'
+            }
           >
             Gallery
           </Link>
           <Link
             to="/contact"
-            className={location.pathname === '/contact' ? 'text-[#E7B76A]' : 'hover:text-white transition-colors'}
+            className={
+              location.pathname === '/contact'
+                ? 'text-[#E7B76A]'
+                : 'hover:text-white transition-colors'
+            }
           >
             Contact
           </Link>
           <Link
             to="/enquiry"
-            className={location.pathname === '/enquiry' ? 'text-[#E7B76A]' : 'hover:text-white transition-colors'}
+            className={
+              location.pathname === '/enquiry'
+                ? 'text-[#E7B76A]'
+                : 'hover:text-white transition-colors'
+            }
           >
             Enquiry
           </Link>
@@ -100,6 +125,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
 
         {/* Desktop Utility Controls & Primary CTA */}
         <div className="hidden md:flex items-center space-x-3">
+          {/* Theme Switcher */}
+          <ThemeSwitcher className="text-emerald-100/80 hover:text-white hover:bg-white/10" />
+
           {/* Search Icon Button */}
           <button
             onClick={() => setIsSearchOpen(true)}
@@ -257,4 +285,3 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
 };
 
 export default Navbar;
-

@@ -44,11 +44,11 @@ export function Navbar() {
       <header
         className={cn(
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          // Force white background on form pages
+          // Theme-aware surface on form pages or when scrolled
           location.pathname.includes('/enquiry') || location.pathname.includes('/app/')
-            ? 'bg-white shadow-md py-2'
+            ? 'bg-card text-card-foreground shadow-md border-b border-border py-2'
             : isScrolled
-              ? 'bg-white/95 backdrop-blur-md shadow-md py-2 lg:py-3 xl:py-4'
+              ? 'bg-card/95 backdrop-blur-md text-card-foreground shadow-md border-b border-border py-2 lg:py-3 xl:py-4'
               : 'bg-transparent py-4 lg:py-3 xl:py-6',
         )}
       >
@@ -284,10 +284,10 @@ export function Navbar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 300 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 overflow-hidden"
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-card text-card-foreground border-l border-border shadow-2xl z-50 overflow-hidden"
             >
               <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between p-6 border-b bg-primary text-primary-foreground">
+                <div className="flex items-center justify-between p-6 border-b border-border bg-primary text-primary-foreground">
                   <div>
                     <h2 className="font-display text-xl font-bold">Notifications</h2>
                     <p className="text-sm text-primary-foreground/80">
@@ -308,9 +308,7 @@ export function Navbar() {
                         key={notification.id}
                         className={cn(
                           'p-4 rounded-xl border transition-all hover:shadow-md',
-                          notification.isNew
-                            ? 'bg-gold/5 border-gold/30'
-                            : 'bg-white border-border',
+                          notification.isNew ? 'bg-gold/5 border-gold/30' : 'bg-card border-border',
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -368,7 +366,7 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="fixed top-[72px] left-0 right-0 bg-white shadow-lg z-40 lg:hidden overflow-hidden"
+            className="fixed top-[72px] left-0 right-0 bg-card text-card-foreground border-b border-border shadow-lg z-40 lg:hidden overflow-hidden"
           >
             <div className="container-custom py-4">
               <div className="space-y-2">

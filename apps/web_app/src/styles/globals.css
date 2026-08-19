@@ -33,55 +33,109 @@
   --mist: 160 15% 93%;
   --teal-deep: 181 83% 13.7%;
 
-  /* Semantic Design Tokens */
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
+  /* Semantic Design Tokens (Light Theme Baseline — Pure #FFFFFF Base) */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 0 0% 0%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 0 0% 0%;
 
   --primary: 181 83% 13.7%; /* Deep EduTrack Teal #063F40 */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 38 72% 66%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 0 0% 0%;
 
-  --muted: 160 15% 93%;
-  --muted-foreground: 215 16% 40%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 215 16% 45%;
 
   --accent: 181 60% 25%;
   --accent-foreground: 0 0% 100%;
 
-  --success: 160 84% 39%;
+  --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
 
   --warning: 38 92% 50%;
-  --warning-foreground: 222 47% 11%;
+  --warning-foreground: 48 96% 12%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --info: 195 85% 45%;
+  --info: 199 89% 48%;
   --info-foreground: 0 0% 100%;
 
-  --border: 214 25% 88%;
-  --input: 214 25% 88%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
   --ring: 181 83% 13.7%;
 
   --radius: 0.75rem;
 
-  /* Sidebar Tokens */
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 240 5.3% 26.1%;
-  --sidebar-primary: 181 83% 13.7%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 240 4.8% 95.9%;
-  --sidebar-accent-foreground: 240 5.9% 10%;
+  /* Sidebar Tokens (Light Mode — Pure #FFFFFF Background, Pure #000000 Text, Pure #000000 Active Bg / #FFFFFF Active Text) */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 0 0% 0%;
+  --sidebar-primary: 0 0% 0%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 95%;
+  --sidebar-accent-foreground: 0 0% 0%;
   --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 181 83% 13.7%;
+  --sidebar-ring: 0 0% 0%;
+
+  color-scheme: light;
+}
+
+/* Pure Black Dark Theme Surfaces (#000000 Base) */
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+
+  --card: 0 0% 0%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 173 80% 36%; /* Accessible bright teal in dark mode */
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 65%;
+
+  --accent: 0 0% 14%;
+  --accent-foreground: 0 0% 100%;
+
+  --success: 142 70% 50%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 55%;
+  --warning-foreground: 48 96% 12%;
+
+  --destructive: 0 72% 56%;
+  --destructive-foreground: 0 0% 100%;
+
+  --info: 199 89% 58%;
+  --info-foreground: 0 0% 100%;
+
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 173 80% 36%;
+
+  /* Sidebar Tokens (Dark Mode — Pure #000000 Background, Pure #FFFFFF Text, Pure #FFFFFF Active Bg / #000000 Active Text) */
+  --sidebar-background: 0 0% 0%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 18%;
+  --sidebar-ring: 0 0% 100%;
+
+  color-scheme: dark;
 }
 
 /* Editorial Section Background Motifs */
@@ -89,18 +143,22 @@
   background-color: hsl(40 33% 94%);
 }
 .dark .bg-editorial-cream {
-  background-color: hsl(222.2 84% 6.5%);
+  background-color: hsl(0 0% 6%);
 }
 
 .bg-editorial-mist {
   background-color: hsl(160 15% 93%);
 }
 .dark .bg-editorial-mist {
-  background-color: hsl(222.2 84% 8%);
+  background-color: hsl(0 0% 8%);
 }
 
 .bg-editorial-teal {
   background-color: hsl(181 83% 13.7%);
+  color: #ffffff;
+}
+.dark .bg-editorial-teal {
+  background-color: hsl(181 83% 10%);
   color: #ffffff;
 }
 
@@ -108,8 +166,8 @@ html,
 body,
 #root {
   font-family: var(--font-sans);
-  color: rgb(var(--foreground-rgb));
-  background: #f8fafc;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -132,12 +190,20 @@ textarea {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: #cbd5e1;
   border-radius: 10px;
 }
 
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: #94a3b8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Animations */

@@ -174,11 +174,11 @@ export function DataTableFramework<T extends { id?: string | number }>({
     paginatedData.some((row) => row.id && selectedRows[row.id]) && !isAllSelected;
 
   return (
-    <div className="space-y-4 w-full bg-white dark:bg-card rounded-3xl border border-border/60 p-6 relative overflow-hidden shadow-premium-sm">
+    <div className="space-y-4 w-full bg-card text-card-foreground rounded-3xl border border-border/80 p-6 relative overflow-hidden shadow-premium-sm">
       {/* Header controls: Search, Columns visibility, density, exports */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-80">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
             <Search className="w-4 h-4" />
           </span>
           <input
@@ -189,7 +189,7 @@ export function DataTableFramework<T extends { id?: string | number }>({
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50/50 dark:bg-muted/10 border border-border text-xs font-semibold rounded-xl focus:outline-none focus:border-primary focus:bg-white transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-muted/40 border border-border text-xs font-semibold rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-card transition-all"
           />
         </div>
 
@@ -399,11 +399,11 @@ export function DataTableFramework<T extends { id?: string | number }>({
             size="icon"
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="rounded-xl w-9 h-9 border border-transparent hover:border-border hover:bg-gray-50"
+            className="rounded-xl w-9 h-9 border border-transparent hover:border-border hover:bg-muted text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="px-3 py-1.5 bg-gray-50 dark:bg-muted/10 rounded-xl text-gray-800 dark:text-gray-200 border border-border/40 font-black">
+          <span className="px-3 py-1.5 bg-muted/60 rounded-xl text-foreground border border-border font-bold">
             {currentPage} / {totalPages}
           </span>
           <Button
@@ -411,7 +411,7 @@ export function DataTableFramework<T extends { id?: string | number }>({
             size="icon"
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="rounded-xl w-9 h-9 border border-transparent hover:border-border hover:bg-gray-50"
+            className="rounded-xl w-9 h-9 border border-transparent hover:border-border hover:bg-muted text-muted-foreground hover:text-foreground"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>

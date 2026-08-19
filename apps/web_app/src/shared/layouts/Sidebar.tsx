@@ -19,16 +19,20 @@ export const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-slate-900 text-white shadow-xl dark:border-slate-800">
+    <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-white text-black dark:bg-black dark:text-white shadow-xl">
       {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between px-6 border-b border-slate-800">
+      <div className="flex h-16 items-center justify-between px-6 border-b border-border">
         <div className="flex items-center space-x-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-black text-white shadow-md">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 font-black text-white shadow-md">
             E
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight text-white">{APP_CONFIG.name}</h1>
-            <span className="text-[10px] font-semibold uppercase text-blue-400">Stage-1 Admin</span>
+            <h1 className="text-sm font-bold tracking-tight text-black dark:text-white">
+              {APP_CONFIG.name}
+            </h1>
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+              Stage-1 Admin
+            </span>
           </div>
         </div>
       </div>
@@ -37,7 +41,7 @@ export const Sidebar: React.FC = () => {
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {navigation.map((section, idx) => (
           <div key={idx} className="space-y-1">
-            <h3 className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <h3 className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               {section.sectionTitle}
             </h3>
 
@@ -53,14 +57,14 @@ export const Sidebar: React.FC = () => {
                 if (item.children) {
                   return (
                     <div key={item.path} className="space-y-1">
-                      <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-300">
+                      <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-black dark:text-white">
                         <div className="flex items-center space-x-2.5">
-                          {Icon && <Icon className="h-4 w-4 text-slate-400" />}
+                          {Icon && <Icon className="h-4 w-4 text-black dark:text-white" />}
                           <span>{item.title}</span>
                         </div>
-                        <ChevronRight className="h-3 w-3 text-slate-500" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
                       </div>
-                      <div className="ml-6 space-y-1 border-l border-slate-800 pl-2">
+                      <div className="ml-6 space-y-1 border-l border-border pl-2">
                         {item.children.map((child) => (
                           <NavLink
                             key={child.path}
@@ -69,8 +73,8 @@ export const Sidebar: React.FC = () => {
                               cn(
                                 'block rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                                 isActive
-                                  ? 'bg-blue-600 text-white font-semibold'
-                                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200',
+                                  ? 'bg-black text-white dark:bg-white dark:text-black font-semibold shadow-xs'
+                                  : 'text-black/80 dark:text-white/80 hover:bg-neutral-100 dark:hover:bg-neutral-900 hover:text-black dark:hover:text-white',
                               )
                             }
                           >
@@ -90,12 +94,19 @@ export const Sidebar: React.FC = () => {
                       cn(
                         'flex items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
                         isActive
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                          ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm'
+                          : 'text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900',
                       )
                     }
                   >
-                    {Icon && <Icon className="h-4 w-4" />}
+                    {Icon && (
+                      <Icon
+                        className={cn(
+                          'h-4 w-4',
+                          isActive ? 'text-white dark:text-black' : 'text-black dark:text-white',
+                        )}
+                      />
+                    )}
                     <span>{item.title}</span>
                   </NavLink>
                 );
@@ -106,7 +117,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-800 p-4 text-[11px] text-slate-500 text-center">
+      <div className="border-t border-border p-4 text-[11px] text-muted-foreground text-center">
         {APP_CONFIG.copyright}
       </div>
     </aside>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Sparkles, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -128,6 +129,8 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
 
         {/* 3. RIGHT: Authentication Action Controls */}
         <div className="hidden sm:flex items-center space-x-3">
+          <ThemeSwitcher className="text-emerald-100/80 hover:text-white hover:bg-white/10" />
+
           {isAuthenticated ? (
             <Button
               onClick={() => navigate(portalRedirectPath)}

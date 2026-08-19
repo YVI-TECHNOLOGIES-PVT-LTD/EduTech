@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Bell, Sparkles } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ProfileMenu } from '@/components/shell/ProfileMenu';
+import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
 import { useCommandPalette } from '@/hooks/layout/useCommandPalette';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { togglePanel } from '@/shared/store/notificationSlice';
@@ -37,8 +38,11 @@ export const AppNavbar: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Notifications & Profile Menu */}
-        <div className="flex items-center space-x-3">
+        {/* Right: Theme Switcher, Notifications & Profile Menu */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Global Theme Switcher */}
+          <ThemeSwitcher />
+
           {/* Notification Bell */}
           <button
             onClick={() => dispatch(togglePanel())}
