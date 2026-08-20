@@ -181,3 +181,7 @@ ALTER TABLE admission_fee_payments
 ADD COLUMN card_name VARCHAR(100) NULL,
 ADD COLUMN card_last_four CHAR(4) NULL;
 
+CREATE UNIQUE INDEX ux_admissions_applications_lead_id
+ON public.admissions_applications (lead_id)
+WHERE lead_id IS NOT NULL;
+

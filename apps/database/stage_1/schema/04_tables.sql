@@ -1283,3 +1283,46 @@ CREATE TABLE student_enrollments (
     UNIQUE(student_id, academic_year_grade_id)
     UNIQUE(section_id, roll_number)
 );
+
+
+CREATE TABLE public.notifications (
+    notification_id uuid NOT NULL DEFAULT gen_random_uuid(),
+
+    org_id uuid NOT NULL,
+    recipient_user_id uuid NOT NULL,
+
+    category public.notification_category NOT NULL DEFAULT 'SYSTEM',
+    type character varying(100) NOT NULL,
+    priority public.notification_priority NOT NULL DEFAULT 'NORMAL',
+
+    title character varying(255) NOT NULL,
+    message text NOT NULL,
+
+    entity_type character varying(100) NULL,
+    entity_id uuid NULL,
+
+    action_url text NULL,
+
+    is_read boolean NOT NULL DEFAULT false,
+    read_at timestamp with time zone NULL,
+
+    metadata jsonb NULL,
+
+    expires_at timestamp with time zone NULL,
+
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+
+    CONSTRAINT notifications_pkey
+        PRIMARY KEY (notification_id),
+
+    CONSTRAINT notifications_org_id_fkey
+        FOREIGN KEY (org_id)
+        REFERENCES public.organizations (org_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT notifications_recipient_user_id_fkey
+        FOREIGN KEY (recipient_user_id)
+        REFERENCES public.users (user_id)
+        ON DELETE CASCADE
+);

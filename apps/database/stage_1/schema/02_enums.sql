@@ -325,3 +325,19 @@ CREATE TYPE admission_payment_mode AS ENUM (
     'bank_transfer',
     'upi'
 );
+
+CREATE TYPE public.notification_category AS ENUM (
+    'ADMISSION',
+    'ATTENDANCE',
+    'FEE',
+    'EXAM',
+    'SYSTEM'
+);
+
+CREATE TYPE public.notification_category AS ENUM (
+    'ADMISSION',
+    'ATTENDANCE',
+    'FEE',
+    'EXAM',
+    'SYSTEM'
+);
