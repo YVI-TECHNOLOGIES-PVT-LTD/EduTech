@@ -128,8 +128,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   onClick={() => setValue('visit_type', 'campus')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-xs transition-all ${
                     selectedVisitType === 'campus'
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
-                      : 'border-border bg-card text-muted-foreground hover:bg-accent'
+                      ? 'border-black dark:border-white bg-black text-white dark:bg-white dark:text-black shadow-sm'
+                      : 'border-border bg-card text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
                   }`}
                 >
                   <MapPin className="w-4 h-4" />
@@ -140,8 +140,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   onClick={() => setValue('visit_type', 'virtual')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-xs transition-all ${
                     selectedVisitType === 'virtual'
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
-                      : 'border-border bg-card text-muted-foreground hover:bg-accent'
+                      ? 'border-black dark:border-white bg-black text-white dark:bg-white dark:text-black shadow-sm'
+                      : 'border-border bg-card text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
                   }`}
                 >
                   <Video className="w-4 h-4" />

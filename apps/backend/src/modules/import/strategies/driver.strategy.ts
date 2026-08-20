@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { supabase } from '../../../config/supabase';
 import { BaseImportStrategy, ImportContext, ImportResult } from '../index';
 import { NativePassword } from '../../../auth/crypto.utils';
-
-const prisma = new PrismaClient();
+import prisma from '../../../lib/prismaClient';
 
 export interface DriverImportRow {
   _rowNum: number;

@@ -15,7 +15,7 @@ exports.createEnquirySchema = zod_1.z.object({
     parent_phone: zod_1.z
         .string()
         .regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number with country code (e.g. +919876543210)'),
-    source: zod_1.z.string().optional().default('Website'),
+    source: zod_1.z.string().optional().default('website'),
     date_of_birth: zod_1.z
         .string()
         .refine((val) => !isNaN(Date.parse(val)), {

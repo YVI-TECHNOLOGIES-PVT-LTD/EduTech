@@ -172,9 +172,9 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col h-full bg-slate-50/50 dark:bg-slate-950">
+        <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col h-full bg-card text-card-foreground border-l border-border">
           {/* Header Bar */}
-          <div className="p-5 border-b bg-white dark:bg-slate-900 shrink-0 space-y-3">
+          <div className="p-5 border-b border-border bg-card shrink-0 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -264,9 +264,9 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
           </div>
 
           {/* Tab Navigation */}
-          <div className="px-5 pt-3 bg-white dark:bg-slate-900 border-b shrink-0">
+          <div className="px-5 pt-3 bg-card border-b border-border shrink-0">
             <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-              <TabsList className="grid grid-cols-5 h-9 bg-slate-100 dark:bg-slate-800 p-1 text-xs">
+              <TabsList className="grid grid-cols-5 h-9 bg-card border border-border p-1 text-xs">
                 <TabsTrigger value="overview" className="text-xs font-semibold">
                   Overview
                 </TabsTrigger>
@@ -291,7 +291,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
             {activeTab === 'overview' && (
               <div className="space-y-4">
                 {/* Student Details Card */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b pb-2">
                     <User className="w-4 h-4 text-blue-600" />
                     Applicant Profile
@@ -337,7 +337,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                 </div>
 
                 {/* Parent / Guardian Contact Card */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b pb-2">
                     <Phone className="w-4 h-4 text-emerald-600" />
                     Parent / Guardian Contact
@@ -377,7 +377,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                 </div>
 
                 {/* Previous Schooling Card */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b pb-2">
                     <School className="w-4 h-4 text-purple-600" />
                     Previous School History
@@ -447,7 +447,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
             {activeTab === 'documents' && (
               <div className="space-y-4">
                 {/* Document Status Summary Header & Progress Bar */}
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3 shadow-xs">
+                <div className="p-4 bg-card border border-border rounded-xl space-y-3 shadow-xs">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -505,7 +505,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                       return (
                         <div
                           key={doc.document_id}
-                          className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5 shadow-xs"
+                          className="p-4 bg-card border border-border rounded-xl space-y-2.5 shadow-xs"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="space-y-0.5">
@@ -608,7 +608,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
 
             {activeTab === 'assessment' && (
               <div className="space-y-4">
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                <div className="p-4 bg-card border border-border rounded-xl flex items-center justify-between">
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <Award className="w-4 h-4 text-indigo-600" />
@@ -632,7 +632,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                 </div>
 
                 {assessment ? (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                  <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                       <div>
                         <span className="text-slate-400 block text-[11px]">Marks Obtained</span>
@@ -684,7 +684,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
 
             {activeTab === 'decision' && (
               <div className="space-y-4">
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                <div className="p-4 bg-card border border-border rounded-xl flex items-center justify-between">
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -708,7 +708,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                 </div>
 
                 {decision ? (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                  <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                       <div>
                         <span className="text-slate-400 block text-[11px]">Decision Status</span>
@@ -762,7 +762,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
 
             {activeTab === 'payment' && (
               <div className="space-y-4">
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                <div className="p-4 bg-card border border-border rounded-xl flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-emerald-600" />
@@ -809,7 +809,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                 </div>
 
                 {payment ? (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+                  <div className="bg-card border border-border rounded-xl p-4 space-y-4">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                       <div>
                         <span className="text-slate-400 block text-[11px]">Fee Status</span>
@@ -886,7 +886,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
           </div>
 
           {/* Footer Bar */}
-          <div className="p-4 border-t bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between">
+          <div className="p-4 border-t border-border bg-card shrink-0 flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"

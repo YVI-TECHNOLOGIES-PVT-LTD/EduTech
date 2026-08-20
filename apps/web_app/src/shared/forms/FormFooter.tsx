@@ -16,7 +16,7 @@ export const FormFooter: React.FC<FormFooterProps> = ({
   isSubmitting = false,
 }) => {
   return (
-    <div className="flex items-center justify-end space-x-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+    <div className="flex items-center justify-end space-x-3 rounded-xl border border-border bg-card p-4">
       {onCancel && (
         <Button
           type="button"

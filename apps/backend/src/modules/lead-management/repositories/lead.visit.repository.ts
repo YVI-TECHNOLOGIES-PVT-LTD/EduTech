@@ -51,7 +51,18 @@ export class LeadVisitRepository {
     return prisma.lead_visits.findMany({
       where: { lead_id },
       include: {
-        staff: true,
+        staff: {
+          include: {
+            users_staff_user_idTousers: {
+              select: {
+                user_id: true,
+                first_name: true,
+                last_name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { scheduled_at: 'desc' },
     });
@@ -64,12 +75,26 @@ export class LeadVisitRepository {
     status?: visit_status;
     startDate?: string;
     endDate?: string;
+    search?: string;
     page?: number;
     pageSize?: number;
   }) {
     const where: any = {};
     if (params.org_id) {
       where.leads = { org_id: params.org_id };
+    }
+    if (params.search) {
+      const s = params.search.trim();
+      where.leads = {
+        ...(where.leads || {}),
+        OR: [
+          { student_first_name: { contains: s, mode: 'insensitive' } },
+          { student_last_name: { contains: s, mode: 'insensitive' } },
+          { lead_number: { contains: s, mode: 'insensitive' } },
+          { contact_name: { contains: s, mode: 'insensitive' } },
+          { contact_phone: { contains: s, mode: 'insensitive' } },
+        ],
+      };
     }
     if (params.staff_id) {
       where.staff_id = params.staff_id;
@@ -89,21 +114,68 @@ export class LeadVisitRepository {
     const page = params.page || 1;
     const pageSize = params.pageSize || 20;
 
-    const [total, items] = await Promise.all([
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const orgWhere = params.org_id ? { leads: { org_id: params.org_id } } : {};
+
+    const [total, items, todayCount, upcomingCount, completedCount, cancelledNoShowCount] = await Promise.all([
       prisma.lead_visits.count({ where }),
       prisma.lead_visits.findMany({
         where,
         include: {
-          staff: true,
+          staff: {
+            include: {
+              users_staff_user_idTousers: {
+                select: {
+                  user_id: true,
+                  first_name: true,
+                  last_name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           leads: {
             include: {
-              academic_year_grades: true,
+              academic_year_grades: {
+                include: {
+                  grades: true,
+                  academic_years: true,
+                },
+              },
             },
           },
         },
-        orderBy: { scheduled_at: 'asc' },
+        orderBy: { scheduled_at: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+      }),
+      prisma.lead_visits.count({
+        where: {
+          ...orgWhere,
+          status: visit_status.scheduled,
+          scheduled_at: { gte: startOfToday, lte: endOfToday },
+        },
+      }),
+      prisma.lead_visits.count({
+        where: {
+          ...orgWhere,
+          status: visit_status.scheduled,
+          scheduled_at: { gt: endOfToday },
+        },
+      }),
+      prisma.lead_visits.count({
+        where: {
+          ...orgWhere,
+          status: visit_status.completed,
+        },
+      }),
+      prisma.lead_visits.count({
+        where: {
+          ...orgWhere,
+          status: { in: [visit_status.cancelled, visit_status.no_show] },
+        },
       }),
     ]);
 
@@ -113,6 +185,12 @@ export class LeadVisitRepository {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
       items,
+      metrics: {
+        today: todayCount,
+        upcoming: upcomingCount,
+        completed: completedCount,
+        cancelledOrNoShow: cancelledNoShowCount,
+      },
     };
   }
 

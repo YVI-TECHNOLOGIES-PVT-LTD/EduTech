@@ -112,16 +112,16 @@ export const ParentDashboardPage: React.FC = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* 1. Welcome Header Banner */}
-      <div className="bg-slate-950 text-white p-6 sm:p-8 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden border border-slate-900">
+      <div className="bg-black text-white p-6 sm:p-8 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden border border-neutral-800">
         <div className="space-y-2 max-w-2xl z-10">
-          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-indigo-900/60 text-indigo-300 text-xs font-bold border border-indigo-700/50">
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold border border-white/20">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Parent Self-Service Portal</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Welcome back, {parentName}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-normal">
             Monitor your child's enrollment progress, submit required documents, and track
             evaluation milestones.
           </p>
@@ -146,9 +146,7 @@ export const ParentDashboardPage: React.FC = () => {
             <FileText className="w-8 h-8" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-lg font-bold text-foreground">
-              No Admission Applications Yet
-            </h3>
+            <h3 className="text-lg font-bold text-foreground">No Admission Applications Yet</h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
               Start your child's enrollment process by completing an online admission application.
             </p>
@@ -180,10 +178,7 @@ export const ParentDashboardPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {applications.map((app: any) => (
-              <ApplicationStatusCard
-                key={app.application_id || app.id}
-                application={app}
-              />
+              <ApplicationStatusCard key={app.application_id || app.id} application={app} />
             ))}
           </div>
         </div>
@@ -270,20 +265,20 @@ export const ParentDashboardPage: React.FC = () => {
 
           <Link
             to="/app/admissions/wizard"
-            className="p-5 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200/80 dark:border-indigo-800 hover:shadow-md transition-all flex items-center space-x-4 group"
+            className="p-5 bg-card rounded-2xl border border-border hover:shadow-md transition-all flex items-center space-x-4 group"
           >
-            <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0 group-hover:scale-105 transition-transform">
               <Plus className="w-6 h-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                 Apply for Another Child
               </h4>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
                 Start new enrollment wizard
               </p>
             </div>
-            <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:translate-x-0.5 transition-transform" />
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
       </div>

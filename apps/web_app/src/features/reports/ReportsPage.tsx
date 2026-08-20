@@ -49,10 +49,8 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* Reports Summary Table */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">
-          Available Stage-1 Report Templates
-        </h3>
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4 text-card-foreground">
+        <h3 className="text-base font-bold text-foreground">Available Stage-1 Report Templates</h3>
         <div className="space-y-3">
           {[
             {
@@ -78,13 +76,11 @@ export const ReportsPage: React.FC = () => {
           ].map((rep, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+              className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
             >
               <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">
-                  {rep.title}
-                </span>
-                <p className="text-[11px] text-slate-400">
+                <span className="text-xs font-bold text-foreground">{rep.title}</span>
+                <p className="text-[11px] text-muted-foreground">
                   Formats: {rep.format} • Updated: {rep.updated}
                 </p>
               </div>

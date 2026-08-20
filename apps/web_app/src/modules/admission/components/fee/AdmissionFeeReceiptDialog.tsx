@@ -75,10 +75,10 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         overlayClassName="bg-black/30 backdrop-blur-xs duration-100"
-        className="w-[calc(100vw-32px)] sm:w-[650px] max-w-[650px] max-h-[92vh] p-0 gap-0 overflow-hidden flex flex-col rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl"
+        className="w-[calc(100vw-32px)] sm:w-[650px] max-w-[650px] max-h-[92vh] p-0 gap-0 overflow-hidden flex flex-col rounded-2xl bg-card text-card-foreground border border-border shadow-2xl"
       >
         {/* Header Action Bar */}
-        <div className="flex-shrink-0 px-6 py-3.5 bg-slate-900 text-white flex items-center justify-between gap-3 select-none">
+        <div className="flex-shrink-0 px-6 py-3.5 bg-black text-white border-b border-border flex items-center justify-between gap-3 select-none">
           <div className="flex items-center gap-2">
             <Receipt className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold uppercase tracking-wider">
@@ -104,7 +104,7 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-neutral-900 rounded-lg"
             >
               <X className="w-4 h-4" />
               <span className="sr-only">Close</span>
@@ -113,18 +113,18 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
         </div>
 
         {/* Receipt Printable Viewport */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 bg-slate-100/70 dark:bg-slate-950 flex flex-col items-center custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 bg-card flex flex-col items-center custom-scrollbar">
           {isLoading ? (
             <div className="my-auto text-center p-12 space-y-3">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
-              <p className="text-xs text-slate-500 font-medium">Generating official receipt...</p>
+              <p className="text-xs text-muted-foreground font-medium">
+                Generating official receipt...
+              </p>
             </div>
           ) : error || !receipt ? (
-            <div className="my-auto text-center p-8 bg-white dark:bg-slate-900 rounded-xl border max-w-sm space-y-3 shadow-sm">
+            <div className="my-auto text-center p-8 bg-card text-card-foreground rounded-xl border border-border max-w-sm space-y-3 shadow-sm">
               <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
-              <div className="text-sm font-bold text-slate-900 dark:text-white">
-                Receipt Unavailable
-              </div>
+              <div className="text-sm font-bold text-foreground">Receipt Unavailable</div>
               <p className="text-xs text-slate-500">
                 Payment has not been recorded yet, or fee settlement is still pending.
               </p>

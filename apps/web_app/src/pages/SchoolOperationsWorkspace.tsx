@@ -36,8 +36,10 @@ import {
   Activity,
   Briefcase,
   RefreshCw,
+  Calendar,
 } from 'lucide-react';
 import { ICON_MAP } from '../config/menu_registry';
+import { FrontOfficeExecutiveDashboard } from '../modules/admission/components/dashboard/FrontOfficeExecutiveDashboard';
 
 export function SchoolOperationsWorkspace() {
   const { user } = useAuth();
@@ -59,31 +61,6 @@ export function SchoolOperationsWorkspace() {
     refetch: refetchMetrics,
   } = useGetDashboardSummaryQuery();
 
-  // Dynamic live metric mapping for operational inbox widgets
-  const visibleWidgets = TASK_DRIVEN_WORKSPACE_WIDGETS.filter((w) =>
-    CapabilityEngine.canRenderWidget(w, capabilityContext),
-  ).map((w) => {
-    let count = w.defaultMetric?.count || 0;
-    if (adminOverview) {
-      if (w.category === 'applications') count = adminOverview.pendingAdmissions || 0;
-      else if (w.category === 'enrollment') count = adminOverview.students || 0;
-      else if (w.category === 'payments')
-        count = adminOverview.feeCollection ? Math.round(adminOverview.feeCollection / 1000) : 15;
-    }
-    return {
-      ...w,
-      defaultMetric: {
-        ...w.defaultMetric,
-        count,
-      },
-    };
-  });
-
-  // Filter quick actions deterministically via CapabilityEngine
-  const visibleQuickActions = SYSTEM_QUICK_ACTIONS.filter((qa) =>
-    CapabilityEngine.canRenderQuickAction(qa, capabilityContext),
-  );
-
   const rawStaffName =
     user?.full_name ||
     (user as any)?.name ||
@@ -98,6 +75,57 @@ export function SchoolOperationsWorkspace() {
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
       : 'Front Office Desk');
+
+  const moduleTabs = (
+    <nav aria-label="Workspace Modules" className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+      {[
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        {
+          id: 'admissions',
+          label: 'Admissions',
+          icon: FileText,
+          permission: 'admission.review',
+        },
+        { id: 'people', label: 'People', icon: Users, permission: 'STUDENT_VIEW' },
+        { id: 'school', label: 'School', icon: Building, permission: 'ACADEMIC_SETUP' },
+        {
+          id: 'settings',
+          label: 'Settings',
+          icon: Settings,
+          permission: 'admin.dashboard.view',
+        },
+      ].map((tab) => {
+        if (
+          tab.permission &&
+          !CapabilityEngine.hasPermission(capabilityContext.permissions, tab.permission) &&
+          !capabilityContext.isSuperAdmin
+        ) {
+          return null;
+        }
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap ${
+              isActive
+                ? 'bg-foreground text-background shadow-xs'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {tab.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+
+  // If on Executive Dashboard tab, render the full-stack Command Center
+  if (activeTab === 'dashboard') {
+    return <FrontOfficeExecutiveDashboard customTabs={moduleTabs} />;
+  }
 
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
@@ -136,147 +164,10 @@ export function SchoolOperationsWorkspace() {
           </div>
         </div>
 
-        {/* Top Module Tabs */}
-        <div className="flex items-center gap-2 mt-8 border-t border-slate-800/80 pt-4 overflow-x-auto scrollbar-hide">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            {
-              id: 'admissions',
-              label: 'Admissions',
-              icon: FileText,
-              permission: 'admission.review',
-            },
-            { id: 'people', label: 'People', icon: Users, permission: 'STUDENT_VIEW' },
-            { id: 'school', label: 'School', icon: Building, permission: 'ACADEMIC_SETUP' },
-            {
-              id: 'settings',
-              label: 'Settings',
-              icon: Settings,
-              permission: 'admin.dashboard.view',
-            },
-          ].map((tab) => {
-            if (
-              tab.permission &&
-              !CapabilityEngine.hasPermission(capabilityContext.permissions, tab.permission) &&
-              !capabilityContext.isSuperAdmin
-            ) {
-              return null;
-            }
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-white text-slate-950 shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="mt-8 border-t border-slate-800/80 pt-4">
+          {moduleTabs}
         </div>
       </div>
-
-      {/* Main Tab Views */}
-      {activeTab === 'dashboard' && (
-        <div className="space-y-8">
-          {/* Quick Actions Panel */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Quick Actions
-              </h2>
-              <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-full border border-border/60">
-                Permission-Driven
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {visibleQuickActions.map((action) => {
-                const IconComponent = ICON_MAP[action.icon] || LayoutDashboard;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => navigate(action.targetRoute)}
-                    className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left group flex flex-col justify-between"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-indigo-100 dark:border-indigo-900">
-                      <IconComponent className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        {action.title}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
-                        {action.description}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Task-Driven Work Queues (Zero Dead Widgets) */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-extrabold text-foreground">Task-Driven Work Queues</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Every card opens an actionable queue. Zero statistics-only widgets.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {visibleWidgets.map((widget) => {
-                const IconComponent = ICON_MAP[widget.icon || 'FileText'] || FileText;
-                return (
-                  <div
-                    key={widget.id}
-                    className="bg-card rounded-2xl p-6 border border-border/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900">
-                          <IconComponent className="w-6 h-6" />
-                        </div>
-                        {widget.defaultMetric?.urgentCount && (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            {widget.defaultMetric.urgentCount} Urgent
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-foreground text-base">{widget.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{widget.description}</p>
-
-                      <div className="mt-4 p-3 bg-muted/40 rounded-xl flex items-center justify-between border border-border/50">
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          {widget.defaultMetric?.label}
-                        </span>
-                        <span className="text-base font-black text-foreground">
-                          {widget.defaultMetric?.count}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => navigate(widget.actionRoute)}
-                      className="mt-6 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs transition-colors group shadow-sm"
-                    >
-                      {widget.actionLabel}
-                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Admissions Module Tab */}
       {activeTab === 'admissions' && (
@@ -327,6 +218,12 @@ export function SchoolOperationsWorkspace() {
                 route: '/app/admissions/fees',
                 icon: Coins,
                 desc: 'Process deposit payments and print receipts.',
+              },
+              {
+                title: 'Campus Visits & Sessions',
+                route: '/app/admissions/interviews',
+                icon: Calendar,
+                desc: 'Manage campus tours, counselling sessions, and appointment outcomes.',
               },
               {
                 title: 'Enrollment Desk',

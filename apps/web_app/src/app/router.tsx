@@ -39,6 +39,7 @@ import { LayoutErrorBoundary } from '../components/common/ErrorBoundary';
 import { PageSkeleton } from '../components/common/LoadingSkeleton';
 
 import { ROUTE_REGISTRY, RouteConfig } from '../config/route_registry';
+import { AutoTranslator } from '../components/i18n/AutoTranslator';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -103,6 +104,7 @@ export const AppRouter = () => {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AutoTranslator />
       <WorkspaceShell>
         <LayoutErrorBoundary>
           <Suspense fallback={<PageSkeleton />}>

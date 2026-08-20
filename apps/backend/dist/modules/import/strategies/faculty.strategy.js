@@ -1,11 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FacultyImportStrategy = void 0;
-const client_1 = require("@prisma/client");
 const supabase_1 = require("../../../config/supabase");
 const index_1 = require("../index");
 const crypto_utils_1 = require("../../../auth/crypto.utils");
-const prisma = new client_1.PrismaClient();
+const prismaClient_1 = __importDefault(require("../../../lib/prismaClient"));
 class FacultyImportStrategy extends index_1.BaseImportStrategy {
     constructor() {
         super(...arguments);
@@ -57,7 +59,7 @@ class FacultyImportStrategy extends index_1.BaseImportStrategy {
             }
         }
         const emails = validRows.map((r) => r.email.trim().toLowerCase());
-        const existingUsers = await prisma.users.findMany({
+        const existingUsers = await prismaClient_1.default.users.findMany({
             where: { email: { in: emails } },
             select: { email: true },
         });
@@ -77,7 +79,7 @@ class FacultyImportStrategy extends index_1.BaseImportStrategy {
             try {
                 const tempPassword = 'FacultyTempPass123!';
                 const passwordHash = await crypto_utils_1.NativePassword.hash(tempPassword);
-                const newUser = await prisma.users.create({
+                const newUser = await prismaClient_1.default.users.create({
                     data: {
                         org_id: context.schoolId,
                         first_name: row.full_name,
@@ -96,7 +98,7 @@ class FacultyImportStrategy extends index_1.BaseImportStrategy {
             }
             catch (err) {
                 if (createdUserId) {
-                    await prisma.users.delete({ where: { user_id: createdUserId } }).catch(console.error);
+                    await prismaClient_1.default.users.delete({ where: { user_id: createdUserId } }).catch(console.error);
                 }
                 result.failedCount++;
                 result.failedRows.push({

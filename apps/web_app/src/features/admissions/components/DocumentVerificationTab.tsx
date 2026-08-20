@@ -34,11 +34,9 @@ export const DocumentVerificationTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">
-          Document Verification Queue
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm text-card-foreground">
+        <h3 className="text-base font-bold text-foreground">Document Verification Queue</h3>
+        <p className="text-xs text-muted-foreground mb-4">
           Review uploaded birth certificates, transcripts, and transfer certificates
         </p>
 
@@ -46,16 +44,14 @@ export const DocumentVerificationTab: React.FC = () => {
           {documents.map((doc) => (
             <div
               key={doc.id}
-              className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+              className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
             >
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
                   <span className="font-mono text-xs font-bold text-blue-600">{doc.appNo}</span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    {doc.name}
-                  </span>
+                  <span className="text-xs font-bold text-foreground">{doc.name}</span>
                 </div>
-                <p className="text-[11px] text-slate-400">Student: {doc.student}</p>
+                <p className="text-[11px] text-muted-foreground">Student: {doc.student}</p>
               </div>
 
               <div className="flex items-center space-x-2">

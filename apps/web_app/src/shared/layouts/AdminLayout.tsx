@@ -9,7 +9,7 @@ export const AdminLayout: React.FC = () => {
   const sidebarOpen = useAppSelector((state: RootState) => state.ui.sidebarOpen);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 antialiased">
+    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
       <Sidebar />
       <div
         className={cn('flex flex-col transition-all duration-300', sidebarOpen ? 'pl-64' : 'pl-0')}

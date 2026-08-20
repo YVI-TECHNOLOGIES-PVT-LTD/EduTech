@@ -223,21 +223,19 @@ export const ApplicationsManagementPage: React.FC = () => {
 
       {/* KPI Cards (min-h-[92px] uniform height matching Phase 1 Leads) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="min-h-[92px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs">
+        <div className="min-h-[92px] p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-slate-500">Total Applications</span>
-            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {kpiStats.total}
-            </div>
+            <span className="text-xs font-medium text-muted-foreground">Total Applications</span>
+            <div className="text-2xl font-black text-foreground font-mono">{kpiStats.total}</div>
           </div>
           <div className="p-3 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
             <FileText className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="min-h-[92px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs">
+        <div className="min-h-[92px] p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-slate-500">Under Review</span>
+            <span className="text-xs font-medium text-muted-foreground">Under Review</span>
             <div className="text-2xl font-black text-purple-600 font-mono">
               {kpiStats.underReview}
             </div>
@@ -247,9 +245,9 @@ export const ApplicationsManagementPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="min-h-[92px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs">
+        <div className="min-h-[92px] p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-slate-500">Action Required</span>
+            <span className="text-xs font-medium text-muted-foreground">Action Required</span>
             <div className="text-2xl font-black text-amber-600 font-mono">
               {kpiStats.actionRequired}
             </div>
@@ -259,9 +257,9 @@ export const ApplicationsManagementPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="min-h-[92px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs">
+        <div className="min-h-[92px] p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-slate-500">Approved & Ready</span>
+            <span className="text-xs font-medium text-muted-foreground">Approved & Ready</span>
             <div className="text-2xl font-black text-emerald-600 font-mono">
               {kpiStats.approved}
             </div>
@@ -273,7 +271,7 @@ export const ApplicationsManagementPage: React.FC = () => {
       </div>
 
       {/* Filter Toolbar (Uniform h-10 Controls) */}
-      <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+      <div className="p-4 rounded-xl border border-border bg-card shadow-xs">
         <form
           onSubmit={handleSearchSubmit}
           className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3"
@@ -397,13 +395,13 @@ export const ApplicationsManagementPage: React.FC = () => {
       </div>
 
       {/* Applications Table Container (Horizontal Scroll with min-w-[1250px] and Full Grid Borders) */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+      <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
         <div className="w-full overflow-x-auto">
           <Table className="w-full min-w-[1250px] border-collapse">
-            <TableHeader className="bg-slate-50 dark:bg-slate-800/60">
-              <TableRow className="border-b border-slate-200 dark:border-slate-800 hover:bg-transparent">
+            <TableHeader className="bg-card">
+              <TableRow className="border-b border-border hover:bg-transparent">
                 {/* 1. Selection Checkbox Column */}
-                <TableHead className="w-[44px] min-w-[44px] max-w-[44px] text-center p-0 border-r border-slate-200 dark:border-slate-800">
+                <TableHead className="w-[44px] min-w-[44px] max-w-[44px] text-center p-0 border-r border-border">
                   <div className="flex items-center justify-center">
                     <Checkbox
                       checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
@@ -549,10 +547,10 @@ export const ApplicationsManagementPage: React.FC = () => {
                     <TableRow
                       key={appId}
                       data-state={rowSelected ? 'selected' : undefined}
-                      className={`border-b border-slate-200/80 dark:border-slate-800/80 transition-colors ${
+                      className={`border-b border-border transition-colors ${
                         rowSelected
-                          ? 'bg-blue-50/60 dark:bg-blue-950/30'
-                          : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                          ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
                       }`}
                     >
                       {/* 1. Selection Checkbox */}

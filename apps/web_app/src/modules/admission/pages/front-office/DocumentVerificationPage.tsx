@@ -265,7 +265,7 @@ export const DocumentVerificationPage: React.FC = () => {
 
       {/* KPI Cards (Consistent min-h-[92px] matching Phase 1 & Phase 2 Standard) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="min-h-[92px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex items-center justify-between">
+        <Card className="min-h-[92px] p-4 rounded-xl border border-border bg-card shadow-xs flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
               Total Documents
@@ -323,7 +323,7 @@ export const DocumentVerificationPage: React.FC = () => {
       </div>
 
       {/* Filter Toolbar (Uniform h-10 Controls Matching Leads/Applications Standard) */}
-      <Card className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
+      <Card className="p-4 rounded-xl border border-border bg-card shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* Search Input (Flexible Width) */}
           <div className="relative sm:col-span-2 md:col-span-1 lg:col-span-1">
@@ -454,13 +454,13 @@ export const DocumentVerificationPage: React.FC = () => {
       </Card>
 
       {/* Verification Queue Enterprise Data Table (Full Grid Lines, Fixed S.NO/Checkbox, Predictable Widths) */}
-      <Card className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+      <Card className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto custom-scrollbar">
           <Table className="w-full min-w-[1240px] border-collapse">
-            <TableHeader className="bg-slate-50 dark:bg-slate-800/60 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800">
+            <TableHeader className="bg-card sticky top-0 z-10 border-b border-border">
               <TableRow className="hover:bg-transparent">
                 {/* Column 1: Checkbox (Fixed 48px, Centered) */}
-                <TableHead className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-slate-200 dark:border-slate-800">
+                <TableHead className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-border">
                   <div className="flex items-center justify-center">
                     <Checkbox
                       checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
@@ -575,10 +575,10 @@ export const DocumentVerificationPage: React.FC = () => {
                       key={doc.document_id}
                       data-state={rowSelected ? 'selected' : undefined}
                       onClick={() => handleOpenPreview(doc)}
-                      className={`cursor-pointer transition-colors border-b border-slate-200/80 dark:border-slate-800/80 ${
+                      className={`cursor-pointer transition-colors border-b border-border ${
                         rowSelected
-                          ? 'bg-blue-50/60 dark:bg-blue-950/30'
-                          : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/50'
+                          ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
                       }`}
                     >
                       {/* Column 1: Checkbox */}

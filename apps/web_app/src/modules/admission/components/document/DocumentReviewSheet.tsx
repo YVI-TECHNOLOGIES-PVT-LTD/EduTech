@@ -123,9 +123,9 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="sm:max-w-xl w-full p-0 flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+        <SheetContent className="sm:max-w-xl w-full p-0 flex flex-col h-full bg-card text-card-foreground border-l border-border">
           {/* Header */}
-          <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-2 shrink-0">
+          <div className="p-6 bg-card border-b border-border space-y-2 shrink-0">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">
@@ -134,7 +134,7 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyAppNumber}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
                   title="Copy Application Number"
                 >
                   {copied ? (
@@ -147,10 +147,10 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
               <DocumentStatusBadge status={document.verify_status} />
             </div>
 
-            <SheetTitle className="text-lg font-black text-slate-900 dark:text-white">
+            <SheetTitle className="text-lg font-black text-foreground">
               {document.document_name}
             </SheetTitle>
-            <SheetDescription className="text-xs text-slate-500">
+            <SheetDescription className="text-xs text-muted-foreground">
               Uploaded for applicant <strong>{document.student_name}</strong>
             </SheetDescription>
           </div>
@@ -158,45 +158,39 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
           {/* Scrollable Body Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-5">
             {/* Applicant Summary */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 shadow-xs">
-              <div className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="bg-card border border-border rounded-2xl p-4 space-y-3 shadow-xs">
+              <div className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pb-2 border-b border-border">
                 <User className="w-3.5 h-3.5 text-blue-600" />
                 Applicant Information
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Student Name</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">
-                    {document.student_name}
-                  </span>
+                  <span className="text-muted-foreground block text-[11px]">Student Name</span>
+                  <span className="font-bold text-foreground">{document.student_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Grade Applying</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">
-                    {document.grade_name || '—'}
-                  </span>
+                  <span className="text-muted-foreground block text-[11px]">Grade Applying</span>
+                  <span className="font-bold text-foreground">{document.grade_name || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Academic Year</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="text-muted-foreground block text-[11px]">Academic Year</span>
+                  <span className="font-semibold text-foreground">
                     {document.academic_year_name || '—'}
                   </span>
                 </div>
                 {document.lead_number && (
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Lead Reference</span>
-                    <span className="font-mono text-slate-700 dark:text-slate-300">
-                      #{document.lead_number}
-                    </span>
+                    <span className="text-muted-foreground block text-[11px]">Lead Reference</span>
+                    <span className="font-mono text-foreground">#{document.lead_number}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Document Specifications & Metadata */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 shadow-xs">
-              <div className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="bg-card border border-border rounded-2xl p-4 space-y-3 shadow-xs">
+              <div className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pb-2 border-b border-border">
                 <FileText className="w-3.5 h-3.5 text-blue-600" />
                 Document Metadata
               </div>
@@ -310,7 +304,7 @@ export const DocumentReviewSheet: React.FC<DocumentReviewSheetProps> = ({
           </div>
 
           {/* Sticky Action Footer */}
-          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <div className="p-4 bg-card border-t border-border flex items-center justify-between gap-2 shrink-0">
             <Button
               type="button"
               variant="outline"

@@ -34,6 +34,11 @@ import {
 import { useGetStaffListQuery } from '@/shared/api/staff.api';
 import { AddActivityModal } from './AddActivityModal';
 import { ScheduleVisitModal } from './ScheduleVisitModal';
+import { ScheduleVisitDialog } from '../visit/ScheduleVisitDialog';
+import { RescheduleVisitDialog } from '../visit/RescheduleVisitDialog';
+import { CompleteVisitDialog } from '../visit/CompleteVisitDialog';
+import { CancelVisitDialog } from '../visit/CancelVisitDialog';
+import { NoShowVisitDialog } from '../visit/NoShowVisitDialog';
 import { EditLeadModal } from './EditLeadModal';
 import { DeleteLeadDialog } from './DeleteLeadDialog';
 import { CreateApplicationDialog } from './CreateApplicationDialog';
@@ -179,6 +184,10 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [showVisitModal, setShowVisitModal] = useState(false);
+  const [selectedVisitForReschedule, setSelectedVisitForReschedule] = useState<any>(null);
+  const [selectedVisitForComplete, setSelectedVisitForComplete] = useState<any>(null);
+  const [selectedVisitForCancel, setSelectedVisitForCancel] = useState<any>(null);
+  const [selectedVisitForNoShow, setSelectedVisitForNoShow] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
 
@@ -696,22 +705,73 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                                       ? 'text-green-600 border-green-300'
                                       : v.status === 'cancelled'
                                         ? 'text-red-600 border-red-300'
-                                        : 'text-purple-600 border-purple-300'
+                                        : v.status === 'no_show'
+                                          ? 'text-slate-600 border-slate-300'
+                                          : 'text-purple-600 border-purple-300'
                                   }`}
                                 >
-                                  {v.status}
+                                  {v.status === 'no_show' ? 'No Show' : v.status}
                                 </Badge>
 
                                 {v.status === 'scheduled' && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleMarkVisitCompleted(v.visit_id)}
-                                    className="text-[10px] font-bold h-6 px-2 text-green-600 hover:text-green-700"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                    Done
-                                  </Button>
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        setSelectedVisitForComplete({
+                                          ...v,
+                                          leads: {
+                                            student_first_name: lead.student_first_name,
+                                            student_last_name: lead.student_last_name,
+                                            lead_number: lead.lead_number,
+                                          },
+                                        })
+                                      }
+                                      className="text-[10px] font-bold h-6 px-2 text-green-600 hover:text-green-700"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                                      Done
+                                    </Button>
+
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        setSelectedVisitForReschedule({
+                                          ...v,
+                                          leads: {
+                                            student_first_name: lead.student_first_name,
+                                            student_last_name: lead.student_last_name,
+                                            lead_number: lead.lead_number,
+                                          },
+                                        })
+                                      }
+                                      className="text-[10px] font-bold h-6 px-2 text-amber-600 hover:text-amber-700"
+                                    >
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      Reschedule
+                                    </Button>
+
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        setSelectedVisitForCancel({
+                                          ...v,
+                                          leads: {
+                                            student_first_name: lead.student_first_name,
+                                            student_last_name: lead.student_last_name,
+                                            lead_number: lead.lead_number,
+                                          },
+                                        })
+                                      }
+                                      className="text-[10px] font-bold h-6 px-1.5 text-red-600 hover:text-red-700"
+                                      title="Cancel Visit"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </>
                                 )}
 
                                 <button
@@ -778,10 +838,10 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                             <SelectValue placeholder="Select staff member..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {staffList.map((s) => (
-                              <SelectItem key={s.id} value={s.id}>
-                                {s.firstName} {s.lastName} (
-                                {s.department || s.designation || s.employeeId})
+                            {staffList.map((s: any) => (
+                              <SelectItem key={s.id || s.staff_id} value={s.id || s.staff_id}>
+                                {s.name || `${s.firstName || s.first_name || ''} ${s.lastName || s.last_name || ''}`.trim() || s.employeeId || s.employee_code} (
+                                {s.department || s.designation || s.employeeId || s.employee_code})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -855,6 +915,42 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
             open={showConvertDialog}
             onOpenChange={setShowConvertDialog}
             onSuccess={() => onLeadUpdated?.()}
+          />
+          <RescheduleVisitDialog
+            visit={selectedVisitForReschedule}
+            open={!!selectedVisitForReschedule}
+            onOpenChange={(op) => !op && setSelectedVisitForReschedule(null)}
+            onSuccess={() => {
+              setSelectedVisitForReschedule(null);
+              onLeadUpdated?.();
+            }}
+          />
+          <CompleteVisitDialog
+            visit={selectedVisitForComplete}
+            open={!!selectedVisitForComplete}
+            onOpenChange={(op) => !op && setSelectedVisitForComplete(null)}
+            onSuccess={() => {
+              setSelectedVisitForComplete(null);
+              onLeadUpdated?.();
+            }}
+          />
+          <CancelVisitDialog
+            visit={selectedVisitForCancel}
+            open={!!selectedVisitForCancel}
+            onOpenChange={(op) => !op && setSelectedVisitForCancel(null)}
+            onSuccess={() => {
+              setSelectedVisitForCancel(null);
+              onLeadUpdated?.();
+            }}
+          />
+          <NoShowVisitDialog
+            visit={selectedVisitForNoShow}
+            open={!!selectedVisitForNoShow}
+            onOpenChange={(op) => !op && setSelectedVisitForNoShow(null)}
+            onSuccess={() => {
+              setSelectedVisitForNoShow(null);
+              onLeadUpdated?.();
+            }}
           />
         </>
       )}

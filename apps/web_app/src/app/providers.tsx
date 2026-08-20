@@ -2,6 +2,8 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { store } from './store';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { MasterDataProvider } from '@/modules/admission/context/MasterDataContext';
 import { Toaster } from '@/components/ui/sonner';
@@ -21,20 +23,25 @@ const queryClient = new QueryClient({
 export const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <ErrorBoundary>
-      <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <MasterDataProvider>
-              <WorkspaceProvider>
-                <TooltipProvider delay={0}>
-                  {children}
-                  <Toaster position="top-right" richColors />
-                </TooltipProvider>
-              </WorkspaceProvider>
-            </MasterDataProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </Provider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <Provider store={store}>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <MasterDataProvider>
+                  <WorkspaceProvider>
+                    <TooltipProvider delay={0}>
+                      {children}
+                      <Toaster position="top-right" richColors />
+                    </TooltipProvider>
+                  </WorkspaceProvider>
+                </MasterDataProvider>
+              </AuthProvider>
+            </QueryClientProvider>
+          </Provider>
+        </LanguageProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 };
+

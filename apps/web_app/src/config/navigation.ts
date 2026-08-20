@@ -114,7 +114,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           },
           {
             id: 'fo_visits',
-            title: 'Campus Visits & Interviews',
+            title: 'Campus Visits & Sessions',
             url: '/app/admissions/interviews',
             icon: Calendar,
           },
@@ -195,4 +195,122 @@ export function getNavigationForUser(roles: string[] = []): NavigationGroup[] {
   }
 
   return GENERAL_NAVIGATION;
+}
+
+export interface FlatNavigationItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  url: string;
+  icon?: any;
+  category: string;
+  parentTitle?: string;
+}
+
+export function filterNavigationTree(groups: NavigationGroup[], query: string): NavigationGroup[] {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return groups;
+
+  return groups
+    .map((group) => {
+      const matchingItems = group.items
+        .map((item) => {
+          const itemMatches = item.title.toLowerCase().includes(trimmed);
+          const matchingSubItems = item.items
+            ? item.items.filter((sub) => sub.title.toLowerCase().includes(trimmed))
+            : [];
+
+          if (itemMatches) {
+            return {
+              ...item,
+              items:
+                item.items && item.items.length > 0
+                  ? matchingSubItems.length > 0
+                    ? matchingSubItems
+                    : item.items
+                  : undefined,
+            };
+          }
+
+          if (matchingSubItems.length > 0) {
+            return {
+              ...item,
+              items: matchingSubItems,
+            };
+          }
+
+          return null;
+        })
+        .filter(Boolean) as NavigationItem[];
+
+      return {
+        ...group,
+        items: matchingItems,
+      };
+    })
+    .filter((group) => group.items.length > 0);
+}
+
+export function searchNavigationItems(
+  groups: NavigationGroup[],
+  query: string,
+): FlatNavigationItem[] {
+  const trimmed = query.trim().toLowerCase();
+  const flatItems: FlatNavigationItem[] = [];
+
+  groups.forEach((group) => {
+    group.items.forEach((item) => {
+      if (!item.items || item.items.length === 0) {
+        flatItems.push({
+          id: item.id,
+          title: item.title,
+          subtitle: group.title,
+          url: item.url,
+          icon: item.icon,
+          category: group.title,
+        });
+      } else {
+        flatItems.push({
+          id: item.id,
+          title: item.title,
+          subtitle: group.title,
+          url: item.url,
+          icon: item.icon,
+          category: group.title,
+        });
+
+        item.items.forEach((subItem) => {
+          flatItems.push({
+            id: subItem.id,
+            title: subItem.title,
+            subtitle: `${item.title} • ${group.title}`,
+            url: subItem.url,
+            icon: subItem.icon || item.icon,
+            category: group.title,
+            parentTitle: item.title,
+          });
+        });
+      }
+    });
+  });
+
+  const seen = new Set<string>();
+  const uniqueItems = flatItems.filter((item) => {
+    if (seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
+  });
+
+  if (!trimmed) {
+    return uniqueItems;
+  }
+
+  return uniqueItems.filter(
+    (item) =>
+      item.title.toLowerCase().includes(trimmed) ||
+      item.subtitle.toLowerCase().includes(trimmed) ||
+      item.category.toLowerCase().includes(trimmed) ||
+      item.parentTitle?.toLowerCase().includes(trimmed) ||
+      item.url.toLowerCase().includes(trimmed),
+  );
 }

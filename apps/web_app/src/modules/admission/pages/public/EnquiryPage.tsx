@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   User,
   Mail,
@@ -66,7 +66,7 @@ const QUERY_TYPES = [
 
 export const EnquiryPage: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [gradesList, setGradesList] = useState<GradeOption[]>([]);
   const [selectedQueryType, setSelectedQueryType] = useState<string>('Admission Availability');

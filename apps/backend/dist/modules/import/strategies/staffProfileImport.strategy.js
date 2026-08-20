@@ -1,11 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffProfileImportStrategy = void 0;
-const client_1 = require("@prisma/client");
 const supabase_1 = require("../../../config/supabase");
 const index_1 = require("../index");
 const crypto_utils_1 = require("../../../auth/crypto.utils");
-const prisma = new client_1.PrismaClient();
+const prismaClient_1 = __importDefault(require("../../../lib/prismaClient"));
 class StaffProfileImportStrategy extends index_1.BaseImportStrategy {
     async validateRow(row, context) {
         const errors = [];
@@ -36,14 +38,14 @@ class StaffProfileImportStrategy extends index_1.BaseImportStrategy {
             const cleanEmail = row.email.trim().toLowerCase();
             let createdUserId = null;
             try {
-                const existingUser = await prisma.users.findFirst({ where: { email: cleanEmail } });
+                const existingUser = await prismaClient_1.default.users.findFirst({ where: { email: cleanEmail } });
                 if (existingUser) {
                     createdUserId = existingUser.user_id;
                 }
                 else {
                     const tempPassword = 'StaffTempPass123!';
                     const passwordHash = await crypto_utils_1.NativePassword.hash(tempPassword);
-                    const newUser = await prisma.users.create({
+                    const newUser = await prismaClient_1.default.users.create({
                         data: {
                             org_id: context.schoolId,
                             first_name: row.full_name,

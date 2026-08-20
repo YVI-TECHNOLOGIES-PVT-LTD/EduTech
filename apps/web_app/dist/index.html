@@ -5,15 +5,38 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>School Management System</title>
-  <script type="module" crossorigin src="/assets/index-p6G2Imdv.js"></script>
+  <title>EduTrack ERP - School Management System</title>
+  <script>
+    (function () {
+      try {
+        var storedTheme = localStorage.getItem('edutrack-theme') || localStorage.getItem('erp-theme');
+        var isDark = false;
+        if (storedTheme === 'dark') {
+          isDark = true;
+        } else if (storedTheme === 'light') {
+          isDark = false;
+        } else {
+          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        var root = document.documentElement;
+        if (isDark) {
+          root.classList.add('dark');
+          root.style.colorScheme = 'dark';
+        } else {
+          root.classList.remove('dark');
+          root.style.colorScheme = 'light';
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script type="module" crossorigin src="/assets/index-3Yl0K5_l.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/vendor-redux-FgfN3-09.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-query-4tcq87p7.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-react-S9GGX6z2.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-radix-By11hg6P.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-charts-Bs-Y-voy.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-icons-B8IUAK-Y.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BTv-duzF.css">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-icons-BFIMRcte.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-Bta3HL6K.css">
 </head>
 
 <body>

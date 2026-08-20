@@ -120,7 +120,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
               <span className="text-sm font-black tracking-tight text-sidebar-foreground leading-none">
                 EduTrack
               </span>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 mt-1 truncate">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-sidebar-foreground/70 mt-1 truncate">
                 {contextLabel}
               </span>
             </div>
@@ -133,7 +133,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
         {navGroups.map((group) => (
           <SidebarGroup key={group.id}>
             {!isCollapsed && (
-              <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-wider text-sidebar-foreground/50 px-2 py-1">
+              <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-wider text-sidebar-foreground/60 px-2 py-1">
                 {group.title}
               </SidebarGroupLabel>
             )}
@@ -157,17 +157,21 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                           tooltip={item.title}
                           className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
                             active
-                              ? 'bg-indigo-950 text-white shadow-md shadow-indigo-950/20 hover:bg-indigo-900 hover:text-white'
+                              ? 'bg-black text-white dark:bg-white dark:text-black shadow-md hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
                               : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                           }`}
                         >
                           <div className="flex items-center space-x-2.5 group-data-[collapsible=icon]:justify-center">
                             <Icon
-                              className={`w-4 h-4 shrink-0 ${active ? 'text-indigo-400' : 'text-sidebar-foreground/70'}`}
+                              className={`w-4 h-4 shrink-0 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
                             />
                             {!isCollapsed && <span>{item.title}</span>}
                           </div>
-                          {!isCollapsed && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
+                          {!isCollapsed && (
+                            <ChevronDown
+                              className={`w-3.5 h-3.5 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground/70'}`}
+                            />
+                          )}
                         </SidebarMenuButton>
 
                         {!isCollapsed && (
@@ -184,12 +188,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                                     isActive={subActive}
                                     className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                                       subActive
-                                        ? 'bg-indigo-50 text-indigo-950 font-extrabold'
-                                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                                        ? 'bg-black text-white dark:bg-white dark:text-black font-extrabold shadow-xs hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                                     }`}
                                   >
                                     <SubIcon
-                                      className={`w-3.5 h-3.5 ${subActive ? 'text-indigo-600' : 'text-sidebar-foreground/50'}`}
+                                      className={`w-3.5 h-3.5 ${subActive ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
                                     />
                                     <span>{subItem.title}</span>
                                   </SidebarMenuSubButton>
@@ -213,12 +217,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                         tooltip={item.title}
                         className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
                           active
-                            ? 'bg-indigo-950 text-white shadow-md shadow-indigo-950/20 hover:bg-indigo-900 hover:text-white'
+                            ? 'bg-black text-white dark:bg-white dark:text-black shadow-md hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                         }`}
                       >
                         <Icon
-                          className={`w-4 h-4 shrink-0 ${active ? 'text-indigo-400' : 'text-sidebar-foreground/70'}`}
+                          className={`w-4 h-4 shrink-0 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
                         />
                         {!isCollapsed && <span>{item.title}</span>}
                       </SidebarMenuButton>

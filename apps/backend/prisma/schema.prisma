@@ -533,6 +533,7 @@ model organizations {
   grades                                grades[]
   lead_query_types                      lead_query_types[]
   leads                                 leads[]
+  notifications                         notifications[]
   users_organizations_created_byTousers users?                     @relation("organizations_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_created_by")
   users_organizations_updated_byTousers users?                     @relation("organizations_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_updated_by")
   parents                               parents[]
@@ -781,6 +782,7 @@ model users {
   lead_visits_lead_visits_updated_byTousers                             lead_visits[]               @relation("lead_visits_updated_byTousers")
   leads_leads_created_byTousers                                         leads[]                     @relation("leads_created_byTousers")
   leads_leads_updated_byTousers                                         leads[]                     @relation("leads_updated_byTousers")
+  notifications                                                         notifications[]
   organizations_organizations_created_byTousers                         organizations[]             @relation("organizations_created_byTousers")
   organizations_organizations_updated_byTousers                         organizations[]             @relation("organizations_updated_byTousers")
   parents_parents_created_byTousers                                     parents[]                   @relation("parents_created_byTousers")
@@ -843,6 +845,36 @@ model lead_query_types {
   users_lead_query_types_updated_byTousers users?                     @relation("lead_query_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
 
   @@unique([org_id, query_type_name])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model notifications {
+  notification_id   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id            String                @db.Uuid
+  recipient_user_id String                @db.Uuid
+  category          notification_category @default(SYSTEM)
+  type              String                @db.VarChar(100)
+  priority          notification_priority @default(NORMAL)
+  title             String                @db.VarChar(255)
+  message           String
+  entity_type       String?               @db.VarChar(100)
+  entity_id         String?               @db.Uuid
+  action_url        String?
+  is_read           Boolean               @default(false)
+  read_at           DateTime?             @db.Timestamptz(6)
+  metadata          Json?
+  expires_at        DateTime?             @db.Timestamptz(6)
+  created_at        DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime              @default(now()) @db.Timestamptz(6)
+  organizations     organizations         @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users             users                 @relation(fields: [recipient_user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "ix_notifications_created_at")
+  @@index([entity_type, entity_id], map: "ix_notifications_entity")
+  @@index([org_id], map: "ix_notifications_org")
+  @@index([recipient_user_id], map: "ix_notifications_recipient")
+  @@index([recipient_user_id, is_read, created_at(sort: Desc)], map: "ix_notifications_recipient_unread")
   @@schema("public")
 }
 
@@ -1209,6 +1241,25 @@ enum admission_payment_mode {
   card
   bank_transfer
   upi
+
+  @@schema("public")
+}
+
+enum notification_category {
+  ADMISSION
+  ATTENDANCE
+  FEE
+  EXAM
+  SYSTEM
+
+  @@schema("public")
+}
+
+enum notification_priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 
   @@schema("public")
 }

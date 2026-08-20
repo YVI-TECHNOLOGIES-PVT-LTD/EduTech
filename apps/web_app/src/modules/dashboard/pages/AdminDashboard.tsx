@@ -300,7 +300,9 @@ const AdminDashboardInner = () => {
             {c.format}
             <AnimatedNumber value={c.value} />
           </span>
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1">{c.trend}</span>
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1">
+            {c.trend}
+          </span>
         </div>
       </div>
 
@@ -327,7 +329,7 @@ const AdminDashboardInner = () => {
           </button>
           <Link
             to="/app/admissions/review"
-            className="flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
           >
             <ShieldCheck className="w-4 h-4" />
             Admin Panel Actions

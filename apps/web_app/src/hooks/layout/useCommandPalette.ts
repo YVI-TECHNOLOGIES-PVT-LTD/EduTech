@@ -1,32 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 
 /**
- * Global Ctrl+K / Cmd+K command palette toggle hook.
- * Use this in DashboardLayout to open/close the CommandPalette.
+ * Global Ctrl+K / Cmd+K focus hook for navbar navigation search.
+ * Focuses the inline navbar search input directly without opening a modal.
  */
 export const useCommandPalette = () => {
-    const [isOpen, setIsOpen] = useState(false);
+  const focusSearch = useCallback(() => {
+    const input = document.getElementById('navbar-search-input') as HTMLInputElement | null;
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, []);
 
-    const open = () => setIsOpen(true);
-    const close = () => setIsOpen(false);
-    const toggle = () => setIsOpen(v => !v);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K (Windows/Linux) or Cmd+K (Mac)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        focusSearch();
+      }
+    };
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Ctrl+K (Windows/Linux) or Cmd+K (Mac)
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                toggle();
-            }
-            // Escape closes
-            if (e.key === 'Escape' && isOpen) {
-                close();
-            }
-        };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [focusSearch]);
 
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen]);
-
-    return { isOpen, open, close, toggle };
+  return { focusSearch };
 };

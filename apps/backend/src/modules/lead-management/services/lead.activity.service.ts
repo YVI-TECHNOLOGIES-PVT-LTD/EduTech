@@ -80,4 +80,15 @@ export class LeadActivityService {
 
     return LeadTimelineQuery.execute(leadId);
   }
+
+  static async getDueFollowUps(params: {
+    org_id?: string;
+    staff_id?: string;
+    date?: string;
+    status?: any;
+    page?: number;
+    pageSize?: number;
+  }) {
+    return LeadActivityRepository.findFollowUpsDue(params);
+  }
 }

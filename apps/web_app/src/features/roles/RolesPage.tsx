@@ -71,12 +71,12 @@ export const RolesPage: React.FC = () => {
             onClick={() => setSelectedRole(r.code)}
             className={`flex flex-col items-start rounded-lg border px-4 py-2 text-left transition-all ${
               selectedRole === r.code
-                ? 'border-blue-600 bg-blue-50/50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                ? 'border-black dark:border-white bg-black text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                : 'border-border bg-card text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
             }`}
           >
             <span className="text-xs font-bold">{r.label}</span>
-            <span className="text-[10px] text-slate-400">{r.desc}</span>
+            <span className="text-[10px] opacity-70">{r.desc}</span>
           </button>
         ))}
       </div>
@@ -86,9 +86,9 @@ export const RolesPage: React.FC = () => {
         {PERMISSION_GROUPS.map((group) => (
           <div
             key={group.groupName}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            className="rounded-xl border border-border bg-card p-5 shadow-sm text-card-foreground"
           >
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 pb-2 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-foreground border-b border-border pb-2">
               {group.groupName}
             </h3>
 
@@ -96,7 +96,7 @@ export const RolesPage: React.FC = () => {
               {group.permissions.map((perm) => (
                 <label
                   key={perm.code}
-                  className="flex items-start space-x-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-800/40 cursor-pointer"
+                  className="flex items-start space-x-3 rounded-lg border border-border/80 p-3 hover:bg-neutral-100 dark:hover:bg-neutral-900 cursor-pointer"
                 >
                   <input
                     type="checkbox"

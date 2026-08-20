@@ -78,6 +78,7 @@ export class LeadVisitService {
     status?: visit_status;
     startDate?: string;
     endDate?: string;
+    search?: string;
     page?: number;
     pageSize?: number;
   }) {
@@ -97,6 +98,20 @@ export class LeadVisitService {
 
     if (orgId && visit.leads?.org_id && visit.leads.org_id !== orgId) {
       throw new LeadValidationError(`Visit not found: ${visitId}`);
+    }
+
+    // State machine validation
+    if (visit.status !== visit_status.scheduled) {
+      if (dto.status && dto.status !== visit.status) {
+        throw new LeadValidationError(
+          `Cannot change status of a visit that is already ${visit.status}`,
+        );
+      }
+      if (dto.scheduled_at) {
+        throw new LeadValidationError(
+          `Cannot reschedule a visit that is already ${visit.status}`,
+        );
+      }
     }
 
     const updated = await LeadVisitRepository.update(visitId, dto, performedBy);

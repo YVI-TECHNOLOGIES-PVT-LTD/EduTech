@@ -5,7 +5,30 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>School Management System</title>
+  <title>EduTrack ERP - School Management System</title>
+  <script>
+    (function () {
+      try {
+        var storedTheme = localStorage.getItem('edutrack-theme') || localStorage.getItem('erp-theme');
+        var isDark = false;
+        if (storedTheme === 'dark') {
+          isDark = true;
+        } else if (storedTheme === 'light') {
+          isDark = false;
+        } else {
+          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        var root = document.documentElement;
+        if (isDark) {
+          root.classList.add('dark');
+          root.style.colorScheme = 'dark';
+        } else {
+          root.classList.remove('dark');
+          root.style.colorScheme = 'light';
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
 <body>

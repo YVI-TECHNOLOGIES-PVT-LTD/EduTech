@@ -179,19 +179,19 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         overlayClassName="bg-black/30 backdrop-blur-xs duration-100"
-        className="w-[calc(100vw-32px)] sm:w-[680px] max-w-[680px] max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl"
+        className="w-[calc(100vw-32px)] sm:w-[680px] max-w-[680px] max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col rounded-2xl bg-card text-card-foreground border border-border shadow-2xl"
       >
         {/* Header */}
-        <div className="flex-shrink-0 px-6 py-4 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex-shrink-0 px-6 py-4 bg-card border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
               <Receipt className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
                 Collect Admission Fee
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500 mt-0.5">
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 Front Office fee desk collection and receipt generation.
               </DialogDescription>
             </div>
@@ -204,15 +204,13 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
           className="flex-1 min-h-0 overflow-y-auto p-6 space-y-5 custom-scrollbar"
         >
           {/* Applicant & Fee Summary Card */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="p-4 rounded-xl bg-card border border-border space-y-3">
             <div className="flex items-start justify-between gap-2 flex-wrap">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
                   APPLICANT DETAILS
                 </span>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
-                  {studentName}
-                </h4>
+                <h4 className="text-sm font-bold text-foreground mt-0.5">{studentName}</h4>
                 <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 flex-wrap">
                   <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
                     {applicationNumber}
@@ -553,7 +551,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
         </form>
 
         {/* Footer Actions */}
-        <div className="flex-shrink-0 px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+        <div className="flex-shrink-0 px-6 py-4 bg-card border-t border-border flex items-center justify-between gap-3">
           <Button
             type="button"
             variant="outline"
