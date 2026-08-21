@@ -157,9 +157,17 @@ export const AnyPermissionGuard = ({
   children,
   fallback,
 }: AnyPermissionGuardProps) => {
-  const { hasPermission, user, hasRole } = useAuth();
+  const { hasPermission, user, hasRole, loading } = useAuth();
   const location = useLocation();
   const { getVisibleModules } = useModuleVisibility();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loading message="Verifying permissions..." />
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;

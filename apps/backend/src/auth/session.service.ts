@@ -169,12 +169,19 @@ export class SessionService {
             'HOI',
             'HEAD_OF_INSTITUTE',
             'PRINCIPAL',
+            'EXAM_CELL_ADMIN',
+            'EXAM_CELL',
           ].includes(r),
         )
       ) {
         permissions.add('admission.create');
         permissions.add('admission.view_all');
         permissions.add('admission.review');
+        permissions.add('admission.recommend');
+        permissions.add('admission.approve');
+        permissions.add('admission.assessment.evaluate');
+        permissions.add('admission.assessment.config.manage');
+        permissions.add('admission.assessment.dashboard.view');
         permissions.add('admission.document.view');
         permissions.add('admission.document.verify');
         permissions.add('admission.application.view');
