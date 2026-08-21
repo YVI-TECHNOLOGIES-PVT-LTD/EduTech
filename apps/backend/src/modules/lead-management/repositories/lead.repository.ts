@@ -71,7 +71,12 @@ export class LeadRepository {
   static async create(dto: CreateLeadDto) {
     const year = new Date().getFullYear();
     const count = await db.leads.count();
-    const lead_number = `LEAD-${year}-${String(count + 1).padStart(5, '0')}`;
+    let lead_number = `LEAD-${year}-${String(count + 1).padStart(5, '0')}`;
+    const existing = await db.leads.findUnique({ where: { lead_number } });
+    if (existing) {
+      const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+      lead_number = `LEAD-${year}-${randomSuffix}`;
+    }
 
     return db.leads.create({
       data: {

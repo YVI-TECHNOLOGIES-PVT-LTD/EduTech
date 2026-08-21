@@ -5,8 +5,6 @@ import { AuthController } from './auth/auth.controller';
 import { resolveTenantMiddleware } from './middlewares/tenant.middleware';
 import { checkPermission } from './rbac/rbac.middleware';
 import { PERMISSIONS } from './rbac/permissions';
-import { supabase } from './config/supabase';
-import { admissionRouter } from './modules/admission/admission.routes';
 import { crmRouter } from './modules/admission/crm.routes';
 import { applicationRouter } from './modules/admission/application.routes';
 import { documentRouter } from './modules/admission/document.routes';
@@ -14,11 +12,7 @@ import { evaluationRouter } from './modules/admission/evaluation.routes';
 import { assessmentRouter } from './modules/admission/assessment.routes';
 import { enrollmentRouter } from './modules/admission/enrollment.routes';
 import { AdmissionController } from './modules/admission/admission.controller';
-import {
-  applicationController,
-  publicApplicationController,
-  enquiryController,
-} from './modules/admission/index';
+import { publicApplicationController, enquiryController } from './modules/admission/index';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes';
 import { importRouter } from './modules/import/import.routes';
 import departmentRouter from './modules/departments/department.routes';
@@ -39,10 +33,10 @@ import { parentRouter as parentManagementRouter } from './modules/parent-managem
 import { academicRouter as academicManagementRouter } from './modules/academic-management/routes/academic.routes';
 import { staffRouter as staffManagementRouter } from './modules/staff-management/routes/staff.routes';
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
+import { chatbotRouter } from './modules/chatbot/routes/chatbot.routes';
 import { notificationRouter, NotificationSubscriber } from './modules/notifications';
 
 NotificationSubscriber.register();
-
 import { env } from './config/env';
 
 export const router = Router();
@@ -113,6 +107,10 @@ router.post(
   authenticateOptional,
   enquiryController.create,
 );
+
+// AI Chatbot & Admission Assistant Module (Public/Optional Auth - Phase 3.8)
+router.use('/v1/chatbot', chatbotRouter);
+router.use('/chatbot', chatbotRouter);
 
 // Public lookup for schools/organizations
 router.get('/schools', async (req: Request, res: Response) => {

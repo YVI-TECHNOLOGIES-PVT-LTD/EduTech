@@ -71,6 +71,13 @@ export const ENDPOINTS = {
   AUDIT: {
     LOGS: '/audit/logs',
   },
+  CHATBOT: {
+    CREATE_SESSION: '/v1/chatbot/session',
+    SEND_MESSAGE: '/v1/chatbot/message',
+    GET_SESSION: (sessionId: string) => `/v1/chatbot/session/${sessionId}`,
+    COMPLETE_SESSION: (sessionId: string) => `/v1/chatbot/session/${sessionId}/complete`,
+  },
+
   NOTIFICATIONS: {
     BASE: '/v1/notifications',
     UNREAD_COUNT: '/v1/notifications/unread-count',
