@@ -84,7 +84,7 @@ admissionRouter.get(
 // Child Resources: Documents
 admissionRouter.post(
   '/:id/documents',
-  checkPermission(AdmissionPolicy.canManageDocuments()),
+  checkPermission(AdmissionPolicy.canUploadDocument()),
   uploadSingleMiddleware,
   checkIdempotency,
   AdmissionDocumentController.upload,

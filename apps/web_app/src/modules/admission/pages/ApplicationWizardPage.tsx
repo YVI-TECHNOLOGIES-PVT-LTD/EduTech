@@ -299,14 +299,108 @@ export function ApplicationWizardPage() {
   const [submissionProgress, setSubmissionProgress] = useState<string | null>(null);
   const [createdAppId, setCreatedAppId] = useState<string | null>(null);
 
-  const handleSubmitApplication = async () => {
-    if (isSubmitting) return;
+  // Authoritative Full-Wizard Validation Function (Validates all steps before server mutations)
+  const validateFullWizard = async (): Promise<{
+    isValid: boolean;
+    errorStep?: number;
+    errorMessage?: string;
+  }> => {
+    // Step 1: Guidelines Acceptance
+    if (!instructionsAccepted) {
+      return {
+        isValid: false,
+        errorStep: 1,
+        errorMessage:
+          'Please accept the general guidelines in Step 1 before proceeding with submission.',
+      };
+    }
 
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSubmissionProgress('Validating application data...');
+    // Step 2: Student Details
+    if (!formData.student_first_name?.trim()) {
+      return {
+        isValid: false,
+        errorStep: 2,
+        errorMessage: 'Student First Name is mandatory (Step 2).',
+      };
+    }
+    if (!formData.student_last_name?.trim()) {
+      return {
+        isValid: false,
+        errorStep: 2,
+        errorMessage: 'Student Last Name is mandatory (Step 2).',
+      };
+    }
+    if (!formData.date_of_birth) {
+      return {
+        isValid: false,
+        errorStep: 2,
+        errorMessage: 'Student Date of Birth is mandatory (Step 2).',
+      };
+    }
+    const dob = new Date(formData.date_of_birth);
+    if (isNaN(dob.getTime())) {
+      return {
+        isValid: false,
+        errorStep: 2,
+        errorMessage: 'Student Date of Birth must be a valid date (Step 2).',
+      };
+    }
+    if (!formData.gender) {
+      return {
+        isValid: false,
+        errorStep: 2,
+        errorMessage: 'Student Gender is mandatory (Step 2).',
+      };
+    }
 
-    // DYNAMIC MANDATORY DOCUMENT VALIDATION:
+    // Step 3: Parent/Guardian Details
+    if (!formData.parent_name?.trim()) {
+      return {
+        isValid: false,
+        errorStep: 3,
+        errorMessage: 'Parent / Guardian Full Name is mandatory (Step 3).',
+      };
+    }
+    if (!formData.parent_phone?.trim()) {
+      return {
+        isValid: false,
+        errorStep: 3,
+        errorMessage: 'Primary Contact Phone number is mandatory (Step 3).',
+      };
+    }
+    const phoneClean = (formData.parent_phone || '').replace(/[\s\-()]/g, '');
+    if (!/^\+?[0-9]{7,15}$/.test(phoneClean)) {
+      return {
+        isValid: false,
+        errorStep: 3,
+        errorMessage: 'Primary Contact Phone must be a valid phone number (Step 3).',
+      };
+    }
+    if (!formData.parent_email?.trim()) {
+      return {
+        isValid: false,
+        errorStep: 3,
+        errorMessage: 'Primary Contact Email is mandatory (Step 3).',
+      };
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parent_email.trim())) {
+      return {
+        isValid: false,
+        errorStep: 3,
+        errorMessage: 'Primary Contact Email must be a valid email address (Step 3).',
+      };
+    }
+
+    // Step 4: Academic Information
+    if (!formData.academic_year_grade_id && !formData.grade_applied_for && !formData.grade_id) {
+      return {
+        isValid: false,
+        errorStep: 4,
+        errorMessage: 'Grade Applied For must be selected (Step 4).',
+      };
+    }
+
+    // Step 5: Mandatory Document Verification
     try {
       const dtRes = await admissionApi.getDocumentTypes(
         createdAppId
@@ -332,24 +426,55 @@ export function ApplicationWizardPage() {
       }
 
       if (missingFileDocs.length > 0) {
-        setSubmitError(
-          `File binary missing for required document(s): ${missingFileDocs.join(', ')}. Please return to Step 5 and re-select the file(s) before submitting.`,
-        );
-        setIsSubmitting(false);
-        setSubmissionProgress(null);
-        return;
+        return {
+          isValid: false,
+          errorStep: 5,
+          errorMessage: `File binary missing for mandatory document(s): ${missingFileDocs.join(', ')}. Please upload the required file(s) in Step 5 before submitting.`,
+        };
       }
     } catch (e) {
-      console.warn('Could not fetch mandatory document types for validation', e);
+      console.warn('Could not fetch mandatory document types for pre-validation', e);
+    }
+
+    // Step 7: Final Declarations
+    if (!formData.declaration_accepted) {
+      return {
+        isValid: false,
+        errorStep: 7,
+        errorMessage: 'You must accept the declaration in Step 7 before submitting.',
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  const handleSubmitApplication = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmissionProgress('Validating complete application across all steps...');
+
+    // 1. Authoritative Full-Wizard Validation BEFORE server creation
+    const validationResult = await validateFullWizard();
+    if (!validationResult.isValid) {
+      setSubmitError(validationResult.errorMessage || 'Please complete all required fields.');
+      if (validationResult.errorStep) {
+        setCurrentStep(validationResult.errorStep);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      setIsSubmitting(false);
+      setSubmissionProgress(null);
+      return;
     }
 
     try {
       let targetAppId = createdAppId;
       let appData: any = null;
 
-      // Step 1: Create Application record if not already created
+      // 2. Create Application with status 'documents_pending' if not already created
       if (!targetAppId) {
-        setSubmissionProgress('Creating application record...');
+        setSubmissionProgress('Creating application draft record...');
 
         const payload = {
           school_id: isUuid(formData.school_id) ? formData.school_id : undefined,
@@ -381,7 +506,7 @@ export function ApplicationWizardPage() {
           previous_school_board: formData.previous_school_board || undefined,
           previous_grade: (formData.previous_grade || '').trim() || undefined,
           previous_school_year: (formData.previous_school_year || '').trim() || undefined,
-          status: 'submitted',
+          status: 'documents_pending',
         };
 
         const res = await apiClient.post('/v1/applications', payload);
@@ -399,7 +524,7 @@ export function ApplicationWizardPage() {
         setCreatedAppId(targetAppId);
       }
 
-      // Step 2: Binary Document Uploads to Supabase Storage
+      // 3. Binary Document Uploads
       const fileEntries = Object.entries(selectedFiles);
       const failedDocs: string[] = [];
       const totalDocs = fileEntries.length;
@@ -426,17 +551,26 @@ export function ApplicationWizardPage() {
         }
       }
 
-      // STRICT TRANSACTION INVARIANT: IF ANY DOCUMENT UPLOAD FAILED, BLOCK SUCCESS NAVIGATION
+      // STRICT TRANSACTION INVARIANT: IF ANY DOCUMENT UPLOAD FAILED, REMAIN documents_pending
       if (failedDocs.length > 0) {
         setSubmitError(
-          `Application record created (${targetAppId.substring(0, 8)}...), but document upload failed for ${failedDocs.length} document(s). Please click "Retry Document Upload" to complete submission.`,
+          `Application draft created (${targetAppId.substring(0, 8)}...), but document upload failed for ${failedDocs.length} document(s). Application remains in documents_pending state. Please click "Submit Application" to retry document upload.`,
         );
         setIsSubmitting(false);
         setSubmissionProgress(null);
         return; // BLOCK SUCCESS NAVIGATION
       }
 
-      // Settle fee payment if selected or completed
+      // 4. Update Application Status to 'submitted' ONLY after ALL required document uploads succeed
+      setSubmissionProgress('Finalizing application submission...');
+      const statusRes = await apiClient.patch(`/v1/applications/${targetAppId}/status`, {
+        status: 'submitted',
+      });
+      if (statusRes.data) {
+        appData = statusRes.data;
+      }
+
+      // 5. Settle fee payment if selected or completed
       try {
         await admissionApi.recordApplicationPayment(targetAppId, {
           payment_mode: formData.payment_mode || 'upi',
@@ -446,7 +580,7 @@ export function ApplicationWizardPage() {
         console.warn('Post-creation payment settlement notice:', payErr);
       }
 
-      // Clear draft ONLY upon complete successful submission
+      // 6. Clear draft ONLY upon complete successful submission
       const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
       localStorage.removeItem(draftKey);
 

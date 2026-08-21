@@ -12,6 +12,8 @@ import {
 } from '../../../middlewares/upload.middleware';
 import { recordPaymentSchema } from '../dto/request/record-payment.dto';
 import { recordDecisionSchema } from '../dto/request/record-decision.dto';
+import { AdmissionPolicy } from '../policies/admission.policy';
+import { PERMISSIONS } from '../../../rbac/permissions';
 
 export async function runAdmissionModuleTests() {
   console.log('[Admission Application Management] Running unit tests...');
@@ -29,7 +31,18 @@ export async function runAdmissionModuleTests() {
     }
   }
 
-  // 1. Validator tests
+  // 1. Validator & Policy tests
+  test('AdmissionPolicy.canUploadDocument returns APPLICATION_UPDATE', () => {
+    assert.strictEqual(AdmissionPolicy.canUploadDocument(), PERMISSIONS.APPLICATION_UPDATE);
+  });
+
+  test('ApplicationValidator allows documents_pending to submitted transition', () => {
+    ApplicationValidator.validateStatusTransition(
+      application_status.documents_pending,
+      application_status.submitted,
+    );
+  });
+
   test('ApplicationValidator allows valid status transitions', () => {
     ApplicationValidator.validateStatusTransition(
       application_status.submitted,

@@ -7,6 +7,7 @@ import {
   ApplicationNotFoundError,
   DuplicateApplicationError,
   ApplicationValidationError,
+  ApplicationForbiddenError,
 } from '../errors/admission.errors';
 import { CreateApplicationDto } from '../dto/request/create-application.dto';
 import { UpdateApplicationDto } from '../dto/request/update-application.dto';
@@ -471,13 +472,48 @@ export class AdmissionService {
     id: string,
     targetStatus: application_status,
     performedBy?: string | null,
+    isParentOnly?: boolean,
   ): Promise<ApplicationResponseDto> {
     const existing = await AdmissionRepository.findById(id);
     if (!existing) {
       throw new ApplicationNotFoundError(id);
     }
 
+    if (performedBy && isParentOnly) {
+      const parent = await prisma.parents.findUnique({ where: { user_id: performedBy } });
+      const isOwner =
+        (parent && existing.leads?.parent_id === parent.parent_id) ||
+        existing.created_by === performedBy ||
+        existing.leads?.created_by === performedBy;
+      if (!isOwner) {
+        throw new ApplicationForbiddenError('Unauthorized: You do not own this application');
+      }
+      if (targetStatus !== application_status.submitted) {
+        throw new ApplicationForbiddenError(
+          'Parents may only transition applications to submitted status',
+        );
+      }
+    }
+
     ApplicationValidator.validateStatusTransition(existing.status, targetStatus);
+
+    // If transitioning to submitted, enforce mandatory document completeness
+    if (targetStatus === application_status.submitted) {
+      const mandatoryDocTypes = await prisma.document_types.findMany({
+        where: { org_id: existing.org_id, is_active: true, is_mandatory: true },
+      });
+      const uploadedDocTypeIds = new Set(
+        (existing.admission_documents || []).map((d: any) => d.document_type_id),
+      );
+      const missingMandatory = mandatoryDocTypes.filter(
+        (md) => !uploadedDocTypeIds.has(md.document_type_id),
+      );
+      if (missingMandatory.length > 0) {
+        throw new ApplicationValidationError(
+          `Cannot submit application: Missing mandatory document(s): ${missingMandatory.map((d) => d.document_name).join(', ')}`,
+        );
+      }
+    }
 
     const updated = await AdmissionRepository.updateStatus(id, targetStatus);
 

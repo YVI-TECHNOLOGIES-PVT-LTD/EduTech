@@ -88,6 +88,7 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         'admission.view_own',
         'admission.create',
         'admission.application.create',
+        'admission.application.update',
         'admission.application.view_own',
         'admission.application.view',
       ].includes(requiredPermission)

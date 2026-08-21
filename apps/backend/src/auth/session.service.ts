@@ -148,6 +148,7 @@ export class SessionService {
         permissions.add('admission.create');
         permissions.add('admission.application.view_own');
         permissions.add('admission.application.create');
+        permissions.add('admission.application.update');
         permissions.add('admission.application.view');
       }
 

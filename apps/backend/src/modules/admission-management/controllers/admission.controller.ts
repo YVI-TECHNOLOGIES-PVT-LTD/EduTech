@@ -175,8 +175,20 @@ export class AdmissionController {
         return res.status(400).json({ error: 'Status parameter is required' });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
-      const result = await AdmissionService.updateStatus(id, status as application_status, userId);
+      const user = req.context?.user || (req as any).user;
+      const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
+      const userRoles = user?.roles || [];
+      const isParentOnly =
+        userRoles.includes('PARENT') &&
+        !userRoles.some((r: string) =>
+          ['ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF', 'SUPERADMIN'].includes(r),
+        );
+      const result = await AdmissionService.updateStatus(
+        id,
+        status as application_status,
+        userId,
+        isParentOnly,
+      );
       return res.json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {

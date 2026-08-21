@@ -17,6 +17,10 @@ export class AdmissionPolicy {
     return PERMISSIONS.APPLICATION_DELETE;
   }
 
+  static canUploadDocument(): string {
+    return PERMISSIONS.APPLICATION_UPDATE;
+  }
+
   static canManageDocuments(): string {
     return PERMISSIONS.ADMISSION_REVIEW;
   }

@@ -82,6 +82,7 @@ export const ALLOWED_APPLICATION_STATUS_TRANSITIONS: Record<string, string[]> = 
     application_status.withdrawn,
   ],
   [application_status.documents_pending]: [
+    application_status.submitted,
     application_status.assessment_pending,
     application_status.under_review,
     application_status.rejected,
