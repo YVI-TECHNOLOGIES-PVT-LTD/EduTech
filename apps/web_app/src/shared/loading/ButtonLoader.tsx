@@ -1,12 +1,14 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
-interface ButtonLoaderProps {
+export interface ButtonLoaderProps {
   className?: string;
   size?: number;
 }
 
 export const ButtonLoader: React.FC<ButtonLoaderProps> = ({ className, size = 16 }) => {
-  return <Loader2 className={cn('animate-spin text-current', className)} size={size} />;
+  return <Spinner size={size} className={cn('text-current', className)} />;
 };
+
+export default ButtonLoader;

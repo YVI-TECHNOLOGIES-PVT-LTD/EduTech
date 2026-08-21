@@ -324,17 +324,30 @@ export function DataTableFramework<T extends { id?: string | number }>({
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={visibleColumns.length + 1 + (bulkActions ? 1 : 0)}
-                  className="text-center py-16 text-xs text-muted-foreground font-semibold italic"
-                >
-                  <div className="flex flex-col items-center justify-center gap-3">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <span>Fetching data repository...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, rIdx) => (
+                <TableRow key={`skeleton-row-${rIdx}`} className="border-b border-border/50">
+                  {bulkActions && (
+                    <TableCell className="text-center p-2 border-r border-border/50">
+                      <div className="h-4 w-4 bg-muted/60 rounded mx-auto animate-pulse" />
+                    </TableCell>
+                  )}
+                  <TableCell className="text-center border-r border-border/50 py-3 px-1">
+                    <div className="h-4 w-6 bg-muted/60 rounded mx-auto animate-pulse" />
+                  </TableCell>
+                  {visibleColumns.map((col, cIdx) => (
+                    <TableCell
+                      key={`skeleton-cell-${rIdx}-${col.key}`}
+                      className={`${cellPaddingClass} ${cIdx < visibleColumns.length - 1 ? 'border-r border-border/50' : ''}`}
+                    >
+                      <div
+                        className={`h-4 bg-muted/60 rounded animate-pulse ${
+                          cIdx === 0 ? 'w-24' : cIdx === 1 ? 'w-40' : 'w-20'
+                        }`}
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
             ) : paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell

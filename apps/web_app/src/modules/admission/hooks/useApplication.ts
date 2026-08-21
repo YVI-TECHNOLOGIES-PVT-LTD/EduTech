@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
-import { useGetApplicationsQuery, useGetApplicationByIdQuery } from '@/shared/api/admission.api';
+import {
+  useGetApplicationsQuery,
+  useGetApplicationByIdQuery,
+  ApplicationRecord,
+} from '@/shared/api/admission.api';
 import { admissionEventBus, ADMISSION_EVENTS } from '../core/AdmissionEvents';
 
 export interface ApplicationListParams {
@@ -57,7 +61,10 @@ export function useApplication(id?: string, options?: { enabled?: boolean; paren
   };
 }
 
-export function useApplicationList(params?: ApplicationListParams, options?: { enabled?: boolean; mine?: boolean }) {
+export function useApplicationList(
+  params?: ApplicationListParams,
+  options?: { enabled?: boolean; mine?: boolean },
+) {
   const isEnabled = options?.enabled ?? true;
   const queryParams = {
     ...params,
@@ -71,8 +78,19 @@ export function useApplicationList(params?: ApplicationListParams, options?: { e
     return () => unsubs.forEach((u) => u());
   }, [query.refetch]);
 
+  const rawData = query.data;
+  const applications: ApplicationRecord[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray(rawData?.data)
+      ? rawData.data
+      : Array.isArray(rawData?.items)
+        ? rawData.items
+        : [];
+
   return {
-    applications: (query.data ?? []) as any[],
+    applications,
+    total: rawData?.total ?? applications.length,
+    meta: rawData?.meta,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
@@ -96,8 +114,19 @@ export function useReviewQueue(status = 'submitted', options?: { enabled?: boole
     return () => unsubs.forEach((u) => u());
   }, [query.refetch]);
 
+  const rawData = query.data;
+  const applications: ApplicationRecord[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray(rawData?.data)
+      ? rawData.data
+      : Array.isArray(rawData?.items)
+        ? rawData.items
+        : [];
+
   return {
-    applications: (query.data ?? []) as any[],
+    applications,
+    total: rawData?.total ?? applications.length,
+    meta: rawData?.meta,
     isLoading: query.isLoading,
     refetch: query.refetch,
   };

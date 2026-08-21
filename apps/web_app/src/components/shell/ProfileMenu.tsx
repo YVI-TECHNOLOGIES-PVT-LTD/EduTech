@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/context/LanguageContext';
 import { User, LogOut, Settings, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { getInitials } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,12 +38,11 @@ export const ProfileMenu: React.FC = () => {
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
       : 'EduTrack User');
-  const userInitials =
-    displayName
-      .split(' ')
-      .map((n: string) => n.charAt(0).toUpperCase())
-      .join('')
-      .slice(0, 2) || 'U';
+  const avatarUrl =
+    (user as any)?.avatar_url ||
+    (user as any)?.avatar ||
+    (user as any)?.image ||
+    (user as any)?.profile_photo_url;
 
   return (
     <DropdownMenu>
@@ -50,10 +50,12 @@ export const ProfileMenu: React.FC = () => {
         aria-label="Open user menu"
         className="flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-muted transition-colors focus:outline-none cursor-pointer"
       >
-        <Avatar className="w-8 h-8 border border-indigo-200 shrink-0">
-          <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-xs">
-            {userInitials}
+        <Avatar size="sm" className="border border-border shrink-0">
+          <AvatarImage src={avatarUrl} alt={displayName} />
+          <AvatarFallback className="bg-primary/10 text-primary font-bold">
+            {getInitials(displayName)}
           </AvatarFallback>
+          <AvatarBadge variant="online" size="sm" />
         </Avatar>
         <div className="hidden sm:flex flex-col text-left min-w-0">
           <span className="text-xs font-bold text-slate-900 dark:text-white leading-none truncate max-w-[140px]">

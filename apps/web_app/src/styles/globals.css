@@ -73,6 +73,16 @@
 
   --radius: 0.75rem;
 
+  /* Chart Color Tokens (8-category palette) */
+  --chart-1: 181 83% 28%;
+  --chart-2: 217 91% 53%;
+  --chart-3: 158 79% 36%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 262 83% 58%;
+  --chart-6: 346 84% 53%;
+  --chart-7: 192 95% 42%;
+  --chart-8: 24 94% 53%;
+
   /* Sidebar Tokens (Light Mode — Pure #FFFFFF Background, Pure #000000 Text, Pure #000000 Active Bg / #FFFFFF Active Text) */
   --sidebar-background: 0 0% 100%;
   --sidebar-foreground: 0 0% 0%;
@@ -124,6 +134,16 @@
   --border: 0 0% 18%;
   --input: 0 0% 18%;
   --ring: 173 80% 36%;
+
+  /* Chart Color Tokens (Dark Mode 8-category palette) */
+  --chart-1: 173 80% 45%;
+  --chart-2: 213 94% 68%;
+  --chart-3: 158 64% 52%;
+  --chart-4: 43 96% 56%;
+  --chart-5: 263 70% 66%;
+  --chart-6: 346 77% 62%;
+  --chart-7: 187 86% 53%;
+  --chart-8: 24 90% 62%;
 
   /* Sidebar Tokens (Dark Mode — Pure #000000 Background, Pure #FFFFFF Text, Pure #FFFFFF Active Bg / #000000 Active Text) */
   --sidebar-background: 0 0% 0%;

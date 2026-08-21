@@ -1,14 +1,21 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../../../lib/prismaClient';
 import { RecordDecisionDto } from '../dto/request/record-decision.dto';
 
 export class AdmissionDecisionRepository {
-  static async upsert(applicationId: string, createdBy: string | null, dto: RecordDecisionDto) {
-    const existing = await prisma.admission_decisions.findUnique({
+  static async upsert(
+    applicationId: string,
+    createdBy: string | null,
+    dto: RecordDecisionDto,
+    tx?: Prisma.TransactionClient | typeof prisma,
+  ) {
+    const client = tx || prisma;
+    const existing = await client.admission_decisions.findUnique({
       where: { application_id: applicationId },
     });
 
     if (existing) {
-      return prisma.admission_decisions.update({
+      return client.admission_decisions.update({
         where: { application_id: applicationId },
         data: {
           decision_status: dto.decision_status,
@@ -26,7 +33,7 @@ export class AdmissionDecisionRepository {
       });
     }
 
-    return prisma.admission_decisions.create({
+    return client.admission_decisions.create({
       data: {
         application_id: applicationId,
         decision_status: dto.decision_status,
@@ -43,8 +50,12 @@ export class AdmissionDecisionRepository {
     });
   }
 
-  static async findByApplicationId(application_id: string) {
-    return prisma.admission_decisions.findUnique({
+  static async findByApplicationId(
+    application_id: string,
+    tx?: Prisma.TransactionClient | typeof prisma,
+  ) {
+    const client = tx || prisma;
+    return client.admission_decisions.findUnique({
       where: { application_id },
     });
   }

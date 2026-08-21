@@ -13,10 +13,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Columns,
+  LayoutList,
+  User,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import {
   Select,
   SelectContent,
@@ -65,6 +70,8 @@ export const DocumentVerificationPage: React.FC = () => {
   const [quickVerifyDoc, setQuickVerifyDoc] = useState<DocumentPreviewItem | null>(null);
   const [quickRejectDoc, setQuickRejectDoc] = useState<DocumentPreviewItem | null>(null);
   const [quickResubmitDoc, setQuickResubmitDoc] = useState<DocumentPreviewItem | null>(null);
+  const [splitMode, setSplitMode] = useState(false);
+  const [selectedSplitDoc, setSelectedSplitDoc] = useState<DocumentPreviewItem | null>(null);
 
   // Queries
   const {
@@ -250,6 +257,27 @@ export const DocumentVerificationPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant={splitMode ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              const next = !splitMode;
+              setSplitMode(next);
+              if (next && !selectedSplitDoc && paginatedDocuments.length > 0) {
+                setSelectedSplitDoc(paginatedDocuments[0]);
+              }
+            }}
+            className="hidden lg:flex items-center gap-1.5 h-10 text-xs font-semibold shadow-xs"
+            title="Toggle Split Workspace for side-by-side queue and document review"
+          >
+            {splitMode ? (
+              <LayoutList className="w-3.5 h-3.5" />
+            ) : (
+              <Columns className="w-3.5 h-3.5" />
+            )}
+            {splitMode ? 'Standard Table' : 'Split Workspace'}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -453,305 +481,635 @@ export const DocumentVerificationPage: React.FC = () => {
         )}
       </Card>
 
-      {/* Verification Queue Enterprise Data Table (Full Grid Lines, Fixed S.NO/Checkbox, Predictable Widths) */}
-      <Card className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
-        <div className="overflow-x-auto custom-scrollbar">
-          <Table className="w-full min-w-[1240px] border-collapse">
-            <TableHeader className="bg-card sticky top-0 z-10 border-b border-border">
-              <TableRow className="hover:bg-transparent">
-                {/* Column 1: Checkbox (Fixed 48px, Centered) */}
-                <TableHead className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-border">
-                  <div className="flex items-center justify-center">
-                    <Checkbox
-                      checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
-                      onCheckedChange={toggleSelectAll}
-                      aria-label="Select all documents in queue"
-                    />
-                  </div>
-                </TableHead>
-
-                {/* Column 2: S.NO (Fixed 56px, Centered) */}
-                <TableHead className="w-14 min-w-[56px] max-w-[56px] text-center text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest py-3.5 border-r border-slate-200 dark:border-slate-800 px-1">
-                  S.NO
-                </TableHead>
-
-                {/* Column 3: Application Number (Fixed 150px) */}
-                <TableHead className="w-40 min-w-[150px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Application #
-                </TableHead>
-
-                {/* Column 4: Applicant & Grade (Wider 210px) */}
-                <TableHead className="min-w-[210px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Applicant & Grade
-                </TableHead>
-
-                {/* Column 5: Document File (190px) */}
-                <TableHead className="min-w-[190px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Original File
-                </TableHead>
-
-                {/* Column 6: Document Type (160px) */}
-                <TableHead className="w-44 min-w-[160px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Requirement Type
-                </TableHead>
-
-                {/* Column 7: Uploaded Date (120px) */}
-                <TableHead className="w-32 min-w-[120px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Uploaded At
-                </TableHead>
-
-                {/* Column 8: Status (150px) */}
-                <TableHead className="w-40 min-w-[150px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Status
-                </TableHead>
-
-                {/* Column 9: Verified Details (160px) */}
-                <TableHead className="min-w-[160px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                  Verified Details
-                </TableHead>
-
-                {/* Column 10: Actions (Fixed 140px, Right Aligned) */}
-                <TableHead className="w-36 min-w-[140px] text-right text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-4">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {isAppsLoading ? (
-                Array.from({ length: 5 }).map((_, idx) => (
-                  <TableRow
-                    key={`skeleton-${idx}`}
-                    className="border-b border-slate-200/80 dark:border-slate-800/80"
-                  >
-                    <TableCell colSpan={10} className="py-4 px-4 text-center">
-                      <div className="h-5 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : appsError ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={10}
-                    className="py-12 text-center text-rose-500 font-semibold text-xs"
-                  >
-                    <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-80" />
-                    Failed to load document verification queue. Please refresh.
-                  </TableCell>
-                </TableRow>
-              ) : paginatedDocuments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="py-16 text-center">
-                    <div className="max-w-xs mx-auto space-y-2">
-                      <FileCheck className="w-8 h-8 text-slate-300 mx-auto" />
-                      <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                        No documents in queue
+      {/* Verification Queue Enterprise Data Table or Split Workspace */}
+      {splitMode ? (
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="min-h-[680px] rounded-2xl border border-border bg-card shadow-xs overflow-hidden"
+        >
+          <ResizablePanel defaultSize={62} minSize={40} className="p-0 flex flex-col">
+            <div className="overflow-x-auto custom-scrollbar flex-1">
+              <Table className="w-full min-w-[980px] border-collapse">
+                <TableHeader className="bg-card sticky top-0 z-10 border-b border-border">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-border">
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all documents in queue"
+                        />
                       </div>
-                      <p className="text-[11px] text-slate-400">
-                        {allQueueDocuments.length > 0
-                          ? 'No documents matched the current filters. Try resetting the filters.'
-                          : 'No applicant documents currently uploaded in the system.'}
-                      </p>
-                      {allQueueDocuments.length > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleResetFilters}
-                          className="h-8 text-xs font-semibold mt-2"
-                        >
-                          Clear Filters
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedDocuments.map((doc, index) => {
-                  const rowSelected = isSelected(doc.document_id);
-                  const isVerified = doc.verify_status === 'verified';
-
-                  return (
-                    <TableRow
-                      key={doc.document_id}
-                      data-state={rowSelected ? 'selected' : undefined}
-                      onClick={() => handleOpenPreview(doc)}
-                      className={`cursor-pointer transition-colors border-b border-border ${
-                        rowSelected
-                          ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
-                      }`}
-                    >
-                      {/* Column 1: Checkbox */}
+                    </TableHead>
+                    <TableHead className="w-14 min-w-[56px] max-w-[56px] text-center text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest py-3.5 border-r border-slate-200 dark:border-slate-800 px-1">
+                      S.NO
+                    </TableHead>
+                    <TableHead className="w-36 min-w-[130px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                      Application #
+                    </TableHead>
+                    <TableHead className="min-w-[180px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                      Applicant & Grade
+                    </TableHead>
+                    <TableHead className="w-40 min-w-[140px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                      Document
+                    </TableHead>
+                    <TableHead className="w-36 min-w-[130px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                      Status
+                    </TableHead>
+                    <TableHead className="w-28 min-w-[100px] text-right text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3">
+                      Action
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isAppsLoading ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <TableRow key={`skeleton-split-${idx}`} className="border-b border-border/60">
+                        <TableCell colSpan={7} className="py-4 px-4 text-center">
+                          <div className="h-5 bg-muted/60 rounded animate-pulse w-full" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : paginatedDocuments.length === 0 ? (
+                    <TableRow>
                       <TableCell
-                        className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-slate-200/80 dark:border-slate-800/80 align-middle"
-                        onClick={(e) => e.stopPropagation()}
+                        colSpan={7}
+                        className="py-12 text-center text-xs text-muted-foreground font-semibold"
                       >
-                        <div className="flex items-center justify-center">
-                          <Checkbox
-                            checked={rowSelected}
-                            onCheckedChange={() => toggleRow(doc.document_id)}
-                            aria-label={`Select document ${doc.document_name} for ${doc.student_name}`}
-                          />
-                        </div>
+                        No documents in queue
                       </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedDocuments.map((doc, index) => {
+                      const rowSelected = isSelected(doc.document_id);
+                      const isInspecting = selectedSplitDoc?.document_id === doc.document_id;
+                      const isVerified = doc.verify_status === 'verified';
 
-                      {/* Column 2: S.NO */}
-                      <TableCell className="w-14 min-w-[56px] max-w-[56px] text-center font-mono text-xs font-semibold text-slate-400 border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-1 align-middle">
-                        {(page - 1) * pageSize + index + 1}
-                      </TableCell>
-
-                      {/* Column 3: Application # */}
-                      <TableCell className="w-40 min-w-[150px] font-mono text-xs font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 align-middle">
-                        <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800">
-                          {doc.application_number}
-                        </span>
-                      </TableCell>
-
-                      {/* Column 4: Applicant & Grade */}
-                      <TableCell className="min-w-[210px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs align-middle">
-                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[190px]">
-                          {doc.student_name}
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-medium mt-0.5 truncate max-w-[190px]">
-                          {doc.grade_name} • {doc.academic_year_name}
-                        </div>
-                      </TableCell>
-
-                      {/* Column 5: Document File */}
-                      <TableCell className="min-w-[190px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs align-middle">
-                        <div
-                          className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5"
-                          title={doc.original_file_name || doc.document_name}
+                      return (
+                        <TableRow
+                          key={doc.document_id}
+                          onClick={() => setSelectedSplitDoc(doc)}
+                          className={`cursor-pointer transition-colors border-b border-border ${
+                            isInspecting
+                              ? 'bg-primary/10 border-l-4 border-l-primary font-semibold'
+                              : rowSelected
+                                ? 'bg-muted'
+                                : 'hover:bg-muted/50'
+                          }`}
                         >
-                          <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[160px] font-mono text-[11px]">
-                            {doc.original_file_name || doc.document_name}
+                          <TableCell
+                            className="w-12 text-center p-0 border-r border-border align-middle"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-center">
+                              <Checkbox
+                                checked={rowSelected}
+                                onCheckedChange={() => toggleRow(doc.document_id)}
+                                aria-label={`Select document ${doc.document_name}`}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-14 text-center font-mono text-xs text-muted-foreground border-r border-border py-3 px-1 align-middle">
+                            {(page - 1) * pageSize + index + 1}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs font-bold text-primary border-r border-border py-3 px-3 align-middle">
+                            <span className="px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">
+                              {doc.application_number}
+                            </span>
+                          </TableCell>
+                          <TableCell className="border-r border-border py-3 px-3 text-xs align-middle">
+                            <div className="font-bold text-foreground truncate max-w-[160px]">
+                              {doc.student_name}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate max-w-[160px]">
+                              {doc.grade_name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="border-r border-border py-3 px-3 text-xs align-middle">
+                            <div
+                              className="font-semibold text-foreground truncate max-w-[130px]"
+                              title={doc.document_name}
+                            >
+                              {doc.document_name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="border-r border-border py-3 px-3 align-middle">
+                            <DocumentStatusBadge status={doc.verify_status} />
+                          </TableCell>
+                          <TableCell
+                            className="py-3 px-3 text-right align-middle"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenPreview(doc)}
+                              className="h-7 px-2 text-xs font-bold text-blue-600 hover:text-blue-700"
+                              title="Full Screen Viewer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {filteredDocuments.length > 0 && (
+              <div className="p-3 bg-muted/20 border-t border-border flex items-center justify-between text-xs">
+                <span className="text-muted-foreground text-[11px]">
+                  Showing {(page - 1) * pageSize + 1} to{' '}
+                  {Math.min(page * pageSize, filteredDocuments.length)} of{' '}
+                  {filteredDocuments.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </Button>
+                  <span className="px-1.5 font-bold text-xs">
+                    {page}/{totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          <ResizablePanel defaultSize={38} minSize={28} className="p-4 bg-muted/10">
+            {selectedSplitDoc ? (
+              <div className="h-full flex flex-col bg-card rounded-xl border border-border overflow-hidden shadow-xs">
+                <div className="p-4 bg-muted/30 border-b border-border space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      {selectedSplitDoc.application_number}
+                    </span>
+                    <DocumentStatusBadge status={selectedSplitDoc.verify_status} />
+                  </div>
+                  <div>
+                    <h3
+                      className="text-base font-bold text-foreground truncate"
+                      title={selectedSplitDoc.document_name}
+                    >
+                      {selectedSplitDoc.document_name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {selectedSplitDoc.student_name} • {selectedSplitDoc.grade_name || 'Standard'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+                  <div className="p-3 bg-muted/20 rounded-xl border border-border space-y-2">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pb-1 border-b border-border">
+                      <User className="w-3.5 h-3.5 text-primary" />
+                      Applicant Summary
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">Student</span>
+                        <span className="font-bold text-foreground">
+                          {selectedSplitDoc.student_name}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">Grade</span>
+                        <span className="font-bold text-foreground">
+                          {selectedSplitDoc.grade_name || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">
+                          Academic Year
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {selectedSplitDoc.academic_year_name || '—'}
+                        </span>
+                      </div>
+                      {selectedSplitDoc.lead_number && (
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">Lead Ref</span>
+                          <span className="font-mono text-foreground">
+                            #{selectedSplitDoc.lead_number}
                           </span>
                         </div>
-                      </TableCell>
+                      )}
+                    </div>
+                  </div>
 
-                      {/* Column 6: Requirement Type */}
-                      <TableCell className="w-44 min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs align-middle">
-                        <div className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">
-                          {doc.document_name}
+                  <div className="p-3 bg-muted/20 rounded-xl border border-border space-y-2">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pb-1 border-b border-border">
+                      <FileText className="w-3.5 h-3.5 text-primary" />
+                      Document Details
+                    </div>
+                    <div className="space-y-1.5">
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">File Name</span>
+                        <span className="font-mono text-[11px] font-semibold text-foreground truncate block">
+                          {selectedSplitDoc.original_file_name || selectedSplitDoc.document_name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs pt-1">
+                        <span className="text-muted-foreground">Requirement</span>
+                        {selectedSplitDoc.is_mandatory ? (
+                          <span className="text-[10px] font-bold text-rose-600">Mandatory</span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">Optional</span>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">Uploaded At</span>
+                        <span className="font-semibold text-foreground">
+                          {selectedSplitDoc.uploaded_at
+                            ? new Date(selectedSplitDoc.uploaded_at).toLocaleDateString()
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedSplitDoc.verification_remarks && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                        Remarks
+                      </span>
+                      <p className="text-xs text-foreground italic">
+                        {selectedSplitDoc.verification_remarks}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 bg-muted/30 border-t border-border flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleOpenPreview(selectedSplitDoc)}
+                    className="w-full text-xs font-bold gap-1.5 h-8 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Open Full Document Viewer
+                  </Button>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setQuickResubmitDoc(selectedSplitDoc)}
+                      className="text-[11px] font-bold h-7 px-1 text-purple-600 border-purple-200 hover:bg-purple-50 dark:border-purple-800"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Resubmit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setQuickRejectDoc(selectedSplitDoc)}
+                      className="text-[11px] font-bold h-7 px-1 text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-800"
+                    >
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setQuickVerifyDoc(selectedSplitDoc)}
+                      disabled={selectedSplitDoc.verify_status === 'verified'}
+                      className="text-[11px] font-bold h-7 px-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      {selectedSplitDoc.verify_status === 'verified' ? 'Done' : 'Verify'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-card rounded-xl border border-border">
+                <FileCheck className="w-10 h-10 text-muted-foreground/40 mb-2" />
+                <h4 className="text-xs font-bold text-foreground">Select a Document</h4>
+                <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
+                  Click any document row in the queue to inspect details side-by-side.
+                </p>
+              </div>
+            )}
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <Card className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
+          <div className="overflow-x-auto custom-scrollbar">
+            <Table className="w-full min-w-[1240px] border-collapse">
+              <TableHeader className="bg-card sticky top-0 z-10 border-b border-border">
+                <TableRow className="hover:bg-transparent">
+                  {/* Column 1: Checkbox (Fixed 48px, Centered) */}
+                  <TableHead className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-border">
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all documents in queue"
+                      />
+                    </div>
+                  </TableHead>
+
+                  {/* Column 2: S.NO (Fixed 56px, Centered) */}
+                  <TableHead className="w-14 min-w-[56px] max-w-[56px] text-center text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest py-3.5 border-r border-slate-200 dark:border-slate-800 px-1">
+                    S.NO
+                  </TableHead>
+
+                  {/* Column 3: Application Number (Fixed 150px) */}
+                  <TableHead className="w-40 min-w-[150px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Application #
+                  </TableHead>
+
+                  {/* Column 4: Applicant & Grade (Wider 210px) */}
+                  <TableHead className="min-w-[210px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Applicant & Grade
+                  </TableHead>
+
+                  {/* Column 5: Document File (190px) */}
+                  <TableHead className="min-w-[190px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Original File
+                  </TableHead>
+
+                  {/* Column 6: Document Type (160px) */}
+                  <TableHead className="w-44 min-w-[160px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Requirement Type
+                  </TableHead>
+
+                  {/* Column 7: Uploaded Date (120px) */}
+                  <TableHead className="w-32 min-w-[120px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Uploaded At
+                  </TableHead>
+
+                  {/* Column 8: Status (150px) */}
+                  <TableHead className="w-40 min-w-[150px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Status
+                  </TableHead>
+
+                  {/* Column 9: Verified Details (160px) */}
+                  <TableHead className="min-w-[160px] text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
+                    Verified Details
+                  </TableHead>
+
+                  {/* Column 10: Actions (Fixed 140px, Right Aligned) */}
+                  <TableHead className="w-36 min-w-[140px] text-right text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest py-3.5 px-4">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {isAppsLoading ? (
+                  Array.from({ length: 5 }).map((_, idx) => (
+                    <TableRow
+                      key={`skeleton-${idx}`}
+                      className="border-b border-slate-200/80 dark:border-slate-800/80"
+                    >
+                      <TableCell colSpan={10} className="py-4 px-4 text-center">
+                        <div className="h-5 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : appsError ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={10}
+                      className="py-12 text-center text-rose-500 font-semibold text-xs"
+                    >
+                      <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-80" />
+                      Failed to load document verification queue. Please refresh.
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedDocuments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="py-16 text-center">
+                      <div className="max-w-xs mx-auto space-y-2">
+                        <FileCheck className="w-8 h-8 text-slate-300 mx-auto" />
+                        <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                          No documents in queue
                         </div>
-                        <div className="mt-0.5">
-                          {doc.is_mandatory ? (
-                            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                              Mandatory
+                        <p className="text-[11px] text-slate-400">
+                          {allQueueDocuments.length > 0
+                            ? 'No documents matched the current filters. Try resetting the filters.'
+                            : 'No applicant documents currently uploaded in the system.'}
+                        </p>
+                        {allQueueDocuments.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleResetFilters}
+                            className="h-8 text-xs font-semibold mt-2"
+                          >
+                            Clear Filters
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedDocuments.map((doc, index) => {
+                    const rowSelected = isSelected(doc.document_id);
+                    const isVerified = doc.verify_status === 'verified';
+
+                    return (
+                      <TableRow
+                        key={doc.document_id}
+                        data-state={rowSelected ? 'selected' : undefined}
+                        onClick={() => handleOpenPreview(doc)}
+                        className={`cursor-pointer transition-colors border-b border-border ${
+                          rowSelected
+                            ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                            : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                        }`}
+                      >
+                        {/* Column 1: Checkbox */}
+                        <TableCell
+                          className="w-12 min-w-[48px] max-w-[48px] text-center p-0 border-r border-slate-200/80 dark:border-slate-800/80 align-middle"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              checked={rowSelected}
+                              onCheckedChange={() => toggleRow(doc.document_id)}
+                              aria-label={`Select document ${doc.document_name} for ${doc.student_name}`}
+                            />
+                          </div>
+                        </TableCell>
+
+                        {/* Column 2: S.NO */}
+                        <TableCell className="w-14 min-w-[56px] max-w-[56px] text-center font-mono text-xs font-semibold text-slate-400 border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-1 align-middle">
+                          {(page - 1) * pageSize + index + 1}
+                        </TableCell>
+
+                        {/* Column 3: Application # */}
+                        <TableCell className="w-40 min-w-[150px] font-mono text-xs font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 align-middle">
+                          <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800">
+                            {doc.application_number}
+                          </span>
+                        </TableCell>
+
+                        {/* Column 4: Applicant & Grade */}
+                        <TableCell className="min-w-[210px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs align-middle">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[190px]">
+                            {doc.student_name}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-medium mt-0.5 truncate max-w-[190px]">
+                            {doc.grade_name} • {doc.academic_year_name}
+                          </div>
+                        </TableCell>
+
+                        {/* Column 5: Document File */}
+                        <TableCell className="min-w-[190px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs align-middle">
+                          <div
+                            className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5"
+                            title={doc.original_file_name || doc.document_name}
+                          >
+                            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate max-w-[160px] font-mono text-[11px]">
+                              {doc.original_file_name || doc.document_name}
                             </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-medium">Optional</span>
-                          )}
-                        </div>
-                      </TableCell>
+                          </div>
+                        </TableCell>
 
-                      {/* Column 7: Uploaded Date */}
-                      <TableCell className="w-32 min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs text-slate-600 dark:text-slate-300 align-middle">
-                        {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}
-                      </TableCell>
-
-                      {/* Column 8: Status */}
-                      <TableCell className="w-40 min-w-[150px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 align-middle">
-                        <DocumentStatusBadge status={doc.verify_status} />
-                      </TableCell>
-
-                      {/* Column 9: Verified Details */}
-                      <TableCell className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs text-slate-500 align-middle">
-                        {doc.verified_at ? (
-                          <div>
-                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 block">
-                              {new Date(doc.verified_at).toLocaleDateString()}
-                            </span>
-                            {doc.verification_remarks && (
-                              <span
-                                className="text-[10px] text-slate-400 italic truncate block max-w-[140px]"
-                                title={doc.verification_remarks}
-                              >
-                                {doc.verification_remarks}
+                        {/* Column 6: Requirement Type */}
+                        <TableCell className="w-44 min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs align-middle">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">
+                            {doc.document_name}
+                          </div>
+                          <div className="mt-0.5">
+                            {doc.is_mandatory ? (
+                              <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                                Mandatory
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                Optional
                               </span>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </TableCell>
+                        </TableCell>
 
-                      {/* Column 10: Actions */}
-                      <TableCell
-                        className="w-36 min-w-[140px] py-3.5 px-4 text-right align-middle"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenPreview(doc)}
-                            className="h-8 px-2.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50 gap-1 shadow-2xs"
-                            title="Inspect and Review in Document Viewer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            Review
-                          </Button>
+                        {/* Column 7: Uploaded Date */}
+                        <TableCell className="w-32 min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs text-slate-600 dark:text-slate-300 align-middle">
+                          {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}
+                        </TableCell>
 
-                          {!isVerified && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setQuickVerifyDoc(doc)}
-                              className="h-8 px-2 text-xs font-bold text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50 shadow-2xs"
-                              title="Quick Verify"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                            </Button>
+                        {/* Column 8: Status */}
+                        <TableCell className="w-40 min-w-[150px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 align-middle">
+                          <DocumentStatusBadge status={doc.verify_status} />
+                        </TableCell>
+
+                        {/* Column 9: Verified Details */}
+                        <TableCell className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 py-3.5 px-3.5 text-xs text-slate-500 align-middle">
+                          {doc.verified_at ? (
+                            <div>
+                              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 block">
+                                {new Date(doc.verified_at).toLocaleDateString()}
+                              </span>
+                              {doc.verification_remarks && (
+                                <span
+                                  className="text-[10px] text-slate-400 italic truncate block max-w-[140px]"
+                                  title={doc.verification_remarks}
+                                >
+                                  {doc.verification_remarks}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                        </TableCell>
 
-        {/* Pagination Footer */}
-        {filteredDocuments.length > 0 && (
-          <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">
-              Showing {(page - 1) * pageSize + 1} to{' '}
-              {Math.min(page * pageSize, filteredDocuments.length)} of {filteredDocuments.length}{' '}
-              documents
-            </span>
+                        {/* Column 10: Actions */}
+                        <TableCell
+                          className="w-36 min-w-[140px] py-3.5 px-4 text-right align-middle"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenPreview(doc)}
+                              className="h-8 px-2.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50 gap-1 shadow-2xs"
+                              title="Inspect and Review in Document Viewer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Review
+                            </Button>
 
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="h-8 px-2.5 text-xs font-semibold gap-1"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Previous
-              </Button>
-              <span className="px-2 font-bold text-slate-700 dark:text-slate-300">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="h-8 px-2.5 text-xs font-semibold gap-1"
-              >
-                Next
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+                            {!isVerified && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setQuickVerifyDoc(doc)}
+                                className="h-8 px-2 text-xs font-bold text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50 shadow-2xs"
+                                title="Quick Verify"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </Card>
+
+          {/* Pagination Footer */}
+          {filteredDocuments.length > 0 && (
+            <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">
+                Showing {(page - 1) * pageSize + 1} to{' '}
+                {Math.min(page * pageSize, filteredDocuments.length)} of {filteredDocuments.length}{' '}
+                documents
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  Previous
+                </Button>
+                <span className="px-2 font-bold text-slate-700 dark:text-slate-300">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1"
+                >
+                  Next
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Production Document Preview Viewer Modal */}
       <DocumentPreviewDialog

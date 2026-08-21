@@ -71,4 +71,11 @@ export const ENDPOINTS = {
   AUDIT: {
     LOGS: '/audit/logs',
   },
+  NOTIFICATIONS: {
+    BASE: '/v1/notifications',
+    UNREAD_COUNT: '/v1/notifications/unread-count',
+    MARK_READ: (id: string) => `/v1/notifications/${id}/read`,
+    MARK_ALL_READ: '/v1/notifications/mark-all-read',
+    BY_ID: (id: string) => `/v1/notifications/${id}`,
+  },
 } as const;

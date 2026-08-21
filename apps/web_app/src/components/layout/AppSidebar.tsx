@@ -37,8 +37,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
+import { getInitials } from '@/lib/utils';
 
 interface AppSidebarProps {
   className?: string;
@@ -240,9 +241,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
         <DropdownMenu>
           <DropdownMenuTrigger className="w-full flex items-center justify-between p-2 rounded-2xl hover:bg-sidebar-accent transition-colors focus:outline-none text-left cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
             <div className="flex items-center space-x-2.5 min-w-0 group-data-[collapsible=icon]:justify-center">
-              <Avatar className="w-8 h-8 border border-indigo-200 shrink-0">
-                <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-xs">
-                  {userInitials}
+              <Avatar size="sm" className="border border-sidebar-border shrink-0">
+                <AvatarImage
+                  src={(user as any)?.avatar_url || (user as any)?.avatar || (user as any)?.image}
+                  alt={displayName}
+                />
+                <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground font-black">
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
 

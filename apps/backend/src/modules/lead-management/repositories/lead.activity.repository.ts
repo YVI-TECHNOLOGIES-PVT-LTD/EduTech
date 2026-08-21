@@ -62,14 +62,28 @@ export class LeadActivityRepository {
   }
 
   static async update(activity_id: string, dto: UpdateActivityDto) {
+    const data: any = {
+      updated_at: new Date(),
+    };
+    if (dto.activity_type || dto.type) {
+      data.activity_type = dto.activity_type || dto.type;
+    }
+    if (dto.activity_date) {
+      data.activity_date = new Date(dto.activity_date);
+    }
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+    }
+    if (dto.next_followup_date !== undefined) {
+      data.next_followup_date = dto.next_followup_date ? new Date(dto.next_followup_date) : null;
+    }
+    if (dto.notes !== undefined) {
+      data.notes = dto.notes;
+    }
+
     return prisma.lead_activities.update({
       where: { activity_id },
-      data: {
-        status: dto.status,
-        next_followup_date: dto.next_followup_date ? new Date(dto.next_followup_date) : undefined,
-        notes: dto.notes,
-        updated_at: new Date(),
-      },
+      data,
       include: {
         users_lead_activities_created_byTousers: {
           select: {

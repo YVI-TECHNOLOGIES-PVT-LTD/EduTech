@@ -25,6 +25,8 @@ export const apiSlice = createApi({
     'Enrollment',
     'Setting',
     'AuditLog',
+    'Notification',
+    'NotificationCount',
   ],
   endpoints: () => ({}),
 });

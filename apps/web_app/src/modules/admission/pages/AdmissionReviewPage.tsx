@@ -43,7 +43,15 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { Progress } from '../../../components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  AvatarBadge,
+  AvatarGroup,
+  AvatarGroupCount,
+} from '../../../components/ui/avatar';
+import { getInitials } from '@/lib/utils';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { Separator } from '../../../components/ui/separator';
 import { Textarea } from '../../../components/ui/textarea';
@@ -251,13 +259,16 @@ const StickyHeader = ({
           <History className="w-4 h-4 mr-2" />
           History
         </Button>
-        <div className="flex -space-x-3">
-          {[1, 2, 3].map((i) => (
-            <Avatar key={i} className="w-8 h-8 border-2 border-white dark:border-[#0f172a]">
-              <AvatarFallback className="text-[10px] bg-gray-100">ST</AvatarFallback>
+        <AvatarGroup>
+          {['AD', 'RO', 'VP'].map((initials, i) => (
+            <Avatar key={i} size="sm" className="border-2 border-background">
+              <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
+                {initials}
+              </AvatarFallback>
             </Avatar>
           ))}
-        </div>
+          <AvatarGroupCount size="sm">+2</AvatarGroupCount>
+        </AvatarGroup>
       </div>
     </header>
   );
@@ -272,16 +283,20 @@ const ApplicantSnapshot = ({ app }: { app: Admission }) => {
     >
       <div className="text-center space-y-4">
         <div className="relative inline-block">
-          <Avatar className="w-32 h-32 mx-auto border-4 border-white/50 shadow-2xl ring-4 ring-blue-500/10">
+          <Avatar className="w-32 h-32 mx-auto border-4 border-background shadow-2xl ring-4 ring-primary/10">
             <AvatarImage
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${app.student_name}`}
+              src={
+                (app as any).student_photo_url ||
+                (app as any).avatar_url ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${app.student_name}`
+              }
+              alt={app.student_name}
             />
-            <AvatarFallback>{app.student_name.substring(0, 2)}</AvatarFallback>
+            <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
+              {getInitials(app.student_name)}
+            </AvatarFallback>
+            <AvatarBadge variant="online" size="lg" />
           </Avatar>
-          <div
-            className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-2 border-white rounded-full"
-            title="Active Account"
-          />
         </div>
         <div>
           <h3 className="text-2xl font-black text-gray-900 dark:text-white">{app.student_name}</h3>

@@ -44,13 +44,13 @@ export interface PieChartLabelCardProps {
 }
 
 const DEFAULT_PALETTE = [
-  'hsl(238 82% 67%)',  // Indigo
-  'hsl(187 92% 43%)',  // Cyan
-  'hsl(160 84% 39%)',  // Emerald
-  'hsl(38 92% 50%)',   // Amber
-  'hsl(270 76% 60%)',  // Purple
-  'hsl(330 81% 60%)',  // Rose
-  'hsl(215 16% 47%)',  // Slate
+  'hsl(238 82% 67%)', // Indigo
+  'hsl(187 92% 43%)', // Cyan
+  'hsl(160 84% 39%)', // Emerald
+  'hsl(38 92% 50%)', // Amber
+  'hsl(270 76% 60%)', // Purple
+  'hsl(330 81% 60%)', // Rose
+  'hsl(215 16% 47%)', // Slate
 ];
 
 export const PieChartLabelCard: React.FC<PieChartLabelCardProps> = ({
@@ -106,10 +106,14 @@ export const PieChartLabelCard: React.FC<PieChartLabelCardProps> = ({
   }, [formattedData]);
 
   return (
-    <Card className={`flex flex-col justify-between h-full bg-white dark:bg-black border border-border/80 dark:border-zinc-800 shadow-sm rounded-2xl ${className}`}>
+    <Card
+      className={`flex flex-col justify-between h-full bg-white dark:bg-black border border-border/80 dark:border-zinc-800 shadow-sm rounded-2xl ${className}`}
+    >
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 sm:p-6 pb-2">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${iconBg} ${iconColor}`}>
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center border ${iconBg} ${iconColor}`}
+          >
             <Icon className="w-4 h-4" />
           </div>
           <div>
@@ -155,7 +159,7 @@ export const PieChartLabelCard: React.FC<PieChartLabelCardProps> = ({
                     data={chartData}
                     dataKey="value"
                     nameKey="id"
-                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                    label={({ percent }: any) => `${((percent ?? 0) * 100).toFixed(0)}%`}
                     innerRadius={innerRadius}
                     outerRadius={outerRadius}
                     stroke="transparent"
@@ -190,9 +194,7 @@ export const PieChartLabelCard: React.FC<PieChartLabelCardProps> = ({
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: item.fill }}
                       />
-                      <span className="font-bold text-foreground truncate">
-                        {item.label}
-                      </span>
+                      <span className="font-bold text-foreground truncate">{item.label}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="font-mono font-bold text-foreground">

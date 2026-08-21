@@ -3,6 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeContext, ThemeMode } from '@/context/ThemeContext';
 import { useSettingsStore } from '../store/settings.store';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Palette,
   Globe,
   Bell,
@@ -149,33 +156,36 @@ function LanguageSection() {
         <label className="block text-xs font-black text-muted-foreground uppercase tracking-wide mb-3">
           Date Format
         </label>
-        <select
-          id="date-format"
-          value={dateFormat}
-          onChange={(e) => setDateFormat(e.target.value as any)}
-          className="w-full px-4 py-2.5 border border-border rounded-xl text-sm font-medium bg-card text-foreground focus:border-primary focus:outline-none"
-        >
-          <option value="DD/MM/YYYY">DD/MM/YYYY (e.g. 29/06/2026)</option>
-          <option value="MM/DD/YYYY">MM/DD/YYYY (e.g. 06/29/2026)</option>
-          <option value="YYYY-MM-DD">YYYY-MM-DD (e.g. 2026-06-29)</option>
-        </select>
+        <Select value={dateFormat} onValueChange={(v) => setDateFormat(v as any)}>
+          <SelectTrigger
+            id="date-format"
+            className="w-full h-10 rounded-xl bg-card text-foreground"
+          >
+            <SelectValue placeholder="Select Date Format" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="DD/MM/YYYY">DD/MM/YYYY (e.g. 29/06/2026)</SelectItem>
+            <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (e.g. 06/29/2026)</SelectItem>
+            <SelectItem value="YYYY-MM-DD">YYYY-MM-DD (e.g. 2026-06-29)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
         <label className="block text-xs font-black text-muted-foreground uppercase tracking-wide mb-3">
           Timezone
         </label>
-        <select
-          id="timezone"
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          className="w-full px-4 py-2.5 border border-border rounded-xl text-sm font-medium bg-card text-foreground focus:border-primary focus:outline-none"
-        >
-          <option value="Asia/Kolkata">IST — Asia/Kolkata (UTC+5:30)</option>
-          <option value="UTC">UTC — Coordinated Universal Time</option>
-          <option value="America/New_York">EST — America/New_York (UTC-5:00)</option>
-          <option value="Europe/London">GMT — Europe/London (UTC+0:00)</option>
-        </select>
+        <Select value={timezone} onValueChange={(v) => setTimezone(v)}>
+          <SelectTrigger id="timezone" className="w-full h-10 rounded-xl bg-card text-foreground">
+            <SelectValue placeholder="Select Timezone" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="Asia/Kolkata">IST — Asia/Kolkata (UTC+5:30)</SelectItem>
+            <SelectItem value="UTC">UTC — Coordinated Universal Time</SelectItem>
+            <SelectItem value="America/New_York">EST — America/New_York (UTC-5:00)</SelectItem>
+            <SelectItem value="Europe/London">GMT — Europe/London (UTC+0:00)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

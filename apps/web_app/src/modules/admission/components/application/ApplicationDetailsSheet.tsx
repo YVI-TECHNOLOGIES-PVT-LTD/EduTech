@@ -18,6 +18,7 @@ import { RequestResubmissionDialog } from '../document/RequestResubmissionDialog
 import { PaymentStatusBadge } from '../fee/PaymentStatusBadge';
 import { CollectAdmissionFeeDialog } from '../fee/CollectAdmissionFeeDialog';
 import { AdmissionFeeReceiptDialog } from '../fee/AdmissionFeeReceiptDialog';
+import { RecordDecisionModal } from './RecordDecisionModal';
 import { toast } from '@/components/ui/use-toast';
 import {
   User,
@@ -74,6 +75,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
   const [selectedResubmitDoc, setSelectedResubmitDoc] = useState<any | null>(null);
   const [isCollectFeeOpen, setIsCollectFeeOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isRecordDecisionOpen, setIsRecordDecisionOpen] = useState(false);
 
   // Safe normalized application data
   const lead = application?.lead ?? null;
@@ -684,7 +686,7 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
 
             {activeTab === 'decision' && (
               <div className="space-y-4">
-                <div className="p-4 bg-card border border-border rounded-xl flex items-center justify-between">
+                <div className="p-4 bg-card border border-border rounded-xl flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -692,19 +694,33 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
                       {decision
-                        ? `Status: ${decision.decision_status}`
+                        ? `Recorded Status: ${decision.decision_status?.toUpperCase()}`
                         : 'Pending committee / principal decision'}
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate('/app/admissions/review')}
-                    className="text-xs h-8 font-semibold gap-1"
-                  >
-                    View Decision Desk
-                    <ExternalLink className="w-3 h-3" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setIsRecordDecisionOpen(true)}
+                      className={`text-xs h-8 font-semibold gap-1.5 ${
+                        decision
+                          ? 'bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      {decision ? 'Update Decision' : 'Record Decision'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate('/app/admissions/review')}
+                      className="text-xs h-8 font-semibold gap-1"
+                    >
+                      Decision Desk
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
 
                 {decision ? (
@@ -712,24 +728,49 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                       <div>
                         <span className="text-slate-400 block text-[11px]">Decision Status</span>
-                        <span className="inline-flex px-2 py-0.5 mt-1 rounded text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span
+                          className={`inline-flex px-2 py-0.5 mt-1 rounded text-xs font-bold uppercase border ${
+                            decision.decision_status === 'approved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                              : decision.decision_status === 'waitlisted'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                : decision.decision_status === 'rejected'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                          }`}
+                        >
                           {decision.decision_status}
                         </span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[11px]">Decision Date</span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {new Date(decision.decision_date).toLocaleDateString()}
+                          {decision.decision_date
+                            ? new Date(decision.decision_date).toLocaleDateString()
+                            : 'N/A'}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Scholarship</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {decision.scholarship_percentage
-                            ? `${decision.scholarship_percentage}%`
-                            : 'None'}
-                        </span>
-                      </div>
+                      {decision.decision_status === 'approved' && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Scholarship</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            {decision.scholarship_percentage !== null &&
+                            decision.scholarship_percentage !== undefined
+                              ? `${decision.scholarship_percentage}%`
+                              : 'None'}
+                          </span>
+                        </div>
+                      )}
+                      {decision.decision_status === 'waitlisted' && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">
+                            Waitlist Position
+                          </span>
+                          <span className="font-semibold text-amber-600">
+                            #{decision.waitlist_position || 'Unranked'}
+                          </span>
+                        </div>
+                      )}
                       {decision.offer_expiry_date && (
                         <div>
                           <span className="text-slate-400 block text-[11px]">Offer Expiry</span>
@@ -738,23 +779,40 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
                           </span>
                         </div>
                       )}
+                      {decision.reason && (
+                        <div className="col-span-2">
+                          <span className="text-slate-400 block text-[11px]">Reason</span>
+                          <span className="text-slate-700 dark:text-slate-300 font-medium">
+                            {decision.reason}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {decision.remarks && (
                       <div className="pt-2 border-t text-xs text-slate-600 dark:text-slate-300">
-                        <strong>Remarks:</strong> {decision.remarks}
+                        <strong className="text-slate-700 dark:text-slate-200">Remarks:</strong>{' '}
+                        {decision.remarks}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="p-8 text-center bg-white dark:bg-slate-900 border border-dashed rounded-xl space-y-2">
+                  <div className="p-8 text-center bg-white dark:bg-slate-900 border border-dashed rounded-xl space-y-3">
                     <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto" />
                     <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                       Decision pending
                     </div>
-                    <div className="text-[11px] text-slate-400">
-                      Final committee decision (Approve, Waitlist, Reject) will be reflected once
-                      review concludes.
+                    <div className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                      Final committee decision (Approve, Waitlist, Reject, Withdraw) can be recorded
+                      directly or through the review desk.
                     </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsRecordDecisionOpen(true)}
+                      className="text-xs h-8 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Record Admission Decision
+                    </Button>
                   </div>
                 )}
               </div>
@@ -941,6 +999,20 @@ export const ApplicationDetailsSheet: React.FC<ApplicationDetailsSheetProps> = (
         open={isReceiptOpen}
         onOpenChange={setIsReceiptOpen}
         application={application}
+      />
+
+      {/* Record / Update Decision Modal */}
+      <RecordDecisionModal
+        isOpen={isRecordDecisionOpen}
+        onClose={() => setIsRecordDecisionOpen(false)}
+        application={application}
+        initialDecision={decision}
+        onSuccess={() => {
+          toast({
+            title: 'Admission Decision Recorded',
+            description: 'The decision was saved and application status updated successfully.',
+          });
+        }}
       />
     </>
   );

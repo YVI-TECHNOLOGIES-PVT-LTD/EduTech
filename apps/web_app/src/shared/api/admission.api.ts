@@ -272,11 +272,22 @@ export interface RecordAssessmentPayload {
   evaluatorNotes?: string;
 }
 
-export interface MakeDecisionPayload {
+export type AdmissionDecisionStatus = 'approved' | 'waitlisted' | 'rejected' | 'withdrawn';
+
+export interface RecordDecisionPayload {
   applicationId: string;
-  decision: 'APPROVED' | 'REJECTED';
-  remarks?: string;
+  decision_status: AdmissionDecisionStatus;
+  decision_date?: string;
+  decided_by?: string | null;
+  reason?: string | null;
+  remarks?: string | null;
+  offer_expiry_date?: string | null;
+  waitlist_position?: number | null;
+  scholarship_percentage?: number | null;
 }
+
+// Backward compatibility alias
+export type MakeDecisionPayload = RecordDecisionPayload;
 
 export interface CollectFeePayload {
   applicationId: string;
@@ -491,13 +502,21 @@ export const admissionApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Application'],
     }),
-    makeDecision: builder.mutation<{ success: boolean }, MakeDecisionPayload>({
-      query: (body: MakeDecisionPayload) => ({
-        url: ENDPOINTS.ADMISSIONS.DECISION(body.applicationId),
+    makeDecision: builder.mutation<DecisionResponseDto, RecordDecisionPayload>({
+      query: ({ applicationId, ...body }) => ({
+        url: ENDPOINTS.ADMISSIONS.DECISION(applicationId),
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Application'],
+      invalidatesTags: (_result, _error, { applicationId }) => [
+        { type: 'Application', id: applicationId },
+        { type: 'Application', id: 'LIST' },
+        { type: 'Lead', id: 'LIST' },
+      ],
+    }),
+    getDecision: builder.query<DecisionResponseDto | null, string>({
+      query: (applicationId: string) => ENDPOINTS.ADMISSIONS.DECISION(applicationId),
+      providesTags: (_result, _error, id) => [{ type: 'Application', id }],
     }),
     collectFee: builder.mutation<{ success: boolean }, CollectFeePayload>({
       query: (body: CollectFeePayload) => ({
@@ -549,6 +568,8 @@ export const {
   useVerifyDocumentMutation,
   useRecordAssessmentMutation,
   useMakeDecisionMutation,
+  useGetDecisionQuery,
+  useLazyGetDecisionQuery,
   useCollectFeeMutation,
   useGetApplicationFeeQuery,
   useLazyGetApplicationFeeQuery,

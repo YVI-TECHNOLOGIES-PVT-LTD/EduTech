@@ -5,6 +5,14 @@ import { ProfileService } from '../services/auth/ProfileService';
 import { ChangePasswordForm } from '../modules/auth/pages/ChangePasswordPage';
 import { useThemeContext, ThemeMode } from '@/context/ThemeContext';
 import { useSettingsStore } from '../store/settings.store';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -191,11 +199,20 @@ export const Profile = () => {
                 {/* Avatar & Name Row (Aligned horizontally matching screenshot) */}
                 <div className="flex items-center gap-4">
                   <div className="relative group shrink-0">
-                    <div className="w-14 h-14 bg-orange-500/10 dark:bg-orange-500/15 rounded-xl border border-orange-200/50 dark:border-orange-500/20 flex items-center justify-center overflow-hidden shadow-xs">
-                      <span className="text-lg font-black text-orange-600 dark:text-orange-400">
+                    <Avatar size="xl" className="border border-border shadow-xs">
+                      <AvatarImage
+                        src={
+                          (user as any)?.avatar_url ||
+                          (user as any)?.avatar ||
+                          (user as any)?.image ||
+                          (user as any)?.profile_photo_url
+                        }
+                        alt={fullName}
+                      />
+                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-black">
                         {initials}
-                      </span>
-                    </div>
+                      </AvatarFallback>
+                    </Avatar>
                     <button
                       onClick={triggerFileSelect}
                       aria-label="Upload avatar"
@@ -605,16 +622,19 @@ export const Profile = () => {
                         >
                           Date Notation Format
                         </label>
-                        <select
-                          id="pref-date-format"
-                          value={dateFormat}
-                          onChange={(e) => setDateFormat(e.target.value as any)}
-                          className="w-full px-3 py-2 border border-slate-100 dark:border-neutral-800 rounded-lg text-xs font-semibold bg-slate-50/50 dark:bg-neutral-950 focus:bg-white focus:border-slate-900 dark:focus:bg-black dark:focus:border-neutral-700 focus:outline-none transition-all text-slate-955 dark:text-white"
-                        >
-                          <option value="DD/MM/YYYY">DD/MM/YYYY (e.g. 29/06/2026)</option>
-                          <option value="MM/DD/YYYY">MM/DD/YYYY (e.g. 06/29/2026)</option>
-                          <option value="YYYY-MM-DD">YYYY-MM-DD (e.g. 2026-06-29)</option>
-                        </select>
+                        <Select value={dateFormat} onValueChange={(v) => setDateFormat(v as any)}>
+                          <SelectTrigger
+                            id="pref-date-format"
+                            className="w-full h-9 text-xs font-semibold bg-card text-foreground"
+                          >
+                            <SelectValue placeholder="Select Date Format" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="DD/MM/YYYY">DD/MM/YYYY (e.g. 29/06/2026)</SelectItem>
+                            <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (e.g. 06/29/2026)</SelectItem>
+                            <SelectItem value="YYYY-MM-DD">YYYY-MM-DD (e.g. 2026-06-29)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div>
@@ -624,19 +644,26 @@ export const Profile = () => {
                         >
                           Workspace Timezone
                         </label>
-                        <select
-                          id="pref-timezone"
-                          value={timezone}
-                          onChange={(e) => setTimezone(e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-100 dark:border-neutral-800 rounded-lg text-xs font-semibold bg-slate-50/50 dark:bg-neutral-950 focus:bg-white focus:border-slate-900 dark:focus:bg-black dark:focus:border-neutral-700 focus:outline-none transition-all text-slate-955 dark:text-white"
-                        >
-                          <option value="Asia/Kolkata">IST — Asia/Kolkata (UTC+5:30)</option>
-                          <option value="UTC">UTC — Coordinated Universal Time</option>
-                          <option value="America/New_York">
-                            EST — America/New_York (UTC-5:00)
-                          </option>
-                          <option value="Europe/London">GMT — Europe/London (UTC+0:00)</option>
-                        </select>
+                        <Select value={timezone} onValueChange={(v) => setTimezone(v)}>
+                          <SelectTrigger
+                            id="pref-timezone"
+                            className="w-full h-9 text-xs font-semibold bg-card text-foreground"
+                          >
+                            <SelectValue placeholder="Select Timezone" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="Asia/Kolkata">
+                              IST — Asia/Kolkata (UTC+5:30)
+                            </SelectItem>
+                            <SelectItem value="UTC">UTC — Coordinated Universal Time</SelectItem>
+                            <SelectItem value="America/New_York">
+                              EST — America/New_York (UTC-5:00)
+                            </SelectItem>
+                            <SelectItem value="Europe/London">
+                              GMT — Europe/London (UTC+0:00)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>

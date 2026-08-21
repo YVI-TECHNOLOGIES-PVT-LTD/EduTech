@@ -34,21 +34,27 @@ export class AdmissionDecisionService {
       }
     }
 
-    // Determine target application_status based on decision
+    // Determine target application_status and lead_stage based on decision
     let targetStatus: application_status | null = null;
+    let targetLeadStage: import('@prisma/client').lead_stage | null = null;
+
     if (dto.decision_status === admission_decision_status.approved) {
       targetStatus = application_status.approved;
+      targetLeadStage = 'admission_approved';
     } else if (dto.decision_status === admission_decision_status.waitlisted) {
       targetStatus = application_status.waitlisted;
+      targetLeadStage = 'waitlisted';
     } else if (dto.decision_status === admission_decision_status.rejected) {
       targetStatus = application_status.rejected;
+      targetLeadStage = 'rejected';
     } else if (dto.decision_status === admission_decision_status.withdrawn) {
       targetStatus = application_status.withdrawn;
+      // Note: lead_stage enum does not have a 'withdrawn' stage, so leads.stage remains unchanged.
     }
 
-    // Atomic transaction for decision + application status sync
+    // Atomic transaction for decision + application status + lead stage sync
     const decision = await prisma.$transaction(async (tx) => {
-      const dec = await AdmissionDecisionRepository.upsert(applicationId, createdBy, dto);
+      const dec = await AdmissionDecisionRepository.upsert(applicationId, createdBy, dto, tx);
       if (targetStatus) {
         await tx.admissions_applications.update({
           where: { application_id: applicationId },
@@ -59,6 +65,18 @@ export class AdmissionDecisionService {
           },
         });
       }
+
+      if (app.lead_id && targetLeadStage) {
+        await tx.leads.update({
+          where: { lead_id: app.lead_id },
+          data: {
+            stage: targetLeadStage,
+            updated_at: new Date(),
+            updated_by: createdBy || undefined,
+          },
+        });
+      }
+
       return dec;
     });
 
@@ -67,6 +85,7 @@ export class AdmissionDecisionService {
       decisionId: decision.decision_id,
       decisionStatus: decision.decision_status,
       targetStatus,
+      targetLeadStage,
       createdBy,
     });
 

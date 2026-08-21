@@ -183,6 +183,7 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
   // Child Modals State
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
+  const [selectedActivityForEdit, setSelectedActivityForEdit] = useState<any | null>(null);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [selectedVisitForReschedule, setSelectedVisitForReschedule] = useState<any>(null);
   const [selectedVisitForComplete, setSelectedVisitForComplete] = useState<any>(null);
@@ -561,7 +562,10 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                       </h4>
                       <Button
                         size="sm"
-                        onClick={() => setShowActivityModal(true)}
+                        onClick={() => {
+                          setSelectedActivityForEdit(null);
+                          setShowActivityModal(true);
+                        }}
                         className="text-xs font-bold gap-1 h-7"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -612,6 +616,16 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                                 >
                                   {act.status}
                                 </Badge>
+                                <button
+                                  onClick={() => {
+                                    setSelectedActivityForEdit(act);
+                                    setShowActivityModal(true);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-indigo-600 p-1 transition-opacity"
+                                  title="Edit Activity"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </button>
                                 <button
                                   onClick={() => handleDeleteActivityItem(act.activity_id)}
                                   className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-600 p-1 transition-opacity"
@@ -840,8 +854,11 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                           <SelectContent>
                             {staffList.map((s: any) => (
                               <SelectItem key={s.id || s.staff_id} value={s.id || s.staff_id}>
-                                {s.name || `${s.firstName || s.first_name || ''} ${s.lastName || s.last_name || ''}`.trim() || s.employeeId || s.employee_code} (
-                                {s.department || s.designation || s.employeeId || s.employee_code})
+                                {s.name ||
+                                  `${s.firstName || s.first_name || ''} ${s.lastName || s.last_name || ''}`.trim() ||
+                                  s.employeeId ||
+                                  s.employee_code}{' '}
+                                ({s.department || s.designation || s.employeeId || s.employee_code})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -886,9 +903,16 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
             leadId={lead.lead_id}
             leadNumber={lead.lead_number}
             studentName={lead.student_name}
+            initialActivity={selectedActivityForEdit}
             open={showActivityModal}
-            onOpenChange={setShowActivityModal}
-            onSuccess={() => onLeadUpdated?.()}
+            onOpenChange={(op) => {
+              setShowActivityModal(op);
+              if (!op) setSelectedActivityForEdit(null);
+            }}
+            onSuccess={() => {
+              setSelectedActivityForEdit(null);
+              onLeadUpdated?.();
+            }}
           />
           <ScheduleVisitModal
             leadId={lead.lead_id}

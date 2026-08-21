@@ -12,6 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/utils';
 
 export const ProfileMenu: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -23,24 +25,34 @@ export const ProfileMenu: React.FC = () => {
     navigate(ROUTES.AUTH.LOGIN, { replace: true });
   };
 
-  const firstName = (user as any)?.first_name || (user as any)?.firstName || 'A';
-  const lastName = (user as any)?.last_name || (user as any)?.lastName || 'U';
-  const initials = `${firstName[0]}${lastName[0]}`;
+  const displayName =
+    user?.full_name ||
+    ((user as any)?.firstName
+      ? `${(user as any).firstName} ${(user as any).lastName || ''}`.trim()
+      : 'User');
+  const avatarUrl = (user as any)?.avatar_url || (user as any)?.avatar || (user as any)?.image;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center space-x-2 rounded-full ring-2 ring-transparent transition hover:ring-blue-600">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-            {initials}
-          </div>
+        <button
+          aria-label="Open profile menu"
+          className="flex items-center space-x-2 rounded-full ring-2 ring-transparent transition hover:ring-primary focus:outline-none"
+        >
+          <Avatar size="sm" className="border border-border shrink-0">
+            <AvatarImage src={avatarUrl} alt={displayName} />
+            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+              {getInitials(displayName)}
+            </AvatarFallback>
+            <AvatarBadge variant="online" size="sm" />
+          </Avatar>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-xs font-bold text-slate-900 dark:text-white">
-              {user?.full_name || `${firstName} ${lastName}`}
+              {user?.full_name || displayName}
             </p>
             <p className="text-[11px] text-slate-500">{user?.email}</p>
             <span className="inline-block text-[10px] font-semibold text-blue-600 uppercase tracking-wide">

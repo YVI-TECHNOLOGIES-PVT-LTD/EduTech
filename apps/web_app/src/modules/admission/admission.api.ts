@@ -234,12 +234,20 @@ export const admissionApi = {
       roll_number,
     }),
 
-  getFollowups: (params?: any) => apiClient.get('/v1/admission/crm/followups', { params }),
+  getFollowups: (params?: any) => apiClient.get('/v1/leads/followups/due', { params }),
 
-  createFollowup: (data: any) => apiClient.post('/v1/admission/crm/followups', data),
+  createFollowup: (data: any) => {
+    const leadId = data.lead_id || data.leadId;
+    return apiClient.post(`/v1/leads/${leadId}/activities`, {
+      activity_type: data.activity_type || data.type || 'follow_up',
+      status: data.status || 'scheduled',
+      activity_date: data.activity_date || data.date || new Date().toISOString(),
+      next_followup_date: data.next_followup_date || data.scheduled_at || null,
+      notes: data.notes || data.remarks || null,
+    });
+  },
 
-  updateFollowup: (id: string, data: any) =>
-    apiClient.put(`/v1/admission/crm/followups/${id}`, data),
+  updateFollowup: (id: string, data: any) => apiClient.patch(`/v1/leads/activities/${id}`, data),
 
   getVisitors: (params?: any) => apiClient.get('/v1/admission/crm/visitors', { params }),
 
@@ -277,11 +285,19 @@ export const admissionApi = {
   reviewCrmApplication: (id: string, remark: string) =>
     apiClient.post(`/v1/admission/application/${id}/review`, { remark }),
 
-  approveCrmApplication: (id: string, remark: string) =>
-    apiClient.post(`/v1/admission/application/${id}/approve`, { remark }),
+  approveCrmApplication: (id: string, remarks?: string) =>
+    apiClient.post(`/v1/applications/${id}/decision`, {
+      decision_status: 'approved',
+      remarks: remarks || undefined,
+    }),
 
-  getCrmApplicationTimeline: (id: string) =>
-    apiClient.get(`/v1/admission/application/${id}/timeline`),
+  rejectCrmApplication: (id: string, reason?: string) =>
+    apiClient.post(`/v1/applications/${id}/decision`, {
+      decision_status: 'rejected',
+      reason: reason || undefined,
+    }),
+
+  getCrmApplicationTimeline: (id: string) => apiClient.get(`/v1/applications/${id}`),
 
   // ==========================================
   // EVALUATION / EXAMS / INTERVIEWS
@@ -313,13 +329,41 @@ export const admissionApi = {
   getMeritList: (applicationId: string) =>
     apiClient.get(`/v1/admission/evaluation/merit/${applicationId}`, { silent: true } as any),
 
-  generateOffer: (data: any) => apiClient.post('/v1/admission/evaluation/offer/generate', data),
+  generateOffer: (data: any) => {
+    const appId = data.application_id || data.applicationId;
+    return apiClient.post(`/v1/applications/${appId}/decision`, {
+      decision_status: 'approved',
+      remarks: data.remarks || 'Offer generated',
+      offer_expiry_date: data.expiry_date || data.offer_expiry_date || undefined,
+      scholarship_percentage: data.scholarship_percentage
+        ? parseFloat(data.scholarship_percentage)
+        : undefined,
+    });
+  },
 
-  sendOffer: (data: any) => apiClient.post('/v1/admission/evaluation/offer/send', data),
+  sendOffer: (data: any) => {
+    const appId = data.application_id || data.applicationId;
+    return apiClient.post(`/v1/applications/${appId}/decision`, {
+      decision_status: 'approved',
+      remarks: data.remarks || 'Offer sent',
+    });
+  },
 
-  acceptOffer: (data: any) => apiClient.post('/v1/admission/evaluation/offer/accept', data),
+  acceptOffer: (data: any) => {
+    const appId = data.application_id || data.applicationId;
+    return apiClient.post(`/v1/applications/${appId}/decision`, {
+      decision_status: 'approved',
+      remarks: data.remarks || 'Offer accepted',
+    });
+  },
 
-  rejectOffer: (data: any) => apiClient.post('/v1/admission/evaluation/offer/reject', data),
+  rejectOffer: (data: any) => {
+    const appId = data.application_id || data.applicationId;
+    return apiClient.post(`/v1/applications/${appId}/decision`, {
+      decision_status: 'rejected',
+      reason: data.reason || 'Offer rejected',
+    });
+  },
 
   getTimeline: (applicationId: string) =>
     apiClient.get(`/v1/admission/evaluation/timeline/${applicationId}`, { silent: true } as any),

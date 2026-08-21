@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,8 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateLeadActivityMutation, ActivityType, ActivityStatus } from '@/shared/api/crm.api';
-import { Activity, Loader2 } from 'lucide-react';
+import {
+  useCreateLeadActivityMutation,
+  useUpdateLeadActivityMutation,
+  ActivityType,
+  ActivityStatus,
+  LeadActivityItem,
+} from '@/shared/api/crm.api';
+import { Activity, Loader2, Edit3 } from 'lucide-react';
 
 const formSchema = z.object({
   activity_type: z.enum([
@@ -48,6 +54,7 @@ interface AddActivityModalProps {
   leadId: string;
   leadNumber?: string;
   studentName?: string;
+  initialActivity?: LeadActivityItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -57,11 +64,16 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
   leadId,
   leadNumber,
   studentName,
+  initialActivity,
   open,
   onOpenChange,
   onSuccess,
 }) => {
-  const [createActivity, { isLoading }] = useCreateLeadActivityMutation();
+  const [createActivity, { isLoading: isCreating }] = useCreateLeadActivityMutation();
+  const [updateActivity, { isLoading: isUpdating }] = useUpdateLeadActivityMutation();
+
+  const isEditing = !!initialActivity;
+  const isLoading = isCreating || isUpdating;
 
   const {
     register,
@@ -81,27 +93,71 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      if (initialActivity) {
+        reset({
+          activity_type: initialActivity.activity_type || 'phone_call',
+          status: initialActivity.status || 'completed',
+          activity_date: initialActivity.activity_date
+            ? new Date(initialActivity.activity_date).toISOString().substring(0, 16)
+            : new Date().toISOString().substring(0, 16),
+          next_followup_date: initialActivity.next_followup_date
+            ? new Date(initialActivity.next_followup_date).toISOString().substring(0, 16)
+            : '',
+          notes: initialActivity.notes || '',
+        });
+      } else {
+        reset({
+          activity_type: 'phone_call',
+          status: 'completed',
+          activity_date: new Date().toISOString().substring(0, 16),
+          next_followup_date: '',
+          notes: '',
+        });
+      }
+    }
+  }, [open, initialActivity, reset]);
+
   const onSubmit = async (values: FormValues) => {
     try {
-      await createActivity({
-        leadId,
-        data: {
-          activity_type: values.activity_type as ActivityType,
-          status: values.status as ActivityStatus,
-          activity_date: new Date(values.activity_date).toISOString(),
-          next_followup_date: values.next_followup_date
-            ? new Date(values.next_followup_date).toISOString()
-            : null,
-          notes: values.notes || null,
-        },
-      }).unwrap();
+      if (isEditing && initialActivity?.activity_id) {
+        await updateActivity({
+          activityId: initialActivity.activity_id,
+          leadId,
+          data: {
+            activity_type: values.activity_type as ActivityType,
+            status: values.status as ActivityStatus,
+            activity_date: new Date(values.activity_date).toISOString(),
+            next_followup_date: values.next_followup_date
+              ? new Date(values.next_followup_date).toISOString()
+              : null,
+            notes: values.notes || null,
+          },
+        }).unwrap();
+        toast.success('Activity updated successfully');
+      } else {
+        await createActivity({
+          leadId,
+          data: {
+            activity_type: values.activity_type as ActivityType,
+            status: values.status as ActivityStatus,
+            activity_date: new Date(values.activity_date).toISOString(),
+            next_followup_date: values.next_followup_date
+              ? new Date(values.next_followup_date).toISOString()
+              : null,
+            notes: values.notes || null,
+          },
+        }).unwrap();
+        toast.success('Activity logged successfully');
+      }
 
-      toast.success('Activity logged successfully');
       reset();
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
-      const msg = err?.data?.error || err?.message || 'Failed to log activity';
+      const msg =
+        err?.data?.error || err?.data?.message || err?.message || 'Failed to save activity';
       toast.error(msg);
     }
   };
@@ -111,8 +167,12 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
       <DialogContent className="max-w-lg p-0 rounded-2xl">
         <DialogHeader className="p-6 pb-3 border-b border-border">
           <DialogTitle className="text-lg font-black text-foreground flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-600" />
-            Log Activity / Follow-up
+            {isEditing ? (
+              <Edit3 className="w-5 h-5 text-indigo-600" />
+            ) : (
+              <Activity className="w-5 h-5 text-indigo-600" />
+            )}
+            {isEditing ? 'Edit Activity' : 'Log Activity / Follow-up'}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {leadNumber && studentName ? (
@@ -120,7 +180,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 For <span className="font-bold text-foreground">{studentName}</span> ({leadNumber})
               </>
             ) : (
-              'Record a call, message, email, counseling session, or note.'
+              'Record or edit a call, message, email, counseling session, or note.'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -143,8 +203,10 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                     <SelectItem value="phone_call">📞 Phone Call</SelectItem>
                     <SelectItem value="whatsapp">💬 WhatsApp Message</SelectItem>
                     <SelectItem value="email">✉️ Email</SelectItem>
-                    <SelectItem value="follow_up">🔁 Follow-up</SelectItem>
                     <SelectItem value="counselling">🧑‍🏫 Counselling Session</SelectItem>
+                    <SelectItem value="chatbot">🤖 Chatbot Interaction</SelectItem>
+                    <SelectItem value="application_submitted">📄 Application Submitted</SelectItem>
+                    <SelectItem value="follow_up">🔁 Follow-up</SelectItem>
                     <SelectItem value="note">📝 Internal Note</SelectItem>
                   </SelectContent>
                 </Select>
@@ -227,7 +289,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20"
             >
               {isLoading && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
-              Save Activity
+              {isEditing ? 'Update Activity' : 'Save Activity'}
             </Button>
           </DialogFooter>
         </form>

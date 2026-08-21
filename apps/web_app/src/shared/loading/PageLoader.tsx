@@ -1,15 +1,17 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 
-interface PageLoaderProps {
+export interface PageLoaderProps {
   message?: string;
 }
 
 export const PageLoader: React.FC<PageLoaderProps> = ({ message = 'Loading module data...' }) => {
   return (
     <div className="flex h-96 w-full flex-col items-center justify-center space-y-3">
-      <Loader2 className="h-9 w-9 animate-spin text-blue-600" />
-      <p className="text-sm font-medium text-slate-500">{message}</p>
+      <Spinner size="xl" className="text-primary" />
+      <p className="text-sm font-medium text-muted-foreground">{message}</p>
     </div>
   );
 };
+
+export default PageLoader;

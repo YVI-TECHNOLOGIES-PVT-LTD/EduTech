@@ -39,6 +39,9 @@ import { parentRouter as parentManagementRouter } from './modules/parent-managem
 import { academicRouter as academicManagementRouter } from './modules/academic-management/routes/academic.routes';
 import { staffRouter as staffManagementRouter } from './modules/staff-management/routes/staff.routes';
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
+import { notificationRouter, NotificationSubscriber } from './modules/notifications';
+
+NotificationSubscriber.register();
 
 import { env } from './config/env';
 
@@ -899,3 +902,7 @@ router.use('/staff', authenticate, staffManagementRouter);
 // User & Role Administration Module (Phase 3.7)
 router.use('/v1/users', authenticate, userManagementRouter);
 router.use('/users', authenticate, userManagementRouter);
+
+// Notification Management Module
+router.use('/v1/notifications', authenticate, notificationRouter);
+router.use('/notifications', authenticate, notificationRouter);

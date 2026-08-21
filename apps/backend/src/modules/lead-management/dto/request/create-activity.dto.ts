@@ -13,6 +13,9 @@ export const createActivitySchema = z.object({
 export type CreateActivityDto = z.infer<typeof createActivitySchema>;
 
 export const updateActivitySchema = z.object({
+  activity_type: z.nativeEnum(lead_activity_type).optional(),
+  type: z.nativeEnum(lead_activity_type).optional(), // Alias
+  activity_date: z.string().optional(),
   status: z.nativeEnum(activity_status).optional(),
   next_followup_date: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),

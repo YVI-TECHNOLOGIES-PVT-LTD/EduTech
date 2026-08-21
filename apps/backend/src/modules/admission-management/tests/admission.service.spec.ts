@@ -11,6 +11,7 @@ import {
   validateFileBufferSignature,
 } from '../../../middlewares/upload.middleware';
 import { recordPaymentSchema } from '../dto/request/record-payment.dto';
+import { recordDecisionSchema } from '../dto/request/record-decision.dto';
 
 export async function runAdmissionModuleTests() {
   console.log('[Admission Application Management] Running unit tests...');
@@ -147,6 +148,70 @@ export async function runAdmissionModuleTests() {
       payment_status: 'UNKNOWN_STATUS' as any,
     });
     assert.strictEqual(invalidStatus.success, false);
+  });
+
+  // 4. Admission Decision DTO Validation Tests
+  test('recordDecisionSchema accepts valid approved decision', () => {
+    const valid = recordDecisionSchema.safeParse({
+      decision_status: 'approved',
+      decision_date: new Date().toISOString(),
+      scholarship_percentage: 25.5,
+      offer_expiry_date: new Date(Date.now() + 86400000 * 14).toISOString(),
+      remarks: 'Selected for merit scholarship',
+    });
+    assert.strictEqual(valid.success, true);
+  });
+
+  test('recordDecisionSchema accepts valid waitlisted decision with position', () => {
+    const valid = recordDecisionSchema.safeParse({
+      decision_status: 'waitlisted',
+      waitlist_position: 4,
+      reason: 'Capacity full for Grade 1',
+    });
+    assert.strictEqual(valid.success, true);
+  });
+
+  test('recordDecisionSchema accepts valid rejected and withdrawn decisions', () => {
+    const rejected = recordDecisionSchema.safeParse({
+      decision_status: 'rejected',
+      reason: 'Did not meet age criteria',
+    });
+    assert.strictEqual(rejected.success, true);
+
+    const withdrawn = recordDecisionSchema.safeParse({
+      decision_status: 'withdrawn',
+      reason: 'Parent requested withdrawal',
+    });
+    assert.strictEqual(withdrawn.success, true);
+  });
+
+  test('recordDecisionSchema rejects invalid scholarship percentages', () => {
+    const over100 = recordDecisionSchema.safeParse({
+      decision_status: 'approved',
+      scholarship_percentage: 150,
+    });
+    assert.strictEqual(over100.success, false);
+
+    const negative = recordDecisionSchema.safeParse({
+      decision_status: 'approved',
+      scholarship_percentage: -10,
+    });
+    assert.strictEqual(negative.success, false);
+  });
+
+  test('recordDecisionSchema rejects non-positive waitlist positions', () => {
+    const zeroPos = recordDecisionSchema.safeParse({
+      decision_status: 'waitlisted',
+      waitlist_position: 0,
+    });
+    assert.strictEqual(zeroPos.success, false);
+  });
+
+  test('recordDecisionSchema rejects invalid decision_status enum', () => {
+    const invalid = recordDecisionSchema.safeParse({
+      decision_status: 'ACCEPTED' as any,
+    });
+    assert.strictEqual(invalid.success, false);
   });
 
   console.log(

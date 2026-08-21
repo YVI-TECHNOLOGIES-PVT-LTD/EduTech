@@ -1,6 +1,8 @@
 import React from 'react';
 import { User, Phone, Mail, Award, Calendar } from 'lucide-react';
 import type { Applicant360View } from '../../utils/applicant360.mapper';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/utils';
 
 interface ProfileHeaderProps {
   applicant: Pick<
@@ -14,14 +16,6 @@ export function ProfileHeader({ applicant }: ProfileHeaderProps) {
     applicant?.name && typeof applicant.name === 'string' && applicant.name.trim()
       ? applicant.name.trim()
       : 'Applicant';
-
-  const initials =
-    displayName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join('') || 'A';
 
   const getStatusStyle = (status?: string) => {
     const s = (status || 'SUBMITTED').toUpperCase();
@@ -39,9 +33,15 @@ export function ProfileHeader({ applicant }: ProfileHeaderProps) {
     <div className="bg-white dark:bg-card p-6 border border-gray-150 dark:border-border/60 rounded-2xl shadow-sm space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-indigo-500 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-md ring-4 ring-indigo-50">
-            {initials}
-          </div>
+          <Avatar size="xl" className="border border-border/80 shadow-md ring-4 ring-primary/10">
+            <AvatarImage
+              src={(applicant as any)?.avatar_url || (applicant as any)?.photo_url}
+              alt={displayName}
+            />
+            <AvatarFallback className="bg-primary text-primary-foreground font-black text-xl">
+              {getInitials(displayName, 'A')}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-black text-gray-900 dark:text-gray-100">{displayName}</h2>

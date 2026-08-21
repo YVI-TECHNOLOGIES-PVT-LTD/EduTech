@@ -1,15 +1,12 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { Skeleton as ShadcnSkeleton } from '@/components/ui/skeleton';
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({ className, ...props }) => {
-  return (
-    <div
-      className={cn('animate-pulse rounded-md bg-slate-200 dark:bg-slate-800', className)}
-      {...props}
-    />
-  );
+export const Skeleton: React.FC<SkeletonProps> = (props) => {
+  return <ShadcnSkeleton {...props} />;
 };
+
+export default Skeleton;

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
-import { Pie, PieChart } from 'recharts';
+import { Label, Pie, PieChart } from 'recharts';
 
 import {
   Card,
@@ -13,10 +13,13 @@ import {
 } from '@/components/ui/card';
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export interface LeadSourceItem {
   source: string;
@@ -33,16 +36,6 @@ export interface LeadSourceDonutChartProps {
   className?: string;
 }
 
-const DEFAULT_CHART_COLORS = [
-  'hsl(238 82% 67%)',  // Indigo
-  'hsl(187 92% 43%)',  // Cyan
-  'hsl(160 84% 39%)',  // Emerald
-  'hsl(38 92% 50%)',   // Amber
-  'hsl(270 76% 60%)',  // Purple
-  'hsl(330 81% 60%)',  // Rose
-  'hsl(215 16% 47%)',  // Slate
-];
-
 export const LeadSourceDonutChart: React.FC<LeadSourceDonutChartProps> = ({
   data = [],
   totalLeads = 0,
@@ -54,30 +47,29 @@ export const LeadSourceDonutChart: React.FC<LeadSourceDonutChartProps> = ({
   const { t } = useLanguage();
 
   const formattedData = useMemo(() => {
-    return data.filter((d) => d.count > 0);
+    return (data || []).filter((d) => d.count > 0);
   }, [data]);
 
   const total = totalLeads || formattedData.reduce((acc, curr) => acc + curr.count, 0);
 
   const formatSourceLabel = (src: string) => {
-    return src
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return src.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
-  // Generate dynamic chartConfig for shadcn ChartContainer
+  // Generate dynamic chartConfig for shadcn ChartContainer with valid HSL colors
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {
-      count: {
+      leads: {
         label: t('dashboard.frontOffice.leadSources.title', 'Leads'),
       },
     };
 
     formattedData.forEach((item, index) => {
       const key = item.source.toLowerCase().replace(/[\s-]/g, '_');
+      const chartColorIndex = (index % 8) + 1;
       config[key] = {
         label: item.label || formatSourceLabel(item.source),
-        color: DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
+        color: `hsl(var(--chart-${chartColorIndex}))`,
       };
     });
 
@@ -87,27 +79,30 @@ export const LeadSourceDonutChart: React.FC<LeadSourceDonutChartProps> = ({
   const chartData = useMemo(() => {
     return formattedData.map((item, index) => {
       const key = item.source.toLowerCase().replace(/[\s-]/g, '_');
+      const chartColorIndex = (index % 8) + 1;
       return {
         source: key,
         label: item.label || formatSourceLabel(item.source),
         count: item.count,
-        fill: DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
+        fill: `hsl(var(--chart-${chartColorIndex}))`,
       };
     });
   }, [formattedData]);
 
   return (
-    <Card className={`flex flex-col justify-between h-full bg-white dark:bg-black border border-border/80 dark:border-zinc-800 shadow-sm rounded-2xl ${className}`}>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 sm:p-6 pb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-100 dark:border-cyan-900/60">
+    <Card
+      className={`flex flex-col justify-between h-full bg-card border border-border shadow-xs rounded-2xl ${className}`}
+    >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 sm:p-5 pb-1">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
             <PieChartIcon className="w-4 h-4" />
           </div>
-          <div>
-            <CardTitle className="text-base font-extrabold text-foreground font-sans">
+          <div className="min-w-0">
+            <CardTitle className="text-sm sm:text-base font-extrabold text-foreground font-sans whitespace-nowrap truncate">
               {title || t('dashboard.frontOffice.leadSources.title', 'Lead Sources')}
             </CardTitle>
-            <CardDescription className="text-xs font-normal text-muted-foreground mt-0.5 normal-case tracking-normal">
+            <CardDescription className="text-[11px] font-normal text-muted-foreground truncate">
               {subtitle ||
                 t(
                   'dashboard.frontOffice.leadSources.subtitle',
@@ -117,18 +112,24 @@ export const LeadSourceDonutChart: React.FC<LeadSourceDonutChartProps> = ({
           </div>
         </div>
 
-        <span className="text-[11px] font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-full border border-border/60 shrink-0">
+        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border/60 shrink-0">
           Source Share
         </span>
       </CardHeader>
 
-      <CardContent className="flex-1 p-5 sm:p-6 pt-0 flex flex-col justify-center">
+      <CardContent className="flex-1 p-4 sm:p-5 pt-0 flex flex-col justify-center">
         {isLoading ? (
-          <div className="h-56 flex items-center justify-center">
-            <div className="h-40 w-40 rounded-full bg-muted/40 dark:bg-zinc-900/50 animate-pulse" />
+          <div className="h-64 flex flex-col items-center justify-center space-y-4">
+            <Skeleton className="h-32 w-32 rounded-full" />
+            <div className="flex flex-wrap gap-2 justify-center w-full max-w-xs">
+              <Skeleton className="h-3.5 w-16 rounded-md" />
+              <Skeleton className="h-3.5 w-20 rounded-md" />
+              <Skeleton className="h-3.5 w-16 rounded-md" />
+              <Skeleton className="h-3.5 w-18 rounded-md" />
+            </div>
           </div>
         ) : chartData.length === 0 ? (
-          <div className="h-56 flex flex-col items-center justify-center text-center p-6 space-y-2 border border-dashed border-border rounded-xl">
+          <div className="h-64 flex flex-col items-center justify-center text-center p-6 space-y-2 border border-dashed border-border rounded-xl">
             <PieChartIcon className="w-8 h-8 text-muted-foreground/50 mx-auto" />
             <p className="text-xs font-bold text-foreground">
               {t('dashboard.frontOffice.leadSources.noData', 'No lead source data available.')}
@@ -138,82 +139,104 @@ export const LeadSourceDonutChart: React.FC<LeadSourceDonutChartProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center mt-2">
-            {/* Labeled Pie Chart with shadcn ChartContainer */}
-            <div className="sm:col-span-6 relative flex items-center justify-center">
-              <ChartContainer
-                config={chartConfig}
-                className="mx-auto aspect-square w-full max-h-[220px] pb-0 [&_.recharts-pie-label-text]:fill-foreground [&_.recharts-pie-label-text]:text-[10px] [&_.recharts-pie-label-text]:font-mono [&_.recharts-pie-label-text]:font-bold"
-              >
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={chartData}
-                    dataKey="count"
-                    nameKey="source"
-                    label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
-                    innerRadius={45}
-                    outerRadius={70}
-                    stroke="transparent"
-                    paddingAngle={2}
-                    isAnimationActive={true}
+          <div className="w-full flex items-center justify-center">
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto w-full h-[260px] pb-0 [&_.recharts-pie-label-text]:fill-foreground [&_.recharts-pie-label-text]:text-[10px] [&_.recharts-pie-label-text]:font-mono [&_.recharts-pie-label-text]:font-bold"
+            >
+              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      hideLabel
+                      formatter={(value: any, name: any, item: any) => {
+                        const numVal = typeof value === 'number' ? value : Number(value || 0);
+                        const pct = total > 0 ? ((numVal / total) * 100).toFixed(1) : '0.0';
+                        const label = item.payload?.label || name;
+                        return (
+                          <div className="flex items-center justify-between w-full min-w-[140px] gap-3">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div
+                                className="h-2 w-2 rounded-full shrink-0"
+                                style={{ backgroundColor: item.payload?.fill || item.color }}
+                              />
+                              <span className="font-semibold text-foreground truncate">
+                                {label}
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-foreground shrink-0">
+                              {numVal.toLocaleString()} ({pct}%)
+                            </span>
+                          </div>
+                        );
+                      }}
+                    />
+                  }
+                />
+                <Pie
+                  data={chartData}
+                  dataKey="count"
+                  nameKey="source"
+                  cx="50%"
+                  cy="40%"
+                  innerRadius={46}
+                  outerRadius={68}
+                  strokeWidth={2}
+                  stroke="hsl(var(--card))"
+                  paddingAngle={2}
+                  isAnimationActive={true}
+                >
+                  <Label
+                    content={({ viewBox }) => {
+                      if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                        return (
+                          <text
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                          >
+                            <tspan
+                              x={viewBox.cx}
+                              y={(viewBox.cy || 0) - 2}
+                              className="fill-foreground text-xl font-black font-mono"
+                            >
+                              {total.toLocaleString()}
+                            </tspan>
+                            <tspan
+                              x={viewBox.cx}
+                              y={(viewBox.cy || 0) + 14}
+                              className="fill-muted-foreground text-[9px] font-bold uppercase tracking-wider"
+                            >
+                              {t('dashboard.frontOffice.leadSources.totalLeads', 'Total')}
+                            </tspan>
+                          </text>
+                        );
+                      }
+                    }}
                   />
-                </PieChart>
-              </ChartContainer>
-
-              {/* Center Total Count Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-base font-black text-foreground font-mono ltr-isolate">
-                  {total.toLocaleString()}
-                </span>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                  {t('dashboard.frontOffice.leadSources.totalLeads', 'Total')}
-                </span>
-              </div>
-            </div>
-
-            {/* Formatted Legend Stream */}
-            <div className="sm:col-span-6 space-y-1.5 max-h-52 overflow-y-auto pe-1">
-              {chartData.map((item) => {
-                const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0.0';
-                return (
-                  <div
-                    key={item.source}
-                    className="flex items-center justify-between p-2 rounded-xl bg-muted/30 hover:bg-muted/50 border border-border/40 text-xs transition-colors"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: item.fill }}
-                      />
-                      <span className="font-bold text-foreground truncate">
-                        {item.label}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-mono font-bold text-foreground ltr-isolate">
-                        {item.count.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60 font-mono ltr-isolate">
-                        {pct}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                </Pie>
+                <ChartLegend
+                  content={
+                    <ChartLegendContent
+                      nameKey="source"
+                      className="flex-wrap justify-center gap-x-3 gap-y-1.5 text-[11px] font-medium pt-2 max-h-28 overflow-y-auto"
+                    />
+                  }
+                />
+              </PieChart>
+            </ChartContainer>
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="p-5 sm:p-6 pt-3 border-t border-border/60 dark:border-zinc-850 flex items-center justify-between text-xs">
+      <CardFooter className="p-4 sm:p-5 pt-2.5 border-t border-border/60 flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
-          <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Active Inquiries Distribution</span>
+          <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          <span>Active Inquiries</span>
         </div>
-        <span className="font-mono font-bold text-foreground">
-          {total.toLocaleString()} leads
-        </span>
+        <span className="font-mono font-bold text-foreground">{total.toLocaleString()} Leads</span>
       </CardFooter>
     </Card>
   );
@@ -221,4 +244,3 @@ export const LeadSourceDonutChart: React.FC<LeadSourceDonutChartProps> = ({
 
 export const LeadSourcePieChart = LeadSourceDonutChart;
 export default LeadSourceDonutChart;
-

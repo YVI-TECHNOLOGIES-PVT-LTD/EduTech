@@ -1,19 +1,16 @@
 import React from 'react';
 import { useLanguage } from '@/context/LanguageContext';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ProfileMenu } from '@/components/shell/ProfileMenu';
 import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useCommandPalette } from '@/hooks/layout/useCommandPalette';
-import { useAppDispatch, useAppSelector } from '@/app/store';
-import { togglePanel } from '@/shared/store/notificationSlice';
+import { NotificationPopover } from '@/features/notifications';
 
 export const AppNavbar: React.FC = () => {
   const { t } = useLanguage();
-  const { open: openSearch } = useCommandPalette();
-  const dispatch = useAppDispatch();
-  const unreadCount = useAppSelector((state) => state.notification?.unreadCount || 0);
+  const { focusSearch } = useCommandPalette();
 
   return (
     <header className="bg-card/80 backdrop-blur-md border-b border-border/80 sticky top-0 z-30 transition-all duration-300">
@@ -26,7 +23,7 @@ export const AppNavbar: React.FC = () => {
           />
 
           <button
-            onClick={() => openSearch()}
+            onClick={() => focusSearch()}
             aria-label={t('common.searchPlaceholder', 'Search applications, documents, and fees')}
             className="w-full flex items-center justify-between px-3.5 py-2 bg-muted/40 hover:bg-muted/80 border border-border/80 rounded-xl text-xs text-muted-foreground font-medium transition-colors cursor-pointer"
           >
@@ -51,18 +48,8 @@ export const AppNavbar: React.FC = () => {
           {/* Global Theme Switcher */}
           <ThemeSwitcher />
 
-          {/* Notification Bell */}
-          <button
-            onClick={() => dispatch(togglePanel())}
-            aria-label={t('common.notifications', 'Notifications')}
-            className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer"
-            title={t('common.notifications', 'Notifications')}
-          >
-            <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 end-1.5 w-2 h-2 rounded-full bg-destructive ring-2 ring-background" />
-            )}
-          </button>
+          {/* Notification Popover */}
+          <NotificationPopover />
 
           <div className="h-6 w-[1px] bg-border/80 hidden sm:block" />
 
@@ -75,4 +62,3 @@ export const AppNavbar: React.FC = () => {
 };
 
 export default AppNavbar;
-

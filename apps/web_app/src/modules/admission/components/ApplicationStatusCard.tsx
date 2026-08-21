@@ -13,6 +13,8 @@ import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/utils';
 
 export interface ApplicationStatusCardProps {
   application: any;
@@ -68,9 +70,19 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
       {/* Card Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-black text-lg border border-indigo-200/80 dark:border-indigo-800 shrink-0">
-            {initials}
-          </div>
+          <Avatar size="lg" className="border border-border/80 shrink-0">
+            <AvatarImage
+              src={
+                application.photo_url ||
+                application.student_photo_url ||
+                application.lead?.photo_url
+              }
+              alt={displayName}
+            />
+            <AvatarFallback className="bg-primary/10 text-primary font-bold text-base">
+              {getInitials(displayName, 'A')}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
               <h3 className="text-base font-bold text-foreground">{displayName}</h3>
