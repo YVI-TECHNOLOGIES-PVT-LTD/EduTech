@@ -97,36 +97,39 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
   // Expanded Widget View
   return (
     <aside
-      className="fixed inset-x-2 bottom-2 sm:inset-x-auto sm:bottom-5 sm:right-5 z-50 w-auto sm:w-[410px] h-[92vh] sm:h-[620px] max-h-[700px] bg-card border border-border/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all animate-scale-up"
+      className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-5 sm:right-5 z-50 w-auto sm:w-[410px] md:w-[430px] max-w-[calc(100vw-1.5rem)] h-[min(590px,calc(100dvh-2.5rem))] max-h-[calc(100dvh-2rem)] bg-card border border-border/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-200 animate-scale-up"
       role="dialog"
       aria-modal="true"
       aria-label="EduAI Admissions Concierge"
     >
       {/* 1. Header Bar */}
-      <header className="bg-[#042A2B] text-white p-3.5 sm:p-4 flex items-center justify-between border-b border-emerald-900/60 shrink-0">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-2xl bg-[#063F40] text-[#E7B76A] border border-[#E7B76A]/40 flex items-center justify-center font-black shadow-xs">
-            <Bot className="w-5 h-5" />
+      <header className="bg-[#042A2B] text-white px-3.5 py-3 sm:px-4 sm:py-3.5 flex items-center justify-between border-b border-emerald-900/60 shrink-0 select-none shadow-sm">
+        <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-[#063F40] text-[#E7B76A] border border-[#E7B76A]/40 flex items-center justify-center font-black shrink-0 shadow-xs">
+            <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div className="text-left">
+          <div className="text-left min-w-0">
             <div className="flex items-center space-x-1.5">
-              <h3 className="font-extrabold text-xs sm:text-sm tracking-tight text-white">
+              <h3 className="font-extrabold text-xs sm:text-sm tracking-tight text-white truncate">
                 EduAI Concierge
               </h3>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Online" />
+              <span
+                className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"
+                title="Online"
+              />
             </div>
-            <p className="text-[10px] text-emerald-200/80 font-medium">
-              Greenwood School Admissions Desk
+            <p className="text-[10px] text-emerald-200/80 font-medium truncate">
+              Admissions & Enrollment Desk
             </p>
           </div>
         </div>
 
         {/* Header Action Buttons */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 shrink-0">
           {/* New Conversation Button */}
           <button
             onClick={() => setShowConfirmReset(true)}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
             title="Start new conversation"
             aria-label="Restart Conversation"
           >
@@ -136,7 +139,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
           {/* Minimize / Close */}
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
             title="Minimize Chat"
             aria-label="Minimize Chat Assistant"
           >
@@ -180,16 +183,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
 
       {/* 2. Message History Thread */}
       <div
-        className="flex-1 p-3.5 sm:p-4 overflow-y-auto bg-muted/20 space-y-2 text-left focus:outline-none"
+        className="flex-1 p-3 sm:p-4 overflow-y-auto bg-muted/20 space-y-2 text-left focus:outline-none scroll-smooth"
         tabIndex={0}
         role="log"
         aria-live="polite"
         aria-label="Conversation History"
       >
         {/* Quick Service Links Banner */}
-        <div className="p-3 bg-card border border-border/70 rounded-2xl space-y-2 mb-3 shadow-2xs">
-          <div className="flex items-center space-x-1.5 text-xs font-bold text-[#063F40] dark:text-emerald-300">
-            <Sparkles className="w-3.5 h-3.5 text-[#E7B76A]" />
+        <div className="p-2.5 sm:p-3 bg-card border border-border/70 rounded-xl sm:rounded-2xl space-y-1.5 mb-2.5 shadow-2xs">
+          <div className="flex items-center space-x-1.5 text-[11px] sm:text-xs font-bold text-[#063F40] dark:text-emerald-300">
+            <Sparkles className="w-3.5 h-3.5 text-[#E7B76A] shrink-0" />
             <span>Fast School Services</span>
           </div>
           <div className="grid grid-cols-2 gap-1.5 pt-0.5">
@@ -198,7 +201,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
                 onClose();
                 navigate('/enquiry');
               }}
-              className="p-2 rounded-xl bg-muted/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-border/60 text-left text-[11px] font-semibold text-foreground flex items-center justify-between transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-muted/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-border/60 text-left text-[10px] sm:text-[11px] font-semibold text-foreground flex items-center justify-between transition-colors"
             >
               <span className="truncate">Submit Enquiry</span>
               <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0 ml-1" />
@@ -208,7 +211,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
                 onClose();
                 navigate('/admission/register');
               }}
-              className="p-2 rounded-xl bg-muted/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-border/60 text-left text-[11px] font-semibold text-foreground flex items-center justify-between transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-muted/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-border/60 text-left text-[10px] sm:text-[11px] font-semibold text-foreground flex items-center justify-between transition-colors"
             >
               <span className="truncate">Apply Online</span>
               <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0 ml-1" />
@@ -254,7 +257,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
       </div>
 
       {/* 3. Bottom Input Bar */}
-      <footer className="p-3 sm:p-3.5 bg-card border-t border-border/80 shrink-0">
+      <footer className="p-2.5 sm:p-3 bg-card border-t border-border/80 shrink-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -272,7 +275,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
               rows={1}
               placeholder="Ask about admissions, fees, grades..."
               aria-label="Type your message"
-              className="w-full resize-none max-h-24 py-2.5 px-3.5 bg-muted/40 hover:bg-muted/60 focus:bg-background border border-border/80 focus:border-[#063F40] dark:focus:border-[#E7B76A] rounded-2xl text-xs sm:text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#063F40]/20 transition-all leading-tight"
+              className="w-full resize-none max-h-20 py-2 sm:py-2.5 px-3 sm:px-3.5 bg-muted/40 hover:bg-muted/60 focus:bg-background border border-border/80 focus:border-[#063F40] dark:focus:border-[#E7B76A] rounded-xl sm:rounded-2xl text-xs sm:text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#063F40]/20 transition-all leading-tight"
             />
           </div>
 
@@ -280,16 +283,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onOpen, on
             type="submit"
             disabled={!inputText.trim() || isLoading}
             size="sm"
-            className="h-10 w-10 p-0 rounded-2xl bg-[#063F40] hover:bg-[#042A2B] text-[#E7B76A] disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-xs transition-transform active:scale-95"
+            className="h-9 w-9 sm:h-10 sm:w-10 p-0 rounded-xl sm:rounded-2xl bg-[#063F40] hover:bg-[#042A2B] text-[#E7B76A] disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-xs transition-transform active:scale-95"
             aria-label="Send message"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
         </form>
 
         {/* Footer Disclaimer & Hotline Shortcut */}
-        <div className="flex items-center justify-between pt-2 px-1 text-[10px] text-muted-foreground font-medium">
-          <span>AI-assisted admissions guidance</span>
+        <div className="flex items-center justify-between pt-1.5 sm:pt-2 px-1 text-[10px] text-muted-foreground font-medium">
+          <span>AI Admissions Assistant</span>
           <button
             onClick={() => {
               onClose();

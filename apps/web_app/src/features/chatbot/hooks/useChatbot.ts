@@ -30,6 +30,11 @@ export function useChatbot() {
     }
   });
 
+  const sessionIdRef = useRef<string | null>(sessionId);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_WELCOME_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,62 +47,71 @@ export function useChatbot() {
   const isInitializingRef = useRef(false);
 
   // Initialize or hydrate session
-  const initializeSession = useCallback(async (): Promise<string | null> => {
-    if (isInitializingRef.current) return sessionId;
-    isInitializingRef.current = true;
+  const initializeSession = useCallback(
+    async (forceNew = false): Promise<string | null> => {
+      if (isInitializingRef.current && !forceNew) return sessionIdRef.current;
+      isInitializingRef.current = true;
 
-    try {
-      // 1. If we already have a session ID, try to verify/hydrate it
-      const existingId = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (existingId) {
-        try {
-          const res = await getSessionTrigger(existingId).unwrap();
-          if (res.success && res.data?.session?.sessionId) {
-            setSessionId(existingId);
+      try {
+        // 1. If we have an existing session and not forcing new, try to verify/hydrate it
+        const existingId = !forceNew
+          ? sessionIdRef.current || sessionStorage.getItem(SESSION_STORAGE_KEY)
+          : null;
+        if (existingId) {
+          try {
+            const res = await getSessionTrigger(existingId).unwrap();
+            if (res.success && res.data?.session?.sessionId) {
+              setSessionId(existingId);
+              sessionIdRef.current = existingId;
 
-            // Hydrate historical messages if available
-            if (res.data.messages && res.data.messages.length > 0) {
-              const mapped: ChatMessage[] = res.data.messages.map((m) => ({
-                id: m.messageId,
-                sender: m.sender,
-                text: m.messageText,
-                timestamp: m.createdAt,
-                status: 'sent',
-                suggestedFollowUps: m.metadata?.suggestedFollowUps || [],
-                intent: m.metadata?.intent,
-                leadCaptured: m.metadata?.leadCaptured,
-                escalationRequired: m.metadata?.escalationRequired,
-              }));
-              setMessages(mapped);
+              // Hydrate historical messages if available
+              if (res.data.messages && res.data.messages.length > 0) {
+                const mapped: ChatMessage[] = res.data.messages.map((m) => ({
+                  id: m.messageId,
+                  sender: m.sender,
+                  text: m.messageText,
+                  timestamp: m.createdAt,
+                  status: 'sent',
+                  suggestedFollowUps: m.metadata?.suggestedFollowUps || [],
+                  intent: m.metadata?.intent,
+                  leadCaptured: m.metadata?.leadCaptured,
+                  escalationRequired: m.metadata?.escalationRequired,
+                }));
+                setMessages(mapped);
+              }
+              isInitializingRef.current = false;
+              return existingId;
             }
-            isInitializingRef.current = false;
-            return existingId;
+          } catch {
+            // Session expired, mismatched tenant (403), or invalid on backend; clear & recreate
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            setSessionId(null);
+            sessionIdRef.current = null;
           }
-        } catch {
-          // Session expired or invalid on backend; proceed to create new
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
-      }
 
-      // 2. Create a fresh session
-      const createRes = await createSessionTrigger({ channel: 'web_widget' }).unwrap();
-      if (createRes.success && createRes.data?.sessionId) {
-        const newId = createRes.data.sessionId;
-        sessionStorage.setItem(SESSION_STORAGE_KEY, newId);
-        setSessionId(newId);
-        setMessages([INITIAL_WELCOME_MESSAGE]);
+        // 2. Create a fresh session
+        const createRes = await createSessionTrigger({ channel: 'web_widget' }).unwrap();
+        if (createRes.success && createRes.data?.sessionId) {
+          const newId = createRes.data.sessionId;
+          sessionStorage.setItem(SESSION_STORAGE_KEY, newId);
+          setSessionId(newId);
+          sessionIdRef.current = newId;
+          setMessages([INITIAL_WELCOME_MESSAGE]);
+          isInitializingRef.current = false;
+          return newId;
+        }
+      } catch (err: any) {
+        console.warn('[Chatbot Session Initialization Error]:', err);
+        setError('Unable to initialize chat concierge. Please check your connection.');
+      } finally {
         isInitializingRef.current = false;
-        return newId;
       }
-    } catch (err: any) {
-      console.warn('[Chatbot Session Initialization Error]:', err);
-      setError('Unable to initialize chat concierge. Please check your connection.');
-    } finally {
-      isInitializingRef.current = false;
-    }
 
-    return null;
-  }, [createSessionTrigger, getSessionTrigger, sessionId]);
+      return null;
+    },
+    [createSessionTrigger, getSessionTrigger],
+  );
 
   // Send a new message turn
   const sendMessage = useCallback(
@@ -124,7 +138,7 @@ export function useChatbot() {
 
       try {
         // Ensure valid session exists
-        let activeSessionId = sessionId;
+        let activeSessionId = sessionIdRef.current;
         if (!activeSessionId) {
           activeSessionId = await initializeSession();
         }
@@ -133,13 +147,42 @@ export function useChatbot() {
           throw new Error('Could not establish chat connection with school admissions.');
         }
 
-        // Call backend message turn API
-        const response = await sendMessageTrigger({
-          session_id: activeSessionId,
-          message: trimmed,
-        }).unwrap();
+        // Helper to invoke send message
+        let response: any = null;
+        try {
+          response = await sendMessageTrigger({
+            session_id: activeSessionId,
+            message: trimmed,
+          }).unwrap();
+        } catch (sendErr: any) {
+          // If tenant mismatch (403), session expired (404), or unauthorized, heal session and retry once
+          const isSessionMismatch =
+            sendErr?.status === 403 ||
+            sendErr?.status === 404 ||
+            sendErr?.status === 401 ||
+            sendErr?.data?.error === 'TENANT_MISMATCH' ||
+            sendErr?.data?.error === 'SESSION_NOT_FOUND';
 
-        if (response.success && response.data) {
+          if (isSessionMismatch) {
+            console.warn(
+              '[Chatbot] Session invalid or tenant mismatch detected. Auto-recovering session...',
+            );
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            const freshSessionId = await initializeSession(true);
+            if (freshSessionId) {
+              response = await sendMessageTrigger({
+                session_id: freshSessionId,
+                message: trimmed,
+              }).unwrap();
+            } else {
+              throw sendErr;
+            }
+          } else {
+            throw sendErr;
+          }
+        }
+
+        if (response?.success && response.data) {
           const {
             botMessageId,
             answer,
@@ -171,7 +214,7 @@ export function useChatbot() {
 
           setMessages((prev) => [...prev, botMessage]);
         } else {
-          throw new Error(response.message || 'Error processing response');
+          throw new Error(response?.message || 'Error processing response');
         }
       } catch (err: any) {
         console.error('[Chatbot Send Message Error]:', err);
@@ -186,7 +229,7 @@ export function useChatbot() {
         setIsLoading(false);
       }
     },
-    [isLoading, sessionId, initializeSession, sendMessageTrigger],
+    [isLoading, initializeSession, sendMessageTrigger],
   );
 
   // Retry sending last failed message
@@ -206,26 +249,17 @@ export function useChatbot() {
   const startNewConversation = useCallback(async () => {
     sessionStorage.removeItem(SESSION_STORAGE_KEY);
     setSessionId(null);
+    sessionIdRef.current = null;
     setMessages([INITIAL_WELCOME_MESSAGE]);
     setError(null);
     setLastFailedMessage(null);
-    try {
-      const res = await createSessionTrigger({ channel: 'web_widget' }).unwrap();
-      if (res.success && res.data?.sessionId) {
-        sessionStorage.setItem(SESSION_STORAGE_KEY, res.data.sessionId);
-        setSessionId(res.data.sessionId);
-      }
-    } catch (err) {
-      console.warn('[Chatbot New Session Error]:', err);
-    }
-  }, [createSessionTrigger]);
+    await initializeSession(true);
+  }, [initializeSession]);
 
-  // Initial check on mount
+  // Initial check on mount only
   useEffect(() => {
-    if (!sessionId) {
-      initializeSession();
-    }
-  }, [sessionId, initializeSession]);
+    initializeSession();
+  }, [initializeSession]);
 
   return {
     sessionId,

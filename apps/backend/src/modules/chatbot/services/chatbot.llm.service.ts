@@ -82,18 +82,24 @@ export class ChatbotLlmService {
    */
   static async generateAnswer(input: GenerateResponseInput): Promise<ChatbotLlmResult> {
     const startTime = Date.now();
-    const ai = this.getAiClient();
     const schoolName = input.schoolName || 'Greenwood School, Delhi';
+    let response: any = null;
+    let successfulModel = this.PRIMARY_MODEL;
+    const candidateModels = [this.PRIMARY_MODEL, ...this.FALLBACK_MODELS];
+    let lastError: any = null;
 
-    // Format recent chat history for context
-    const formattedHistory = (input.conversationHistory || [])
-      .map(
-        (m) =>
-          `${m.sender === chatbot_sender.user ? 'Parent/Visitor' : 'Admission Assistant'}: ${m.content}`,
-      )
-      .join('\n');
+    try {
+      const ai = this.getAiClient();
 
-    const systemInstruction = `
+      // Format recent chat history for context
+      const formattedHistory = (input.conversationHistory || [])
+        .map(
+          (m) =>
+            `${m.sender === chatbot_sender.user ? 'Parent/Visitor' : 'Admission Assistant'}: ${m.content}`,
+        )
+        .join('\n');
+
+      const systemInstruction = `
 You are the official AI Admission & Information Assistant for ${schoolName}, powered by EduTrack ERP.
 
 CORE OBJECTIVES:
@@ -124,7 +130,7 @@ You MUST respond with a valid, parseable JSON object matching this schema:
 }
 `;
 
-    const userPrompt = `
+      const userPrompt = `
 === RETRIEVED KNOWLEDGE BASE CONTEXT ===
 ${input.groundedContext || 'NO RELEVANT KNOWLEDGE CHUNKS RETRIEVED (Context Insufficient).'}
 
@@ -135,33 +141,36 @@ ${formattedHistory || 'No prior messages.'}
 ${input.userQuery}
 `;
 
-    let response: any = null;
-    let successfulModel = this.PRIMARY_MODEL;
-    const candidateModels = [this.PRIMARY_MODEL, ...this.FALLBACK_MODELS];
-    let lastError: any = null;
+      for (const modelName of candidateModels) {
+        try {
+          const generatePromise = ai.models.generateContent({
+            model: modelName,
+            contents: userPrompt,
+            config: {
+              systemInstruction,
+              responseMimeType: 'application/json',
+              temperature: 0.2, // Low temperature for high factual accuracy
+            },
+          });
 
-    for (const modelName of candidateModels) {
-      try {
-        const generatePromise = ai.models.generateContent({
-          model: modelName,
-          contents: userPrompt,
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-            temperature: 0.2, // Low temperature for high factual accuracy
-          },
-        });
-
-        // Strict 10-second timeout per model invocation to guarantee responsiveness
-        response = await this.withTimeout(generatePromise, 10000, `generateContent (${modelName})`);
-        successfulModel = modelName;
-        break;
-      } catch (err: any) {
-        lastError = err;
-        console.warn(
-          `[Chatbot LLM] Model '${modelName}' attempt failed: Status ${err.status || err.statusCode || 'N/A'}, Message: ${err.message}. Trying next candidate...`,
-        );
+          // Strict 10-second timeout per model invocation to guarantee responsiveness
+          response = await this.withTimeout(
+            generatePromise,
+            10000,
+            `generateContent (${modelName})`,
+          );
+          successfulModel = modelName;
+          break;
+        } catch (err: any) {
+          lastError = err;
+          console.warn(
+            `[Chatbot LLM] Model '${modelName}' attempt failed: Status ${err.status || err.statusCode || 'N/A'}, Message: ${err.message}. Trying next candidate...`,
+          );
+        }
       }
+    } catch (clientErr: any) {
+      lastError = clientErr;
+      console.warn('[Chatbot LLM] Client initialization error:', clientErr?.message || clientErr);
     }
 
     try {

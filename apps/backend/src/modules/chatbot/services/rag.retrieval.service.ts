@@ -101,39 +101,54 @@ export class RagRetrievalService {
     const limit = options?.limit ?? 4;
     const minSimilarity = options?.minSimilarity ?? 0.35;
 
-    // 1. Generate 3072-dim embedding for user query
-    const queryEmbedding = await this.generateQueryEmbedding(queryText);
+    try {
+      // 1. Generate 3072-dim embedding for user query
+      const queryEmbedding = await this.generateQueryEmbedding(queryText);
 
-    // 2. Perform tenant-scoped vector search (SQL enforced: WHERE org_id = $tenantOrgId)
-    const chunks = await ChatbotVectorRepository.searchSimilarChunks(
-      tenantOrgId,
-      queryEmbedding,
-      limit,
-      minSimilarity,
-    );
+      // 2. Perform tenant-scoped vector search (SQL enforced: WHERE org_id = $tenantOrgId)
+      const chunks = await ChatbotVectorRepository.searchSimilarChunks(
+        tenantOrgId,
+        queryEmbedding,
+        limit,
+        minSimilarity,
+      );
 
-    const topSimilarity = chunks.length > 0 ? chunks[0].similarity : 0.0;
-    const hasSufficientContext = chunks.length > 0 && topSimilarity >= 0.4;
+      const topSimilarity = chunks.length > 0 ? chunks[0].similarity : 0.0;
+      const hasSufficientContext = chunks.length > 0 && topSimilarity >= 0.4;
 
-    // 3. Assemble grounded context string
-    let groundedContext = '';
-    if (chunks.length > 0) {
-      groundedContext = chunks
-        .map((chunk, idx) => {
-          const sec = chunk.metadata?.section_heading || 'General Information';
-          const page = chunk.metadata?.page_number ? ` (Page ${chunk.metadata.page_number})` : '';
-          return `--- Knowledge Source #${idx + 1}: ${sec}${page} ---\n${chunk.content}`;
-        })
-        .join('\n\n');
+      // 3. Assemble grounded context string
+      let groundedContext = '';
+      if (chunks.length > 0) {
+        groundedContext = chunks
+          .map((chunk, idx) => {
+            const sec = chunk.metadata?.section_heading || 'General Information';
+            const page = chunk.metadata?.page_number ? ` (Page ${chunk.metadata.page_number})` : '';
+            return `--- Knowledge Source #${idx + 1}: ${sec}${page} ---\n${chunk.content}`;
+          })
+          .join('\n\n');
+      }
+
+      return {
+        query: queryText,
+        tenantOrgId,
+        retrievedChunks: chunks,
+        groundedContext,
+        hasSufficientContext,
+        topSimilarity,
+      };
+    } catch (err: any) {
+      console.warn(
+        '[RAG Retrieval] Vector context retrieval unavailable (falling back to graceful mode):',
+        err?.message || err,
+      );
+      return {
+        query: queryText,
+        tenantOrgId,
+        retrievedChunks: [],
+        groundedContext: '',
+        hasSufficientContext: false,
+        topSimilarity: 0.0,
+      };
     }
-
-    return {
-      query: queryText,
-      tenantOrgId,
-      retrievedChunks: chunks,
-      groundedContext,
-      hasSufficientContext,
-      topSimilarity,
-    };
   }
 }
