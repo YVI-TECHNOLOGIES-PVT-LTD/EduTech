@@ -2,6 +2,10 @@ import prisma from '../../../lib/prismaClient';
 import { RecordAssessmentDto } from '../dto/request/record-assessment.dto';
 
 export class AdmissionAssessmentRepository {
+  private static isUuid(str: string | null | undefined): boolean {
+    return Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
+  }
+
   /**
    * Resolves a valid staff_id for assessed_by (FK to staff.staff_id)
    * Never sets a user_id as assessed_by.
@@ -10,18 +14,18 @@ export class AdmissionAssessmentRepository {
     candidateStaffId: string | null | undefined,
     fallbackUserId: string | null | undefined,
   ): Promise<string | null> {
-    if (candidateStaffId) {
+    if (this.isUuid(candidateStaffId)) {
       const validStaff = await prisma.staff.findUnique({
-        where: { staff_id: candidateStaffId },
+        where: { staff_id: candidateStaffId! },
       });
       if (validStaff) {
         return validStaff.staff_id;
       }
     }
 
-    if (fallbackUserId) {
+    if (this.isUuid(fallbackUserId)) {
       const staffByUser = await prisma.staff.findFirst({
-        where: { user_id: fallbackUserId },
+        where: { user_id: fallbackUserId! },
       });
       if (staffByUser) {
         return staffByUser.staff_id;
@@ -37,6 +41,7 @@ export class AdmissionAssessmentRepository {
     });
 
     const resolvedStaffId = await this.resolveStaffId(dto.assessed_by, createdBy);
+    const safeUserId = this.isUuid(createdBy) ? createdBy : undefined;
 
     if (existing) {
       return prisma.application_assessments.update({
@@ -50,7 +55,7 @@ export class AdmissionAssessmentRepository {
           result: dto.result || undefined,
           remarks: dto.remarks || undefined,
           assessed_by: resolvedStaffId || undefined,
-          updated_by: createdBy || undefined,
+          updated_by: safeUserId,
           updated_at: new Date(),
         },
         include: {
@@ -86,7 +91,7 @@ export class AdmissionAssessmentRepository {
         result: dto.result || undefined,
         remarks: dto.remarks || undefined,
         assessed_by: resolvedStaffId || undefined,
-        created_by: createdBy || undefined,
+        created_by: safeUserId,
       },
       include: {
         assessment_configurations: {
