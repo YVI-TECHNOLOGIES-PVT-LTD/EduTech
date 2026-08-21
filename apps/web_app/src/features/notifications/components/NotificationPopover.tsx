@@ -111,16 +111,9 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger
-        render={(triggerProps) => (
-          <NotificationBell
-            {...triggerProps}
-            unreadCount={unreadCount}
-            isOpen={isOpen}
-            className={className}
-          />
-        )}
-      />
+      <PopoverTrigger asChild>
+        <NotificationBell unreadCount={unreadCount} isOpen={isOpen} className={className} />
+      </PopoverTrigger>
 
       <PopoverContent
         align={align}

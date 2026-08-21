@@ -8,6 +8,7 @@ import { AdmissionAssessmentController } from '../controllers/admission-assessme
 import { AdmissionDecisionController } from '../controllers/admission-decision.controller';
 import { AdmissionPaymentController } from '../controllers/admission-payment.controller';
 import { AdmissionAnalyticsController } from '../controllers/admission-analytics.controller';
+import { StaffController } from '../../staff-management/controllers/staff.controller';
 import { AdmissionPolicy } from '../policies/admission.policy';
 
 export const admissionRouter = Router();
@@ -27,6 +28,34 @@ admissionRouter.get(
   '/search',
   checkPermission(AdmissionPolicy.canView()),
   AdmissionController.search,
+);
+
+// Assessment Platform Endpoints (Configs, Analytics, Candidate Queue, Dynamic Examiners)
+admissionRouter.get(
+  '/assessment-configs',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionAssessmentController.getConfigs,
+);
+admissionRouter.post(
+  '/assessment-configs',
+  checkPermission(AdmissionPolicy.canManageAssessments()),
+  checkIdempotency,
+  AdmissionAssessmentController.upsertConfig,
+);
+admissionRouter.get(
+  '/assessment-analytics',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionAssessmentController.getAnalytics,
+);
+admissionRouter.get(
+  '/assessments',
+  checkPermission(AdmissionPolicy.canView()),
+  AdmissionAssessmentController.listAssessments,
+);
+admissionRouter.get(
+  '/examiners',
+  checkPermission(AdmissionPolicy.canView()),
+  StaffController.getExaminers,
 );
 
 // Application CRUD

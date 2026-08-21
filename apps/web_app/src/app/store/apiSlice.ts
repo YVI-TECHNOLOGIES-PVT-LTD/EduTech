@@ -25,6 +25,7 @@ export const apiSlice = createApi({
     'Enrollment',
     'Setting',
     'AuditLog',
+    'ChatbotSession',
     'Notification',
     'NotificationCount',
   ],

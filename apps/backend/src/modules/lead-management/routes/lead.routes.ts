@@ -6,11 +6,22 @@ import { LeadActivityController } from '../controllers/lead-activity.controller'
 import { LeadPolicy } from '../policies/lead.policy';
 
 import { LeadVisitController } from '../controllers/lead-visit.controller';
+import { StaffController } from '../../staff-management/controllers/staff.controller';
 
 export const leadRouter = Router();
 
-// Dashboard, Search, Duplicates, Visits Queue
+// Dashboard, Search, Duplicates, Visits Queue, Counselling Metrics & Counsellors
+leadRouter.get(
+  '/counsellors',
+  checkPermission(LeadPolicy.canView()),
+  StaffController.getCounsellors,
+);
 leadRouter.get('/dashboard', checkPermission(LeadPolicy.canView()), LeadController.getDashboard);
+leadRouter.get(
+  '/counselling/metrics',
+  checkPermission(LeadPolicy.canView()),
+  LeadController.getCounsellingMetrics,
+);
 leadRouter.get('/search', checkPermission(LeadPolicy.canView()), LeadController.search);
 leadRouter.get(
   '/check-duplicates',

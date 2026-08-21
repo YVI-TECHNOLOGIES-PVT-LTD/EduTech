@@ -71,7 +71,12 @@ export class LeadRepository {
   static async create(dto: CreateLeadDto) {
     const year = new Date().getFullYear();
     const count = await db.leads.count();
-    const lead_number = `LEAD-${year}-${String(count + 1).padStart(5, '0')}`;
+    let lead_number = `LEAD-${year}-${String(count + 1).padStart(5, '0')}`;
+    const existing = await db.leads.findUnique({ where: { lead_number } });
+    if (existing) {
+      const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+      lead_number = `LEAD-${year}-${randomSuffix}`;
+    }
 
     return db.leads.create({
       data: {
@@ -209,12 +214,16 @@ export class LeadRepository {
     });
   }
 
-  static async assignCounselor(lead_id: string, assigned_counsellor_id: string, remarks?: string) {
+  static async assignCounselor(
+    lead_id: string,
+    assigned_counsellor_id: string | null,
+    remarks?: string,
+  ) {
     const data: any = {
-      assigned_counsellor_id,
+      assigned_counsellor_id: assigned_counsellor_id || null,
       updated_at: new Date(),
     };
-    if (remarks) {
+    if (remarks !== undefined) {
       data.remarks = remarks;
     }
 
@@ -244,13 +253,13 @@ export class LeadRepository {
     });
   }
 
-  static async bulkAssignCounselor(lead_ids: string[], assigned_counsellor_id: string) {
+  static async bulkAssignCounselor(lead_ids: string[], assigned_counsellor_id: string | null) {
     return db.leads.updateMany({
       where: {
         lead_id: { in: lead_ids },
       },
       data: {
-        assigned_counsellor_id,
+        assigned_counsellor_id: assigned_counsellor_id || null,
         updated_at: new Date(),
       },
     });

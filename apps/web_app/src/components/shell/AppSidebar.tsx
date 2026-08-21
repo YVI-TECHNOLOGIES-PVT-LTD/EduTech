@@ -106,6 +106,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       p_fees: 'navigation.paymentHistory',
       fo_command: 'navigation.commandCenter',
       fo_inquiries: 'navigation.inquiries',
+      fo_counselling: 'navigation.counselling',
       fo_applications: 'navigation.applicationsQueue',
       fo_verification: 'navigation.documentVerification',
       fo_fees: 'navigation.feeCollection',

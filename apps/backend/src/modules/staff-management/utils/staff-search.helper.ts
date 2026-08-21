@@ -10,6 +10,8 @@ export function sanitizeStaffSearchQuery(params: SearchStaffDto) {
     org_id: params.org_id || undefined,
     designation_id: params.designation_id || undefined,
     department_id: params.department_id || undefined,
+    role: params.role || params.role_name || undefined,
+    role_name: params.role || params.role_name || undefined,
     is_active: params.is_active !== undefined ? params.is_active : undefined,
   };
 }

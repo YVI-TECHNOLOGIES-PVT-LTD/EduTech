@@ -11,9 +11,19 @@ export interface StaffResponseDto {
   email: string;
   designation_id: string | null;
   designation_name: string | null;
+  designation?: string;
   department_id: string | null;
+  department?: string;
   joining_date: string | null;
   is_active: boolean;
+  status?: 'ACTIVE' | 'ON_LEAVE' | 'OFFBOARDED';
+  role?: string;
+  roles?: string[];
+  display_name?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  employeeId?: string;
   created_at: string;
   updated_at: string;
 }

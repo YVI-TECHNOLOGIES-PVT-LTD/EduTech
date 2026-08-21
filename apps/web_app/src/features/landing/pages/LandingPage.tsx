@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -11,22 +11,19 @@ import {
   FileText,
   ChevronRight,
   TrendingUp,
-  UserCheck,
-  FileCheck,
-  CalendarCheck,
-  CreditCard,
-  UserPlus,
-  HelpCircle,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { EduAIAssistant } from '@/features/landing/components/EduAIAssistant';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isAiOpen, setIsAiOpen] = useState(false);
 
   return (
     <div className="flex-1 bg-background text-foreground animate-page-entrance overflow-x-hidden">
@@ -47,11 +44,14 @@ export const LandingPage: React.FC = () => {
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.08] animate-slide-up stagger-2">
-              Empowering Academic Excellence Through <span className="text-[#E7B76A]">Integrated Operations</span>
+              Empowering Academic Excellence Through{' '}
+              <span className="text-[#E7B76A]">Integrated Operations</span>
             </h1>
 
             <p className="text-sm sm:text-base lg:text-lg text-emerald-100/90 font-normal leading-relaxed max-w-2xl animate-fade-in stagger-3">
-              A unified institutional platform connecting prospective parents, enrolled students, faculty, and administrators. Streamline admissions, track status in real time, process fees, and manage school operations.
+              A unified institutional platform connecting prospective parents, enrolled students,
+              faculty, and administrators. Streamline admissions, track status in real time, process
+              fees, and manage school operations.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-3">
@@ -106,12 +106,17 @@ export const LandingPage: React.FC = () => {
                     className="w-full h-full object-cover img-zoom-target"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
-                  
+
                   <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start">
-                    <Badge variant="info" className="bg-[#063F40]/90 text-[#E7B76A] border-[#E7B76A]/40 font-mono text-[10px]">
+                    <Badge
+                      variant="info"
+                      className="bg-[#063F40]/90 text-[#E7B76A] border-[#E7B76A]/40 font-mono text-[10px]"
+                    >
                       Admissions Open
                     </Badge>
-                    <span className="text-[10px] font-mono tracking-widest text-emerald-200 uppercase bg-slate-950/60 px-2 py-1 rounded-md">AY 2026-27</span>
+                    <span className="text-[10px] font-mono tracking-widest text-emerald-200 uppercase bg-slate-950/60 px-2 py-1 rounded-md">
+                      AY 2026-27
+                    </span>
                   </div>
 
                   <div className="absolute bottom-4 left-4 right-4 z-10 space-y-3 p-2 bg-slate-950/80 backdrop-blur-md rounded-xl border border-white/10">
@@ -120,7 +125,9 @@ export const LandingPage: React.FC = () => {
                         <GraduationCap className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-extrabold text-white tracking-tight">Institutional Excellence</h3>
+                        <h3 className="text-sm font-extrabold text-white tracking-tight">
+                          Institutional Excellence
+                        </h3>
                         <p className="text-[11px] text-emerald-200/80 leading-snug">
                           Real-time student dossier management & fee payments.
                         </p>
@@ -177,9 +184,11 @@ export const LandingPage: React.FC = () => {
               A Modern Academic Platform Built for Growth & Accountability
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              EduTrack brings together admissions CRM, student information management, parent communication, and fee processing into a clean, modern interface designed for institutional standards.
+              EduTrack brings together admissions CRM, student information management, parent
+              communication, and fee processing into a clean, modern interface designed for
+              institutional standards.
             </p>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div className="p-5 rounded-2xl bg-card border border-border/80 space-y-2 shadow-xs">
                 <h4 className="text-xs font-extrabold text-foreground flex items-center space-x-2">
@@ -202,7 +211,10 @@ export const LandingPage: React.FC = () => {
             </div>
 
             <div className="pt-2">
-              <Link to="/about" className="inline-flex items-center text-xs font-bold text-[#063F40] hover:underline space-x-1">
+              <Link
+                to="/about"
+                className="inline-flex items-center text-xs font-bold text-[#063F40] hover:underline space-x-1"
+              >
                 <span>Discover our full vision & mission</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
@@ -214,24 +226,34 @@ export const LandingPage: React.FC = () => {
               <div className="p-6 rounded-2xl bg-[#063F40] text-white space-y-2 shadow-md">
                 <span className="text-4xl font-extrabold text-[#E7B76A]">100%</span>
                 <p className="text-xs font-bold text-white">Digital Applications</p>
-                <p className="text-[11px] text-emerald-100/80 leading-snug">Paperless admission processing from submission to enrollment.</p>
+                <p className="text-[11px] text-emerald-100/80 leading-snug">
+                  Paperless admission processing from submission to enrollment.
+                </p>
               </div>
               <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs space-y-2">
                 <span className="text-4xl font-extrabold text-foreground">24/7</span>
                 <p className="text-xs font-bold text-foreground">Parent Access</p>
-                <p className="text-[11px] text-muted-foreground leading-snug">Track application status and fee statements anytime.</p>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Track application status and fee statements anytime.
+                </p>
               </div>
             </div>
             <div className="space-y-4 pt-6">
               <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs space-y-2">
                 <span className="text-4xl font-extrabold text-foreground">Real-time</span>
                 <p className="text-xs font-bold text-foreground">Inquiry Desk</p>
-                <p className="text-[11px] text-muted-foreground leading-snug">Instant counselor assignment and follow-up logging.</p>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Instant counselor assignment and follow-up logging.
+                </p>
               </div>
               <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900 space-y-2">
-                <span className="text-4xl font-extrabold text-emerald-700 dark:text-emerald-300">Secure</span>
+                <span className="text-4xl font-extrabold text-emerald-700 dark:text-emerald-300">
+                  Secure
+                </span>
                 <p className="text-xs font-bold text-foreground">Data Protection</p>
-                <p className="text-[11px] text-muted-foreground leading-snug">Multi-tenant isolation and role-based permissions.</p>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Multi-tenant isolation and role-based permissions.
+                </p>
               </div>
             </div>
           </div>
@@ -303,7 +325,9 @@ export const LandingPage: React.FC = () => {
               <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs mx-auto shadow-md">
                 7
               </div>
-              <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Enrollment</h4>
+              <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                Enrollment
+              </h4>
               <p className="text-[10px] text-muted-foreground leading-tight">Fee Payment & ERP</p>
             </div>
           </div>
@@ -333,12 +357,18 @@ export const LandingPage: React.FC = () => {
                   <FileText className="w-6 h-6 text-[#E7B76A]" />
                 </div>
                 <div className="space-y-2">
-                  <Badge variant="info" className="w-fit text-[9px] uppercase tracking-wider font-mono">Admission Lifecycle</Badge>
+                  <Badge
+                    variant="info"
+                    className="w-fit text-[9px] uppercase tracking-wider font-mono"
+                  >
+                    Admission Lifecycle
+                  </Badge>
                   <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                     End-to-End Admission & Inquiry Management
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
-                    From initial walk-in or online enquiry through document verification, interview scheduling, merit list publishing, offer letter generation, and fee payment.
+                    From initial walk-in or online enquiry through document verification, interview
+                    scheduling, merit list publishing, offer letter generation, and fee payment.
                   </p>
                 </div>
               </div>
@@ -355,12 +385,18 @@ export const LandingPage: React.FC = () => {
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div className="space-y-2">
-                  <Badge variant="success" className="w-fit text-[9px] uppercase tracking-wider font-mono">Parent Portal</Badge>
+                  <Badge
+                    variant="success"
+                    className="w-fit text-[9px] uppercase tracking-wider font-mono"
+                  >
+                    Parent Portal
+                  </Badge>
                   <h3 className="text-lg font-bold tracking-tight text-foreground">
                     Parent Guardian Dashboard
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Live status tracking, document uploads, digital fee receipts, and multi-child support.
+                    Live status tracking, document uploads, digital fee receipts, and multi-child
+                    support.
                   </p>
                 </div>
               </div>
@@ -377,7 +413,12 @@ export const LandingPage: React.FC = () => {
                   <Users className="w-6 h-6 text-[#E7B76A]" />
                 </div>
                 <div className="space-y-2">
-                  <Badge variant="outline" className="w-fit text-[9px] uppercase tracking-wider font-mono">Staff Desks</Badge>
+                  <Badge
+                    variant="outline"
+                    className="w-fit text-[9px] uppercase tracking-wider font-mono"
+                  >
+                    Staff Desks
+                  </Badge>
                   <h3 className="text-lg font-bold tracking-tight text-foreground">
                     Role-Based Staff Desks
                   </h3>
@@ -399,12 +440,18 @@ export const LandingPage: React.FC = () => {
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <div className="space-y-2">
-                  <Badge variant="warning" className="w-fit text-[9px] uppercase tracking-wider font-mono">Analytics</Badge>
+                  <Badge
+                    variant="warning"
+                    className="w-fit text-[9px] uppercase tracking-wider font-mono"
+                  >
+                    Analytics
+                  </Badge>
                   <h3 className="text-xl font-bold tracking-tight text-foreground">
                     Executive Analytics & Command Center
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
-                    High-level enrollment KPIs, inquiry conversion metrics, fee collection forecasts, and operational health signals.
+                    High-level enrollment KPIs, inquiry conversion metrics, fee collection
+                    forecasts, and operational health signals.
                   </p>
                 </div>
               </div>
@@ -429,7 +476,10 @@ export const LandingPage: React.FC = () => {
                 Structured Learning Programs Across Grades
               </h2>
             </div>
-            <Link to="/academics" className="inline-flex items-center text-xs font-bold text-[#063F40] hover:underline">
+            <Link
+              to="/academics"
+              className="inline-flex items-center text-xs font-bold text-[#063F40] hover:underline"
+            >
               <span>Explore all academic programs</span>
               <ChevronRight className="w-4 h-4 ml-1" />
             </Link>
@@ -437,24 +487,42 @@ export const LandingPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
-              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">FOUNDATION</span>
+              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">
+                FOUNDATION
+              </span>
               <h3 className="text-base font-bold text-foreground">Pre-Primary & Nursery</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">Early childhood development focused on play, creativity, and foundational social skills.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Early childhood development focused on play, creativity, and foundational social
+                skills.
+              </p>
             </div>
             <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
-              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">PRIMARY</span>
+              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">
+                PRIMARY
+              </span>
               <h3 className="text-base font-bold text-foreground">Grades 1 to 5</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">Core numeracy, literacy, science, languages, and holistic physical education.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Core numeracy, literacy, science, languages, and holistic physical education.
+              </p>
             </div>
             <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
-              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">MIDDLE SCHOOL</span>
+              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">
+                MIDDLE SCHOOL
+              </span>
               <h3 className="text-base font-bold text-foreground">Grades 6 to 8</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">Experiential science labs, mathematical problem-solving, and communicative skills.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Experiential science labs, mathematical problem-solving, and communicative skills.
+              </p>
             </div>
             <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
-              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">SECONDARY</span>
+              <span className="text-xs font-black text-[#063F40] uppercase tracking-widest">
+                SECONDARY
+              </span>
               <h3 className="text-base font-bold text-foreground">Grades 9 to 12</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">Specialized Science, Commerce, and Humanities streams preparing for higher education.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Specialized Science, Commerce, and Humanities streams preparing for higher
+                education.
+              </p>
             </div>
           </div>
         </div>
@@ -471,13 +539,18 @@ export const LandingPage: React.FC = () => {
           </h2>
         </div>
 
-        <Accordion type="single" collapsible className="w-full bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-xs"
+        >
           <AccordionItem value="item-1">
             <AccordionTrigger className="text-sm font-bold text-foreground hover:no-underline">
               How do I submit an enquiry for admission?
             </AccordionTrigger>
             <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
-              You can submit an online enquiry via the public Enquiry form (`/enquiry`) without creating an account. Our admissions team will contact you within 24–48 hours.
+              You can submit an online enquiry via the public Enquiry form (`/enquiry`) without
+              creating an account. Our admissions team will contact you within 24–48 hours.
             </AccordionContent>
           </AccordionItem>
 
@@ -486,7 +559,9 @@ export const LandingPage: React.FC = () => {
               How do parents register and track applications?
             </AccordionTrigger>
             <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
-              Register a Guardian Account (`/admission/register`), verify your OTP (`/admission/register/otp`), and log in to the Parent Portal (`/app/admissions/my`) to view real-time status and submit required documents.
+              Register a Guardian Account (`/admission/register`), verify your OTP
+              (`/admission/register/otp`), and log in to the Parent Portal (`/app/admissions/my`) to
+              view real-time status and submit required documents.
             </AccordionContent>
           </AccordionItem>
 
@@ -495,7 +570,8 @@ export const LandingPage: React.FC = () => {
               Are digital fee payments supported?
             </AccordionTrigger>
             <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
-              Yes, parents can view itemized fee statements, pay online, and download official fee receipts directly from the Parent Portal Fees section (`/app/admissions/fees`).
+              Yes, parents can view itemized fee statements, pay online, and download official fee
+              receipts directly from the Parent Portal Fees section (`/app/admissions/fees`).
             </AccordionContent>
           </AccordionItem>
 
@@ -504,7 +580,9 @@ export const LandingPage: React.FC = () => {
               How do staff members access their operational desks?
             </AccordionTrigger>
             <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
-              Staff sign in via the main Login screen (`/login`). Based on their assigned roles (Receptionist, Counselor, Verification, Principal, Finance), the platform dynamically routes them to their authorized workspaces.
+              Staff sign in via the main Login screen (`/login`). Based on their assigned roles
+              (Receptionist, Counselor, Verification, Principal, Finance), the platform dynamically
+              routes them to their authorized workspaces.
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -514,7 +592,10 @@ export const LandingPage: React.FC = () => {
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-[#063F40] text-white rounded-3xl p-10 sm:p-14 lg:p-20 border border-white/10 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left relative overflow-hidden">
           <div className="space-y-4 max-w-xl relative z-10">
-            <Badge variant="info" className="bg-emerald-950/90 text-[#E7B76A] border-[#E7B76A]/40 font-mono text-[10px]">
+            <Badge
+              variant="info"
+              className="bg-emerald-950/90 text-[#E7B76A] border-[#E7B76A]/40 font-mono text-[10px]"
+            >
               Academic Year 2026-27
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
@@ -545,9 +626,6 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* 9. EDUAI ASSISTANT INTEGRATION */}
-      <EduAIAssistant isOpen={isAiOpen} onOpen={() => setIsAiOpen(true)} onClose={() => setIsAiOpen(false)} />
     </div>
   );
 };

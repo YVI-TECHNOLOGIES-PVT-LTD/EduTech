@@ -21,8 +21,9 @@ export const ENDPOINTS = {
   HR: {
     DEPARTMENTS: '/hr/departments',
     DESIGNATIONS: '/hr/designations',
-    STAFF: '/hr/staff',
-    STAFF_BY_ID: (id: string) => `/hr/staff/${id}`,
+    STAFF: '/v1/staff',
+    STAFF_COUNSELLORS: '/v1/staff/counsellors',
+    STAFF_BY_ID: (id: string) => `/v1/staff/${id}`,
   },
   ACADEMICS: {
     YEARS: '/academics/years',
@@ -48,6 +49,10 @@ export const ENDPOINTS = {
     PENDING: '/v1/applications/pending',
     DASHBOARD: '/v1/applications/dashboard',
     ASSESSMENT: (appId: string) => `/v1/applications/${appId}/assessment`,
+    ASSESSMENT_CONFIGS: '/v1/applications/assessment-configs',
+    ASSESSMENT_ANALYTICS: '/v1/applications/assessment-analytics',
+    ASSESSMENTS_LIST: '/v1/applications/assessments',
+    EXAMINERS: '/v1/applications/examiners',
     DECISION: (appId: string) => `/v1/applications/${appId}/decision`,
     FEES: (appId: string) => `/v1/applications/${appId}/fees`,
     FEE_INFO: (appId: string) => `/v1/applications/${appId}/fee`,
@@ -71,6 +76,13 @@ export const ENDPOINTS = {
   AUDIT: {
     LOGS: '/audit/logs',
   },
+  CHATBOT: {
+    CREATE_SESSION: '/v1/chatbot/session',
+    SEND_MESSAGE: '/v1/chatbot/message',
+    GET_SESSION: (sessionId: string) => `/v1/chatbot/session/${sessionId}`,
+    COMPLETE_SESSION: (sessionId: string) => `/v1/chatbot/session/${sessionId}/complete`,
+  },
+
   NOTIFICATIONS: {
     BASE: '/v1/notifications',
     UNREAD_COUNT: '/v1/notifications/unread-count',

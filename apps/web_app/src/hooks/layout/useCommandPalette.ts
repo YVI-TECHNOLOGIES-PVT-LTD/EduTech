@@ -26,5 +26,5 @@ export const useCommandPalette = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [focusSearch]);
 
-  return { focusSearch };
+  return { focusSearch, open: focusSearch };
 };

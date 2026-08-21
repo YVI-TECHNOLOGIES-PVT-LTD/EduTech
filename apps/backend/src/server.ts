@@ -169,6 +169,7 @@ async function runRBACSelfHealing() {
 runRBACSelfHealing();
 
 import { realtimeNotificationServer } from './modules/notifications/realtime/notification.realtime';
+import { NotificationSubscriber } from './modules/notifications/subscribers/notification.subscriber';
 
 const PORT = env.PORT || 3000;
 
@@ -177,6 +178,9 @@ const server = app.listen(Number(PORT), '0.0.0.0', () => {
 
   // Initialize Realtime WebSocket Server
   realtimeNotificationServer.init(server);
+
+  // Register Notification Event Listeners
+  NotificationSubscriber.register();
 
   // Boot Worker and Scheduler Runtimes
   workerService.start();

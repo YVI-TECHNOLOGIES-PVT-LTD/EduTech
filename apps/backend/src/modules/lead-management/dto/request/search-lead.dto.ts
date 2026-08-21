@@ -11,8 +11,25 @@ export const searchLeadSchema = z.object({
   status: z.nativeEnum(lead_stage).optional(), // Alias for stage
   source: z.nativeEnum(lead_source).optional(),
   priority: z.nativeEnum(lead_priority).optional(),
-  assigned_counsellor_id: z.string().optional().transform(sanitizeUuid),
-  assignedTo: z.string().optional().transform(sanitizeUuid), // Alias
+  assigned_counsellor_id: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === 'unassigned' || val === 'none') return 'unassigned';
+      return sanitizeUuid(val);
+    }),
+  assignedTo: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === 'unassigned' || val === 'none') return 'unassigned';
+      return sanitizeUuid(val);
+    }),
+  counsellor_status: z.enum(['assigned', 'unassigned']).optional(),
+  unassigned: z
+    .preprocess((val) => val === true || val === 'true' || val === '1', z.boolean())
+    .optional(),
+  followup_status: z.enum(['overdue', 'today', 'upcoming', 'none', 'all']).optional(),
   academic_year_grade_id: z.string().optional().transform(sanitizeUuid),
   academic_year_id: z.string().optional().transform(sanitizeUuid),
   grade_id: z.string().optional().transform(sanitizeUuid),

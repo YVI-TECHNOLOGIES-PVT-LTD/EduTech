@@ -95,6 +95,12 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
             icon: PhoneCall,
           },
           {
+            id: 'fo_counselling',
+            title: 'Counselling',
+            url: '/app/admissions/counselling',
+            icon: UserCheck,
+          },
+          {
             id: 'fo_applications',
             title: 'Applications',
             url: '/app/admissions/applications',
@@ -114,7 +120,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           },
           {
             id: 'fo_visits',
-            title: 'Campus Visits & Sessions',
+            title: 'Campus Visits & Interviews',
             url: '/app/admissions/interviews',
             icon: Calendar,
           },

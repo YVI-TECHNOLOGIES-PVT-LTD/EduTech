@@ -84,7 +84,11 @@ export interface LeadItem {
   assigned_counsellor_id?: string | null;
   counselor_id?: string | null;
   counselor?: CounselorSummary | null;
+  next_followup_date?: string | null;
+  next_follow_up?: string | null;
   remarks?: string | null;
+  academic_year_grades?: any;
+  academic_year_grade?: any;
   enquiry_date: string;
   created_at: string;
   updated_at: string;
@@ -112,6 +116,8 @@ export interface SearchLeadParams {
 
 export interface PaginatedLeadsResponse {
   data: LeadItem[];
+  total?: number;
+  totalPages?: number;
   meta: {
     total: number;
     page: number;
@@ -264,11 +270,26 @@ export interface LeadDashboardData {
   leads_by_status: Record<string, number>;
 }
 
+export interface CounsellingMetricsData {
+  today_counselling: number;
+  pending_followups: number;
+  unassigned_leads: number;
+  hot_leads: number;
+  total_leads: number;
+  leads_by_priority: Record<string, number>;
+  leads_by_stage: Record<string, number>;
+}
+
 export const crmApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getLeadDashboard: builder.query<LeadDashboardData, void>({
       query: () => `${ENDPOINTS.CRM.LEADS}/dashboard`,
       providesTags: [{ type: 'Lead', id: 'DASHBOARD' }],
+    }),
+
+    getCounsellingMetrics: builder.query<CounsellingMetricsData, void>({
+      query: () => `${ENDPOINTS.CRM.LEADS}/counselling/metrics`,
+      providesTags: [{ type: 'Lead', id: 'COUNSELLING_METRICS' }],
     }),
 
     getLeads: builder.query<PaginatedLeadsResponse, SearchLeadParams | void>({
@@ -298,7 +319,11 @@ export const crmApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Lead', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
+      ],
     }),
 
     updateLead: builder.mutation<LeadItem, { id: string; data: Partial<LeadItem> }>({
@@ -310,6 +335,8 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Lead', id },
         { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
       ],
     }),
 
@@ -321,6 +348,8 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, id) => [
         { type: 'Lead', id },
         { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
       ],
     }),
 
@@ -333,12 +362,14 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Lead', id },
         { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
       ],
     }),
 
     assignLead: builder.mutation<
       LeadItem,
-      { id: string; assigned_counsellor_id: string; remarks?: string }
+      { id: string; assigned_counsellor_id: string | null; remarks?: string }
     >({
       query: ({ id, assigned_counsellor_id, remarks }) => ({
         url: `${ENDPOINTS.CRM.LEADS}/${id}/assign`,
@@ -348,6 +379,24 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Lead', id },
         { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
+      ],
+    }),
+
+    bulkAssignLeads: builder.mutation<
+      { updatedCount: number },
+      { lead_ids: string[]; assigned_counsellor_id: string | null; remarks?: string }
+    >({
+      query: (body) => ({
+        url: `${ENDPOINTS.CRM.LEADS}/bulk-assign`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
       ],
     }),
 
@@ -359,6 +408,8 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, leadId) => [
         { type: 'Lead', id: leadId },
         { type: 'Lead', id: 'LIST' },
+        { type: 'Lead', id: 'DASHBOARD' },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
         { type: 'Application', id: 'LIST' },
       ],
     }),
@@ -385,6 +436,8 @@ export const crmApi = apiSlice.injectEndpoints({
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
         { type: 'LeadActivity', id: 'DUE_LIST' },
         { type: 'Lead', id: leadId },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
+        { type: 'Lead', id: 'DASHBOARD' },
       ],
     }),
 
@@ -400,6 +453,9 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
         { type: 'LeadActivity', id: 'DUE_LIST' },
+        { type: 'Lead', id: leadId },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
+        { type: 'Lead', id: 'DASHBOARD' },
       ],
     }),
 
@@ -414,6 +470,9 @@ export const crmApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { leadId }) => [
         { type: 'LeadActivity', id: `LEAD_${leadId}` },
         { type: 'LeadActivity', id: 'DUE_LIST' },
+        { type: 'Lead', id: leadId },
+        { type: 'Lead', id: 'COUNSELLING_METRICS' },
+        { type: 'Lead', id: 'DASHBOARD' },
       ],
     }),
 
@@ -531,6 +590,7 @@ export const crmApi = apiSlice.injectEndpoints({
 
 export const {
   useGetLeadDashboardQuery,
+  useGetCounsellingMetricsQuery,
   useGetLeadsQuery,
   useGetLeadByIdQuery,
   useCreateLeadMutation,
@@ -538,6 +598,7 @@ export const {
   useDeleteLeadMutation,
   useUpdateLeadStatusMutation,
   useAssignLeadMutation,
+  useBulkAssignLeadsMutation,
   useConvertLeadToApplicationMutation,
   useGetLeadActivitiesQuery,
   useCreateLeadActivityMutation,

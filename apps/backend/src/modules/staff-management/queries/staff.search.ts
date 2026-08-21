@@ -14,6 +14,24 @@ export class StaffSearchQuery {
     if (q.department_id) whereClause.department_id = q.department_id;
     if (q.is_active !== undefined) whereClause.is_active = q.is_active;
 
+    if (q.role || (q as any).role_name) {
+      const roleFilter = (q.role || (q as any).role_name).trim();
+      whereClause.users_staff_user_idTousers = {
+        ...(whereClause.users_staff_user_idTousers || {}),
+        user_roles_user_roles_user_idTousers: {
+          some: {
+            roles: {
+              role_name: {
+                contains: roleFilter,
+                mode: 'insensitive',
+              },
+              is_active: true,
+            },
+          },
+        },
+      };
+    }
+
     if (q.searchText && q.searchText.trim() !== '') {
       const text = q.searchText.trim();
       whereClause.OR = [
@@ -31,7 +49,15 @@ export class StaffSearchQuery {
     const items = await db.staff.findMany({
       where: whereClause,
       include: {
-        users_staff_user_idTousers: true,
+        users_staff_user_idTousers: {
+          include: {
+            user_roles_user_roles_user_idTousers: {
+              include: {
+                roles: true,
+              },
+            },
+          },
+        },
         designations: true,
         departments: true,
       },

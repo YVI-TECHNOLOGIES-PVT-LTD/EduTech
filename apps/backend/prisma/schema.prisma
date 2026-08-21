@@ -378,6 +378,45 @@ model document_types {
   @@schema("public")
 }
 
+/// This model represents chunked knowledge base documents for multi-tenant RAG vector search.
+model document_chunks {
+  chunk_id      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id        String        @db.Uuid
+  document_name String        @db.VarChar(255)
+  chunk_index   Int
+  content       String
+  embedding     Unsupported("vector(3072)")?
+  metadata      Json?
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime      @default(now()) @db.Timestamptz(6)
+  organizations organizations @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([org_id, document_name, chunk_index])
+  @@index([org_id], map: "ix_document_chunks_org")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model roles {
+  role_id                       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                        String        @db.Uuid
+  role_name                     String        @db.VarChar(50)
+  description                   String?
+  is_active                     Boolean       @default(true)
+  created_at                    DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime      @default(now()) @db.Timestamptz(6)
+  created_by                    String?       @db.Uuid
+  updated_by                    String?       @db.Uuid
+  organizations                 organizations @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_roles_created_byTousers users?        @relation("roles_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  users_roles_updated_byTousers users?        @relation("roles_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  user_roles                    user_roles[]
+
+  @@unique([org_id, role_name])
+  @@index([org_id], map: "ix_roles_org")
+  @@schema("public")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model grades {
   grade_id                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -529,6 +568,7 @@ model organizations {
   chatbot_sessions                      chatbot_sessions[]
   departments                           departments[]
   designations                          designations[]
+  document_chunks                       document_chunks[]
   document_types                        document_types[]
   grades                                grades[]
   lead_query_types                      lead_query_types[]

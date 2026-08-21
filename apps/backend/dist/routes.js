@@ -36,6 +36,7 @@ const parent_routes_1 = require("./modules/parent-management/routes/parent.route
 const academic_routes_1 = require("./modules/academic-management/routes/academic.routes");
 const staff_routes_1 = require("./modules/staff-management/routes/staff.routes");
 const user_routes_1 = require("./modules/user-management/routes/user.routes");
+const chatbot_routes_1 = require("./modules/chatbot/routes/chatbot.routes");
 const env_1 = require("./config/env");
 exports.router = (0, express_1.Router)();
 // ======================================
@@ -88,6 +89,9 @@ exports.router.get('/v1/admission/query-types', index_1.enquiryController.getQue
 exports.router.get('/admission/query-types', index_1.enquiryController.getQueryTypes);
 exports.router.post('/v1/admission/crm/enquiries', tenant_middleware_1.resolveTenantMiddleware, auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
 exports.router.post('/v1/admission/enquiries', tenant_middleware_1.resolveTenantMiddleware, auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
+// AI Chatbot & Admission Assistant Module (Public/Optional Auth - Phase 3.8)
+exports.router.use('/v1/chatbot', chatbot_routes_1.chatbotRouter);
+exports.router.use('/chatbot', chatbot_routes_1.chatbotRouter);
 // Public lookup for schools/organizations
 exports.router.get('/schools', async (req, res) => {
     try {
