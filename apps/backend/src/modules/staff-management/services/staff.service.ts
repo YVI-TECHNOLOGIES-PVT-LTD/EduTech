@@ -17,6 +17,7 @@ import { StaffMapper } from '../mappers/staff.mapper';
 import { StaffResponseDto, PaginatedResponse } from '../dto/response/staff.response.dto';
 import { StaffEvents, StaffEventType } from '../events/staff.events';
 import { logger } from '../../../utils/logger';
+import prisma from '../../../lib/prismaClient';
 
 export class StaffService {
   static async createStaff(
@@ -194,5 +195,96 @@ export class StaffService {
         hasPrevPage: result.hasPrevPage,
       },
     };
+  }
+
+  static async getCounsellors(orgId?: string): Promise<StaffResponseDto[]> {
+    const whereClause: any = {
+      is_active: true,
+      users_staff_user_idTousers: {
+        status: 'active',
+        user_roles_user_roles_user_idTousers: {
+          some: {
+            roles: {
+              role_name: {
+                in: [
+                  'Counsellor',
+                  'counsellor',
+                  'COUNSELLOR',
+                  'Counselor',
+                  'counselor',
+                  'COUNSELOR',
+                ],
+              },
+              is_active: true,
+            },
+          },
+        },
+      },
+    };
+
+    if (orgId) {
+      whereClause.org_id = orgId;
+    }
+
+    const items = await prisma.staff.findMany({
+      where: whereClause,
+      include: {
+        users_staff_user_idTousers: {
+          include: {
+            user_roles_user_roles_user_idTousers: {
+              include: {
+                roles: true,
+              },
+            },
+          },
+        },
+        designations: true,
+        departments: true,
+      },
+      orderBy: {
+        users_staff_user_idTousers: {
+          first_name: 'asc',
+        },
+      },
+    });
+
+    return items.map(StaffMapper.toStaffResponseDto);
+  }
+
+  static async getExaminers(orgId?: string): Promise<StaffResponseDto[]> {
+    const whereClause: any = {
+      is_active: true,
+      users_staff_user_idTousers: {
+        status: 'active',
+      },
+    };
+
+    if (orgId) {
+      whereClause.org_id = orgId;
+    }
+
+    const items = await prisma.staff.findMany({
+      where: whereClause,
+      include: {
+        users_staff_user_idTousers: {
+          include: {
+            user_roles_user_roles_user_idTousers: {
+              include: {
+                roles: true,
+              },
+            },
+          },
+        },
+        designations: true,
+        departments: true,
+      },
+      orderBy: {
+        users_staff_user_idTousers: {
+          first_name: 'asc',
+        },
+      },
+    });
+
+    return items.map(StaffMapper.toStaffResponseDto);
   }
 }

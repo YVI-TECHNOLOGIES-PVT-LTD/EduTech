@@ -265,11 +265,81 @@ export interface VerifyDocumentPayload {
   notes?: string;
 }
 
+export interface AssessmentConfigDto {
+  config_id: string;
+  academic_year_grade_id: string;
+  assessment_required: boolean;
+  assessment_mode: 'written' | 'online' | 'oral' | 'observation' | 'practical' | string;
+  result_type: 'marks' | 'pass_fail' | 'recommendation' | string;
+  maximum_marks: number | null;
+  pass_marks: number | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  academic_year_grades?: {
+    academic_year_grade_id: string;
+    grade_id: string;
+    academic_year_id: string;
+    grades?: {
+      grade_id: string;
+      grade_name: string;
+      display_order?: number;
+    };
+    academic_years?: {
+      academic_year_id: string;
+      year_name: string;
+    };
+  };
+}
+
+export interface SaveAssessmentConfigPayload {
+  academic_year_grade_id: string;
+  assessment_required?: boolean;
+  assessment_mode?: string;
+  result_type?: string;
+  maximum_marks?: number | null;
+  pass_marks?: number | null;
+  is_active?: boolean;
+}
+
+export interface AssessmentAnalyticsDto {
+  totalAssessed: number;
+  passed: number;
+  failed: number;
+  recommended: number;
+  notRecommended: number;
+  passRate: number;
+  avgPercentage: number;
+  totalConfigs: number;
+  modeDistribution: Record<string, number>;
+}
+
+export interface ExaminerDto {
+  staff_id: string;
+  user_id?: string;
+  employee_code: string;
+  first_name: string;
+  last_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  designation_name?: string | null;
+  department_name?: string | null;
+  roles?: string[];
+}
+
 export interface RecordAssessmentPayload {
   applicationId: string;
-  score: number;
-  maxScore: number;
+  config_id?: string | null;
+  assessment_date?: string;
+  maximum_marks?: number | null;
+  marks_obtained?: number | null;
+  score?: number;
+  maxScore?: number;
+  percentage?: number | null;
+  result?: 'pass' | 'fail' | 'recommended' | 'not_recommended' | string | null;
+  remarks?: string | null;
   evaluatorNotes?: string;
+  assessed_by?: string | null;
 }
 
 export type AdmissionDecisionStatus = 'approved' | 'waitlisted' | 'rejected' | 'withdrawn';
@@ -531,13 +601,78 @@ export const admissionApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Application'],
     }),
-    recordAssessment: builder.mutation<{ success: boolean }, RecordAssessmentPayload>({
-      query: (body: RecordAssessmentPayload) => ({
-        url: ENDPOINTS.ADMISSIONS.ASSESSMENT(body.applicationId),
+    recordAssessment: builder.mutation<AssessmentResponseDto, RecordAssessmentPayload>({
+      query: ({ applicationId, score, maxScore, evaluatorNotes, ...body }) => ({
+        url: ENDPOINTS.ADMISSIONS.ASSESSMENT(applicationId),
+        method: 'POST',
+        body: {
+          maximum_marks: body.maximum_marks ?? maxScore,
+          marks_obtained: body.marks_obtained ?? score,
+          remarks: body.remarks ?? evaluatorNotes,
+          ...body,
+        },
+      }),
+      invalidatesTags: (_result, _error, { applicationId }) => [
+        { type: 'Application', id: applicationId },
+        { type: 'Application', id: 'LIST' },
+        { type: 'Application', id: 'ASSESSMENTS_LIST' },
+        { type: 'Application', id: 'ASSESSMENT_ANALYTICS' },
+        { type: 'Lead', id: 'LIST' },
+      ],
+    }),
+    getApplicationAssessment: builder.query<AssessmentResponseDto | null, string>({
+      query: (applicationId: string) => ENDPOINTS.ADMISSIONS.ASSESSMENT(applicationId),
+      providesTags: (_result, _error, id) => [{ type: 'Application', id }],
+    }),
+    getAssessmentConfigs: builder.query<
+      { data: AssessmentConfigDto[] },
+      { org_id?: string } | void
+    >({
+      query: (params) => ({
+        url: ENDPOINTS.ADMISSIONS.ASSESSMENT_CONFIGS,
+        params: params || undefined,
+      }),
+      providesTags: [{ type: 'Application', id: 'ASSESSMENT_CONFIGS' }],
+    }),
+    saveAssessmentConfig: builder.mutation<AssessmentConfigDto, SaveAssessmentConfigPayload>({
+      query: (body) => ({
+        url: ENDPOINTS.ADMISSIONS.ASSESSMENT_CONFIGS,
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Application'],
+      invalidatesTags: [{ type: 'Application', id: 'ASSESSMENT_CONFIGS' }],
+    }),
+    getAssessmentAnalytics: builder.query<AssessmentAnalyticsDto, { org_id?: string } | void>({
+      query: (params) => ({
+        url: ENDPOINTS.ADMISSIONS.ASSESSMENT_ANALYTICS,
+        params: params || undefined,
+      }),
+      providesTags: [{ type: 'Application', id: 'ASSESSMENT_ANALYTICS' }],
+    }),
+    getAssessmentsList: builder.query<
+      any,
+      {
+        org_id?: string;
+        academic_year_id?: string;
+        grade_id?: string;
+        result?: string;
+        search?: string;
+        page?: number;
+        pageSize?: number;
+      } | void
+    >({
+      query: (params) => ({
+        url: ENDPOINTS.ADMISSIONS.ASSESSMENTS_LIST,
+        params: params || undefined,
+      }),
+      providesTags: [{ type: 'Application', id: 'ASSESSMENTS_LIST' }],
+    }),
+    getExaminers: builder.query<{ data: ExaminerDto[] }, { org_id?: string } | void>({
+      query: (params) => ({
+        url: ENDPOINTS.ADMISSIONS.EXAMINERS,
+        params: params || undefined,
+      }),
+      providesTags: [{ type: 'Staff', id: 'EXAMINERS' }],
     }),
     makeDecision: builder.mutation<DecisionResponseDto, RecordDecisionPayload>({
       query: ({ applicationId, ...body }) => ({
@@ -604,6 +739,13 @@ export const {
   useDeleteAdmissionDocumentMutation,
   useVerifyDocumentMutation,
   useRecordAssessmentMutation,
+  useGetApplicationAssessmentQuery,
+  useLazyGetApplicationAssessmentQuery,
+  useGetAssessmentConfigsQuery,
+  useSaveAssessmentConfigMutation,
+  useGetAssessmentAnalyticsQuery,
+  useGetAssessmentsListQuery,
+  useGetExaminersQuery,
   useMakeDecisionMutation,
   useGetDecisionQuery,
   useLazyGetDecisionQuery,

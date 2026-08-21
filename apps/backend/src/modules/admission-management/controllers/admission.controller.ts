@@ -68,7 +68,8 @@ export class AdmissionController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
+      const user = req.context?.user || (req as any).user;
+      const userId = user?.id || user?.user_id || null;
       const result = await AdmissionService.updateApplication(id, parsed.data, userId);
       return res.json(result);
     } catch (error: any) {
@@ -82,7 +83,8 @@ export class AdmissionController {
   static async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
+      const user = req.context?.user || (req as any).user;
+      const userId = user?.id || user?.user_id || null;
       const result = await AdmissionService.deleteApplication(id, userId);
       return res.json(result);
     } catch (error: any) {
@@ -175,7 +177,8 @@ export class AdmissionController {
         return res.status(400).json({ error: 'Status parameter is required' });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
+      const user = req.context?.user || (req as any).user;
+      const userId = user?.id || user?.user_id || null;
       const result = await AdmissionService.updateStatus(id, status as application_status, userId);
       return res.json(result);
     } catch (error: any) {

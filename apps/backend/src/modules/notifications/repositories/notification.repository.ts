@@ -17,6 +17,9 @@ export interface CreateNotificationRecord {
   expires_at?: Date | null;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const safeUuid = (val?: string | null): string | null => (val && UUID_REGEX.test(val) ? val : null);
+
 export class NotificationRepository {
   static async create(
     data: CreateNotificationRecord,
@@ -33,7 +36,7 @@ export class NotificationRepository {
         title: data.title,
         message: data.message,
         entity_type: data.entity_type || null,
-        entity_id: data.entity_id || null,
+        entity_id: safeUuid(data.entity_id),
         action_url: data.action_url || null,
         metadata: data.metadata || undefined,
         expires_at: data.expires_at || null,
@@ -56,7 +59,7 @@ export class NotificationRepository {
         title: data.title,
         message: data.message,
         entity_type: data.entity_type || null,
-        entity_id: data.entity_id || null,
+        entity_id: safeUuid(data.entity_id),
         action_url: data.action_url || null,
         metadata: data.metadata || undefined,
         expires_at: data.expires_at || null,

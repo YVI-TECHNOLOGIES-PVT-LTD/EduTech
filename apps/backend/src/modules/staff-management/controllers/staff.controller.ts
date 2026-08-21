@@ -114,8 +114,49 @@ export class StaffController {
           .status(400)
           .json({ error: 'Invalid search parameters', details: parsed.error.format() });
       }
-      const result = await StaffService.searchStaff(parsed.data);
+      const orgId =
+        parsed.data.org_id ||
+        (req as any).context?.user?.org_id ||
+        (req as any).context?.user?.school_id ||
+        (req as any).user?.org_id;
+
+      const searchParams = {
+        ...parsed.data,
+        ...(orgId ? { org_id: orgId } : {}),
+      };
+
+      const result = await StaffService.searchStaff(searchParams);
       return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async getCounsellors(req: Request, res: Response) {
+    try {
+      const orgId =
+        (req.query.org_id as string) ||
+        (req as any).context?.user?.org_id ||
+        (req as any).context?.user?.school_id ||
+        (req as any).user?.org_id;
+
+      const result = await StaffService.getCounsellors(orgId);
+      return res.json({ data: result });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async getExaminers(req: Request, res: Response) {
+    try {
+      const orgId =
+        (req.query.org_id as string) ||
+        (req as any).context?.user?.org_id ||
+        (req as any).context?.user?.school_id ||
+        (req as any).user?.org_id;
+
+      const result = await StaffService.getExaminers(orgId);
+      return res.json({ data: result });
     } catch (error: any) {
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }

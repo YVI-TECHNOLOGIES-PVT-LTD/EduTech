@@ -50,17 +50,45 @@ export class AdmissionAssessmentService {
 
     let configId = dto.config_id;
     if (!configId) {
-      const activeConfig = await prisma.assessment_configurations.findFirst({
-        where: { is_active: true },
-      });
-      configId = activeConfig?.config_id;
+      // Find config matching the application's academic_year_grade_id if possible
+      const academicYearGradeId = app.leads?.academic_year_grade_id;
+      if (academicYearGradeId) {
+        const gradeConfig = await prisma.assessment_configurations.findFirst({
+          where: {
+            academic_year_grade_id: academicYearGradeId,
+            is_active: true,
+          },
+        });
+        if (gradeConfig) {
+          configId = gradeConfig.config_id;
+        }
+      }
+
+      if (!configId) {
+        const activeConfig = await prisma.assessment_configurations.findFirst({
+          where: { is_active: true },
+        });
+        configId = activeConfig?.config_id;
+      }
+      if (!configId) {
+        const anyConfig = await prisma.assessment_configurations.findFirst();
+        configId = anyConfig?.config_id;
+      }
     }
-    if (!configId) {
-      const anyConfig = await prisma.assessment_configurations.findFirst();
-      configId = anyConfig?.config_id;
-    }
+
     if (!configId) {
       throw new ApplicationValidationError('No assessment configuration found for recording marks');
+    }
+
+    // Determine result if not provided
+    if (!dto.result && dto.percentage !== undefined && dto.percentage !== null) {
+      const config = await prisma.assessment_configurations.findUnique({
+        where: { config_id: configId },
+      });
+      const passMarks = config?.pass_marks ? Number(config.pass_marks) : 40;
+      const maxMarks = config?.maximum_marks ? Number(config.maximum_marks) : 100;
+      const passPercentage = maxMarks > 0 ? (passMarks / maxMarks) * 100 : 40;
+      dto.result = (dto.percentage >= passPercentage ? 'pass' : 'fail') as any;
     }
 
     const payload = { ...dto, config_id: configId };
@@ -76,8 +104,24 @@ export class AdmissionAssessmentService {
       assessmentId: assessment.assessment_id,
       result: assessment.result,
       percentage: assessment.percentage,
+      assessed_by: assessment.assessed_by,
       createdBy,
     });
+
+    // Update lead stage to assessment if lead exists
+    if (app.lead_id) {
+      await prisma.leads
+        .update({
+          where: { lead_id: app.lead_id },
+          data: {
+            stage: 'assessment',
+            updated_at: new Date(),
+          },
+        })
+        .catch((err) => {
+          logger.warn(`Could not update lead stage for lead ${app.lead_id}: ${err.message}`);
+        });
+    }
 
     // Post-commit event emission
     await AdmissionEvents.publish(ApplicationEventType.ASSESSMENT_RECORDED, {
@@ -97,5 +141,54 @@ export class AdmissionAssessmentService {
     }
 
     return AdmissionAssessmentRepository.findByApplicationId(applicationId);
+  }
+
+  static async listAssessments(params: {
+    orgId?: string;
+    academicYearId?: string;
+    gradeId?: string;
+    result?: string;
+    searchText?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    return AdmissionAssessmentRepository.findAll(params);
+  }
+
+  static async getAssessmentConfigs(orgId?: string) {
+    return AdmissionAssessmentRepository.getConfigs(orgId);
+  }
+
+  static async upsertAssessmentConfig(
+    academicYearGradeId: string,
+    data: {
+      assessment_required?: boolean;
+      assessment_mode?: any;
+      result_type?: any;
+      maximum_marks?: number | null;
+      pass_marks?: number | null;
+      is_active?: boolean;
+    },
+    userId?: string | null,
+  ) {
+    if (
+      data.maximum_marks !== undefined &&
+      data.maximum_marks !== null &&
+      data.pass_marks !== undefined &&
+      data.pass_marks !== null
+    ) {
+      if (data.maximum_marks < 0 || data.pass_marks < 0) {
+        throw new ApplicationValidationError('Marks cannot be negative');
+      }
+      if (data.pass_marks > data.maximum_marks) {
+        throw new ApplicationValidationError('Pass marks cannot exceed maximum marks');
+      }
+    }
+
+    return AdmissionAssessmentRepository.upsertConfig(academicYearGradeId, data, userId);
+  }
+
+  static async getAssessmentAnalytics(orgId?: string) {
+    return AdmissionAssessmentRepository.getAnalytics(orgId);
   }
 }

@@ -46,6 +46,12 @@ staffRouter.post(
   checkIdempotency,
   StaffController.create,
 );
+staffRouter.get(
+  '/counsellors',
+  checkPermission(StaffPolicy.canView()),
+  StaffController.getCounsellors,
+);
+staffRouter.get('/examiners', checkPermission(StaffPolicy.canView()), StaffController.getExaminers);
 staffRouter.get('/', checkPermission(StaffPolicy.canView()), StaffController.search);
 staffRouter.get('/:id', checkPermission(StaffPolicy.canView()), StaffController.getById);
 staffRouter.patch('/:id', checkPermission(StaffPolicy.canUpdate()), StaffController.update);

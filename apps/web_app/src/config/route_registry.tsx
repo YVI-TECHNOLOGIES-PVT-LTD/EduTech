@@ -17,6 +17,7 @@ import WorkspaceDashboard from '../modules/admission/pages/Workspace';
 import Applicant360Page from '../modules/admission/pages/Applicant360';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
 import { ApplicationsManagementPage } from '../modules/admission/pages/front-office/ApplicationsManagementPage';
+import { CounsellingPage } from '../modules/admission/pages/front-office/CounsellingPage';
 import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
 import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
 import { CampusVisitsPage } from '../modules/admission/pages/front-office/CampusVisitsPage';
@@ -126,6 +127,18 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <InquiryListPage />,
     layout: 'admission_workspace',
     permission: 'admission.enquiry.view',
+  },
+  {
+    path: 'admissions/counselling',
+    element: <CounsellingPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.enquiry.view', 'admission.leads.manage', 'admission.review'],
+  },
+  {
+    path: 'front-office/counselling',
+    element: <CounsellingPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.enquiry.view', 'admission.leads.manage', 'admission.review'],
   },
   {
     path: 'admissions/applications',

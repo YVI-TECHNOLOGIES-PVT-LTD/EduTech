@@ -17,6 +17,9 @@ export function sanitizeSearchQuery(params: SearchLeadDto) {
     academic_year_id: params.academic_year_id || undefined,
     grade_id: params.grade_id || undefined,
     org_id: params.org_id || undefined,
+    unassigned: params.unassigned,
+    counsellor_status: params.counsellor_status,
+    followup_status: params.followup_status,
     startDate: params.startDate ? new Date(params.startDate) : undefined,
     endDate: params.endDate ? new Date(params.endDate) : undefined,
   };

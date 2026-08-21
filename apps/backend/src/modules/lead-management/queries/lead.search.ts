@@ -22,8 +22,55 @@ export class LeadSearchQuery {
       whereClause.priority = q.priority;
     }
 
-    if (q.assigned_counsellor_id) {
+    if (
+      (q as any).unassigned === true ||
+      (q as any).counsellor_status === 'unassigned' ||
+      q.assigned_counsellor_id === 'unassigned'
+    ) {
+      whereClause.assigned_counsellor_id = null;
+    } else if ((q as any).counsellor_status === 'assigned') {
+      whereClause.assigned_counsellor_id = { not: null };
+    } else if (q.assigned_counsellor_id) {
       whereClause.assigned_counsellor_id = q.assigned_counsellor_id;
+    }
+
+    if ((q as any).followup_status && (q as any).followup_status !== 'all') {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      if ((q as any).followup_status === 'overdue') {
+        whereClause.lead_activities = {
+          some: {
+            next_followup_date: { lt: todayStart },
+            status: 'scheduled',
+          },
+        };
+      } else if ((q as any).followup_status === 'today') {
+        whereClause.lead_activities = {
+          some: {
+            next_followup_date: {
+              gte: todayStart,
+              lte: todayEnd,
+            },
+          },
+        };
+      } else if ((q as any).followup_status === 'upcoming') {
+        whereClause.lead_activities = {
+          some: {
+            next_followup_date: { gt: todayEnd },
+            status: 'scheduled',
+          },
+        };
+      } else if ((q as any).followup_status === 'none') {
+        whereClause.lead_activities = {
+          none: {
+            next_followup_date: { not: null },
+            status: 'scheduled',
+          },
+        };
+      }
     }
 
     if (q.academic_year_grade_id) {

@@ -10,6 +10,7 @@ import { searchLeadSchema } from '../dto/request/search-lead.dto';
 import { LeadError } from '../errors/lead.errors';
 
 import { LeadScoringService } from '../services/lead.scoring.service';
+import { CounsellingDashboardQuery } from '../queries/counselling.dashboard';
 
 export class LeadController {
   static async create(req: Request, res: Response) {
@@ -149,17 +150,27 @@ export class LeadController {
   static async assign(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const counselorId = req.body.assigned_counsellor_id || req.body.counselor_id;
-      if (!counselorId) {
-        return res.status(400).json({ error: 'Assigned counselor staff ID is required' });
-      }
+      const rawCounselorId =
+        req.body.assigned_counsellor_id !== undefined
+          ? req.body.assigned_counsellor_id
+          : req.body.counselor_id;
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
+      const counselorId =
+        rawCounselorId && typeof rawCounselorId === 'string' && rawCounselorId.trim() !== ''
+          ? rawCounselorId.trim()
+          : null;
+
+      const userId =
+        (req as any).user?.user_id || (req as any).user?.id || req.context?.user?.id || null;
+      const orgId =
+        req.context?.user?.org_id || req.context?.user?.school_id || (req as any).user?.org_id;
+
       const result = await LeadAssignmentService.assignCounselor(
         id,
         counselorId,
         userId,
         req.body.remarks,
+        orgId,
       );
       return res.json(result);
     } catch (error: any) {
@@ -180,12 +191,22 @@ export class LeadController {
         });
       }
 
-      const userId = (req as any).user?.user_id || (req as any).user?.id || null;
+      const userId =
+        (req as any).user?.user_id || (req as any).user?.id || req.context?.user?.id || null;
+      const orgId =
+        req.context?.user?.org_id || req.context?.user?.school_id || (req as any).user?.org_id;
+      const rawCounselorId = parsed.data.assigned_counsellor_id;
+      const counselorId =
+        rawCounselorId && rawCounselorId.trim() !== '' && rawCounselorId !== 'unassigned'
+          ? rawCounselorId.trim()
+          : null;
+
       const result = await LeadAssignmentService.bulkAssignCounselor(
         parsed.data.lead_ids,
-        parsed.data.assigned_counsellor_id,
+        counselorId,
         userId,
         parsed.data.remarks,
+        orgId,
       );
       return res.json(result);
     } catch (error: any) {
@@ -206,6 +227,22 @@ export class LeadController {
         (req.query.school_id as string) ||
         undefined;
       const result = await LeadService.getDashboardMetrics(orgId);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async getCounsellingMetrics(req: Request, res: Response) {
+    try {
+      const user = req.context?.user;
+      const orgId =
+        user?.org_id ||
+        user?.school_id ||
+        (req.query.org_id as string) ||
+        (req.query.school_id as string) ||
+        undefined;
+      const result = await CounsellingDashboardQuery.execute(orgId);
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ error: error.message || 'Internal server error' });

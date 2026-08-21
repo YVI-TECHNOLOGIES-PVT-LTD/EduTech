@@ -31,7 +31,7 @@ import {
   useDeleteVisitMutation,
   LeadStage,
 } from '@/shared/api/crm.api';
-import { useGetStaffListQuery } from '@/shared/api/staff.api';
+import { useGetCounsellorsQuery } from '@/shared/api/staff.api';
 import { AddActivityModal } from './AddActivityModal';
 import { ScheduleVisitModal } from './ScheduleVisitModal';
 import { ScheduleVisitDialog } from '../visit/ScheduleVisitDialog';
@@ -172,7 +172,11 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
     skip: !leadId || !open,
   });
 
-  const { data: staffList = [] } = useGetStaffListQuery();
+  const {
+    data: counsellors = [],
+    isLoading: isLoadingCounsellors,
+    isError: isErrorCounsellors,
+  } = useGetCounsellorsQuery(undefined, { skip: !open });
 
   const [updateLeadStatus, { isLoading: isUpdatingStatus }] = useUpdateLeadStatusMutation();
   const [assignLead, { isLoading: isAssigning }] = useAssignLeadMutation();
@@ -226,6 +230,24 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
       onLeadUpdated?.();
     } catch (err: any) {
       const msg = err?.data?.error || err?.message || 'Failed to assign counsellor';
+      toast.error(msg);
+    }
+  };
+
+  const handleUnassignCounsellor = async () => {
+    if (!lead) return;
+    try {
+      await assignLead({
+        id: lead.lead_id,
+        assigned_counsellor_id: null,
+        remarks: assignmentRemarks || 'Unassigned counsellor',
+      }).unwrap();
+      toast.success('Counsellor unassigned successfully');
+      setSelectedStaffId('');
+      setAssignmentRemarks('');
+      onLeadUpdated?.();
+    } catch (err: any) {
+      const msg = err?.data?.error || err?.message || 'Failed to unassign counsellor';
       toast.error(msg);
     }
   };
@@ -846,23 +868,37 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                       </div>
 
                       <div className="space-y-3 pt-2">
-                        <Label className="text-xs font-bold">Reassign to Staff Member</Label>
-                        <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                          <SelectTrigger className="text-xs font-medium">
-                            <SelectValue placeholder="Select staff member..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {staffList.map((s: any) => (
-                              <SelectItem key={s.id || s.staff_id} value={s.id || s.staff_id}>
-                                {s.name ||
-                                  `${s.firstName || s.first_name || ''} ${s.lastName || s.last_name || ''}`.trim() ||
-                                  s.employeeId ||
-                                  s.employee_code}{' '}
-                                ({s.department || s.designation || s.employeeId || s.employee_code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label className="text-xs font-bold">
+                          {lead.counselor?.name ? 'Reassign to Counsellor' : 'Assign to Counsellor'}
+                        </Label>
+                        {isLoadingCounsellors ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                            Loading counsellors...
+                          </div>
+                        ) : isErrorCounsellors ? (
+                          <p className="text-xs text-red-500 font-medium">
+                            Unable to load counsellors.
+                          </p>
+                        ) : counsellors.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">
+                            No active counsellors available.
+                          </p>
+                        ) : (
+                          <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
+                            <SelectTrigger className="text-xs font-medium">
+                              <SelectValue placeholder="Select counsellor..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {counsellors.map((c) => (
+                                <SelectItem key={c.staff_id || c.id} value={c.staff_id || c.id}>
+                                  {c.display_name || `${c.first_name} ${c.last_name || ''}`.trim()}{' '}
+                                  ({c.email || c.employee_code || c.role || 'Counsellor'})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
 
                         <Textarea
                           placeholder="Assignment notes / handover instructions..."
@@ -871,15 +907,29 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                           onChange={(e) => setAssignmentRemarks(e.target.value)}
                         />
 
-                        <Button
-                          size="sm"
-                          onClick={handleAssignCounsellor}
-                          disabled={!selectedStaffId || isAssigning}
-                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black"
-                        >
-                          {isAssigning && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
-                          Update Counsellor Assignment
-                        </Button>
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            onClick={handleAssignCounsellor}
+                            disabled={!selectedStaffId || isAssigning}
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black"
+                          >
+                            {isAssigning && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
+                            {lead.counselor?.name ? 'Reassign Counsellor' : 'Assign Counsellor'}
+                          </Button>
+
+                          {lead.counselor?.name && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleUnassignCounsellor}
+                              disabled={isAssigning}
+                              className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 border-amber-300"
+                            >
+                              Unassign
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </TabsContent>

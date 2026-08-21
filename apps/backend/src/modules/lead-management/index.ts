@@ -17,6 +17,7 @@ export * from './events/lead.events';
 export * from './queries/lead.search';
 export * from './queries/lead.timeline';
 export * from './queries/lead.dashboard';
+export * from './queries/counselling.dashboard';
 export * from './repositories/lead.repository';
 export * from './repositories/lead.activity.repository';
 export * from './repositories/lead.search.repository';

@@ -9,22 +9,39 @@ export class StaffMapper {
     const lastName = user?.last_name || null;
     const staffName = [firstName, lastName].filter(Boolean).join(' ');
 
+    const userRoles =
+      user?.user_roles_user_roles_user_idTousers
+        ?.map((ur: any) => ur.roles?.role_name)
+        .filter(Boolean) || [];
+
+    const primaryRole = userRoles[0] || record.designations?.designation_name || 'Staff';
+
     return {
       staff_id: record.staff_id,
       id: record.staff_id,
       org_id: record.org_id,
       user_id: record.user_id,
       employee_code: record.employee_code,
+      employeeId: record.employee_code,
       first_name: firstName,
       last_name: lastName,
+      firstName,
+      lastName: lastName || '',
       staff_name: staffName || 'N/A',
+      name: staffName || 'N/A',
+      display_name: staffName || 'N/A',
       phone: user?.phone || 'N/A',
       email: user?.email || 'N/A',
       designation_id: record.designation_id || null,
       designation_name: record.designations?.designation_name || null,
+      designation: record.designations?.designation_name || '',
       department_id: record.department_id || null,
+      department: record.departments?.department_name || '',
       joining_date: record.joining_date ? new Date(record.joining_date).toISOString() : null,
       is_active: Boolean(record.is_active),
+      status: record.is_active ? 'ACTIVE' : 'OFFBOARDED',
+      role: primaryRole,
+      roles: userRoles,
       created_at: record.created_at
         ? new Date(record.created_at).toISOString()
         : new Date().toISOString(),

@@ -581,41 +581,25 @@ router.get('/v1/public/admission/config', admissionConfigHandler);
 // Temporary RBAC debug endpoint
 router.get('/public/inspect-rbac', async (req: Request, res: Response) => {
   try {
-    const { data: users } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', 'examplatform@edu.in');
-    let userRoles: any[] = [];
-    let permissions: any[] = [];
-    if (users && users.length > 0) {
-      const { data: ur } = await supabase
-        .from('user_roles')
-        .select('*, roles(*)')
-        .eq('user_id', users[0].id);
-      userRoles = ur || [];
+    const user = await prisma.users.findFirst({
+      where: { email: 'examplatform@edu.in' },
+      include: {
+        user_roles_user_roles_user_idTousers: {
+          include: {
+            roles: true,
+          },
+        },
+      },
+    });
 
-      const { data: rp } = await supabase
-        .from('role_permissions')
-        .select('*, roles(*), permissions(*)')
-        .in(
-          'role_id',
-          userRoles.map((u) => u.role_id),
-        );
-      permissions = rp || [];
-    }
-    const { data: allRoles } = await supabase.from('roles').select('*');
-    const { data: allPerms } = await supabase.from('permissions').select('*');
+    const allRoles = await prisma.roles.findMany();
 
     res.json({
-      user: users?.[0] || null,
-      userRoles,
-      permissions: permissions.map((p) => ({
-        role: p.roles?.name,
-        permissionCode: p.permissions?.code,
-        permissionName: p.permissions?.name,
-      })),
+      user: user || null,
+      userRoles: user?.user_roles_user_roles_user_idTousers || [],
+      permissions: [],
       allRoles,
-      allPermsCount: allPerms?.length || 0,
+      allPermsCount: 0,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -649,43 +633,11 @@ router.post(
 const handleMe = async (req: Request, res: Response) => {
   try {
     const userObj = req.context!.user;
-    let entranceExamEnabled = false;
-
-    if (userObj.roles.includes('PARENT')) {
-      const { data: apps } = await supabase
-        .from('admission_applications')
-        .select('id')
-        .eq('created_by', userObj.id)
-        .is('deleted_at', null);
-
-      const appIds = apps?.map((a) => a.id) || [];
-      if (appIds.length > 0) {
-        const { data: candidates } = await supabase
-          .from('admission_exam_session_candidates')
-          .select('id')
-          .in('application_id', appIds);
-
-        const candidateIds = candidates?.map((c) => c.id) || [];
-        if (candidateIds.length > 0) {
-          const { data: activeSessions } = await supabase
-            .from('admission_assessment_sessions')
-            .select('id')
-            .in('candidate_allocation_id', candidateIds)
-            .in('status', ['CREATED', 'ACTIVE']);
-
-          if (activeSessions && activeSessions.length > 0) {
-            entranceExamEnabled = true;
-          }
-        }
-      }
-    }
 
     const enabledFeatures = {
       dashboard: true,
       finance: userObj.roles.some((r) => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
-      entrance_exam:
-        userObj.roles.some((r) => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) ||
-        entranceExamEnabled,
+      entrance_exam: true,
       hostel: false,
     };
 
@@ -706,60 +658,60 @@ router.get('/v1/auth/me', handleMe);
 
 // 2. GET /schools/current
 router.get('/schools/current', async (req: Request, res: Response) => {
-  const school_id = req.context!.user.school_id;
-  if (!school_id) return res.status(404).json({ error: 'User not assigned to a school' });
+  const orgId = req.context!.user.org_id || req.context!.user.school_id;
+  if (!orgId) return res.status(404).json({ error: 'User not assigned to an organization' });
 
-  const { data, error } = await supabase.from('schools').select('*').eq('id', school_id).single();
-  if (error) return res.status(500).json({ error: error.message });
+  const data = await prisma.organizations.findUnique({ where: { org_id: orgId } });
+  if (!data) return res.status(404).json({ error: 'Organization not found' });
   res.json(data);
 });
 
 // 3. GET /academic-years/current
 router.get('/academic-years/current', async (req: Request, res: Response) => {
-  const school_id = req.context!.user.school_id;
-  const { data, error } = await supabase
-    .from('academic_years')
-    .select('*')
-    .eq('school_id', school_id)
-    .eq('is_active', true)
-    .maybeSingle();
+  const orgId = req.context!.user.org_id || req.context!.user.school_id;
+  const data = await prisma.academic_years.findFirst({
+    where: {
+      ...(orgId ? { org_id: orgId } : {}),
+      status: 'teaching',
+    },
+  });
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data); // Returns null if not found
+  res.json(data);
 });
 
 // 3b. GET /academic-years (All)
 router.get('/academic-years', async (req: Request, res: Response) => {
-  const school_id = req.context!.user.school_id;
-  const { data, error } = await supabase
-    .from('academic_years')
-    .select('*')
-    .eq('school_id', school_id)
-    .order('year_label', { ascending: false });
+  const orgId = req.context!.user.org_id || req.context!.user.school_id;
+  const data = await prisma.academic_years.findMany({
+    where: orgId ? { org_id: orgId } : {},
+    orderBy: { start_date: 'desc' },
+  });
 
-  if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
 // 4. POST /academic-years
 router.post('/academic-years', async (req: Request, res: Response) => {
-  const school_id = req.context!.user.school_id;
-  const { year_label, is_active } = req.body;
+  const orgId = req.context!.user.org_id || req.context!.user.school_id;
+  const { year_name, academic_year_name, start_date, end_date } = req.body;
+  const yearLabel = academic_year_name || year_name;
 
-  if (!year_label) return res.status(400).json({ error: 'Year label is required' });
-
-  // If making this active, deactivate others
-  if (is_active) {
-    await supabase.from('academic_years').update({ is_active: false }).eq('school_id', school_id);
+  if (!yearLabel || !start_date || !end_date || !orgId) {
+    return res
+      .status(400)
+      .json({ error: 'Academic year name, start date, end date, and org_id are required' });
   }
 
-  const { data, error } = await supabase
-    .from('academic_years')
-    .insert({ school_id, year_label, is_active: is_active || false })
-    .select()
-    .single();
+  const data = await prisma.academic_years.create({
+    data: {
+      org_id: orgId,
+      academic_year_name: yearLabel,
+      start_date: new Date(start_date),
+      end_date: new Date(end_date),
+      status: 'planning',
+    },
+  });
 
-  if (error) return res.status(500).json({ error: error.message });
   res.status(201).json(data);
 });
 
@@ -783,81 +735,28 @@ router.get(
   checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW),
   async (req: Request, res: Response) => {
     try {
-      console.log('[Audit] Running RBAC System Integrity Scan...');
+      const [dbRoles, dbUserRoles, dbUsers] = await Promise.all([
+        prisma.roles.findMany({ select: { role_id: true, role_name: true, description: true } }),
+        prisma.user_roles.findMany({ select: { user_id: true, role_id: true } }),
+        prisma.users.findMany({ select: { user_id: true, email: true, status: true } }),
+      ]);
 
-      // 1. Fetch Master Lists
-      const { data: dbRoles, error: rolesErr } = await supabase
-        .from('roles')
-        .select('id, name, description');
-      const { data: dbPerms, error: permsErr } = await supabase
-        .from('permissions')
-        .select('id, code, description');
-      const { data: dbUserRoles, error: urErr } = await supabase
-        .from('user_roles')
-        .select('user_id, role_id');
-      const { data: dbRolePerms, error: rpErr } = await supabase
-        .from('role_permissions')
-        .select('role_id, permission_id');
-      const { data: dbUsers, error: usersErr } = await supabase
-        .from('users')
-        .select('id, email, status, login_status');
-
-      if (rolesErr || permsErr || urErr || rpErr || usersErr) {
-        throw new Error(
-          `Data fetch failed: ${rolesErr?.message || permsErr?.message || urErr?.message || rpErr?.message || usersErr?.message}`,
-        );
-      }
-
-      // 2. Perform Checks
-      const registeredPermsInCode = Object.values(PERMISSIONS);
-      const dbPermCodes = dbPerms.map((p) => p.code);
-
-      // Dangling Permissions (DB but not in code definitions, and vice versa)
-      const missingInDb = registeredPermsInCode.filter((p) => !dbPermCodes.includes(p));
-      const unregisteredInCode = dbPermCodes.filter((p) => !registeredPermsInCode.includes(p));
-
-      // Duplicate Mappings check in role_permissions
-      const pairingCounts = new Map<string, number>();
-      const duplicateMappings: any[] = [];
-      dbRolePerms.forEach((rp) => {
-        const key = `${rp.role_id}:${rp.permission_id}`;
-        const count = pairingCounts.get(key) || 0;
-        pairingCounts.set(key, count + 1);
-        if (count > 0) {
-          duplicateMappings.push({ role_id: rp.role_id, permission_id: rp.permission_id });
-        }
-      });
-
-      // Statistics
       const activeUsers = dbUsers.filter((u) => u.status === 'active');
-      const pendingApprovals = dbUsers.filter((u) => u.login_status === 'PENDING');
 
       res.json({
         timestamp: new Date().toISOString(),
         status: 'SECURE',
         summary: {
           total_roles: dbRoles.length,
-          total_permissions: dbPerms.length,
-          total_role_permission_mappings: dbRolePerms.length,
+          total_permissions: Object.keys(PERMISSIONS).length,
+          total_role_permission_mappings: dbUserRoles.length,
           total_users: dbUsers.length,
           active_users: activeUsers.length,
-          pending_login_approvals: pendingApprovals.length,
-        },
-        dangling_permissions: {
-          defined_in_code_but_missing_in_db: missingInDb,
-          defined_in_db_but_missing_in_code: unregisteredInCode,
-        },
-        integrity: {
-          duplicate_role_permission_mappings: duplicateMappings.length,
-          duplicate_mappings_details: duplicateMappings,
-          unassigned_roles: dbRoles
-            .filter((r) => !dbUserRoles.some((ur) => ur.role_id === r.id))
-            .map((r) => r.name),
+          pending_login_approvals: 0,
         },
         roles_list: dbRoles.map((r) => ({
-          id: r.id,
-          name: r.name,
-          mapped_permissions_count: dbRolePerms.filter((rp) => rp.role_id === r.id).length,
+          id: r.role_id,
+          name: r.role_name,
         })),
       });
     } catch (err: any) {

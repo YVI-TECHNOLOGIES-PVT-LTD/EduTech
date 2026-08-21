@@ -4,13 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
+  useCreateLeadMutation,
+  useLazyCheckDuplicatesQuery,
+  LeadSource,
+  LeadPriority,
+  LeadStage,
+  GenderType,
+  RelationshipType,
+} from '@/shared/api/crm.api';
+import { useGetCounsellorsQuery } from '@/shared/api/staff.api';
+import { useMasterData } from '../../context/MasterDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,50 +25,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import {
-  useCreateLeadMutation,
-  useLazyCheckDuplicatesQuery,
-  LeadSource,
-  LeadPriority,
-  LeadStage,
-  GenderType,
-  RelationshipType,
-} from '@/shared/api/crm.api';
-import { useGetStaffListQuery } from '@/shared/api/staff.api';
-import { useMasterData } from '../../context/MasterDataContext';
-import { User, BookOpen, Phone, MessageSquare, AlertTriangle, Loader2 } from 'lucide-react';
+  User,
+  GraduationCap,
+  Phone,
+  Settings2,
+  AlertCircle,
+  AlertTriangle,
+  BookOpen,
+  MessageSquare,
+  Loader2,
+  CheckCircle2,
+  Sparkles,
+} from 'lucide-react';
 
 const formSchema = z.object({
-  student_first_name: z.string().min(1, 'Student first name is required'),
+  student_first_name: z.string().min(1, 'First name is required'),
   student_last_name: z.string().optional().nullable(),
   dob: z.string().optional().nullable(),
   gender: z
     .enum(['male', 'female', 'other', 'undisclosed'] as const)
     .optional()
     .nullable(),
-  academic_year_grade_id: z.string().min(1, 'Grade / Academic year is required'),
+  academic_year_grade_id: z.string().min(1, 'Grade is required'),
   curriculum_preference: z.string().optional().nullable(),
   scholarship_interest: z.boolean(),
-  contact_name: z.string().min(1, 'Primary contact name is required'),
+  contact_name: z.string().min(1, 'Contact person name is required'),
   contact_relationship: z
     .enum(['father', 'mother', 'guardian', 'grandparent', 'other'] as const)
     .optional()
     .nullable(),
   contact_phone: z.string().min(5, 'Valid phone number is required'),
-  contact_email: z.string().email('Invalid email address').optional().nullable().or(z.literal('')),
+  contact_email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
   source: z.enum([
-    'website',
     'walk_in',
+    'website',
+    'phone_call',
+    'email',
     'referral',
     'social_media',
     'chatbot',
-    'qr_code',
     'education_fair',
-    'phone_call',
-    'email',
+    'qr_code',
     'other',
   ] as const),
   stage: z.enum([
@@ -85,6 +97,7 @@ const formSchema = z.object({
   priority: z.enum(['hot', 'warm', 'cold'] as const),
   assigned_counsellor_id: z.string().optional().nullable(),
   remarks: z.string().optional().nullable(),
+  contact_consent: z.boolean().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -101,7 +114,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   onSuccess,
 }) => {
   const { grades } = useMasterData();
-  const { data: staffList = [] } = useGetStaffListQuery();
+  const { data: counsellors = [] } = useGetCounsellorsQuery();
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
   const [triggerCheckDuplicates, { data: duplicateData }] = useLazyCheckDuplicatesQuery();
 
@@ -604,10 +617,10 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">-- Leave Unassigned --</SelectItem>
-                        {staffList.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.firstName} {s.lastName} (
-                            {s.department || s.designation || s.employeeId})
+                        {counsellors.map((c) => (
+                          <SelectItem key={c.staff_id || c.id} value={c.staff_id || c.id}>
+                            {c.display_name || `${c.first_name} ${c.last_name || ''}`.trim()} (
+                            {c.email || c.employee_code || c.role || 'Counsellor'})
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -31,7 +31,7 @@ import {
   GenderType,
   RelationshipType,
 } from '@/shared/api/crm.api';
-import { useGetStaffListQuery } from '@/shared/api/staff.api';
+import { useGetCounsellorsQuery } from '@/shared/api/staff.api';
 import { useMasterData } from '../../context/MasterDataContext';
 import { Edit3, Loader2 } from 'lucide-react';
 
@@ -86,7 +86,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
   onSuccess,
 }) => {
   const { grades } = useMasterData();
-  const { data: staffList = [] } = useGetStaffListQuery();
+  const { data: counsellors = [] } = useGetCounsellorsQuery();
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
 
   const {
@@ -442,9 +442,9 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                      {staffList.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.firstName} {s.lastName}
+                      {counsellors.map((c) => (
+                        <SelectItem key={c.staff_id || c.id} value={c.staff_id || c.id}>
+                          {c.display_name || `${c.first_name} ${c.last_name || ''}`.trim()}
                         </SelectItem>
                       ))}
                     </SelectContent>
