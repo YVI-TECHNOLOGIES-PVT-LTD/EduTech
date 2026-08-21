@@ -1,5 +1,13 @@
 import React from 'react';
-import { Plus, ChevronRight, FileText, Calendar, GraduationCap } from 'lucide-react';
+import {
+  Plus,
+  ChevronRight,
+  FileText,
+  Calendar,
+  GraduationCap,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApplicationList } from '../hooks/useApplication';
 import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper';
@@ -11,12 +19,17 @@ import {
 } from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
 import { Card } from '@/components/ui/card';
+import type { ApplicationRecord } from '@/shared/api/admission.api';
 
 export function MyApplications() {
   const navigate = useNavigate();
-  const { applications, isLoading, refetch } = useApplicationList({ limit: 50 }, { mine: true });
+  const {
+    applications = [],
+    isLoading,
+    error,
+    refetch,
+  } = useApplicationList({ limit: 50 }, { mine: true });
 
   if (isLoading) {
     return (
@@ -26,6 +39,33 @@ export function MyApplications() {
           <p className="text-xs font-bold text-muted-foreground">
             Loading your admission applications...
           </p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer variant="default">
+        <div className="p-12 text-center space-y-4 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Failed to load applications</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Unable to retrieve your admission applications. Please try again.
+            </p>
+          </div>
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            className="font-bold text-xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
         </div>
       </PageContainer>
     );
@@ -76,20 +116,22 @@ export function MyApplications() {
             title={`Your Registered Applications (${applications.length})`}
             action={
               <button
+                type="button"
                 onClick={() => refetch()}
-                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
               >
-                Refresh Status
+                <RefreshCw className="w-3 h-3" />
+                <span>Refresh Status</span>
               </button>
             }
           />
 
           <div className="grid gap-4">
-            {applications.map((app: any) => {
+            {applications.map((app: ApplicationRecord) => {
               const studentName =
                 app.student_name ||
                 (app.leads
-                  ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`
+                  ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`.trim()
                   : 'Applicant');
               const gradeApplied =
                 app.grade_applied_for ||

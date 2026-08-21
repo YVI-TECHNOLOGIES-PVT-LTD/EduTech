@@ -314,68 +314,105 @@ export const admissionApi = apiSlice.injectEndpoints({
         url: ENDPOINTS.ADMISSIONS.APPLICATIONS,
         params: params || undefined,
       }),
-      transformResponse: (response: any) => {
-        if (response && Array.isArray(response.data) && response.meta) {
-          return response as ApplicationsResponse;
-        }
-        if (response && Array.isArray(response.data)) {
-          return {
-            data: response.data,
-            total: response.total ?? response.data.length,
-            page: response.page ?? 1,
-            pageSize: response.pageSize ?? response.data.length,
-            totalPages: response.totalPages ?? 1,
-            hasNextPage: !!response.hasNextPage,
-            hasPrevPage: !!response.hasPrevPage,
-            meta: response.meta || {
-              total: response.total ?? response.data.length,
-              page: response.page ?? 1,
-              pageSize: response.pageSize ?? response.data.length,
-              totalPages: response.totalPages ?? 1,
-              hasNextPage: !!response.hasNextPage,
-              hasPrevPage: !!response.hasPrevPage,
-            },
-          };
-        }
+      transformResponse: (response: any): ApplicationsResponse => {
+        let items: ApplicationRecord[] = [];
+        let total = 0;
+        let page = 1;
+        let pageSize = 20;
+        let totalPages = 1;
+        let hasNextPage = false;
+        let hasPrevPage = false;
+        let meta: any = null;
+
         if (Array.isArray(response)) {
-          return {
-            data: response,
-            total: response.length,
-            page: 1,
-            pageSize: response.length,
-            totalPages: 1,
-            hasNextPage: false,
-            hasPrevPage: false,
-            meta: {
-              total: response.length,
-              page: 1,
-              pageSize: response.length,
-              totalPages: 1,
-              hasNextPage: false,
-              hasPrevPage: false,
-            },
+          items = response;
+          total = items.length;
+          pageSize = items.length || 20;
+        } else if (response && typeof response === 'object') {
+          if (Array.isArray(response.data)) {
+            items = response.data;
+          } else if (Array.isArray(response.items)) {
+            items = response.items;
+          } else if (Array.isArray(response.applications)) {
+            items = response.applications;
+          } else if (response.data && typeof response.data === 'object') {
+            if (Array.isArray(response.data.items)) {
+              items = response.data.items;
+            } else if (Array.isArray(response.data.data)) {
+              items = response.data.data;
+            } else if (Array.isArray(response.data.applications)) {
+              items = response.data.applications;
+            }
+          }
+
+          total =
+            typeof response.total === 'number'
+              ? response.total
+              : typeof response.meta?.total === 'number'
+                ? response.meta.total
+                : typeof response.data?.total === 'number'
+                  ? response.data.total
+                  : items.length;
+
+          page =
+            typeof response.page === 'number'
+              ? response.page
+              : typeof response.meta?.page === 'number'
+                ? response.meta.page
+                : 1;
+
+          pageSize =
+            typeof response.pageSize === 'number'
+              ? response.pageSize
+              : typeof response.meta?.pageSize === 'number'
+                ? response.meta.pageSize
+                : items.length || 20;
+
+          totalPages =
+            typeof response.totalPages === 'number'
+              ? response.totalPages
+              : typeof response.meta?.totalPages === 'number'
+                ? response.meta.totalPages
+                : pageSize > 0
+                  ? Math.max(1, Math.ceil(total / pageSize))
+                  : 1;
+
+          hasNextPage = Boolean(
+            response.hasNextPage ?? response.meta?.hasNextPage ?? page < totalPages,
+          );
+          hasPrevPage = Boolean(response.hasPrevPage ?? response.meta?.hasPrevPage ?? page > 1);
+
+          meta = response.meta || {
+            total,
+            page,
+            pageSize,
+            totalPages,
+            hasNextPage,
+            hasPrevPage,
           };
         }
+
         return {
-          data: [],
-          total: 0,
-          page: 1,
-          pageSize: 20,
-          totalPages: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-          meta: {
-            total: 0,
-            page: 1,
-            pageSize: 20,
-            totalPages: 0,
-            hasNextPage: false,
-            hasPrevPage: false,
+          data: items,
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          meta: meta || {
+            total,
+            page,
+            pageSize,
+            totalPages,
+            hasNextPage,
+            hasPrevPage,
           },
         };
       },
       providesTags: (result) =>
-        result?.data
+        Array.isArray(result?.data)
           ? [
               ...result.data.map(({ id, application_id }) => ({
                 type: 'Application' as const,
