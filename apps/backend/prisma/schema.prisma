@@ -380,18 +380,18 @@ model document_types {
 
 /// This model represents chunked knowledge base documents for multi-tenant RAG vector search.
 model document_chunks {
-  chunk_id      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_id        String        @db.Uuid
-  document_name String        @db.VarChar(255)
+  chunk_id      String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id        String                 @db.Uuid
+  document_name String                 @db.VarChar(255)
   chunk_index   Int
   content       String
-  embedding     Unsupported("vector(3072)")?
+  embedding     Unsupported("vector")?
   metadata      Json?
-  created_at    DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime      @default(now()) @db.Timestamptz(6)
-  organizations organizations @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  created_at    DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime               @default(now()) @db.Timestamptz(6)
+  organizations organizations          @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([org_id, document_name, chunk_index])
+  @@unique([org_id, document_name, chunk_index], map: "uq_document_chunks_org_doc_index")
   @@index([org_id], map: "ix_document_chunks_org")
   @@schema("public")
 }
@@ -407,8 +407,8 @@ model roles {
   updated_at                    DateTime      @default(now()) @db.Timestamptz(6)
   created_by                    String?       @db.Uuid
   updated_by                    String?       @db.Uuid
-  organizations                 organizations @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
   users_roles_created_byTousers users?        @relation("roles_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                 organizations @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
   users_roles_updated_byTousers users?        @relation("roles_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
   user_roles                    user_roles[]
 
@@ -785,6 +785,7 @@ model users {
   updated_at                                                            DateTime                    @default(now()) @db.Timestamptz(6)
   created_by                                                            String?                     @db.Uuid
   updated_by                                                            String?                     @db.Uuid
+  country_id                                                            String                      @db.Uuid
   academic_year_grades_academic_year_grades_created_byTousers           academic_year_grades[]      @relation("academic_year_grades_created_byTousers")
   academic_year_grades_academic_year_grades_updated_byTousers           academic_year_grades[]      @relation("academic_year_grades_updated_byTousers")
   academic_years_academic_years_created_byTousers                       academic_years[]            @relation("academic_years_created_byTousers")
@@ -844,6 +845,7 @@ model users {
   students_students_user_idTousers                                      students[]                  @relation("students_user_idTousers")
   user_roles_user_roles_granted_byTousers                               user_roles[]                @relation("user_roles_granted_byTousers")
   user_roles_user_roles_user_idTousers                                  user_roles[]                @relation("user_roles_user_idTousers")
+  countries                                                             countries                   @relation(fields: [country_id], references: [country_id], onUpdate: NoAction)
   users_users_created_byTousers                                         users?                      @relation("users_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
   other_users_users_created_byTousers                                   users[]                     @relation("users_created_byTousers")
   organizations_users_org_idToorganizations                             organizations               @relation("users_org_idToorganizations", fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
@@ -852,6 +854,7 @@ model users {
 
   @@unique([org_id, email])
   @@index([org_id], map: "ix_users_org")
+  @@index([country_id], map: "ix_users_country")
   @@schema("public")
 }
 
@@ -915,6 +918,20 @@ model notifications {
   @@index([org_id], map: "ix_notifications_org")
   @@index([recipient_user_id], map: "ix_notifications_recipient")
   @@index([recipient_user_id, is_read, created_at(sort: Desc)], map: "ix_notifications_recipient_unread")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model countries {
+  country_id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  country_code String   @unique @db.VarChar(2)
+  country_name String   @unique @db.VarChar(100)
+  calling_code String   @db.VarChar(10)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @db.Timestamptz(6)
+  users        users[]
+
   @@schema("public")
 }
 

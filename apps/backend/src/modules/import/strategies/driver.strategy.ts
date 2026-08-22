@@ -3,6 +3,7 @@ import { BaseImportStrategy, ImportContext, ImportResult } from '../index';
 import { NativePassword } from '../../../auth/crypto.utils';
 import prisma from '../../../lib/prismaClient';
 import { isValidEmail, isValidPhoneNumber, normalizePhoneNumber } from '@edutrack/validation';
+import { resolveCountryAndPhone } from '../../../utils/country-resolver';
 
 export interface DriverImportRow {
   _rowNum: number;
@@ -111,13 +112,14 @@ export class DriverImportStrategy extends BaseImportStrategy<DriverImportRow> {
       try {
         const tempPassword = 'DriverTempPass123!';
         const passwordHash = await NativePassword.hash(tempPassword);
-        const cleanPhone = normalizePhoneNumber(row.phone)!;
+        const resolved = await resolveCountryAndPhone(prisma, { phone: row.phone });
         const newUser = await prisma.users.create({
           data: {
             org_id: context.schoolId,
             first_name: row.full_name,
             email: cleanEmail,
-            phone: cleanPhone,
+            phone: resolved.phone,
+            country_id: resolved.country_id,
             password_hash: passwordHash,
             status: 'active',
           },

@@ -5,6 +5,11 @@ import { logger } from '../utils/logger';
 export interface UserProfile {
   id: string;
   email: string;
+  phone?: string;
+  country_id?: string;
+  country_code?: string;
+  calling_code?: string;
+  country?: any;
   org_id: string;
   school_id: string;
   full_name: string;
@@ -83,6 +88,7 @@ export class SessionService {
       // 2. Fetch User Profile from public.users via Prisma ORM
       const user = await prisma.users.findUnique({
         where: { user_id: decoded.userId },
+        include: { countries: true },
       });
 
       if (!user || user.status !== 'active') {
@@ -205,6 +211,11 @@ export class SessionService {
       const profile: UserProfile = {
         id: user.user_id,
         email: user.email,
+        phone: user.phone,
+        country_id: user.country_id,
+        country_code: (user as any).countries?.country_code || 'IN',
+        calling_code: (user as any).countries?.calling_code || '+91',
+        country: (user as any).countries || null,
         org_id: user.org_id,
         school_id: user.org_id,
         full_name: `${user.first_name} ${user.last_name || ''}`.trim(),

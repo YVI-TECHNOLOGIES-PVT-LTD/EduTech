@@ -28,7 +28,7 @@ export class AuthController {
         errMsg.includes('max clients') ||
         errMsg.includes('ECONNREFUSED') ||
         errMsg.includes('ETIMEDOUT') ||
-        errMsg.includes('Can\'t reach database server') ||
+        errMsg.includes("Can't reach database server") ||
         errMsg.includes('database server was not found') ||
         errMsg.includes('Invalid `prisma.');
 
@@ -79,11 +79,24 @@ export class AuthController {
 
   static async registerParent(req: Request, res: Response) {
     try {
-      const { full_name, fullName, email, phone, mobile, password, school_id, org_id, source } =
-        req.body;
+      const {
+        full_name,
+        fullName,
+        email,
+        phone,
+        mobile,
+        password,
+        school_id,
+        org_id,
+        source,
+        country_code,
+        countryCode,
+        country,
+      } = req.body;
       const targetName = full_name || fullName;
       const targetPhone = phone || mobile;
       const targetEmail = email;
+      const targetCountryCode = country_code || countryCode || country;
 
       if (!targetName || !targetEmail || !password || !targetPhone) {
         return res
@@ -105,6 +118,7 @@ export class AuthController {
         password,
         org_id: orgId,
         source,
+        country_code: targetCountryCode,
       });
 
       return res.status(201).json(result);

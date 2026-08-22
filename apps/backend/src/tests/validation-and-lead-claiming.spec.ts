@@ -237,6 +237,65 @@ export async function runValidationAndLeadClaimingTests() {
     }
   });
 
+  await test('REGISTRATION & COUNTRY_ID: Resolves country_id and stores national number only', async () => {
+    const org = await prisma.organizations.findFirst({ where: { status: 'active' } });
+    if (!org) return;
+
+    // Test 1: India Registration
+    const inSuffix = Date.now().toString().slice(-6);
+    const inEmail = `country_in_${inSuffix}@test.com`;
+    const regIN = await AuthService.registerParent({
+      full_name: 'Test India User',
+      email: inEmail,
+      phone: '9876543210',
+      password: 'Password123!',
+      org_id: org.org_id,
+      country_code: 'IN',
+    });
+    assert.strictEqual(regIN.success, true);
+    const dbUserIN = await prisma.users.findUnique({
+      where: { user_id: regIN.user_id },
+      include: { countries: true },
+    });
+    assert.ok(dbUserIN, 'User created in DB');
+    assert.strictEqual(dbUserIN?.phone, '9876543210', 'Phone contains national number only');
+    assert.strictEqual(dbUserIN?.countries?.country_code, 'IN', 'Country code is IN');
+    assert.ok(dbUserIN?.country_id, 'country_id is assigned');
+
+    // Test 2: US Registration with E.164 string
+    const usSuffix = (Date.now() + 1).toString().slice(-6);
+    const usEmail = `country_us_${usSuffix}@test.com`;
+    const regUS = await AuthService.registerParent({
+      full_name: 'Test US User',
+      email: usEmail,
+      phone: '+14155551234',
+      password: 'Password123!',
+      org_id: org.org_id,
+    });
+    assert.strictEqual(regUS.success, true);
+    const dbUserUS = await prisma.users.findUnique({
+      where: { user_id: regUS.user_id },
+      include: { countries: true },
+    });
+    assert.ok(dbUserUS, 'User created in DB');
+    assert.strictEqual(
+      dbUserUS?.phone,
+      '4155551234',
+      'Phone contains national number only (without +1)',
+    );
+    assert.strictEqual(dbUserUS?.countries?.country_code, 'US', 'Country code is US');
+    assert.ok(dbUserUS?.country_id, 'country_id is assigned');
+
+    // Cleanup
+    await prisma.user_roles.deleteMany({
+      where: { user_id: { in: [regIN.user_id!, regUS.user_id!] } },
+    });
+    await prisma.parents.deleteMany({
+      where: { user_id: { in: [regIN.user_id!, regUS.user_id!] } },
+    });
+    await prisma.users.deleteMany({ where: { user_id: { in: [regIN.user_id!, regUS.user_id!] } } });
+  });
+
   console.log(`\n============================================================`);
   console.log(`RESULTS: ${passed} passed, ${failed} failed`);
   console.log(`============================================================\n`);

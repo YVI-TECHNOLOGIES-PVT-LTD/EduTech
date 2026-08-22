@@ -2,6 +2,7 @@ import { supabase } from '../../config/supabase';
 import { calculateAIScore } from '../../utils';
 import { NativePassword } from '../../auth/crypto.utils';
 import prisma from '../../lib/prismaClient';
+import { resolveCountryAndPhone } from '../../utils/country-resolver';
 
 export class AdmissionService {
   static async resolveContext(
@@ -122,13 +123,17 @@ export class AdmissionService {
         throw new Error('A user with this email already exists. Please login to apply.');
       }
 
+      const resolved = await resolveCountryAndPhone(prisma, {
+        phone: data.parent_phone || '',
+      });
       const passwordHash = await NativePassword.hash(data.parent_password);
       const newUser = await prisma.users.create({
         data: {
           org_id: data.school_id,
           first_name: data.parent_name,
           email: cleanEmail,
-          phone: data.parent_phone || '',
+          phone: resolved.phone,
+          country_id: resolved.country_id,
           password_hash: passwordHash,
           status: 'active',
         },

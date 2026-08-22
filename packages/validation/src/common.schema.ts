@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
 
+export { parsePhoneNumberFromString } from 'libphonenumber-js';
+export type { CountryCode } from 'libphonenumber-js';
 export const CANONICAL_PHONE_REGEX = /^[6-9][0-9]{9}$/;
 
 export function normalizePhoneNumber(

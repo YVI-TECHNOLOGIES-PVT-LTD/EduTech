@@ -3,6 +3,7 @@ import { NativePassword } from '../../../../auth/crypto.utils';
 import { application_status, lead_stage, lead_source, Prisma } from '@prisma/client';
 import { ValidationError } from '../../errors/ValidationError';
 import { BusinessRuleError } from '../../errors/BusinessRuleError';
+import { resolveCountryAndPhone } from '../../../../utils/country-resolver';
 
 export interface CanonicalPublicApplicationPayload {
   school_id?: string;
@@ -282,13 +283,15 @@ export class PublicApplicationService {
       });
 
       if (!user) {
+        const resolved = await resolveCountryAndPhone(tx, { phone });
         const passwordHash = await NativePassword.hash(targetPassword);
         user = await tx.users.create({
           data: {
             org_id: finalOrgId,
             first_name: targetParentName || 'Parent User',
             email: targetEmail,
-            phone,
+            phone: resolved.phone,
+            country_id: resolved.country_id,
             password_hash: passwordHash,
             status: 'active',
           },

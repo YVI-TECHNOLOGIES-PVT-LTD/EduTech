@@ -8,6 +8,7 @@ import {
   normalizeEmail,
   normalizePhoneNumber,
 } from '@edutrack/validation';
+import { resolveCountryAndPhone } from '../../../utils/country-resolver';
 
 export interface FacultyImportRow {
   _rowNum: number;
@@ -89,13 +90,14 @@ export class FacultyImportStrategy extends BaseImportStrategy<FacultyImportRow> 
       try {
         const tempPassword = 'FacultyTempPass123!';
         const passwordHash = await NativePassword.hash(tempPassword);
-        const cleanPhone = normalizePhoneNumber(row.phone)!;
+        const resolved = await resolveCountryAndPhone(prisma, { phone: row.phone });
         const newUser = await prisma.users.create({
           data: {
             org_id: context.schoolId,
             first_name: row.full_name,
             email: cleanEmail,
-            phone: cleanPhone,
+            phone: resolved.phone,
+            country_id: resolved.country_id,
             password_hash: passwordHash,
             status: 'active',
           },

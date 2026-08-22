@@ -8,6 +8,7 @@ import {
   normalizePhoneNumber as sharedNormalizePhone,
   normalizeEmail as sharedNormalizeEmail,
 } from '@edutrack/validation';
+import { resolveCountryAndPhone } from '../utils/country-resolver';
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
@@ -365,6 +366,7 @@ export class AuthService {
     password: string;
     org_id?: string;
     source?: string;
+    country_code?: string;
   }) {
     const validSources = [
       'website',
@@ -381,11 +383,6 @@ export class AuthService {
     const rawSource = String(data.source || 'website').toLowerCase();
     const resolvedSource = validSources.includes(rawSource) ? rawSource : 'website';
     const cleanEmail = sharedNormalizeEmail(data.email) || data.email.trim().toLowerCase();
-    const cleanPhone = sharedNormalizePhone(data.phone);
-
-    if (!cleanPhone) {
-      throw new Error('Enter a valid 10-digit mobile number.');
-    }
 
     // Perform CPU-intensive password hashing pre-transaction
     const passwordHash = await NativePassword.hash(data.password);
@@ -394,6 +391,11 @@ export class AuthService {
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
     return await prisma.$transaction(async (tx) => {
+      const resolved = await resolveCountryAndPhone(tx, {
+        phone: data.phone,
+        country_code: data.country_code,
+      });
+
       const existing = await tx.users.findFirst({
         where: { email: cleanEmail },
       });
@@ -421,7 +423,8 @@ export class AuthService {
           first_name: firstName,
           last_name: lastName,
           email: cleanEmail,
-          phone: cleanPhone,
+          phone: resolved.phone,
+          country_id: resolved.country_id,
           password_hash: passwordHash,
           status: 'active',
         },
@@ -448,7 +451,7 @@ export class AuthService {
           user_id: newUser.user_id,
           first_name: firstName,
           last_name: lastName,
-          phone: cleanPhone,
+          phone: resolved.phone,
           email: cleanEmail,
         },
       });
@@ -459,7 +462,7 @@ export class AuthService {
         orgId: targetOrgId,
         parentId: newParent.parent_id,
         verifiedEmail: cleanEmail,
-        verifiedPhone: cleanPhone,
+        verifiedPhone: resolved.phone,
         fullName: data.full_name.trim(),
         firstName,
         lastName,

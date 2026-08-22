@@ -2,6 +2,7 @@ import { supabase } from '../../../config/supabase';
 import { BaseImportStrategy, ImportContext, ImportResult } from '../index';
 import { NativePassword } from '../../../auth/crypto.utils';
 import prisma from '../../../lib/prismaClient';
+import { resolveCountryAndPhone } from '../../../utils/country-resolver';
 
 export interface FacultyProfileImportRow {
   _rowNum: number;
@@ -50,6 +51,7 @@ export class FacultyProfileImportStrategy extends BaseImportStrategy<FacultyProf
         if (existingUser) {
           createdUserId = existingUser.user_id;
         } else {
+          const resolved = await resolveCountryAndPhone(prisma, { phone: row.phone });
           const tempPassword = 'FacultyTempPass123!';
           const passwordHash = await NativePassword.hash(tempPassword);
           const newUser = await prisma.users.create({
@@ -57,7 +59,8 @@ export class FacultyProfileImportStrategy extends BaseImportStrategy<FacultyProf
               org_id: context.schoolId,
               first_name: row.full_name,
               email: cleanEmail,
-              phone: row.phone || '',
+              phone: resolved.phone,
+              country_id: resolved.country_id,
               password_hash: passwordHash,
               status: 'active',
             },
