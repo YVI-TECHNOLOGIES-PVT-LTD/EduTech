@@ -1,10 +1,13 @@
 import React from 'react';
 import { z } from 'zod';
+import { emailSchema, optionalPhoneSchema } from '@edutrack/validation';
 import { FormBuilder } from '@/shared/forms/FormBuilder';
 import { FormSection } from '@/shared/forms/FormSection';
 import { FormField } from '@/shared/forms/FormField';
 import { FormFooter } from '@/shared/forms/FormFooter';
+import { Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import {
   useUpdateOrganizationProfileMutation,
   OrganizationProfile,
@@ -14,8 +17,8 @@ import { toast } from 'sonner';
 const schema = z.object({
   name: z.string().min(2, 'Organization name is required'),
   legalName: z.string().optional(),
-  email: z.string().email('Enter a valid email address'),
-  phone: z.string().optional(),
+  email: emailSchema,
+  phone: optionalPhoneSchema,
   website: z.string().optional(),
   address: z.string().optional(),
 });
@@ -40,7 +43,10 @@ export const OrganizationProfileTab: React.FC<OrganizationProfileTabProps> = ({ 
 
   const handleSubmit = async (data: FormData) => {
     try {
-      await updateProfile(data).unwrap();
+      await updateProfile({
+        ...data,
+        phone: data.phone ?? undefined,
+      }).unwrap();
       toast.success('Organization profile updated successfully');
     } catch {
       toast.error('Failed to update organization profile');
@@ -57,6 +63,7 @@ export const OrganizationProfileTab: React.FC<OrganizationProfileTabProps> = ({ 
       {(methods) => {
         const {
           register,
+          control,
           formState: { errors },
         } = methods;
 
@@ -84,7 +91,18 @@ export const OrganizationProfileTab: React.FC<OrganizationProfileTabProps> = ({ 
               </FormField>
 
               <FormField label="Phone Number" name="phone" error={errors.phone?.message}>
-                <Input id="phone" {...register('phone')} className="text-xs h-9" />
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      id="phone"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
               </FormField>
 
               <FormField label="Official Website" name="website" error={errors.website?.message}>

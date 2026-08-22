@@ -2,6 +2,12 @@ import { supabase } from '../../../config/supabase';
 import { BaseImportStrategy, ImportContext, ImportResult } from '../index';
 import { NativePassword } from '../../../auth/crypto.utils';
 import prisma from '../../../lib/prismaClient';
+import {
+  isValidEmail,
+  isValidPhoneNumber,
+  normalizeEmail,
+  normalizePhoneNumber,
+} from '@edutrack/validation';
 
 export interface FacultyImportRow {
   _rowNum: number;
@@ -19,12 +25,13 @@ export class FacultyImportStrategy extends BaseImportStrategy<FacultyImportRow> 
   async validateRow(row: FacultyImportRow, context: ImportContext): Promise<string[]> {
     const errors: string[] = [];
 
-    if (!row.email || !row.email.includes('@')) errors.push('Valid email is required');
+    if (!row.email || !isValidEmail(row.email)) errors.push('Enter a valid email address.');
     if (!row.full_name || row.full_name.trim().length === 0) errors.push('Full name is required');
     if (!row.department_id) errors.push('Department ID is required');
     if (!row.designation) errors.push('Designation is required');
     if (!row.employee_code) errors.push('Employee code is required');
-    if (!row.phone) errors.push('Phone is required');
+    if (!row.phone || !isValidPhoneNumber(row.phone))
+      errors.push('Enter a valid 10-digit mobile number.');
 
     return errors;
   }
@@ -82,12 +89,13 @@ export class FacultyImportStrategy extends BaseImportStrategy<FacultyImportRow> 
       try {
         const tempPassword = 'FacultyTempPass123!';
         const passwordHash = await NativePassword.hash(tempPassword);
+        const cleanPhone = normalizePhoneNumber(row.phone)!;
         const newUser = await prisma.users.create({
           data: {
             org_id: context.schoolId,
             first_name: row.full_name,
             email: cleanEmail,
-            phone: row.phone,
+            phone: cleanPhone,
             password_hash: passwordHash,
             status: 'active',
           },

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLanguage } from '@/context/LanguageContext';
+import { PhoneInput } from '@/components/ui/phone-input';
 import {
   User,
   Mail,
@@ -31,14 +32,12 @@ import { admissionApi } from '@/modules/admission/admission.api';
 import apiClient from '@/lib/api-client';
 import { SCHOOL_INFO } from '@/lib/public-constants';
 import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
+import { phoneSchema, optionalEmailSchema } from '@edutrack/validation';
 
 const enquirySchema = z.object({
   parent_name: z.string().min(2, 'Name is required'),
-  email: z.string().email('Enter a valid email address').optional().or(z.literal('')),
-  phone: z
-    .string()
-    .min(10, 'Enter a valid mobile number')
-    .regex(/^\+?[0-9\s\-]{10,15}$/, 'Enter a valid mobile number'),
+  email: optionalEmailSchema,
+  phone: phoneSchema,
   student_name: z.string().optional(),
   grade_applied_for: z.string().min(1, 'Please select grade'),
   query_type: z.string().min(1, 'Please select a query type'),
@@ -99,6 +98,7 @@ export const EnquiryPage: React.FC = () => {
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors },
   } = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
@@ -228,11 +228,17 @@ export const EnquiryPage: React.FC = () => {
                     <label className="block text-xs font-bold text-foreground mb-1.5">
                       {t('enquiry.mobileLabel', 'Mobile Number *')}
                     </label>
-                    <Input
-                      type="tel"
-                      placeholder={t('enquiry.mobilePlaceholder', '+91 00000 00000')}
-                      {...register('phone')}
-                      className="h-11 rounded-xl text-xs font-medium border-border/80 focus-visible:border-[#063F40]"
+                    <Controller
+                      name="phone"
+                      control={control}
+                      render={({ field }) => (
+                        <PhoneInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={errors.phone ? 'true' : 'false'}
+                        />
+                      )}
                     />
                     {errors.phone && (
                       <p className="mt-1 text-xs text-red-500 font-semibold">

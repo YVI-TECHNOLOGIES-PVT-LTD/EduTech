@@ -14,6 +14,7 @@ import { ParentConfirmationStep } from './parent/ParentConfirmationStep';
 import { admissionApi } from '../admission.api';
 import { PageContainer, PageHeader, PageErrorState } from '@/components/layout/PageLayout';
 import { Badge } from '@/components/ui/badge';
+import { isValidPhoneNumber, isValidEmail } from '@edutrack/validation';
 
 const DRAFT_KEY_PREFIX = 'edutrack_parent_app_draft_';
 
@@ -368,12 +369,11 @@ export function ApplicationWizardPage() {
         errorMessage: 'Primary Contact Phone number is mandatory (Step 3).',
       };
     }
-    const phoneClean = (formData.parent_phone || '').replace(/[\s\-()]/g, '');
-    if (!/^\+?[0-9]{7,15}$/.test(phoneClean)) {
+    if (!isValidPhoneNumber(formData.parent_phone)) {
       return {
         isValid: false,
         errorStep: 3,
-        errorMessage: 'Primary Contact Phone must be a valid phone number (Step 3).',
+        errorMessage: 'Enter a valid phone number (Step 3).',
       };
     }
     if (!formData.parent_email?.trim()) {
@@ -383,11 +383,11 @@ export function ApplicationWizardPage() {
         errorMessage: 'Primary Contact Email is mandatory (Step 3).',
       };
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parent_email.trim())) {
+    if (!isValidEmail(formData.parent_email)) {
       return {
         isValid: false,
         errorStep: 3,
-        errorMessage: 'Primary Contact Email must be a valid email address (Step 3).',
+        errorMessage: 'Enter a valid email address (Step 3).',
       };
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { AuthLayout } from '@/modules/auth/components/AuthLayout';
 import { registrationSchema, RegistrationFormData } from '../../schemas/registration.schema';
 import { admissionApi } from '@/modules/admission/admission.api';
@@ -37,6 +38,7 @@ export const RegistrationPage: React.FC = () => {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
   } = useForm<RegistrationFormData>({
     mode: 'onTouched',
@@ -216,23 +218,19 @@ export const RegistrationPage: React.FC = () => {
               >
                 Mobile Phone Number <span className="text-destructive">*</span>
               </label>
-              <div className="flex space-x-2">
-                <div className="h-11 px-3 bg-muted border border-border/80 rounded-xl text-xs font-bold flex items-center text-foreground shrink-0 select-none">
-                  +91
-                </div>
-                <div className="relative flex-1">
-                  <Input
+              <Controller
+                name="mobile"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
                     id="mobile-input"
-                    type="tel"
-                    placeholder="98765 43210"
-                    autoComplete="tel"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
                     aria-invalid={errors.mobile ? 'true' : 'false'}
-                    {...register('mobile')}
-                    className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"
                   />
-                  <Phone className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5 pointer-events-none" />
-                </div>
-              </div>
+                )}
+              />
               {errors.mobile ? (
                 <p className="mt-1.5 text-xs text-destructive font-semibold">
                   {errors.mobile.message}
@@ -259,6 +257,8 @@ export const RegistrationPage: React.FC = () => {
                   type="email"
                   placeholder="parent@example.com"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   aria-invalid={errors.email ? 'true' : 'false'}
                   {...register('email')}
                   className="h-11 rounded-xl text-xs font-medium border-border/80 pl-10 focus-visible:border-[#063F40] focus-visible:ring-1 focus-visible:ring-[#063F40] dark:focus-visible:border-[#E7B76A] dark:focus-visible:ring-[#E7B76A] bg-card text-foreground"

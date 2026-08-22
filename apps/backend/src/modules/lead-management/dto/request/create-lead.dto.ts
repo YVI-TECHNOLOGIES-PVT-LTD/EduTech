@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema, optionalEmailSchema } from '@edutrack/validation';
 import {
   lead_source,
   lead_stage,
@@ -13,8 +14,8 @@ export const createLeadSchema = z.object({
   student_first_name: z.string().min(1, 'Student first name is required'),
   student_last_name: z.string().optional().nullable(),
   contact_name: z.string().min(1, 'Contact name is required'),
-  contact_phone: z.string().min(5, 'Valid contact phone number is required'),
-  contact_email: z.string().email('Invalid email address').optional().nullable().or(z.literal('')),
+  contact_phone: phoneSchema,
+  contact_email: optionalEmailSchema.optional(),
   contact_relationship: z.nativeEnum(relationship_type).optional().nullable(),
   source: z.nativeEnum(lead_source).optional().default(lead_source.website),
   stage: z.nativeEnum(lead_stage).optional().default(lead_stage.enquiry_received),

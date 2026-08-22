@@ -5,12 +5,14 @@ import { runParentModuleTests } from '../modules/parent-management/tests/parent.
 import { runAcademicModuleTests } from '../modules/academic-management/tests/academic.service.spec';
 import { runStaffModuleTests } from '../modules/staff-management/tests/staff.service.spec';
 import { runUserModuleTests } from '../modules/user-management/tests/user.service.spec';
+import { runValidationAndLeadClaimingTests } from './validation-and-lead-claiming.spec';
 
 export async function runAllStage1ModuleTests() {
   console.log('=====================================================');
   console.log('  EDUTRACK ERP STAGE-1 MASTER INTEGRATION TEST SUITE ');
   console.log('=====================================================\n');
 
+  await runValidationAndLeadClaimingTests();
   await runLeadModuleTests();
   await runAdmissionModuleTests();
   await runStudentModuleTests();
@@ -20,7 +22,7 @@ export async function runAllStage1ModuleTests() {
   await runUserModuleTests();
 
   console.log('\n=====================================================');
-  console.log('  ALL STAGE-1 BUSINESS MODULE TESTS PASSED (7/7) ✅  ');
+  console.log('  ALL STAGE-1 BUSINESS MODULE TESTS PASSED (8/8) ✅  ');
   console.log('=====================================================');
 }
 

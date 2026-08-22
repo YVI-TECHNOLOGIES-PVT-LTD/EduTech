@@ -8,6 +8,7 @@ import {
   Upload,
   Plus,
 } from 'lucide-react';
+import { CountrySelect } from '../../../../components/ui/country-select';
 import { Card } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
@@ -113,8 +114,8 @@ export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> =
           </div>
         </div>
 
-        {/* DOB, Gender & Nationality */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* DOB, Gender, Nationality & Country */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
               DATE OF BIRTH <span className="text-red-500">*</span>
@@ -159,6 +160,17 @@ export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> =
               }
               placeholder="e.g. Indian"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all disabled:bg-gray-50"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+              COUNTRY <span className="text-red-500">*</span>
+            </label>
+            <CountrySelect
+              disabled={isReadOnly}
+              value={formData.country || 'India'}
+              onChange={(name) => setFormData((prev: any) => ({ ...prev, country: name }))}
             />
           </div>
         </div>

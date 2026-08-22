@@ -4,6 +4,10 @@ import { NativePassword, NativeJwt } from './crypto.utils';
 import prisma from '../lib/prismaClient';
 import { logger } from '../utils/logger';
 import { sessionService } from './session.service';
+import {
+  normalizePhoneNumber as sharedNormalizePhone,
+  normalizeEmail as sharedNormalizeEmail,
+} from '@edutrack/validation';
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
@@ -18,15 +22,7 @@ export interface TokenPayload {
 }
 
 export function normalizePhoneNumber(phone?: string | null): string {
-  if (!phone) return '';
-  const digitsOnly = phone.replace(/\D/g, '');
-  if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
-    return digitsOnly.slice(2);
-  }
-  if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
-    return digitsOnly.slice(1);
-  }
-  return digitsOnly;
+  return sharedNormalizePhone(phone) || '';
 }
 
 export class AuthService {
@@ -144,13 +140,14 @@ export class AuthService {
     const permissions = Array.from(permissionsSet);
 
     // 4. Update last_login_at timestamp via Prisma
-    await prisma.users.update({
-      where: { user_id: user.user_id },
-      data: { last_login_at: new Date() },
-    });
+    await prisma.users
+      .update({
+        where: { user_id: user.user_id },
+        data: { last_login_at: new Date() },
+      })
+      .catch((err) => console.error('Failed to update last_login_at:', err.message));
 
     // 5. Generate Native JWT Access & Refresh Tokens
-    console.log('Generating JWT...');
     const payload: TokenPayload = {
       userId: user.user_id,
       email: user.email,
@@ -164,10 +161,6 @@ export class AuthService {
       JWT_REFRESH_SECRET,
       JWT_REFRESH_EXPIRES_IN_SECONDS,
     );
-    console.log('JWT Generated Successfully');
-    console.log('======================================');
-
-    const userProfile = await sessionService.validateSession(accessToken);
 
     return {
       accessToken,
@@ -175,26 +168,39 @@ export class AuthService {
       expiresIn: JWT_EXPIRES_IN_SECONDS,
       user: {
         id: user.user_id,
+        user_id: user.user_id,
         email: user.email,
         school_id: user.org_id,
+        org_id: user.org_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
         full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
-        roles: userProfile?.roles || roles,
-        permissions: userProfile?.permissions || permissions,
+        phone: user.phone,
+        roles,
+        permissions,
         login_status: 'APPROVED',
       },
     };
   }
 
   static async refresh(refreshTokenInput: string) {
+    return this.refreshToken(refreshTokenInput);
+  }
+
+  static async refreshToken(refreshTokenInput: string) {
     try {
       const decoded = NativeJwt.verify<TokenPayload>(refreshTokenInput, JWT_REFRESH_SECRET);
-
       const user = await prisma.users.findUnique({
         where: { user_id: decoded.userId },
       });
 
       if (!user || user.status !== 'active') {
-        throw new Error('Invalid or expired refresh token');
+        throw new Error('User not found or inactive');
+      }
+
+      const isValidSession = await sessionService.validateSession(refreshTokenInput);
+      if (!isValidSession) {
+        throw new Error('Invalid or revoked session');
       }
 
       const payload: TokenPayload = {
@@ -227,13 +233,6 @@ export class AuthService {
 
   /**
    * Centralized Domain Helper: Lead Claiming & Resolution Algorithm for Parents
-   * Resolves existing unlinked leads or creates a new lead transactionally.
-   * Priority:
-   *  1. Exact Verified Email AND Phone (org_id, parent_id IS NULL)
-   *  2. Exact Verified Email (org_id, parent_id IS NULL)
-   *  3. Exact Verified Phone (org_id, parent_id IS NULL)
-   * If unique match is found, claims lead atomically (with parent_id IS NULL guard).
-   * If 0 matches or multiple conflicting matches exist, creates a new lead for parent.
    */
   public static async resolveOrClaimLeadForParent(params: {
     tx: any;
@@ -248,9 +247,9 @@ export class AuthService {
   }): Promise<{ lead_id: string; claimed: boolean }> {
     const { tx, orgId, parentId, verifiedEmail, verifiedPhone, fullName, source } = params;
 
-    const cleanEmail = verifiedEmail.trim().toLowerCase();
-    const cleanPhone = verifiedPhone.trim();
-    const normalizedTargetPhone = normalizePhoneNumber(verifiedPhone);
+    const cleanEmail = sharedNormalizeEmail(verifiedEmail) || verifiedEmail.trim().toLowerCase();
+    const cleanPhone = sharedNormalizePhone(verifiedPhone) || verifiedPhone.trim();
+    const normalizedTargetPhone = sharedNormalizePhone(verifiedPhone);
 
     // 1. Fetch candidate unlinked leads in the exact same organization
     const unlinkedLeads = await tx.leads.findMany({
@@ -268,7 +267,7 @@ export class AuthService {
         l.contact_email?.trim().toLowerCase() === cleanEmail &&
         (l.contact_phone?.trim() === cleanPhone ||
           (normalizedTargetPhone &&
-            normalizePhoneNumber(l.contact_phone) === normalizedTargetPhone)),
+            sharedNormalizePhone(l.contact_phone) === normalizedTargetPhone)),
     );
 
     if (match1.length === 1) {
@@ -286,7 +285,7 @@ export class AuthService {
           (l: any) =>
             l.contact_phone?.trim() === cleanPhone ||
             (normalizedTargetPhone &&
-              normalizePhoneNumber(l.contact_phone) === normalizedTargetPhone),
+              sharedNormalizePhone(l.contact_phone) === normalizedTargetPhone),
         );
         if (match3.length === 1) {
           claimedLead = match3[0];
@@ -295,7 +294,6 @@ export class AuthService {
     }
 
     // Attempt atomic update with concurrency protection
-    // CRITICAL: Claiming preserves existing student_first_name & student_last_name untouched!
     if (claimedLead) {
       const updateResult = await tx.leads.updateMany({
         where: {
@@ -321,10 +319,6 @@ export class AuthService {
     }
 
     // Fallback: Create new unassigned registration lead for parent
-    // CRITICAL BUSINESS RULE:
-    // Registration name represents the PARENT / CONTACT PERSON (fullName).
-    // It MUST NOT be written into student_first_name or student_last_name.
-    // student_first_name is set to standard neutral placeholder 'Applicant'.
     const ayg = await tx.academic_year_grades.findFirst({
       where: { academic_years: { org_id: orgId } },
     });
@@ -386,7 +380,12 @@ export class AuthService {
     ];
     const rawSource = String(data.source || 'website').toLowerCase();
     const resolvedSource = validSources.includes(rawSource) ? rawSource : 'website';
-    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanEmail = sharedNormalizeEmail(data.email) || data.email.trim().toLowerCase();
+    const cleanPhone = sharedNormalizePhone(data.phone);
+
+    if (!cleanPhone) {
+      throw new Error('Enter a valid 10-digit mobile number.');
+    }
 
     // Perform CPU-intensive password hashing pre-transaction
     const passwordHash = await NativePassword.hash(data.password);
@@ -394,94 +393,87 @@ export class AuthService {
     const firstName = nameParts[0] || 'Parent';
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
-    return await prisma.$transaction(
-      async (tx) => {
-        const existing = await tx.users.findFirst({
-          where: { email: cleanEmail },
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.users.findFirst({
+        where: { email: cleanEmail },
+      });
+
+      if (existing) {
+        throw new Error('An account with this email address already exists. Please log in.');
+      }
+
+      let targetOrgId = data.org_id;
+      if (!targetOrgId) {
+        const activeOrg = await tx.organizations.findFirst({
+          where: { status: 'active' },
+          select: { org_id: true },
         });
+        targetOrgId = activeOrg?.org_id || '';
+      }
 
-        if (existing) {
-          throw new Error('An account with this email address already exists. Please log in.');
-        }
+      if (!targetOrgId) {
+        throw new Error('Organization context is required for registration.');
+      }
 
-        let targetOrgId = data.org_id;
-        if (!targetOrgId) {
-          const activeOrg = await tx.organizations.findFirst({
-            where: { status: 'active' },
-            select: { org_id: true },
-          });
-          targetOrgId = activeOrg?.org_id || '';
-        }
-
-        if (!targetOrgId) {
-          throw new Error('Organization context is required for registration.');
-        }
-
-        const newUser = await tx.users.create({
-          data: {
-            org_id: targetOrgId,
-            first_name: firstName,
-            last_name: lastName,
-            email: cleanEmail,
-            phone: data.phone.trim(),
-            password_hash: passwordHash,
-            status: 'active',
-          },
-        });
-
-        // Assign PARENT role
-        const parentRole = await tx.roles.findFirst({
-          where: { role_name: 'PARENT' },
-        });
-
-        if (parentRole) {
-          await tx.user_roles.create({
-            data: {
-              user_id: newUser.user_id,
-              role_id: parentRole.role_id,
-            },
-          });
-        }
-
-        // Create parents entity
-        const newParent = await tx.parents.create({
-          data: {
-            org_id: targetOrgId,
-            user_id: newUser.user_id,
-            first_name: firstName,
-            last_name: lastName,
-            phone: data.phone.trim(),
-            email: cleanEmail,
-          },
-        });
-
-        // Execute Lead Claiming & Creation Algorithm
-        const leadResult = await AuthService.resolveOrClaimLeadForParent({
-          tx,
-          orgId: targetOrgId,
-          parentId: newParent.parent_id,
-          verifiedEmail: cleanEmail,
-          verifiedPhone: data.phone.trim(),
-          fullName: data.full_name.trim(),
-          firstName,
-          lastName,
-          source: resolvedSource,
-        });
-
-        return {
-          success: true,
-          user_id: newUser.user_id,
-          parent_id: newParent.parent_id,
-          lead_id: leadResult.lead_id,
-          claimed: leadResult.claimed,
+      const newUser = await tx.users.create({
+        data: {
+          org_id: targetOrgId,
+          first_name: firstName,
+          last_name: lastName,
           email: cleanEmail,
-          phone: data.phone.trim(),
-          source: resolvedSource,
-          message: 'Registration initiated successfully. Verification OTP sent.',
-        };
-      },
-      { maxWait: 5000, timeout: 10000 },
-    );
+          phone: cleanPhone,
+          password_hash: passwordHash,
+          status: 'active',
+        },
+      });
+
+      // Assign PARENT role
+      const parentRole = await tx.roles.findFirst({
+        where: { role_name: 'PARENT' },
+      });
+
+      if (parentRole) {
+        await tx.user_roles.create({
+          data: {
+            user_id: newUser.user_id,
+            role_id: parentRole.role_id,
+          },
+        });
+      }
+
+      // Create parents entity
+      const newParent = await tx.parents.create({
+        data: {
+          org_id: targetOrgId,
+          user_id: newUser.user_id,
+          first_name: firstName,
+          last_name: lastName,
+          phone: cleanPhone,
+          email: cleanEmail,
+        },
+      });
+
+      // Execute Lead Claiming & Creation Algorithm
+      const leadResult = await AuthService.resolveOrClaimLeadForParent({
+        tx,
+        orgId: targetOrgId,
+        parentId: newParent.parent_id,
+        verifiedEmail: cleanEmail,
+        verifiedPhone: cleanPhone,
+        fullName: data.full_name.trim(),
+        firstName,
+        lastName,
+        source: resolvedSource,
+      });
+
+      return {
+        success: true,
+        user_id: newUser.user_id,
+        parent_id: newParent.parent_id,
+        lead_id: leadResult.lead_id,
+        claimed: leadResult.claimed,
+      };
+    });
   }
 
   static async verifyOtp(data: { email?: string; phone?: string; otp: string }) {

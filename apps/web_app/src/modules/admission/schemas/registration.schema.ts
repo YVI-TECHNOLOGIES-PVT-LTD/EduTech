@@ -1,14 +1,12 @@
 import { z } from 'zod';
+import { phoneSchema, emailSchema } from '@edutrack/validation';
 
 export const registrationSchema = z
   .object({
     firstName: z.string().min(2, 'First Name is required'),
     lastName: z.string().min(1, 'Last Name is required'),
-    email: z.string().email('Please enter a valid email address'),
-    mobile: z
-      .string()
-      .min(10, 'Valid mobile number is required')
-      .regex(/^\+?[0-9\s\-]{10,15}$/, 'Enter a valid mobile number'),
+    email: emailSchema,
+    mobile: phoneSchema,
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     terms: z.literal(true, {

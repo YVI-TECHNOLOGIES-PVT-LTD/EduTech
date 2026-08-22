@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PhoneInput } from '@/components/ui/phone-input';
 import {
   Select,
   SelectContent,
@@ -50,6 +51,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { phoneSchema, optionalEmailSchema } from '@edutrack/validation';
+
 const formSchema = z.object({
   student_first_name: z.string().min(1, 'First name is required'),
   student_last_name: z.string().optional().nullable(),
@@ -66,8 +69,8 @@ const formSchema = z.object({
     .enum(['father', 'mother', 'guardian', 'grandparent', 'other'] as const)
     .optional()
     .nullable(),
-  contact_phone: z.string().min(5, 'Valid phone number is required'),
-  contact_email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
+  contact_phone: phoneSchema,
+  contact_email: optionalEmailSchema,
   source: z.enum([
     'walk_in',
     'website',
@@ -126,6 +129,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
     setValue,
     watch,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -480,11 +484,18 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                     <Label htmlFor="contact_phone" className="text-xs font-bold">
                       Primary Phone Number <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      id="contact_phone"
-                      placeholder="e.g. +91 98765 43210"
-                      {...register('contact_phone')}
-                      className={errors.contact_phone ? 'border-red-500' : ''}
+                    <Controller
+                      name="contact_phone"
+                      control={control}
+                      render={({ field }) => (
+                        <PhoneInput
+                          id="contact_phone"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={errors.contact_phone ? 'true' : 'false'}
+                        />
+                      )}
                     />
                     {errors.contact_phone && (
                       <p className="text-[11px] text-red-500 font-medium">

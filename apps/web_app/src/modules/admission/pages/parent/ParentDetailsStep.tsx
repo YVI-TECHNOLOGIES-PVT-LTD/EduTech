@@ -4,6 +4,7 @@ import { Card } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
+import { PhoneInput } from '../../../../components/ui/phone-input';
 
 interface ParentDetailsStepProps {
   formData: any;
@@ -112,15 +113,10 @@ export const ParentDetailsStep: React.FC<ParentDetailsStepProps> = ({
             <Label className="text-[10px] font-black uppercase tracking-wider text-gray-500">
               CONTACT NO <span className="text-red-500">*</span>
             </Label>
-            <Input
-              type="text"
+            <PhoneInput
               disabled={isReadOnly}
               value={formData.parent_phone || ''}
-              onChange={(e) =>
-                setFormData((prev: any) => ({ ...prev, parent_phone: e.target.value }))
-              }
-              placeholder="+91 98765 43210"
-              className="text-xs font-semibold rounded-xl border-gray-200"
+              onChange={(val) => setFormData((prev: any) => ({ ...prev, parent_phone: val }))}
             />
           </div>
 
@@ -130,6 +126,8 @@ export const ParentDetailsStep: React.FC<ParentDetailsStepProps> = ({
             </Label>
             <Input
               type="email"
+              autoCapitalize="none"
+              autoCorrect="off"
               disabled={isReadOnly}
               value={formData.parent_email || ''}
               onChange={(e) =>

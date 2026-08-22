@@ -1,8 +1,13 @@
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { PhoneInput } from '@/components/ui/phone-input';
 import {
   Dialog,
   DialogContent,
@@ -11,10 +16,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
 import { useGetCounsellorsQuery } from '@/shared/api/staff.api';
 import { useMasterData } from '../../context/MasterDataContext';
 import { Edit3, Loader2 } from 'lucide-react';
+import { phoneSchema, optionalEmailSchema } from '@edutrack/validation';
 
 const formSchema = z.object({
   student_first_name: z.string().min(1, 'Student first name is required'),
@@ -51,8 +53,8 @@ const formSchema = z.object({
     .enum(['father', 'mother', 'guardian', 'grandparent', 'other'] as const)
     .optional()
     .nullable(),
-  contact_phone: z.string().min(5, 'Valid phone number is required'),
-  contact_email: z.string().email('Invalid email address').optional().nullable().or(z.literal('')),
+  contact_phone: phoneSchema,
+  contact_email: optionalEmailSchema,
   source: z.enum([
     'website',
     'walk_in',
@@ -95,6 +97,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
     setValue,
     watch,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -345,10 +348,18 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   <Label htmlFor="edit_contact_phone" className="text-xs font-bold">
                     Phone Number <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="edit_contact_phone"
-                    {...register('contact_phone')}
-                    className={errors.contact_phone ? 'border-red-500' : ''}
+                  <Controller
+                    name="contact_phone"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneInput
+                        id="edit_contact_phone"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        aria-invalid={errors.contact_phone ? 'true' : 'false'}
+                      />
+                    )}
                   />
                   {errors.contact_phone && (
                     <p className="text-[11px] text-red-500 font-medium">

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -307,14 +308,7 @@ export const Profile = () => {
                       >
                         Phone Number
                       </label>
-                      <input
-                        id="profile-phone"
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+91 XXXXX XXXXX"
-                        className="w-full px-3 py-2 border border-slate-100 dark:border-neutral-800 rounded-lg text-xs font-semibold bg-slate-50/50 dark:bg-neutral-950 focus:bg-white focus:border-slate-900 dark:focus:bg-black dark:focus:border-neutral-700 focus:outline-none transition-all text-slate-955 dark:text-white"
-                      />
+                      <PhoneInput id="profile-phone" value={phone} onChange={setPhone} />
                     </div>
 
                     <div className="md:col-span-2">

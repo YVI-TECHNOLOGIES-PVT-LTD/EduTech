@@ -2,6 +2,7 @@ import { supabase } from '../../../config/supabase';
 import { BaseImportStrategy, ImportContext, ImportResult } from '../index';
 import { NativePassword } from '../../../auth/crypto.utils';
 import prisma from '../../../lib/prismaClient';
+import { isValidEmail, isValidPhoneNumber, normalizePhoneNumber } from '@edutrack/validation';
 
 export interface DriverImportRow {
   _rowNum: number;
@@ -18,11 +19,12 @@ export class DriverImportStrategy extends BaseImportStrategy<DriverImportRow> {
   async validateRow(row: DriverImportRow, context: ImportContext): Promise<string[]> {
     const errors: string[] = [];
 
-    if (!row.email || !row.email.includes('@')) errors.push('Valid email is required');
+    if (!row.email || !isValidEmail(row.email)) errors.push('Enter a valid email address.');
     if (!row.full_name || row.full_name.trim().length === 0) errors.push('Full name is required');
     if (!row.license_no || row.license_no.trim().length === 0)
       errors.push('License number is required');
-    if (!row.phone || row.phone.trim().length < 8) errors.push('Valid phone number is required');
+    if (!row.phone || !isValidPhoneNumber(row.phone))
+      errors.push('Enter a valid 10-digit mobile number.');
 
     if (row.license_expiry) {
       const expDate = new Date(row.license_expiry);
@@ -109,12 +111,13 @@ export class DriverImportStrategy extends BaseImportStrategy<DriverImportRow> {
       try {
         const tempPassword = 'DriverTempPass123!';
         const passwordHash = await NativePassword.hash(tempPassword);
+        const cleanPhone = normalizePhoneNumber(row.phone)!;
         const newUser = await prisma.users.create({
           data: {
             org_id: context.schoolId,
             first_name: row.full_name,
             email: cleanEmail,
-            phone: row.phone,
+            phone: cleanPhone,
             password_hash: passwordHash,
             status: 'active',
           },

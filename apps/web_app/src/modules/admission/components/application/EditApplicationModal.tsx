@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CountrySelect } from '@/components/ui/country-select';
 import {
   Select,
   SelectContent,
@@ -36,6 +37,7 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
 }) => {
   const [academicYearId, setAcademicYearId] = useState<string>('');
   const [nationality, setNationality] = useState<string>('');
+  const [country, setCountry] = useState<string>('India');
   const [previousSchoolName, setPreviousSchoolName] = useState<string>('');
   const [previousSchoolAddress, setPreviousSchoolAddress] = useState<string>('');
   const [previousSchoolBoard, setPreviousSchoolBoard] = useState<string>('');
@@ -50,6 +52,7 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
     if (isOpen && application) {
       setAcademicYearId(application.academic_year_id || '');
       setNationality(application.nationality || 'Indian');
+      setCountry((application as any).country || 'India');
       setPreviousSchoolName(application.previous_school_name || '');
       setPreviousSchoolAddress(application.previous_school_address || '');
       setPreviousSchoolBoard(application.previous_school_board || '');
@@ -156,6 +159,13 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
                   placeholder="e.g. Indian"
                   className="h-9 text-xs"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Country
+                </Label>
+                <CountrySelect value={country} onChange={(name) => setCountry(name)} />
               </div>
             </div>
           </div>
