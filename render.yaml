@@ -6,11 +6,15 @@ services:
     region: oregon
     branch: main
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @edutrack/validation run build && pnpm --filter @edutrack/api run build
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter @edutrack/validation run build && pnpm --filter @edutrack/api run build
     startCommand: pnpm --filter @edutrack/api run start
     healthCheckPath: /health/live
     autoDeploy: true
     envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: PNPM_VERSION
+        value: 9.15.4
       - key: NODE_ENV
         value: production
       - key: SYSTEM_MODE
