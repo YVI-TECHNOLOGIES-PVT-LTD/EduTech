@@ -385,7 +385,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           <img
             src="/EduTrack_logo.png"
             alt="EduTrack"
-            className="w-8 h-8 object-contain rounded-xl shadow-md shrink-0"
+            className="w-10 h-10 object-contain drop-shadow-md shrink-0"
           />
 
           {!isCollapsed && (

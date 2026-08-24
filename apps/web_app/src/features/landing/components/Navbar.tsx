@@ -47,13 +47,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
     <>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative z-30">
         {/* School Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group">
+        <Link to="/" className="flex items-center gap-3 group">
           <img
             src="/EduTrack_logo.png"
             alt="EduTrack ERP"
-            className="w-9 h-9 object-contain rounded-xl shadow-md group-hover:scale-105 transition-transform"
+            className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md group-hover:scale-105 transition-transform shrink-0"
           />
-          <span className="font-extrabold text-base tracking-tight text-white group-hover:text-[#E7B76A] transition-colors">
+          <span className="font-extrabold text-lg sm:text-xl tracking-tight text-white group-hover:text-[#E7B76A] transition-colors">
             EDUTRACK
           </span>
         </Link>

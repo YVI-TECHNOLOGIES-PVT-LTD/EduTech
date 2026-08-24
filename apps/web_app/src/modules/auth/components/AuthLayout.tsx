@@ -166,7 +166,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                   <img
                     src="/EduTrack_logo.png"
                     alt="EduTrack"
-                    className="w-12 h-12 object-contain rounded-2xl shadow-md group-hover:scale-105 transition-transform"
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
                   />
                 </Link>
               </div>

@@ -94,13 +94,13 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
           <img
             src="/EduTrack_logo.png"
             alt="EduTrack"
-            className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-2xl shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0"
+            className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0"
           />
           <div className="flex flex-col">
-            <span className="font-extrabold text-base sm:text-lg tracking-tight text-white leading-none group-hover:text-[#E7B76A] transition-colors">
+            <span className="font-extrabold text-lg sm:text-xl tracking-tight text-white leading-none group-hover:text-[#E7B76A] transition-colors">
               EDUTRACK
             </span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#E7B76A] mt-1">
+            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-[#E7B76A] mt-1">
               Parent Portal
             </span>
           </div>

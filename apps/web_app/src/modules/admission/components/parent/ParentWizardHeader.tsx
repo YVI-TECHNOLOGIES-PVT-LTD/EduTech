@@ -31,7 +31,7 @@ export const ParentWizardHeader: React.FC<ParentWizardHeaderProps> = ({
           <img
             src="/EduTrack_logo.png"
             alt="EduTrack"
-            className="w-9 h-9 object-contain rounded-xl shadow-sm"
+            className="w-12 h-12 object-contain drop-shadow-sm shrink-0"
           />
           <div className="flex flex-col">
             <span className="text-base font-black tracking-tight text-indigo-950 leading-tight">

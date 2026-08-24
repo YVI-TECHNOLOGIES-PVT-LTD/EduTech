@@ -7,13 +7,15 @@ export const Footer: React.FC = () => {
     <footer className="bg-[#042A2B] text-slate-400 py-16 border-t border-white/10 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div className="space-y-4">
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-3">
             <img
               src="/EduTrack_logo.png"
               alt="EduTrack ERP"
-              className="w-8 h-8 object-contain rounded-xl shadow-md"
+              className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md shrink-0"
             />
-            <span className="font-extrabold text-sm text-white tracking-tight">EDUTRACK ERP</span>
+            <span className="font-extrabold text-base sm:text-lg text-white tracking-tight">
+              EDUTRACK ERP
+            </span>
           </div>
           <p className="text-emerald-100/70 leading-relaxed">
             Next-generation enterprise education management system empowering parents, students, and
