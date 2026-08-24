@@ -636,7 +636,7 @@ const handleMe = async (req: Request, res: Response) => {
 
     const enabledFeatures = {
       dashboard: true,
-      finance: userObj.roles.some((r) => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
+      finance: userObj.roles.some((r: string) => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
       entrance_exam: true,
       hostel: false,
     };
