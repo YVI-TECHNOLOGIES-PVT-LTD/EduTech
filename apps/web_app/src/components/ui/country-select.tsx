@@ -33,7 +33,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
 
   // Sorted countries with India at top
   const countries = useMemo<CountrySelectOption[]>(() => {
-    const list: CountrySelectOption[] = getCountries().map((code) => ({
+    const list: CountrySelectOption[] = getCountries().map((code: CountryCode) => ({
       code,
       name: getCountryName(code),
       flag: getCountryFlagEmoji(code),

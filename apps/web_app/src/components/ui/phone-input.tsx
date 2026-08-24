@@ -73,7 +73,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
   // Generate full country list sorted alphabetically with India at top
   const countries = useMemo<CountryOption[]>(() => {
-    const list: CountryOption[] = getCountries().map((code) => ({
+    const list: CountryOption[] = getCountries().map((code: CountryCode) => ({
       code,
       name: getCountryName(code),
       callingCode: `+${getCountryCallingCode(code)}`,
