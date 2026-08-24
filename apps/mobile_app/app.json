@@ -17,12 +17,14 @@
       "checkAutomatically": "NEVER",
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.edutrack.mobile"
+      "bundleIdentifier": "com.edutrack.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,21 +32,15 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.edutrack.mobile",
-      "permissions": [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE"
-      ]
+      "versionCode": 1,
+      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./src/assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store",
-      "expo-notifications"
-    ],
+    "plugins": ["expo-router", "expo-secure-store", "expo-notifications", "expo-document-picker"],
     "experiments": {
       "typedRoutes": true
     }

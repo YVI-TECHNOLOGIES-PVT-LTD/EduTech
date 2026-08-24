@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/context/LanguageContext';
-import { Sparkles, ChevronDown, User, LogOut, Settings, Building } from 'lucide-react';
+import {
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  User,
+  LogOut,
+  Settings,
+  Building,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getNavigationForUser, NavigationGroup, NavigationItem } from '@/config/navigation';
 import {
@@ -15,9 +23,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
@@ -35,6 +40,88 @@ import { getInitials } from '@/lib/utils';
 
 interface AppSidebarProps {
   className?: string;
+}
+
+const EXPANDED_STORAGE_KEY = 'edutrack.sidebar.expanded';
+
+/**
+ * Check if a path matches an item's url directly or as a child route
+ */
+function isItemDirectlyActive(item: NavigationItem, currentPath: string): boolean {
+  if (currentPath === item.url) return true;
+  if (
+    item.url &&
+    item.url !== '/app/dashboard' &&
+    item.url !== '/app/workspace' &&
+    item.url !== '/app/admissions' &&
+    currentPath.startsWith(item.url)
+  ) {
+    // If it has children, make sure it's not a generic prefix match that belongs to a specific child
+    const children = item.items || item.children;
+    if (children && children.length > 0) {
+      return children.some((c) => currentPath === c.url);
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Recursively check if an item or any of its descendants is active
+ */
+function isItemOrDescendantActive(item: NavigationItem, currentPath: string): boolean {
+  if (currentPath === item.url) return true;
+  if (
+    item.url &&
+    item.url !== '/app/dashboard' &&
+    item.url !== '/app/workspace' &&
+    item.url !== '/app/admissions' &&
+    currentPath.startsWith(item.url)
+  ) {
+    return true;
+  }
+
+  const children = item.items || item.children;
+  if (children && children.length > 0) {
+    return children.some((child) => isItemOrDescendantActive(child, currentPath));
+  }
+  return false;
+}
+
+/**
+ * Collect all ancestor IDs for an active item based on current URL
+ */
+function findActiveAncestorIds(
+  items: NavigationItem[],
+  currentPath: string,
+  ancestors: string[] = [],
+): string[] {
+  let activeIds: string[] = [];
+
+  for (const item of items) {
+    const children = item.items || item.children;
+    const isDirectMatch = currentPath === item.url;
+    const isPrefixMatch =
+      item.url &&
+      item.url !== '/app/dashboard' &&
+      item.url !== '/app/workspace' &&
+      item.url !== '/app/admissions' &&
+      currentPath.startsWith(item.url);
+
+    if (isDirectMatch || isPrefixMatch) {
+      activeIds = activeIds.concat(ancestors);
+    }
+
+    if (children && children.length > 0) {
+      const childActiveIds = findActiveAncestorIds(children, currentPath, [...ancestors, item.id]);
+      if (childActiveIds.length > 0) {
+        activeIds = activeIds.concat(childActiveIds);
+        activeIds.push(item.id);
+      }
+    }
+  }
+
+  return Array.from(new Set(activeIds));
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
@@ -56,23 +143,65 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
   const contextLabel = navGroups[0]?.contextLabel || 'EDUTRACK PORTAL';
 
-  const isItemActive = (item: NavigationItem): boolean => {
-    if (currentPath === item.url) return true;
-    if (
-      item.url !== '/app/dashboard' &&
-      item.url !== '/app/workspace' &&
-      currentPath.startsWith(item.url)
-    ) {
-      return true;
+  // Expanded state loaded from localStorage
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(EXPANDED_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return new Set<string>(parsed);
+        }
+      }
+    } catch {}
+    // Default: 'fo_admissions' expanded initially for front office
+    return new Set<string>(['fo_admissions']);
+  });
+
+  // Auto-expand all ancestors of the currently active route
+  useEffect(() => {
+    const allItems = navGroups.flatMap((g) => g.items);
+    const activeAncestors = findActiveAncestorIds(allItems, currentPath);
+
+    if (activeAncestors.length > 0) {
+      setExpandedIds((prev) => {
+        let changed = false;
+        const next = new Set(prev);
+        for (const id of activeAncestors) {
+          if (!next.has(id)) {
+            next.add(id);
+            changed = true;
+          }
+        }
+        if (changed) {
+          try {
+            localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify(Array.from(next)));
+          } catch {}
+          return next;
+        }
+        return prev;
+      });
     }
-    if (
-      item.items &&
-      item.items.some((sub) => currentPath === sub.url || currentPath.startsWith(sub.url))
-    ) {
-      return true;
+  }, [currentPath, navGroups]);
+
+  // Toggle item expansion
+  const toggleExpanded = useCallback((id: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.stopPropagation();
     }
-    return false;
-  };
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      try {
+        localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const rawName =
     user?.full_name ||
@@ -88,12 +217,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
       : 'EduTrack User');
-  const userInitials =
-    displayName
-      .split(' ')
-      .map((n: string) => n.charAt(0).toUpperCase())
-      .join('')
-      .slice(0, 2) || 'U';
 
   const homeUrl = navGroups[0]?.items[0]?.url || '/app/workspace';
 
@@ -104,13 +227,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       p_wizard: 'navigation.applicationWizard',
       p_docs: 'navigation.documentCenter',
       p_fees: 'navigation.paymentHistory',
+      fo_dashboard: 'common.dashboard',
       fo_command: 'navigation.commandCenter',
-      fo_inquiries: 'navigation.inquiries',
+      fo_enquiries: 'navigation.inquiries',
       fo_counselling: 'navigation.counselling',
       fo_applications: 'navigation.applicationsQueue',
       fo_verification: 'navigation.documentVerification',
       fo_fees: 'navigation.feeCollection',
       fo_visits: 'navigation.interviews',
+      fo_exams: 'navigation.entranceExams',
+      fo_decisions: 'navigation.admissionDecisions',
       admin_overview: 'navigation.overview',
       admin_school: 'navigation.schoolSetup',
       admin_staff: 'navigation.staffManagement',
@@ -121,6 +247,131 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       return t(idMap[item.id], item.title);
     }
     return item.title;
+  };
+
+  /**
+   * Recursive tree item renderer
+   */
+  const renderNavigationItem = (item: NavigationItem, depth: number = 0) => {
+    const children = item.items || item.children;
+    const hasChildren = Boolean(children && children.length > 0);
+    const isExpanded = expandedIds.has(item.id);
+    const isDirectActive = currentPath === item.url;
+    const isSubActive = isItemOrDescendantActive(item, currentPath);
+    const Icon = item.icon || Building;
+    const itemTitle = getNavTitle(item);
+
+    // If item has children, render expandable parent node
+    if (hasChildren) {
+      return (
+        <SidebarMenuItem
+          key={item.id}
+          className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center select-none"
+        >
+          <div
+            className={`w-full flex items-center justify-between rounded-xl transition-all ${
+              depth === 0
+                ? 'px-2.5 py-2 text-xs font-bold'
+                : 'px-2 py-1.5 text-[11px] font-semibold'
+            } ${
+              isDirectActive
+                ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs font-extrabold'
+                : isSubActive
+                  ? 'bg-sidebar-accent/50 text-sidebar-foreground font-bold'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+            }`}
+          >
+            {/* Left Action: Navigate or Toggle */}
+            <Link
+              to={item.url}
+              onClick={(e) => {
+                if (!item.url || item.url === '#') {
+                  e.preventDefault();
+                  toggleExpanded(item.id);
+                }
+              }}
+              className="flex-1 flex items-center gap-2.5 min-w-0 group-data-[collapsible=icon]:justify-center"
+              title={isCollapsed ? itemTitle : undefined}
+            >
+              <Icon
+                className={`shrink-0 ${depth === 0 ? 'w-4 h-4' : 'w-3.5 h-3.5'} ${
+                  isDirectActive
+                    ? 'text-white dark:text-black'
+                    : isSubActive
+                      ? 'text-indigo-600 dark:text-indigo-400'
+                      : 'text-sidebar-foreground/70'
+                }`}
+              />
+              {!isCollapsed && <span className="truncate">{itemTitle}</span>}
+            </Link>
+
+            {/* Right Action: Expand/Collapse Chevron Button */}
+            {!isCollapsed && (
+              <button
+                type="button"
+                aria-expanded={isExpanded}
+                aria-controls={`subnav-${item.id}`}
+                aria-label={`Toggle ${itemTitle}`}
+                onClick={(e) => toggleExpanded(item.id, e)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleExpanded(item.id, e);
+                  }
+                }}
+                className={`p-1 rounded-lg hover:bg-sidebar-border/40 transition-transform cursor-pointer shrink-0 ${
+                  isDirectActive ? 'text-white dark:text-black' : 'text-sidebar-foreground/60'
+                }`}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Render Nested Children when Expanded */}
+          {!isCollapsed && isExpanded && (
+            <div
+              id={`subnav-${item.id}`}
+              className="ms-3 ps-2 border-s border-sidebar-border/60 space-y-0.5 my-1"
+            >
+              {children!.map((child) => renderNavigationItem(child, depth + 1))}
+            </div>
+          )}
+        </SidebarMenuItem>
+      );
+    }
+
+    // Leaf node: standard navigation button
+    return (
+      <SidebarMenuItem
+        key={item.id}
+        className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+      >
+        <SidebarMenuButton
+          render={<Link to={item.url} />}
+          isActive={isDirectActive}
+          tooltip={itemTitle}
+          className={`w-full flex items-center gap-2.5 rounded-xl transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
+            depth === 0 ? 'px-2.5 py-2 text-xs font-bold' : 'px-2 py-1.5 text-[11px] font-semibold'
+          } ${
+            isDirectActive
+              ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs font-extrabold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          }`}
+        >
+          <Icon
+            className={`shrink-0 ${depth === 0 ? 'w-4 h-4' : 'w-3.5 h-3.5'} ${
+              isDirectActive ? 'text-white dark:text-black' : 'text-sidebar-foreground/70'
+            }`}
+          />
+          {!isCollapsed && <span className="truncate">{itemTitle}</span>}
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
   };
 
   return (
@@ -148,7 +399,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
         </Link>
       </SidebarHeader>
 
-      {/* 2. Content with Dynamic Navigation Groups & Sub-items */}
+      {/* 2. Content with Dynamic Recursive Navigation Groups & Sub-items */}
       <SidebarContent className="p-2 space-y-4">
         {navGroups.map((group) => (
           <SidebarGroup key={group.id}>
@@ -159,98 +410,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
             )}
 
             <SidebarGroupContent>
-              <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-                {group.items.map((item) => {
-                  const Icon = item.icon || Building;
-                  const active = isItemActive(item);
-                  const hasSubItems = Boolean(item.items && item.items.length > 0);
-                  const itemTitle = getNavTitle(item);
-
-                  if (hasSubItems) {
-                    return (
-                      <SidebarMenuItem
-                        key={item.id}
-                        className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
-                      >
-                        <SidebarMenuButton
-                          render={<Link to={item.url} />}
-                          isActive={active}
-                          tooltip={itemTitle}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
-                            active
-                              ? 'bg-black text-white dark:bg-white dark:text-black shadow-md hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-                              : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2.5 group-data-[collapsible=icon]:justify-center">
-                            <Icon
-                              className={`w-4 h-4 shrink-0 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
-                            />
-                            {!isCollapsed && <span>{itemTitle}</span>}
-                          </div>
-                          {!isCollapsed && (
-                            <ChevronDown
-                              className={`w-3.5 h-3.5 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground/70'}`}
-                            />
-                          )}
-                        </SidebarMenuButton>
-
-                        {!isCollapsed && (
-                          <SidebarMenuSub className="ms-4 border-s border-sidebar-border ps-2 my-1 space-y-1">
-                            {item.items!.map((subItem) => {
-                              const subActive =
-                                currentPath === subItem.url || currentPath.startsWith(subItem.url);
-                              const SubIcon = subItem.icon || Building;
-                              const subTitle = getNavTitle(subItem);
-
-                              return (
-                                <SidebarMenuSubItem key={subItem.id}>
-                                  <SidebarMenuSubButton
-                                    render={<Link to={subItem.url} />}
-                                    isActive={subActive}
-                                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                                      subActive
-                                        ? 'bg-black text-white dark:bg-white dark:text-black font-extrabold shadow-xs hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-                                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                                    }`}
-                                  >
-                                    <SubIcon
-                                      className={`w-3.5 h-3.5 ${subActive ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
-                                    />
-                                    <span>{subTitle}</span>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              );
-                            })}
-                          </SidebarMenuSub>
-                        )}
-                      </SidebarMenuItem>
-                    );
-                  }
-
-                  return (
-                    <SidebarMenuItem
-                      key={item.id}
-                      className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
-                    >
-                      <SidebarMenuButton
-                        render={<Link to={item.url} />}
-                        isActive={active}
-                        tooltip={itemTitle}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
-                          active
-                            ? 'bg-black text-white dark:bg-white dark:text-black shadow-md hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                        }`}
-                      >
-                        <Icon
-                          className={`w-4 h-4 shrink-0 ${active ? 'text-white dark:text-black' : 'text-sidebar-foreground'}`}
-                        />
-                        {!isCollapsed && <span>{itemTitle}</span>}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+              <SidebarMenu className="group-data-[collapsible=icon]:items-center space-y-0.5">
+                {group.items.map((item) => renderNavigationItem(item, 0))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

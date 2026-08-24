@@ -175,7 +175,7 @@ export class StudentService {
   static async getApprovedApplications(orgId?: string, search?: string) {
     const prisma = (await import('../../../lib/prismaClient')).default;
     const where: any = {
-      status: 'approved',
+      status: { in: ['approved', 'enrolled'] },
     };
     if (orgId) {
       where.org_id = orgId;
@@ -205,6 +205,8 @@ export class StudentService {
           },
         },
         academic_years: true,
+        admission_decisions: true,
+        admission_fee_payments: true,
         students: {
           include: {
             student_enrollments: {
@@ -226,6 +228,11 @@ export class StudentService {
 
     return applications.map((app: any) => {
       const isEnrolled = !!app.students;
+      const isFeePaid =
+        app.admission_fee_payments?.payment_status === 'paid' ||
+        app.admission_fee_payments?.payment_status === 'waived';
+      const isDecisionApproved = app.admission_decisions?.decision_status === 'approved';
+
       return {
         application_id: app.application_id,
         application_number: app.application_number,
@@ -246,6 +253,16 @@ export class StudentService {
         grade_name: app.leads?.academic_year_grades?.grades?.grade_name || 'Grade N/A',
         academic_year_grade_id: app.leads?.academic_year_grade_id || '',
         available_sections: app.leads?.academic_year_grades?.sections || [],
+        decision_status: app.admission_decisions?.decision_status || null,
+        decision_date: app.admission_decisions?.decision_date || null,
+        scholarship_percentage: app.admission_decisions?.scholarship_percentage
+          ? Number(app.admission_decisions.scholarship_percentage)
+          : null,
+        offer_expiry_date: app.admission_decisions?.offer_expiry_date || null,
+        payment_status: app.admission_fee_payments?.payment_status || 'pending',
+        is_fee_paid: isFeePaid,
+        is_decision_approved: isDecisionApproved,
+        is_eligible_for_enrollment: isDecisionApproved && isFeePaid,
         is_enrolled: isEnrolled,
         student: app.students || null,
       };
@@ -259,14 +276,25 @@ export class StudentService {
     body?: { section_id?: string; roll_number?: string; remarks?: string },
   ) {
     const prisma = (await import('../../../lib/prismaClient')).default;
+    const isValidUuid = (val?: string | null): val is string =>
+      typeof val === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+
     const app = await prisma.admissions_applications.findUnique({
       where: { application_id: applicationId },
       include: {
         leads: {
           include: {
-            academic_year_grades: true,
+            academic_year_grades: {
+              include: {
+                sections: true,
+                grades: true,
+              },
+            },
           },
         },
+        admission_decisions: true,
+        admission_fee_payments: true,
         students: {
           include: {
             student_enrollments: {
@@ -288,21 +316,55 @@ export class StudentService {
       throw new StudentValidationError(`Application not found: ${applicationId}`);
     }
 
-    if (app.status !== 'approved') {
-      throw new StudentValidationError(
-        `Only approved applications can be enrolled. Current status: ${app.status}`,
-      );
-    }
-
     // IDEMPOTENCY CHECK: If already converted to student, return existing record without duplicate creation!
     if (app.students) {
       logger.info(
         `Application ${applicationId} is already enrolled. Returning existing student ${app.students.student_id}`,
       );
+      const existingStudent = await StudentRepository.findById(app.students.student_id);
       return {
+        success: true,
         is_existing: true,
-        student: app.students,
+        student: existingStudent || app.students,
+        enrollment: app.students.student_enrollments?.[0] || null,
       };
+    }
+
+    // GATING RULE 1: Admission Decision must exist and be 'approved'
+    const decision = app.admission_decisions;
+    if (!decision || decision.decision_status !== 'approved') {
+      throw new StudentValidationError(
+        `Application must have an approved admission decision before enrollment. Current decision status: ${decision?.decision_status || 'none'}`,
+      );
+    }
+
+    // GATING RULE 2: Admission Fee Payment must be 'paid' or 'waived'
+    const feePayment = app.admission_fee_payments;
+    if (
+      !feePayment ||
+      (feePayment.payment_status !== 'paid' && feePayment.payment_status !== 'waived')
+    ) {
+      throw new StudentValidationError('Admission fee payment is required before enrollment.');
+    }
+
+    // GATING RULE 3: Resolve Academic Year Grade
+    const aygId = app.leads?.academic_year_grade_id;
+    if (!aygId) {
+      throw new StudentValidationError(
+        'Valid Academic Year and Grade configuration is required for student enrollment',
+      );
+    }
+
+    // GATING RULE 4: Validate Section if provided
+    if (body?.section_id && body.section_id.trim() !== '') {
+      const section = await prisma.sections.findUnique({
+        where: { section_id: body.section_id },
+      });
+      if (!section || section.academic_year_grade_id !== aygId || !section.is_active) {
+        throw new StudentValidationError(
+          "Selected section is invalid or does not belong to the applicant's academic year grade.",
+        );
+      }
     }
 
     const lead = app.leads;
@@ -315,6 +377,7 @@ export class StudentService {
     const parentPhone = lead?.contact_phone || '0000000000';
     const parentEmail = lead?.contact_email || undefined;
     const parentName = lead?.contact_name || 'Parent';
+    const authorUuid = isValidUuid(performedBy) ? performedBy : undefined;
 
     let parent = await prisma.parents.findFirst({
       where: {
@@ -335,15 +398,9 @@ export class StudentService {
           last_name: pLastName,
           phone: parentPhone,
           email: parentEmail,
-          created_by: performedBy || undefined,
+          created_by: authorUuid,
         },
       });
-    }
-
-    // Resolve academic_year_grade_id
-    const aygId = lead?.academic_year_grade_id;
-    if (!aygId) {
-      throw new Error('Academic year grade is required for student enrollment');
     }
 
     // Generate collision-checked admission_no
@@ -361,9 +418,9 @@ export class StudentService {
       attempts += 1;
     }
 
-    // ATOMIC PRISMA TRANSACTION for Student + Parent Link + Student Enrollment + Lead Stage Update
+    // ATOMIC PRISMA TRANSACTION for Student + Parent Link + Student Enrollment + Application & Lead Status
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create Student
+      // 1. Create Student Master Record
       const student = await tx.students.create({
         data: {
           org_id: app.org_id,
@@ -375,11 +432,11 @@ export class StudentService {
           gender,
           admission_date: new Date(),
           status: 'active',
-          created_by: performedBy || undefined,
+          created_by: authorUuid,
         },
       });
 
-      // 2. Link Parent
+      // 2. Link Parent Record in student_parents
       const relationshipEnum = lead?.contact_relationship || 'guardian';
       await tx.student_parents.create({
         data: {
@@ -387,29 +444,44 @@ export class StudentService {
           parent_id: (parent as any).parent_id,
           relationship: relationshipEnum as any,
           is_primary_contact: true,
-          created_by: performedBy || undefined,
+          created_by: authorUuid,
         },
       });
 
-      // 3. Create Student Enrollment
+      // 3. Create Student Enrollment Record
       const enrollment = await tx.student_enrollments.create({
         data: {
           student_id: student.student_id,
           academic_year_grade_id: aygId,
-          section_id: body?.section_id || undefined,
-          roll_number: body?.roll_number || undefined,
+          section_id:
+            body?.section_id && body.section_id.trim() !== '' ? body.section_id : undefined,
+          roll_number:
+            body?.roll_number && body.roll_number.trim() !== '' ? body.roll_number : undefined,
           enrollment_date: new Date(),
           status: 'active',
           remarks: body?.remarks || 'Enrolled from approved application',
-          created_by: performedBy || undefined,
+          created_by: authorUuid,
         },
       });
 
-      // 4. Update Lead Stage to enrolled if lead exists
+      // 4. Update Application updated metadata
+      await tx.admissions_applications.update({
+        where: { application_id: applicationId },
+        data: {
+          updated_at: new Date(),
+          updated_by: authorUuid,
+        },
+      });
+
+      // 5. Update Lead Stage to 'enrolled' if lead exists
       if (app.lead_id) {
         await tx.leads.update({
           where: { lead_id: app.lead_id },
-          data: { stage: 'enrolled', updated_at: new Date() },
+          data: {
+            stage: 'enrolled',
+            updated_at: new Date(),
+            updated_by: authorUuid,
+          },
         });
       }
 
@@ -419,12 +491,13 @@ export class StudentService {
     const fullStudent = await StudentRepository.findById(result.student.student_id);
 
     logger.info(
-      `Student ${result.student.student_id} (${admissionNo}) created from application ${applicationId}`,
+      `Student ${result.student.student_id} (${admissionNo}) enrolled successfully from application ${applicationId}`,
       {
         studentId: result.student.student_id,
         admissionNo,
         applicationId,
         performedBy,
+        sectionId: body?.section_id,
       },
     );
 
@@ -437,8 +510,10 @@ export class StudentService {
     });
 
     return {
+      success: true,
       is_existing: false,
-      student: fullStudent,
+      student: fullStudent || result.student,
+      enrollment: result.enrollment,
     };
   }
 }

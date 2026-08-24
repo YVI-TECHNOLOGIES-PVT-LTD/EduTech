@@ -134,8 +134,12 @@ export class AdmissionAssessmentService {
     return assessment;
   }
 
-  static async getAssessmentByApplication(applicationId: string, orgId?: string) {
-    const app = await AdmissionRepository.findById(applicationId, orgId);
+  static async getAssessmentByApplication(
+    applicationId: string,
+    orgId?: string,
+    parentUserId?: string,
+  ) {
+    const app = await AdmissionRepository.findById(applicationId, orgId, parentUserId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
     }

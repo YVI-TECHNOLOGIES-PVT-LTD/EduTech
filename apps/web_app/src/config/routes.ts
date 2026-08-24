@@ -44,6 +44,8 @@ export const ROUTES = {
     QUEUES: '/app/admissions/queues',
     INTERVIEWS: '/app/admissions/interviews',
     VERIFICATION: '/app/admissions/verification',
+    DECISIONS: '/app/admissions/decisions',
+    ADMISSION_DECISIONS: '/app/admissions/decisions',
     PEOPLE_STUDENTS: '/app/people/students',
   },
 };

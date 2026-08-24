@@ -33,6 +33,55 @@ export interface EnrollStudentPayload {
   rollNumber?: string;
 }
 
+export interface ApprovedApplicationRecord {
+  application_id: string;
+  application_number: string;
+  org_id: string;
+  academic_year_id: string;
+  academic_year_name?: string;
+  status: string;
+  created_at: string;
+  student_name: string;
+  student_first_name: string;
+  student_last_name?: string;
+  contact_name: string;
+  contact_phone: string;
+  contact_email?: string;
+  contact_relationship: string;
+  grade_name: string;
+  academic_year_grade_id: string;
+  available_sections: Array<{
+    section_id: string;
+    section_name: string;
+    capacity?: number;
+    room_no?: string;
+  }>;
+  decision_status?: string | null;
+  decision_date?: string | null;
+  scholarship_percentage?: number | null;
+  offer_expiry_date?: string | null;
+  payment_status?: string;
+  is_fee_paid: boolean;
+  is_decision_approved: boolean;
+  is_eligible_for_enrollment: boolean;
+  is_enrolled: boolean;
+  student?: any;
+}
+
+export interface ConvertApplicationPayload {
+  applicationId: string;
+  section_id?: string;
+  roll_number?: string;
+  remarks?: string;
+}
+
+export interface ConvertApplicationResponse {
+  success: boolean;
+  is_existing: boolean;
+  student: any;
+  enrollment?: any;
+}
+
 export const studentApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStudents: builder.query<StudentRecord[], Record<string, any> | void>({
@@ -42,19 +91,43 @@ export const studentApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Student'],
     }),
+    getApprovedApplications: builder.query<ApprovedApplicationRecord[], { search?: string } | void>(
+      {
+        query: (params) => ({
+          url: ENDPOINTS.STUDENTS.APPROVED_APPLICATIONS,
+          params: params || undefined,
+        }),
+        providesTags: ['Application', 'Student'],
+      },
+    ),
+    convertApplicationToStudent: builder.mutation<
+      ConvertApplicationResponse,
+      ConvertApplicationPayload
+    >({
+      query: ({ applicationId, ...body }) => ({
+        url: ENDPOINTS.STUDENTS.CONVERT_APPLICATION(applicationId),
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Student', 'Application', 'Lead'],
+    }),
     getStudentById: builder.query<StudentRecord, string>({
       query: (id: string) => `/students/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Student', id }],
     }),
     getParents: builder.query<ParentRecord[], string | void>({
-      query: (studentId?: string | void) => (studentId ? ENDPOINTS.STUDENTS.PARENTS(studentId) : '/v1/parents'),
+      query: (studentId?: string | void) =>
+        studentId ? ENDPOINTS.STUDENTS.PARENTS(studentId) : '/v1/parents',
       providesTags: ['Parent'],
     }),
     enrollStudent: builder.mutation<StudentRecord, EnrollStudentPayload>({
       query: (body: EnrollStudentPayload) => ({
-        url: '/v1/students/enroll',
+        url: ENDPOINTS.STUDENTS.CONVERT_APPLICATION(body.applicationId),
         method: 'POST',
-        body,
+        body: {
+          section_id: body.sectionId,
+          roll_number: body.rollNumber,
+        },
       }),
       invalidatesTags: ['Student', 'Application', 'Lead'],
     }),
@@ -118,6 +191,8 @@ export const studentApi = apiSlice.injectEndpoints({
 
 export const {
   useGetStudentsQuery,
+  useGetApprovedApplicationsQuery,
+  useConvertApplicationToStudentMutation,
   useGetStudentByIdQuery,
   useGetParentsQuery,
   useEnrollStudentMutation,

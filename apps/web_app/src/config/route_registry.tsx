@@ -23,6 +23,7 @@ import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCo
 import { CampusVisitsPage } from '../modules/admission/pages/front-office/CampusVisitsPage';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
+import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
 
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
@@ -187,6 +188,18 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <EntranceExamPage />,
     layout: 'admission_workspace',
     permissions: ['admission.review', 'admission.exam.manage', 'admission.exam.evaluate'],
+  },
+  {
+    path: 'admissions/decisions',
+    element: <AdmissionDecisionPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.review', 'admission.approve', 'admission.enrol'],
+  },
+  {
+    path: 'front-office/decisions',
+    element: <AdmissionDecisionPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.review', 'admission.approve', 'admission.enrol'],
   },
   {
     path: 'admissions/entrance-assessment',

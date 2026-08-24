@@ -199,6 +199,11 @@ export class SessionService {
         permissions.add('admission.enquiry.create');
         permissions.add('admission.leads.manage');
         permissions.add('admission.visitors.manage');
+        permissions.add('admission.enrol');
+        permissions.add('STUDENT_CREATE');
+        permissions.add('STUDENT_VIEW');
+        permissions.add('STUDENT_UPDATE');
+        permissions.add('STUDENT_ASSIGN_SECTION');
         permissions.add('admin.dashboard.view');
         permissions.add('fees.view');
         permissions.add('fees.payment.collect');

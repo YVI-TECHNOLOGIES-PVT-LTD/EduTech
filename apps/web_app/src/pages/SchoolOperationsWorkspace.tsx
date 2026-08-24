@@ -37,6 +37,7 @@ import {
   Briefcase,
   RefreshCw,
   Calendar,
+  Scale,
 } from 'lucide-react';
 import { ICON_MAP } from '../config/menu_registry';
 import { FrontOfficeExecutiveDashboard } from '../modules/admission/components/dashboard/FrontOfficeExecutiveDashboard';
@@ -77,7 +78,10 @@ export function SchoolOperationsWorkspace() {
       : 'Front Office Desk');
 
   const moduleTabs = (
-    <nav aria-label="Workspace Modules" className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+    <nav
+      aria-label="Workspace Modules"
+      className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide"
+    >
       {[
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         {
@@ -164,9 +168,7 @@ export function SchoolOperationsWorkspace() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-slate-800/80 pt-4">
-          {moduleTabs}
-        </div>
+        <div className="mt-8 border-t border-slate-800/80 pt-4">{moduleTabs}</div>
       </div>
 
       {/* Admissions Module Tab */}
@@ -212,6 +214,12 @@ export function SchoolOperationsWorkspace() {
                 route: '/app/admissions/exams',
                 icon: BookOpen,
                 desc: 'Schedule and record test scores.',
+              },
+              {
+                title: 'Admission Decisions',
+                route: '/app/admissions/decisions',
+                icon: Scale,
+                desc: 'Record formal committee decisions, scholarships, and offer letters.',
               },
               {
                 title: 'Fee Collection',

@@ -1,15 +1,20 @@
-import { TokenManager } from './token-manager';
+import { SecureStorage } from '../../storage/secure-store';
 import { useAuthStore } from '../../stores/auth.store';
-import { UserProfile, AuthTokens } from '../../types';
+import { UserProfile, AuthTokens } from '../../types/auth.types';
 
 export class AuthService {
   static async loginSuccess(user: UserProfile, tokens: AuthTokens): Promise<void> {
-    await TokenManager.saveTokens(tokens);
+    if (tokens.accessToken) {
+      await SecureStorage.setAccessToken(tokens.accessToken);
+    }
+    if (tokens.refreshToken) {
+      await SecureStorage.setRefreshToken(tokens.refreshToken);
+    }
     useAuthStore.getState().setAuth(user, tokens);
   }
 
   static async logout(): Promise<void> {
-    await TokenManager.clearTokens();
+    await SecureStorage.clearSession();
     useAuthStore.getState().logout();
   }
 

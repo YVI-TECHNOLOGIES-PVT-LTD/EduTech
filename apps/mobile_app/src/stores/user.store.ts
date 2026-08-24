@@ -15,7 +15,7 @@ export const useUserStore = create<UserState>((set) => ({
   setProfile: (profile) =>
     set({
       profile,
-      activeRole: profile?.role || null,
+      activeRole: (profile?.role as UserRole) || (profile?.roles?.[0] as UserRole) || null,
     }),
   setActiveRole: (role) => set({ activeRole: role }),
   clearUser: () => set({ profile: null, activeRole: null }),

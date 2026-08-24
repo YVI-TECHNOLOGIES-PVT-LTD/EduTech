@@ -1,18 +1,53 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/auth.store';
-import { TokenManager } from '../core/auth/token-manager';
+import { SecureStorage } from '../storage/secure-store';
 
-const AuthContext = createContext({
-  isInitialized: true,
+interface AuthContextType {
+  isInitialized: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  isInitialized: false,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  useEffect(() => {
-    // Attempt token retrieval on app cold start
-    TokenManager.getAccessToken().catch(() => {});
-  }, []);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const setHydrating = useAuthStore((state) => state.setHydrating);
 
-  return <AuthContext.Provider value={{ isInitialized: true }}>{children}</AuthContext.Provider>;
+  useEffect(() => {
+    let isMounted = true;
+
+    async function hydrateSession() {
+      try {
+        setHydrating(true);
+        const accessToken = await SecureStorage.getAccessToken();
+        const refreshToken = await SecureStorage.getRefreshToken();
+
+        if (accessToken && isMounted) {
+          setTokens({
+            accessToken,
+            refreshToken: refreshToken || '',
+          });
+        }
+      } catch (error) {
+        console.warn('[AuthProvider] Failed to hydrate secure session:', error);
+      } finally {
+        if (isMounted) {
+          setHydrating(false);
+          setIsInitialized(true);
+        }
+      }
+    }
+
+    hydrateSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setTokens, setHydrating]);
+
+  return <AuthContext.Provider value={{ isInitialized }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuthContext = () => useContext(AuthContext);

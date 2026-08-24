@@ -135,7 +135,16 @@ export class AuthService {
     }
 
     if (roles.length === 0) {
-      roles.push('PARENT');
+      const parentRecord = await prisma.parents.findUnique({
+        where: { user_id: user.user_id },
+      });
+      if (parentRecord) {
+        roles.push('PARENT');
+      }
+    }
+
+    if (roles.length === 0) {
+      throw new Error('User account has no active assigned roles. Access denied.');
     }
 
     const permissions = Array.from(permissionsSet);

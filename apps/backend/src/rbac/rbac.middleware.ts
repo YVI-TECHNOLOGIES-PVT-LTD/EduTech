@@ -106,6 +106,7 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         requiredPermission === 'admission.enquiry.view' ||
         requiredPermission === 'admission.recommend' ||
         requiredPermission === 'admission.approve' ||
+        requiredPermission === 'admission.enrol' ||
         requiredPermission === 'admission.assessment.evaluate' ||
         requiredPermission === 'admission.assessment.config.manage' ||
         requiredPermission === 'admission.assessment.dashboard.view') &&
@@ -115,6 +116,7 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
           permissions.includes('admission.view_all') ||
           permissions.includes('admission.recommend') ||
           permissions.includes('admission.approve') ||
+          permissions.includes('admission.enrol') ||
           roles.includes('ADMIN') ||
           roles.includes('SUPERADMIN') ||
           roles.includes('FRONT_OFFICE') ||

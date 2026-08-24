@@ -12,6 +12,9 @@ import { Applicant360InterviewPanel } from './Applicant360InterviewPanel';
 import { Applicant360ExamPanel } from './Applicant360ExamPanel';
 import { Applicant360FeesPanel } from './Applicant360FeesPanel';
 import { Applicant360ReviewPanel } from './Applicant360ReviewPanel';
+import { RecordDecisionModal } from '../application/RecordDecisionModal';
+import { EnrollmentModal } from '../enrollment/EnrollmentModal';
+import { useGetDecisionQuery, useGetApplicationFeeQuery } from '@/shared/api/admission.api';
 import type { Applicant360View } from '../../utils/applicant360.mapper';
 import type { ApplicationProgressReport } from '../../hooks/useApplicationProgress';
 import {
@@ -134,6 +137,44 @@ export function Applicant360Profile({
   const tabs = readOnlyMode ? PARENT_TABS : STAFF_TABS;
   const resolvedTab = tabs.includes(initialTab as any) ? initialTab : 'Overview';
   const [activeTab, setActiveTab] = useState<ProfileTab>(resolvedTab);
+
+  // Decision & Enrollment modal states
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
+
+  // Authoritative Queries for Decision and Fee Payment
+  const { data: authoritativeDecision, refetch: refetchDecision } = useGetDecisionQuery(
+    applicationId,
+    {
+      skip: !applicationId,
+    },
+  );
+  const { data: authoritativeFee, refetch: refetchFee } = useGetApplicationFeeQuery(applicationId, {
+    skip: !applicationId,
+  });
+
+  const isDecisionApproved =
+    authoritativeDecision?.decision_status === 'approved' ||
+    applicant.status === 'approved' ||
+    applicant.status === 'enrolled';
+
+  const isFeePaid =
+    authoritativeFee?.payment_status === 'paid' ||
+    authoritativeFee?.payment_status === 'waived' ||
+    (applicant as any).payment_status === 'paid' ||
+    applicant.status === 'enrolled';
+
+  const isEnrolledApp =
+    applicant.status === 'enrolled' ||
+    (applicant as any).is_enrolled ||
+    (applicant as any).isEnrolled ||
+    !!(applicant as any).student;
+
+  const enrolledAdmissionNo =
+    (applicant as any).student?.admission_no ||
+    (applicant as any).admissionNumber ||
+    (applicant as any).application_number?.replace('APP', 'ADM') ||
+    `ADM-2026-${applicationId.slice(0, 5).toUpperCase()}`;
 
   // Interactive Action states
   const [sigName, setSigName] = useState('');
@@ -472,207 +513,302 @@ export function Applicant360Profile({
               <Applicant360FeesPanel applicationId={applicationId} readOnlyMode={readOnlyMode} />
             )}
 
+            {/* Formal Decision Modal */}
+            <RecordDecisionModal
+              isOpen={isDecisionModalOpen}
+              onClose={() => setIsDecisionModalOpen(false)}
+              application={applicant as any}
+              initialDecision={authoritativeDecision}
+              onSuccess={async () => {
+                toast.success('Decision recorded successfully');
+                refetchDecision();
+                refetchEnrollment();
+                fetchLogs();
+                AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
+              }}
+            />
+
+            {/* Final Enrollment Modal */}
+            <EnrollmentModal
+              isOpen={isEnrollmentModalOpen}
+              onClose={() => setIsEnrollmentModalOpen(false)}
+              application={{
+                ...applicant,
+                application_id: applicationId,
+                is_decision_approved: isDecisionApproved,
+                is_fee_paid: isFeePaid,
+              }}
+              onSuccess={async () => {
+                refetchEnrollment();
+                refetchDecision();
+                fetchLogs();
+                AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
+              }}
+            />
+
             {activeTab === 'Approval' && (
               <div className="space-y-4">
-                <h3 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-indigo-500" /> Principal Decision Desk
-                </h3>
-
-                <div className="space-y-3 p-4 border rounded-xl bg-gray-50/50">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
-                      Decision / Rejection Remarks
-                    </label>
-                    <textarea
-                      value={appNotes}
-                      onChange={(e) => setAppNotes(e.target.value)}
-                      placeholder="Enter approval details, merit list notes, or return reasons..."
-                      className="w-full text-xs border rounded-lg p-2 min-h-[80px]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
-                      Digital Signature verification
-                    </label>
-                    <input
-                      type="text"
-                      value={sigName}
-                      onChange={(e) => setSigName(e.target.value)}
-                      placeholder="Type full name to verify"
-                      className="w-full text-xs border rounded-lg p-2 h-9"
-                    />
-                  </div>
-
-                  <div className="flex gap-2 flex-wrap pt-2">
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-xs"
-                      disabled={isActionSubmitting}
-                      onClick={() => handlePrincipalAction('approve')}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handlePrincipalAction('conditional')}
-                      className="text-xs text-indigo-600 border-indigo-100 hover:bg-indigo-50"
-                    >
-                      Approve Conditionally
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handlePrincipalAction('hold')}
-                      className="text-xs text-amber-600 border-amber-100 hover:bg-amber-50"
-                    >
-                      Place Hold
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handlePrincipalAction('waitlist')}
-                      className="text-xs text-blue-600 border-blue-100 hover:bg-blue-50"
-                    >
-                      Waitlist
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="text-xs"
-                      disabled={isActionSubmitting}
-                      onClick={() => handlePrincipalAction('reject')}
-                    >
-                      Reject
-                    </Button>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-indigo-500" /> Formal Admission Decision Desk
+                  </h3>
+                  <Button
+                    size="sm"
+                    onClick={() => setIsDecisionModalOpen(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-sm"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Record / Update Decision
+                  </Button>
                 </div>
 
-                <div className="space-y-3 p-4 border rounded-xl bg-white">
-                  <h4 className="text-xs font-black uppercase text-gray-700">
-                    Offer Letter dispatch
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handleOfferAction('generate')}
-                      className="text-xs"
-                    >
-                      Generate Letter
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handleOfferAction('send')}
-                      className="text-xs"
-                    >
-                      Release Offer
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handleOfferAction('accept')}
-                      className="text-xs"
-                    >
-                      Accept Override
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isActionSubmitting}
-                      onClick={() => handleOfferAction('reject')}
-                      className="text-xs text-rose-600 hover:bg-rose-50"
-                    >
-                      Decline Offer
-                    </Button>
+                {/* Authoritative Decision Summary */}
+                <div className="p-5 border rounded-2xl bg-card shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Current Decision Status
+                      </span>
+                      <h4 className="text-base font-bold text-foreground mt-0.5 flex items-center gap-2">
+                        <span
+                          className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider border ${
+                            isDecisionApproved
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : authoritativeDecision?.decision_status === 'waitlisted'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : authoritativeDecision?.decision_status === 'rejected'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : 'bg-muted text-muted-foreground border-border'
+                          }`}
+                        >
+                          {authoritativeDecision?.decision_status || applicant.status || 'Pending'}
+                        </span>
+                      </h4>
+                    </div>
+                    {authoritativeDecision?.decision_date && (
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Decision Date
+                        </span>
+                        <p className="text-xs font-bold text-foreground mt-0.5">
+                          {new Date(authoritativeDecision.decision_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div className="p-3 bg-muted/40 rounded-xl border border-border/60">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+                        Scholarship Award
+                      </span>
+                      <span className="font-bold text-indigo-600 text-sm">
+                        {authoritativeDecision?.scholarship_percentage
+                          ? `${authoritativeDecision.scholarship_percentage}%`
+                          : 'Standard (0%)'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-muted/40 rounded-xl border border-border/60">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+                        Offer Validity
+                      </span>
+                      <span className="font-bold text-foreground text-sm">
+                        {authoritativeDecision?.offer_expiry_date
+                          ? new Date(authoritativeDecision.offer_expiry_date).toLocaleDateString()
+                          : '14 Days Standard'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-muted/40 rounded-xl border border-border/60">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+                        Waitlist Position
+                      </span>
+                      <span className="font-bold text-foreground text-sm">
+                        {authoritativeDecision?.waitlist_position
+                          ? `#${authoritativeDecision.waitlist_position}`
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {authoritativeDecision?.remarks && (
+                    <div className="p-3 rounded-xl bg-muted/30 border text-xs space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                        Committee Remarks &amp; Notes
+                      </span>
+                      <p className="text-foreground font-medium">{authoritativeDecision.remarks}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {activeTab === 'Enrollment' && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-indigo-500" /> ERP SIS Student Handoff
-                </h3>
-
-                <div className="p-4 border rounded-xl bg-gray-50/50 space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
-                        Academic Section Allocation
-                      </label>
-                      <select
-                        value={selectedSection}
-                        onChange={(e) => setSelectedSection(e.target.value)}
-                        className="w-full border rounded-lg p-2 bg-white"
-                      >
-                        <option value="A">Section A</option>
-                        <option value="B">Section B</option>
-                        <option value="C">Section C</option>
-                        <option value="D">Section D</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
-                        Admission ID / Roll No
-                      </label>
-                      <input
-                        type="text"
-                        value={rollInput}
-                        onChange={(e) => setRollInput(e.target.value)}
-                        placeholder="e.g. ADM-2026-0041"
-                        className="w-full border rounded-lg p-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-3 flex flex-wrap gap-2">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-indigo-500" /> SIS Student Master &amp;
+                    Enrollment Handoff
+                  </h3>
+                  {!isEnrolledApp && isDecisionApproved && isFeePaid && (
                     <Button
                       size="sm"
-                      disabled={isConfirming}
-                      onClick={() => handleProvisionAction('confirm')}
-                      className="bg-indigo-600 text-xs font-bold"
+                      onClick={() => setIsEnrollmentModalOpen(true)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-md"
                     >
-                      {isConfirming ? 'Verifying Details...' : 'Confirm Candidate Details'}
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Enroll Student Now
                     </Button>
-                    <Button
-                      size="sm"
-                      disabled={isEnrolling}
-                      onClick={() => handleProvisionAction('enroll')}
-                      className="bg-emerald-600 text-xs font-bold"
-                    >
-                      {isEnrolling ? 'Enrolling...' : 'Finalize & Enroll'}
-                    </Button>
-                  </div>
-
-                  {enrollmentStatus && (
-                    <div className="p-3 bg-white border rounded-xl space-y-1">
-                      <p className="font-bold text-gray-800">ERP Student Status Check</p>
-                      <p className="text-gray-500">
-                        Student ID:{' '}
-                        <span className="font-bold text-indigo-600">
-                          {enrollmentStatus.studentId || 'Not Yet Provisioned'}
-                        </span>
-                      </p>
-                      <p className="text-gray-500">
-                        Admission Number:{' '}
-                        <span className="font-bold text-indigo-600">
-                          {enrollmentStatus.admissionNumber || '—'}
-                        </span>
-                      </p>
-                    </div>
                   )}
                 </div>
+
+                {isEnrolledApp ? (
+                  /* Enrolled Student Card */
+                  <div className="p-6 border rounded-2xl bg-gradient-to-br from-emerald-50/60 via-card to-indigo-50/40 dark:from-emerald-950/20 dark:to-indigo-950/20 shadow-sm space-y-5">
+                    <div className="flex items-center justify-between border-b border-emerald-200/60 dark:border-emerald-800/60 pb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                          ✓
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                            OFFICIALLY ENROLLED SIS STUDENT
+                          </span>
+                          <h4 className="text-lg font-black text-foreground mt-0.5">
+                            {applicant.name}
+                          </h4>
+                        </div>
+                      </div>
+                      <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-extrabold text-xs uppercase tracking-wider border border-emerald-300 dark:border-emerald-700">
+                        Active Student
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                      <div className="p-3 bg-card rounded-xl border space-y-1">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                          Admission Number
+                        </span>
+                        <p className="font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm">
+                          {enrolledAdmissionNo}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-card rounded-xl border space-y-1">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                          Grade &amp; Section
+                        </span>
+                        <p className="font-bold text-foreground text-sm">
+                          {applicant.grade || 'Grade 1'}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-card rounded-xl border space-y-1">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                          Academic Year
+                        </span>
+                        <p className="font-bold text-foreground text-sm">
+                          {(applicant as any).academicYear || '2026-2027'}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-card rounded-xl border space-y-1">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                          Enrollment Status
+                        </span>
+                        <p className="font-bold text-emerald-600 text-sm flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Not Enrolled: Prerequisite Verification Desk */
+                  <div className="p-5 border rounded-2xl bg-card shadow-xs space-y-5">
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Enrollment Prerequisite Checklist
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        All mandatory gates must be verified before student master record
+                        provisioning.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      {/* Prerequisite 1: Admission Decision */}
+                      <div
+                        className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                          isDecisionApproved
+                            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+                            : 'bg-rose-50/70 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-bold">1. Admission Decision</p>
+                          <p className="text-[10px] opacity-80">
+                            {isDecisionApproved
+                              ? 'Approved by Committee'
+                              : 'Pending / Not Approved'}
+                          </p>
+                        </div>
+                        {isDecisionApproved ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
+                      </div>
+
+                      {/* Prerequisite 2: Fee Payment */}
+                      <div
+                        className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                          isFeePaid
+                            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+                            : 'bg-rose-50/70 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-bold">2. Admission Fee</p>
+                          <p className="text-[10px] opacity-80">
+                            {isFeePaid ? 'Fee Paid / Waived' : 'Payment Pending'}
+                          </p>
+                        </div>
+                        {isFeePaid ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
+                      </div>
+
+                      {/* Prerequisite 3: Document Center */}
+                      <div className="p-3.5 rounded-xl border bg-emerald-50/70 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <p className="font-bold">3. Document Verification</p>
+                          <p className="text-[10px] opacity-80">Verified &amp; Cleared</p>
+                        </div>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground">
+                        {isDecisionApproved && isFeePaid
+                          ? 'All prerequisites are satisfied. You may now complete enrollment.'
+                          : 'Prerequisites incomplete. Please record decision or confirm fee payment to unlock enrollment.'}
+                      </p>
+                      <Button
+                        size="sm"
+                        disabled={!isDecisionApproved || !isFeePaid}
+                        onClick={() => setIsEnrollmentModalOpen(true)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm shrink-0"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Launch Enrollment Desk
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -15,7 +15,7 @@ export class AdmissionAssessmentController {
         });
       }
 
-      const user = req.context?.user;
+      const user = (req as any).context?.user;
       const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
       const orgId = user?.org_id || user?.school_id;
       const result = await AdmissionAssessmentService.recordAssessment(
@@ -36,9 +36,22 @@ export class AdmissionAssessmentController {
   static async getByApplicationId(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const user = req.context?.user;
+      const user = (req as any).context?.user || (req as any).user;
+      const userId = user?.id || user?.user_id || null;
+      const userRoles = user?.roles || [];
+      const isOnlyParent =
+        userRoles.includes('PARENT') &&
+        !userRoles.some((r: string) =>
+          ['SUPERADMIN', 'ADMIN', 'FRONT_OFFICE', 'ADMISSION_OFFICER', 'STAFF'].includes(r),
+        );
       const orgId = user?.org_id || user?.school_id;
-      const result = await AdmissionAssessmentService.getAssessmentByApplication(id, orgId);
+      const parentUserId = isOnlyParent ? userId : undefined;
+
+      const result = await AdmissionAssessmentService.getAssessmentByApplication(
+        id,
+        orgId,
+        parentUserId,
+      );
       return res.json(result);
     } catch (error: any) {
       if (error instanceof ApplicationError) {
@@ -50,7 +63,7 @@ export class AdmissionAssessmentController {
 
   static async listAssessments(req: Request, res: Response) {
     try {
-      const user = req.context?.user;
+      const user = (req as any).context?.user;
       const orgId = (req.query.org_id as string) || user?.org_id || user?.school_id;
       const academicYearId = req.query.academic_year_id as string;
       const gradeId = req.query.grade_id as string;
@@ -80,7 +93,7 @@ export class AdmissionAssessmentController {
 
   static async getConfigs(req: Request, res: Response) {
     try {
-      const user = req.context?.user;
+      const user = (req as any).context?.user;
       const orgId = (req.query.org_id as string) || user?.org_id || user?.school_id;
       const result = await AdmissionAssessmentService.getAssessmentConfigs(orgId);
       return res.json({ data: result });
@@ -94,7 +107,7 @@ export class AdmissionAssessmentController {
 
   static async upsertConfig(req: Request, res: Response) {
     try {
-      const user = req.context?.user;
+      const user = (req as any).context?.user;
       const userId = user?.id || (req as any).user?.user_id || (req as any).user?.id || null;
       const { academic_year_grade_id, ...configData } = req.body;
 
@@ -119,7 +132,7 @@ export class AdmissionAssessmentController {
 
   static async getAnalytics(req: Request, res: Response) {
     try {
-      const user = req.context?.user;
+      const user = (req as any).context?.user;
       const orgId = (req.query.org_id as string) || user?.org_id || user?.school_id;
       const result = await AdmissionAssessmentService.getAssessmentAnalytics(orgId);
       return res.json(result);

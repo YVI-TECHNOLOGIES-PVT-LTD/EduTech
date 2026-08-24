@@ -12,12 +12,14 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "type-check": "tsc --noEmit",
+    "test": "jest",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "generate-assets": "node scripts/generate-assets.js",
     "postinstall": "node scripts/generate-assets.js"
   },
   "dependencies": {
+    "@babel/runtime": "^7.24.0",
     "@edutrack/types": "workspace:*",
     "@edutrack/validation": "workspace:*",
     "@expo/vector-icons": "^14.0.2",
@@ -29,8 +31,10 @@
     "clsx": "^2.1.0",
     "expo": "~51.0.28",
     "expo-constants": "~16.0.2",
+    "expo-document-picker": "~12.0.2",
     "expo-font": "~12.0.7",
     "expo-image": "~1.13.0",
+    "expo-image-picker": "~15.1.0",
     "expo-linking": "~6.3.1",
     "expo-notifications": "~0.28.11",
     "expo-router": "~3.5.24",
@@ -54,8 +58,8 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@edutrack/config": "workspace:*",
     "@babel/core": "^7.24.0",
+    "@edutrack/config": "workspace:*",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.9",
     "@types/react": "~18.2.45",

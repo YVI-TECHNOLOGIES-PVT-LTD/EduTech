@@ -114,8 +114,12 @@ export class AdmissionDecisionService {
     return decision;
   }
 
-  static async getDecisionByApplication(applicationId: string) {
-    const app = await AdmissionRepository.findById(applicationId);
+  static async getDecisionByApplication(
+    applicationId: string,
+    orgId?: string,
+    parentUserId?: string,
+  ) {
+    const app = await AdmissionRepository.findById(applicationId, orgId, parentUserId);
     if (!app) {
       throw new ApplicationNotFoundError(applicationId);
     }
