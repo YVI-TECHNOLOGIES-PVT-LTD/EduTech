@@ -8,11 +8,11 @@
   PNPM_VERSION = "9.15.4"
 
 [context.production.environment]
-  # Default production API URL (can be overridden in Netlify dashboard)
-  VITE_API_URL = "https://appsms-076a.onrender.com/api"
+  # Production API URL
+  VITE_API_URL = "https://edutrack-backend-0fyq.onrender.com/api"
 
 [context.deploy-preview.environment]
-  VITE_API_URL = "https://appsms-076a.onrender.com/api"
+  VITE_API_URL = "https://edutrack-backend-0fyq.onrender.com/api"
 
 [[redirects]]
   from = "/*"
