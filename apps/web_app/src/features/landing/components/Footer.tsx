@@ -8,9 +8,11 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div className="space-y-4">
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#E7B76A] text-[#063F40] flex items-center justify-center font-bold text-xs shadow-md">
-              <Sparkles className="w-4 h-4 text-[#063F40]" />
-            </div>
+            <img
+              src="/EduTrack_logo.png"
+              alt="EduTrack ERP"
+              className="w-8 h-8 object-contain rounded-xl shadow-md"
+            />
             <span className="font-extrabold text-sm text-white tracking-tight">EDUTRACK ERP</span>
           </div>
           <p className="text-emerald-100/70 leading-relaxed">
@@ -20,7 +22,9 @@ export const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-bold text-[#E7B76A] uppercase tracking-wider text-[11px] mb-4">Quick Links</h4>
+          <h4 className="font-bold text-[#E7B76A] uppercase tracking-wider text-[11px] mb-4">
+            Quick Links
+          </h4>
           <ul className="space-y-2.5">
             <li>
               <Link to="/about" className="hover:text-white transition-colors">
@@ -46,7 +50,9 @@ export const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-bold text-[#E7B76A] uppercase tracking-wider text-[11px] mb-4">Portals</h4>
+          <h4 className="font-bold text-[#E7B76A] uppercase tracking-wider text-[11px] mb-4">
+            Portals
+          </h4>
           <ul className="space-y-2.5">
             <li>
               <Link to="/login" className="hover:text-white transition-colors">
@@ -67,7 +73,9 @@ export const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-bold text-[#E7B76A] uppercase tracking-wider text-[11px] mb-4">Contact Us</h4>
+          <h4 className="font-bold text-[#E7B76A] uppercase tracking-wider text-[11px] mb-4">
+            Contact Us
+          </h4>
           <ul className="space-y-2.5">
             <li className="flex items-center space-x-2.5">
               <Phone className="w-3.5 h-3.5 text-[#E7B76A] shrink-0" />
@@ -91,6 +99,5 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
-
 
 export default Footer;

@@ -56,27 +56,11 @@ export function Navbar() {
           <nav className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
-              <div
-                className={cn(
-                  'w-12 h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 rounded-xl flex items-center justify-center transition-all duration-300',
-                  location.pathname.includes('/enquiry') ||
-                    location.pathname.includes('/app/') ||
-                    isScrolled
-                    ? 'bg-primary'
-                    : 'bg-white/20 backdrop-blur-sm',
-                )}
-              >
-                <GraduationCap
-                  className={cn(
-                    'w-7 h-7 lg:w-5 lg:h-5 xl:w-7 xl:h-7 transition-colors',
-                    location.pathname.includes('/enquiry') ||
-                      location.pathname.includes('/app/') ||
-                      isScrolled
-                      ? 'text-gold'
-                      : 'text-white',
-                  )}
-                />
-              </div>
+              <img
+                src="/EduTrack_logo.png"
+                alt="EduTrack ERP"
+                className="w-12 h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 object-contain rounded-xl shadow-md transition-all duration-300 group-hover:scale-105"
+              />
               <div>
                 <span
                   className={cn(

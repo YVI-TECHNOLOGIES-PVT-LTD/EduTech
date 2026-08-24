@@ -161,6 +161,15 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             {/* AUTH CARD CONTAINER */}
             <div className="bg-card border border-border/80 rounded-3xl p-6 sm:p-10 shadow-[0_20px_60px_rgba(4,42,43,0.08)] relative">
               {/* Header Area */}
+              <div className="flex justify-center mb-4">
+                <Link to="/" className="inline-block group focus:outline-none">
+                  <img
+                    src="/EduTrack_logo.png"
+                    alt="EduTrack"
+                    className="w-12 h-12 object-contain rounded-2xl shadow-md group-hover:scale-105 transition-transform"
+                  />
+                </Link>
+              </div>
               {(badgeText || title || subtitle) && (
                 <div className="text-center mb-7 space-y-2">
                   {badgeText && (

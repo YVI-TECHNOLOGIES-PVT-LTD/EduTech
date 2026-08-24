@@ -382,9 +382,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           to={homeUrl}
           className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center"
         >
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-indigo-600/30 shrink-0">
-            E
-          </div>
+          <img
+            src="/EduTrack_logo.png"
+            alt="EduTrack"
+            className="w-8 h-8 object-contain rounded-xl shadow-md shrink-0"
+          />
 
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">

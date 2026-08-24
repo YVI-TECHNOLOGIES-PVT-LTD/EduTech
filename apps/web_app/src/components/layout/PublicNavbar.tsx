@@ -91,9 +91,11 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
           to="/"
           className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E7B76A] rounded-xl"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#E7B76A] text-[#063F40] flex items-center justify-center font-black text-sm sm:text-base shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
-            <Sparkles className="w-5 h-5 text-[#063F40]" />
-          </div>
+          <img
+            src="/EduTrack_logo.png"
+            alt="EduTrack"
+            className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-2xl shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0"
+          />
           <div className="flex flex-col">
             <span className="font-extrabold text-base sm:text-lg tracking-tight text-white leading-none group-hover:text-[#E7B76A] transition-colors">
               EDUTRACK

@@ -28,9 +28,11 @@ export const ParentWizardHeader: React.FC<ParentWizardHeaderProps> = ({
           className="flex items-center space-x-3 cursor-pointer"
           onClick={() => navigate('/app/admissions/my')}
         >
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-            Δ
-          </div>
+          <img
+            src="/EduTrack_logo.png"
+            alt="EduTrack"
+            className="w-9 h-9 object-contain rounded-xl shadow-sm"
+          />
           <div className="flex flex-col">
             <span className="text-base font-black tracking-tight text-indigo-950 leading-tight">
               EduTrack

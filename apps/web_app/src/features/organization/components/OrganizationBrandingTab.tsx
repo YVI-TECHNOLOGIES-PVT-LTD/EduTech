@@ -31,9 +31,11 @@ export const OrganizationBrandingTab: React.FC = () => {
             Institution Logo
           </label>
           <div className="flex items-center space-x-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-600 font-extrabold text-2xl text-white shadow-md">
-              E
-            </div>
+            <img
+              src="/EduTrack_logo.png"
+              alt="Institution Logo"
+              className="h-16 w-16 object-contain rounded-xl shadow-md border border-border p-1 bg-card"
+            />
             <div className="space-y-1">
               <Button variant="outline" size="sm" className="text-xs font-semibold">
                 <Upload size={14} className="mr-1.5" />

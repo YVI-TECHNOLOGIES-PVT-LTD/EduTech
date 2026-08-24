@@ -121,9 +121,11 @@ export const LandingPage: React.FC = () => {
 
                   <div className="absolute bottom-4 left-4 right-4 z-10 space-y-3 p-2 bg-slate-950/80 backdrop-blur-md rounded-xl border border-white/10">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#E7B76A] text-[#063F40] flex items-center justify-center font-black shadow-md shrink-0">
-                        <GraduationCap className="w-5 h-5" />
-                      </div>
+                      <img
+                        src="/EduTrack_logo.png"
+                        alt="EduTrack"
+                        className="w-10 h-10 object-contain rounded-xl shadow-md shrink-0"
+                      />
                       <div>
                         <h3 className="text-sm font-extrabold text-white tracking-tight">
                           Institutional Excellence

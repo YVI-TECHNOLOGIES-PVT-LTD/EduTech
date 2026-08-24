@@ -48,9 +48,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative z-30">
         {/* School Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-2xl bg-[#E7B76A] text-[#063F40] flex items-center justify-center font-black text-sm shadow-md group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 text-[#063F40]" />
-          </div>
+          <img
+            src="/EduTrack_logo.png"
+            alt="EduTrack ERP"
+            className="w-9 h-9 object-contain rounded-xl shadow-md group-hover:scale-105 transition-transform"
+          />
           <span className="font-extrabold text-base tracking-tight text-white group-hover:text-[#E7B76A] transition-colors">
             EDUTRACK
           </span>
