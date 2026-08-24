@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: edutrack-api
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @edutrack/validation run build && pnpm --filter @edutrack/api run build
+    startCommand: pnpm --filter @edutrack/api run start
+    healthCheckPath: /health/live
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SYSTEM_MODE
+        value: PRODUCTION
+      - key: FRONTEND_URL
+        value: https://edutrackcom.netlify.app
+      - key: SUPABASE_ADMISSION_DOCUMENTS_BUCKET
+        value: admission-documents
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
