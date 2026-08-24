@@ -32,18 +32,26 @@ app.use(
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://edutrackcom.netlify.app',
   'https://appsms.netlify.app',
+  'https://edutrack-backend-0fyq.onrender.com',
   'https://appsms-076a.onrender.com',
-  env.FRONTEND_URL || '',
+  ...(env.FRONTEND_URL
+    ? env.FRONTEND_URL.split(',').map((url: string) => url.trim().replace(/\/+$/, ''))
+    : []),
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      const normalized = origin.replace(/\/+$/, '');
       const isLocal =
-        origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
-      if (isLocal || allowedOrigins.includes(origin)) {
+        normalized.startsWith('http://localhost:') || normalized.startsWith('http://127.0.0.1:');
+      const isNetlify = normalized.endsWith('.netlify.app');
+      const isOnRender = normalized.endsWith('.onrender.com');
+
+      if (isLocal || isNetlify || isOnRender || allowedOrigins.includes(normalized)) {
         callback(null, true);
       } else {
         callback(null, false);
