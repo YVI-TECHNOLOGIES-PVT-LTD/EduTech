@@ -23,7 +23,7 @@
 
 ---
 
-## 3. 8-Step Admission Application Wizard
+## 3. 8-Step Admission Application
 
 - [x] **Step 1 (Guidelines)**: Read admission criteria, check agreement box to unlock Step 2.
 - [x] **Step 2 (Student Info)**: Fill in student first name, last name, DOB, gender, nationality with live Zod validation.

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../../../context/AuthContext';
-import { ApplicationWizardPage } from '../ApplicationWizardPage';
+import { MyApplications } from '../MyApplications';
 import ReceptionistDashboard from './ReceptionistDashboard';
 import CounselorDashboard from './CounselorDashboard';
 import AdmissionOfficerDashboard from './AdmissionOfficerDashboard';
@@ -12,14 +12,13 @@ import { AlertCircle } from 'lucide-react';
 export function WorkspaceDashboard() {
   const { hasPermission, hasRole } = useAuth();
 
-  // Dispatch dashboard component based on permission profiles
+  // 1. Staff permission profiles prioritized
   if (
-    hasRole('PARENT') &&
-    (hasPermission('parent.dashboard.view') || hasPermission('student.dashboard.view'))
+    hasPermission('admission.enquiry.create') ||
+    hasRole('FRONT_OFFICE') ||
+    hasRole('FO') ||
+    hasRole('FRONT_OFFICE_STAFF')
   ) {
-    return <ApplicationWizardPage />;
-  }
-  if (hasPermission('admission.enquiry.create')) {
     return <ReceptionistDashboard />;
   }
   if (hasPermission('admission.leads.manage') && !hasPermission('admission.review')) {
@@ -28,14 +27,19 @@ export function WorkspaceDashboard() {
   if (hasPermission('admission.review') && hasPermission('admission.approve')) {
     return <AdmissionOfficerDashboard />;
   }
-  if (hasPermission('exam.dashboard.view')) {
+  if (hasPermission('exam.dashboard.view') || hasRole('EXAM_CELL_ADMIN')) {
     return <ExamCellDashboard />;
   }
-  if (hasPermission('admin.dashboard.view')) {
+  if (hasPermission('admin.dashboard.view') || hasRole('ADMIN') || hasRole('SUPER_ADMIN')) {
     return <PrincipalDashboard />;
   }
-  if (hasPermission('fees.dashboard.view')) {
+  if (hasPermission('fees.dashboard.view') || hasRole('FINANCE')) {
     return <FinanceDashboard />;
+  }
+
+  // 2. Pre-admission applicant persona fallback
+  if (hasRole('PARENT') || hasRole('GUARDIAN')) {
+    return <MyApplications />;
   }
 
   return (

@@ -25,6 +25,7 @@ import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWiz
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
 
+import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
 import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
@@ -42,7 +43,7 @@ export interface RouteConfig {
 }
 
 export const ROUTE_REGISTRY: RouteConfig[] = [
-  // PARENT PORTAL CANONICAL ROUTES (PARENT ADMISSION LAYOUT)
+  // ADMISSION PORTAL CANONICAL ROUTES (PRE-ADMISSION APPLICANT LAYOUT)
   { path: 'admissions/dashboard', element: <ParentDashboardPage />, layout: 'parent_admission' },
   { path: 'admissions/my', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'admissions/wizard', element: <ApplicationWizardPage />, layout: 'parent_admission' },
@@ -53,14 +54,14 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   { path: 'admissions/status', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
 
-  // PARENT ALIASES
-  { path: 'parent/dashboard', element: <MyApplications />, layout: 'parent_admission' },
+  // PARENT PORTAL CANONICAL ROUTES (POST-ADMISSION PARENT LAYOUT)
+  { path: 'parent/dashboard', element: <ParentDashboard />, layout: 'dashboard' },
+  { path: 'parent/my-child', element: <ParentDashboard />, layout: 'dashboard' },
   { path: 'parent/applications', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'parent/documents', element: <ParentDocumentCenterPage />, layout: 'parent_admission' },
   { path: 'parent/payments', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'parent/fees', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'parent/decision', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
-  { path: 'parent/my-child', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'parent/notifications', element: <MyApplications />, layout: 'parent_admission' },
 
   // SCHOOL OPERATIONS WORKSPACE (CONSOLIDATED INTERNAL STAFF)

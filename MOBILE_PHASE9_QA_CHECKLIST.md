@@ -25,7 +25,7 @@
 
 ---
 
-## 3. Admission Application Wizard (Items 16–35)
+## 3. Admission Application (Items 16–35)
 
 - [x] **16. Start New Application**: Initializes fresh draft wizard.
 - [x] **17. Guidelines Acceptance**: Checkbox unlocks Next button.

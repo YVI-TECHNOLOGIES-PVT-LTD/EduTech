@@ -11,7 +11,7 @@ export function ParentProfilePage() {
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex justify-between items-start">
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-indigo-500">
-            <span>PARENT PORTAL</span>
+            <span>ADMISSION PORTAL</span>
             <span>&gt;</span>
             <span>GUARDIAN PROFILE</span>
           </div>

@@ -117,20 +117,9 @@ export const PermissionGuard = ({ permission, children, fallback }: PermissionGu
   if (!hasPermission || !hasPermission(permission)) {
     if (fallback) return <>{fallback}</>;
 
-    // PARENT persona fallback route is always parent portal
-    if (hasRole('PARENT')) {
-      if (
-        location.pathname.startsWith('/app/admissions/my') ||
-        location.pathname.startsWith('/app/admissions/wizard') ||
-        location.pathname.startsWith('/app/parent')
-      ) {
-        return <>{children}</>;
-      }
-      return <Navigate to="/app/admissions/my" replace />;
-    }
-
-    const visible = getVisibleModules();
-    const targetRoute = LandingResolver.resolveLandingRoute(visible);
+    const userRoles =
+      user.roles && user.roles.length > 0 ? user.roles : [(user as any).role || 'PARENT'];
+    const targetRoute = LandingResolver.resolveLandingRoute(userRoles, getVisibleModules(), user);
 
     if (location.pathname === targetRoute) {
       return <Navigate to="/app/unauthorized" replace />;
@@ -177,20 +166,9 @@ export const AnyPermissionGuard = ({
   if (!allowed) {
     if (fallback) return <>{fallback}</>;
 
-    // PARENT persona fallback route is always parent portal
-    if (hasRole('PARENT')) {
-      if (
-        location.pathname.startsWith('/app/admissions/my') ||
-        location.pathname.startsWith('/app/admissions/wizard') ||
-        location.pathname.startsWith('/app/parent')
-      ) {
-        return <>{children}</>;
-      }
-      return <Navigate to="/app/admissions/my" replace />;
-    }
-
-    const visible = getVisibleModules();
-    const targetRoute = LandingResolver.resolveLandingRoute(visible);
+    const userRoles =
+      user.roles && user.roles.length > 0 ? user.roles : [(user as any).role || 'PARENT'];
+    const targetRoute = LandingResolver.resolveLandingRoute(userRoles, getVisibleModules(), user);
 
     if (location.pathname === targetRoute) {
       return <Navigate to="/app/unauthorized" replace />;

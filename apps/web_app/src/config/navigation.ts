@@ -50,7 +50,7 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
   {
     id: 'parent_main',
     title: 'Admissions Portal',
-    contextLabel: 'PARENT PORTAL',
+    contextLabel: 'ADMISSION PORTAL',
     items: [
       {
         id: 'p_dashboard',
@@ -59,7 +59,6 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
         icon: LayoutDashboard,
       },
       { id: 'p_my', title: 'My Applications', url: '/app/admissions/my', icon: FileText },
-      { id: 'p_wizard', title: 'New Application', url: '/app/admissions/wizard', icon: PlusCircle },
       {
         id: 'p_docs',
         title: 'Document Center',
@@ -72,6 +71,46 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
         title: 'Admission Status',
         url: '/app/admissions/status',
         icon: CheckCircle2,
+      },
+    ],
+  },
+];
+
+export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
+  {
+    id: 'parent_enrolled_main',
+    title: 'Parent Portal',
+    contextLabel: 'PARENT PORTAL',
+    items: [
+      {
+        id: 'p_enrolled_dashboard',
+        title: 'Dashboard',
+        url: '/app/parent/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        id: 'p_enrolled_my_child',
+        title: 'My Child',
+        url: '/app/parent/my-child',
+        icon: GraduationCap,
+      },
+      {
+        id: 'p_enrolled_fees',
+        title: 'Fee Payment',
+        url: '/app/parent/fees',
+        icon: CreditCard,
+      },
+      {
+        id: 'p_enrolled_docs',
+        title: 'Documents',
+        url: '/app/parent/documents',
+        icon: FolderCheck,
+      },
+      {
+        id: 'p_enrolled_admissions',
+        title: 'Admissions Desk',
+        url: '/app/admissions/my',
+        icon: ClipboardList,
       },
     ],
   },
@@ -348,7 +387,10 @@ export const GENERAL_NAVIGATION: NavigationGroup[] = [
   },
 ];
 
-export function getNavigationForUser(roles: string[] = []): NavigationGroup[] {
+export function getNavigationForUser(
+  roles: string[] = [],
+  isPostAdmission: boolean = false,
+): NavigationGroup[] {
   const normalizedRoles = roles.map((r) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
 
   if (
@@ -356,8 +398,11 @@ export function getNavigationForUser(roles: string[] = []): NavigationGroup[] {
     normalizedRoles.includes('FO') ||
     normalizedRoles.includes('STAFF') ||
     normalizedRoles.includes('ADMISSION_OFFICER') ||
+    normalizedRoles.includes('ADMISSIONS_OFFICER') ||
     normalizedRoles.includes('COUNSELLOR') ||
-    normalizedRoles.includes('FRONT_OFFICE_STAFF')
+    normalizedRoles.includes('COUNSELOR') ||
+    normalizedRoles.includes('FRONT_OFFICE_STAFF') ||
+    normalizedRoles.includes('FACULTY')
   ) {
     return FRONT_OFFICE_NAVIGATION;
   }
@@ -365,12 +410,16 @@ export function getNavigationForUser(roles: string[] = []): NavigationGroup[] {
   if (
     normalizedRoles.includes('ADMIN') ||
     normalizedRoles.includes('SUPERADMIN') ||
-    normalizedRoles.includes('SUPER_ADMIN')
+    normalizedRoles.includes('SUPER_ADMIN') ||
+    normalizedRoles.includes('ORG_ADMIN')
   ) {
     return ADMIN_NAVIGATION;
   }
 
-  if (normalizedRoles.includes('PARENT')) {
+  if (normalizedRoles.includes('PARENT') || normalizedRoles.includes('GUARDIAN')) {
+    if (isPostAdmission || normalizedRoles.includes('ENROLLED_PARENT')) {
+      return POST_ADMISSION_PARENT_NAVIGATION;
+    }
     return PARENT_NAVIGATION;
   }
 

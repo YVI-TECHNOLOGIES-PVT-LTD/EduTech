@@ -11,6 +11,7 @@ import { setPermissions } from '@/shared/store/permissionSlice';
 import { setActiveTenant } from '@/shared/store/tenantSlice';
 import { useLoginMutation } from '@/shared/api/auth.api';
 import { ROUTES } from '@/shared/constants/routes';
+import { LandingResolver } from '@/services/LandingResolver';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -107,37 +108,10 @@ export const LoginPage: React.FC = () => {
         );
       }
 
-      const normalizedRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
-      const isStaffUser = normalizedRoles.some((r: string) =>
-        [
-          'ADMIN',
-          'SUPERADMIN',
-          'SUPER_ADMIN',
-          'FRONT_OFFICE',
-          'FO',
-          'FRONT_OFFICE_STAFF',
-          'STAFF',
-          'ADMISSION_OFFICER',
-          'COUNSELLOR',
-          'COUNSELOR',
-          'HOI',
-          'PRINCIPAL',
-          'HEAD_OF_INSTITUTE',
-          'TEACHER',
-          'FINANCE',
-          'FINANCE_OFFICER',
-          'EXAM_CELL_ADMIN',
-          'EXAM_CELL',
-        ].includes(r),
-      );
-
-      if (isStaffUser) {
-        const dest = from && from !== '/app' && from !== '/login' ? from : '/app/workspace';
-        navigate(dest, { replace: true });
-      } else {
-        // Parent persona routes to Parent Portal applications dashboard
-        navigate('/app/admissions/my', { replace: true });
-      }
+      const targetDestination = LandingResolver.resolveLandingRoute(rawRoles, [], enrichedUser);
+      const dest =
+        from && from !== '/app' && from !== '/login' && from !== '/app/' ? from : targetDestination;
+      navigate(dest, { replace: true });
     } catch (err: any) {
       const status = err?.status || err?.data?.statusCode;
       const rawError =
@@ -201,9 +175,12 @@ export const LoginPage: React.FC = () => {
 
   return (
     <AuthLayout
-      badgeText={t('auth.login.title', 'Parent Portal Sign In')}
+      badgeText={t('auth.login.title', 'Institutional Sign In')}
       title={t('auth.login.title', 'Welcome back')}
-      subtitle={t('auth.login.subtitle', "Sign in to manage your child's admission journey and view updates")}
+      subtitle={t(
+        'auth.login.subtitle',
+        'Sign in to manage your institutional portal and view updates',
+      )}
     >
       <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
         {/* Error Alert Message */}
@@ -291,7 +268,10 @@ export const LoginPage: React.FC = () => {
             {...register('rememberMe')}
             className="h-4 w-4 rounded-md border-border text-[#063F40] focus:ring-[#063F40] dark:text-[#E7B76A] dark:focus:ring-[#E7B76A] cursor-pointer"
           />
-          <label htmlFor="remember-me" className="ms-2 block text-xs font-bold text-foreground cursor-pointer">
+          <label
+            htmlFor="remember-me"
+            className="ms-2 block text-xs font-bold text-foreground cursor-pointer"
+          >
             {t('auth.login.rememberMe', 'Remember this device for 30 days')}
           </label>
         </div>

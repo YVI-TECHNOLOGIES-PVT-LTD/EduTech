@@ -116,7 +116,7 @@ export const ParentDashboardPage: React.FC = () => {
         <div className="space-y-2 max-w-2xl z-10">
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold border border-white/20">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Parent Self-Service Portal</span>
+            <span>Admission Self-Service Portal</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Welcome back, {parentName}

@@ -139,10 +139,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       : (user as any)?.role
         ? [(user as any).role]
         : ['PARENT'];
-  const navGroups = getNavigationForUser(userRoles);
+  const isPostAdmission = Boolean(
+    (user as any)?.hasEnrolledStudent ||
+    (user as any)?.isPostAdmission ||
+    userRoles.includes('ENROLLED_PARENT'),
+  );
+  const navGroups = getNavigationForUser(userRoles, isPostAdmission);
   const currentPath = location.pathname;
 
-  const contextLabel = navGroups[0]?.contextLabel || 'EDUTRACK PORTAL';
+  const contextLabel = navGroups[0]?.contextLabel || 'ADMISSION PORTAL';
 
   // Expanded state loaded from localStorage
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
