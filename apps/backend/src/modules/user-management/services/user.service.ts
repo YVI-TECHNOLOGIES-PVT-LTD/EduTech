@@ -10,6 +10,8 @@ import { UserMapper } from '../mappers/user.mapper';
 import { UserResponseDto, PaginatedResponse } from '../dto/response/user.response.dto';
 import { UserEvents, UserEventType } from '../events/user.events';
 import { logger } from '../../../utils/logger';
+import { UserAvatarRepository } from '../repositories/user-avatar.repository';
+import { UserAvatarService } from './user-avatar.service';
 
 export class UserService {
   static async createUser(
@@ -48,7 +50,14 @@ export class UserService {
     if (!user) {
       throw new UserNotFoundError(id);
     }
-    return UserMapper.toUserResponseDto(user);
+    const dto = UserMapper.toUserResponseDto(user);
+    try {
+      const avatarPath = await UserAvatarRepository.getAvatarPath(id);
+      dto.avatar_url = await UserAvatarService.getAvatarSignedUrl(avatarPath);
+    } catch (aErr) {
+      dto.avatar_url = null;
+    }
+    return dto;
   }
 
   static async updateUser(

@@ -138,4 +138,70 @@ export class StorageService {
       logger.warn(`[StorageService] Error removing storage object ${path}`, { error: err.message });
     }
   }
+
+  /**
+   * Download binary buffer from a private storage bucket
+   */
+  static async downloadFile(
+    path: string,
+    bucket?: string,
+  ): Promise<{ buffer: Buffer; mimeType: string }> {
+    const targetBucket = bucket || this.defaultBucket;
+    const cleanPath = path.trim().replace(/^[/\\]+/, '');
+    const { data, error } = await supabase.storage.from(targetBucket).download(cleanPath);
+    if (error || !data) {
+      logger.error(`[StorageService] Failed to download object ${cleanPath} from ${targetBucket}`, {
+        error: error?.message,
+      });
+      throw new Error(`Storage download failed: ${error?.message || 'Object not found'}`);
+    }
+    const arrayBuffer = await data.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const mimeType = data.type || 'application/octet-stream';
+    return { buffer, mimeType };
+  }
+
+  /**
+   * Copy an object from source bucket/path to destination bucket/path without modifying/deleting source
+   */
+  static async copyFile(params: {
+    fromBucket: string;
+    fromPath: string;
+    toBucket: string;
+    toPath: string;
+  }): Promise<{ path: string }> {
+    const { fromBucket, fromPath, toBucket, toPath } = params;
+    const cleanFromPath = fromPath.trim().replace(/^[/\\]+/, '');
+    const cleanToPath = toPath.trim().replace(/^[/\\]+/, '');
+
+    try {
+      const { error } = await supabase.storage
+        .from(fromBucket)
+        .copy(cleanFromPath, cleanToPath, { destinationBucket: toBucket });
+
+      if (!error) {
+        logger.info(
+          `[StorageService] Object copied successfully from ${fromBucket}/${cleanFromPath} to ${toBucket}/${cleanToPath}`,
+        );
+        return { path: cleanToPath };
+      }
+      logger.info(
+        `[StorageService] Server-side copy fallback (download/upload) for ${cleanFromPath}: ${error.message}`,
+      );
+    } catch (err: any) {
+      logger.info(
+        `[StorageService] Copy exception, using download/upload fallback: ${err.message}`,
+      );
+    }
+
+    const downloaded = await this.downloadFile(cleanFromPath, fromBucket);
+    await this.uploadFile({
+      bucket: toBucket,
+      path: cleanToPath,
+      buffer: downloaded.buffer,
+      mimeType: downloaded.mimeType,
+    });
+
+    return { path: cleanToPath };
+  }
 }

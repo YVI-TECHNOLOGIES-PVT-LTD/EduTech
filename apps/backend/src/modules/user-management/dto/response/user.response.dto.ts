@@ -11,6 +11,7 @@ export interface UserResponseDto {
   email: string;
   phone: string;
   status: user_status;
+  avatar_url?: string | null;
   last_login_at: string | null;
   roles: RoleResponseDto[];
   created_at: string;

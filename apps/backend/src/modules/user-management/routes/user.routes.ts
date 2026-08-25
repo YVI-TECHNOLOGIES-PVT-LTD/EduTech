@@ -7,9 +7,19 @@ import { UserRoleController } from '../controllers/user-role.controller';
 import { UserAnalyticsController } from '../controllers/user-analytics.controller';
 import { UserPolicy } from '../policies/user.policy';
 
+import { uploadSingleMiddleware } from '../../../middlewares/upload.middleware';
+import { UserAvatarController } from '../controllers/user-avatar.controller';
+
 export const userRouter = Router();
 
+// Profile Photo Avatar Routes (Self-Service & Admin/Staff)
+userRouter.post('/me/avatar', uploadSingleMiddleware, UserAvatarController.uploadCurrent);
+userRouter.delete('/me/avatar', UserAvatarController.deleteCurrent);
+userRouter.post('/:id/avatar', uploadSingleMiddleware, UserAvatarController.uploadById);
+userRouter.delete('/:id/avatar', UserAvatarController.deleteById);
+
 // Analytics & Dashboard
+
 userRouter.get(
   '/dashboard',
   checkPermission(UserPolicy.canView()),

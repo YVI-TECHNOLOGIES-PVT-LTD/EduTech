@@ -630,6 +630,9 @@ router.post(
 );
 
 // 1. GET /me & GET /auth/me
+import { UserAvatarRepository } from './modules/user-management/repositories/user-avatar.repository';
+import { UserAvatarService } from './modules/user-management/services/user-avatar.service';
+
 const handleMe = async (req: Request, res: Response) => {
   try {
     const userObj = req.context!.user;
@@ -641,9 +644,19 @@ const handleMe = async (req: Request, res: Response) => {
       hostel: false,
     };
 
+    let avatar_url: string | null = null;
+    try {
+      const avatarPath = await UserAvatarRepository.getAvatarPath(userObj.id);
+      avatar_url = await UserAvatarService.getAvatarSignedUrl(avatarPath);
+    } catch (aErr) {
+      // Non-fatal fallback if avatar resolution fails
+      avatar_url = null;
+    }
+
     res.json({
       user: {
         ...userObj,
+        avatar_url,
         enabledFeatures,
       },
     });
