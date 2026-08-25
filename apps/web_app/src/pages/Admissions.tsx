@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle,
@@ -9,52 +9,56 @@ import {
   DollarSign,
   Clock,
   Award,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
-import SectionHeader from "@/components/common/SectionHeader";
-import { EXTERNAL_URLS } from "@/lib/public-constants";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AnimatedSection,
+  StaggerContainer,
+  StaggerItem,
+} from '@/components/common/AnimatedSection';
+import SectionHeader from '@/components/common/SectionHeader';
+import { EXTERNAL_URLS } from '@/lib/public-constants';
 import { Card } from '@/components/ui/card';
-import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
+import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
 
 const admissionHighlights = [
   {
     icon: Calendar,
-    title: "Rolling Admissions",
-    description: "We accept applications year-round with multiple intake periods.",
+    title: 'Rolling Admissions',
+    description: 'We accept applications year-round with multiple intake periods.',
   },
   {
     icon: FileText,
-    title: "Simple Process",
-    description: "Streamlined application with online submission and tracking.",
+    title: 'Simple Process',
+    description: 'Streamlined application with online submission and tracking.',
   },
   {
     icon: Users,
-    title: "Personal Interviews",
+    title: 'Personal Interviews',
     description: "One-on-one sessions to understand each student's potential.",
   },
   {
     icon: DollarSign,
-    title: "Financial Aid",
-    description: "Merit-based scholarships and need-based financial assistance.",
+    title: 'Financial Aid',
+    description: 'Merit-based scholarships and need-based financial assistance.',
   },
 ];
 
 const importantDates = [
-  { event: "Early Admission Opens", date: "October 1, 2026" },
-  { event: "Early Admission Deadline", date: "December 15, 2026" },
-  { event: "Regular Admission Opens", date: "January 1,  2026" },
-  { event: "Regular Admission Deadline", date: "March 31,  2026" },
-  { event: "Financial Aid Applications", date: "April 15,  2026" },
-  { event: "New Academic Year Begins", date: "August 15,  2026" },
+  { event: 'Early Admission Opens', date: 'October 1, 2026' },
+  { event: 'Early Admission Deadline', date: 'December 15, 2026' },
+  { event: 'Regular Admission Opens', date: 'January 1,  2026' },
+  { event: 'Regular Admission Deadline', date: 'March 31,  2026' },
+  { event: 'Financial Aid Applications', date: 'April 15,  2026' },
+  { event: 'New Academic Year Begins', date: 'August 15,  2026' },
 ];
 
 const whyJoin = [
-  "World-class faculty and small class sizes",
-  "State-of-the-art facilities and technology",
-  "Comprehensive extracurricular programs",
-  "Diverse and inclusive community",
-  "Individual attention and mentorship",
+  'World-class faculty and small class sizes',
+  'State-of-the-art facilities and technology',
+  'Comprehensive extracurricular programs',
+  'Diverse and inclusive community',
+  'Individual attention and mentorship',
 ];
 
 export default function Admissions() {
@@ -68,9 +72,9 @@ export default function Admissions() {
         description="Join a community of learners where every student is valued, challenged, and supported to achieve their fullest potential."
         backgroundImage="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop"
         imagePosition="object-[60%_center]"
-        metadataItems={["Enquiry", "Application", "Enrollment"]}
+        metadataItems={['Enquiry', 'Application', 'Enrollment']}
         primaryAction={{
-          label: "Start Application",
+          label: 'Start Application',
           href: EXTERNAL_URLS.ADMISSION_REGISTRATION,
         }}
       />
@@ -86,7 +90,9 @@ export default function Admissions() {
                     <item.icon className="w-7 h-7 text-[#E7B76A]" />
                   </div>
                   <h3 className="font-bold text-foreground text-base mb-2">{item.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    {item.description}
+                  </p>
                 </Card>
               </StaggerItem>
             ))}
@@ -128,20 +134,18 @@ export default function Admissions() {
               <Card className="p-8 rounded-2xl bg-card border border-border/80 shadow-xs space-y-6">
                 <div className="text-center">
                   <Award className="w-16 h-16 text-[#063F40] mx-auto mb-4" />
-                  <h3 className="font-extrabold text-2xl text-foreground">
-                    Merit Scholarships
-                  </h3>
+                  <h3 className="font-extrabold text-2xl text-foreground">Merit Scholarships</h3>
                   <p className="text-muted-foreground text-xs mt-2">
-                    We offer generous scholarships to recognize academic excellence
-                    and special talents.
+                    We offer generous scholarships to recognize academic excellence and special
+                    talents.
                   </p>
                 </div>
                 <div className="space-y-3">
                   {[
-                    "Academic Excellence Award - Up to 100% tuition",
-                    "Sports Scholarship - Up to 50% tuition",
-                    "Arts & Music Scholarship - Up to 50% tuition",
-                    "Need-Based Financial Aid - Varies",
+                    'Academic Excellence Award - Up to 100% tuition',
+                    'Sports Scholarship - Up to 50% tuition',
+                    'Arts & Music Scholarship - Up to 50% tuition',
+                    'Need-Based Financial Aid - Varies',
                   ].map((scholarship) => (
                     <div key={scholarship} className="flex items-center gap-2.5 text-xs sm:text-sm">
                       <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -170,18 +174,24 @@ export default function Admissions() {
               Ready to Take the First Step?
             </h2>
             <p className="text-emerald-100/90 max-w-2xl mx-auto leading-relaxed font-normal text-sm sm:text-base">
-              Our admissions team is here to guide you through every step of the process.
-              Start your application today or schedule a campus visit.
+              Our admissions team is here to guide you through every step of the process. Start your
+              application today or schedule a campus visit.
             </p>
             <div className="flex flex-wrap justify-center gap-4 pt-2">
               <Link to={EXTERNAL_URLS.ADMISSION_REGISTRATION}>
-                <Button size="lg" className="font-bold bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center space-x-2 rounded-xl h-11 px-6">
+                <Button
+                  size="lg"
+                  className="font-bold bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center space-x-2 rounded-xl h-11 px-6"
+                >
                   <span>Start Application</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
               <Link to="/contact">
-                <Button variant="outline" size="lg" className="font-bold border-white/20 text-white hover:bg-white/10 rounded-xl h-11 px-6">
+                <Button
+                  size="lg"
+                  className="font-bold bg-white/10 hover:bg-[#E7B76A] text-white hover:text-[#063F40] border border-white/20 hover:border-[#E7B76A] focus-visible:ring-2 focus-visible:ring-[#E7B76A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#063F40] active:bg-[#d8a658] active:text-[#063F40] transition-all duration-200 rounded-xl h-11 px-6 shadow-xs"
+                >
                   Schedule a Visit
                 </Button>
               </Link>
@@ -192,4 +202,3 @@ export default function Admissions() {
     </div>
   );
 }
-
