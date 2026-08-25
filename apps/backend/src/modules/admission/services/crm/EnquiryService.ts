@@ -61,7 +61,7 @@ export class EnquiryService extends BaseService {
       studentName,
       validated.grade_applied_for,
       validated.parent_name,
-      validated.parent_email,
+      validated.parent_email || '',
       validated.parent_phone,
       'website' as EnquirySource,
       'new',
@@ -116,7 +116,7 @@ export class EnquiryService extends BaseService {
         ? validated.grade_applied_for
         : existing.gradeAppliedFor,
       validated.parent_name !== undefined ? validated.parent_name : existing.parentName,
-      validated.parent_email !== undefined ? validated.parent_email : existing.parentEmail,
+      validated.parent_email !== undefined ? validated.parent_email || '' : existing.parentEmail,
       validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone,
       validated.source !== undefined ? (validated.source as EnquirySource) : existing.source,
       existing.status,
