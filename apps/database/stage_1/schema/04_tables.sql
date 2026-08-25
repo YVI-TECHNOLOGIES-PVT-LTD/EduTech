@@ -1326,3 +1326,19 @@ CREATE TABLE public.notifications (
         REFERENCES public.users (user_id)
         ON DELETE CASCADE
 );
+
+
+CREATE TABLE public.countries (
+    country_id uuid NOT NULL DEFAULT gen_random_uuid(),
+    country_code character varying(2) NOT NULL,       -- ISO 3166-1 alpha-2: IN, US, GB
+    country_name character varying(100) NOT NULL,
+    calling_code character varying(10) NOT NULL,      -- +91, +1, +44
+    is_active boolean NOT NULL DEFAULT true,
+
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+
+    CONSTRAINT countries_pkey PRIMARY KEY (country_id),
+    CONSTRAINT countries_country_code_key UNIQUE (country_code),
+    CONSTRAINT countries_country_name_key UNIQUE (country_name)
+);
