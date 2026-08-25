@@ -4,6 +4,7 @@ import { application_status, lead_stage, lead_source, Prisma } from '@prisma/cli
 import { ValidationError } from '../../errors/ValidationError';
 import { BusinessRuleError } from '../../errors/BusinessRuleError';
 import { resolveCountryAndPhone } from '../../../../utils/country-resolver';
+import { LeadIdentityResolver } from '../../../lead-management/services/lead.identity-resolver.service';
 
 export interface CanonicalPublicApplicationPayload {
   school_id?: string;
@@ -356,69 +357,105 @@ export class PublicApplicationService {
         });
       }
 
-      // c. Create Lead record with unique lead_number check
-      const year = new Date().getFullYear();
-      const leadCount = await tx.leads.count();
-      let leadSeq = leadCount + 1;
-      let leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
-      while (await tx.leads.findUnique({ where: { lead_number: leadNumber } })) {
-        leadSeq++;
-        leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
-      }
-
+      // c. Resolve Lead deterministically using centralized LeadIdentityResolver
       const parsedDob = canonical.date_of_birth ? new Date(canonical.date_of_birth) : undefined;
       const validDob = parsedDob && !isNaN(parsedDob.getTime()) ? parsedDob : undefined;
 
-      const lead = await tx.leads.create({
-        data: {
-          org_id: finalOrgId,
-          parent_id: parentRecord.parent_id,
-          lead_number: leadNumber,
-          academic_year_grade_id: targetAyg.academic_year_grade_id,
-          student_first_name: rawStudentFirst || 'Applicant',
-          student_last_name: rawStudentLast || undefined,
-          dob: validDob,
-          gender: canonical.gender as any,
-          curriculum_preference: canonical.curriculum_preference,
-          scholarship_interest: Boolean(canonical.scholarship_interest),
-          contact_name: targetParentName || 'Parent User',
-          contact_relationship: (canonical.contact_relationship as any) || 'father',
-          contact_phone: phone,
-          contact_email: targetEmail,
-          source: lead_source.website,
-          stage: lead_stage.application_submitted,
-          remarks: canonical.remarks,
-          created_by: user.user_id,
+      const resolution = await LeadIdentityResolver.resolveLead(
+        {
+          parentId: parentRecord.parent_id,
+          orgId: finalOrgId,
+          userId: user.user_id,
+          parentName: targetParentName || 'Parent User',
+          parentPhone: phone,
+          parentEmail: targetEmail,
+          contactRelationship: canonical.contact_relationship || 'father',
         },
-      });
-      console.log(`[PUBLIC-APPLY] lead created: ${lead.lead_id} (${lead.lead_number})`);
+        {
+          firstName: rawStudentFirst || 'Applicant',
+          lastName: rawStudentLast || undefined,
+          dateOfBirth: validDob,
+          gender: canonical.gender,
+          academicYearGradeId: targetAyg.academic_year_grade_id,
+          curriculumPreference: canonical.curriculum_preference,
+          scholarshipInterest: Boolean(canonical.scholarship_interest),
+          remarks: canonical.remarks,
+        },
+        {
+          performedBy: user.user_id,
+          tx,
+        },
+      );
 
-      // d. Create Admissions Application record with unique application_number check
-      const appCount = await tx.admissions_applications.count();
-      let appSeq = appCount + 1;
-      let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-      while (
-        await tx.admissions_applications.findUnique({
-          where: { application_number: applicationNumber },
-        })
-      ) {
-        appSeq++;
-        applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+      if (resolution.resolutionType === 'AMBIGUOUS') {
+        throw new ValidationError(
+          resolution.reason ||
+            'Multiple existing children match this name under your account. Please provide the Date of Birth or select the child directly.',
+        );
       }
 
-      const application = await tx.admissions_applications.create({
-        data: {
-          lead_id: lead.lead_id,
+      const lead = resolution.lead;
+      if (!lead) {
+        throw new ValidationError('Failed to resolve or create a valid Lead record for this child');
+      }
+
+      console.log(
+        `[PUBLIC-APPLY] lead resolved (${resolution.resolutionType}): ${lead.lead_id} (${lead.lead_number})`,
+      );
+
+      // d. Authoritative Lead -> Application 1:1 check
+      // If an application already exists for this resolved Lead, return it idempotently
+      let application = await tx.admissions_applications.findFirst({
+        where: {
           org_id: finalOrgId,
-          academic_year_id: finalAcademicYearId,
-          application_number: applicationNumber,
-          application_date: new Date(),
-          status: application_status.submitted,
-          created_by: user.user_id,
+          lead_id: lead.lead_id,
         },
       });
+
+      if (!application) {
+        // Create Admissions Application record with unique application_number check
+        const year = new Date().getFullYear();
+        const appCount = await tx.admissions_applications.count();
+        let appSeq = appCount + 1;
+        let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+        while (
+          await tx.admissions_applications.findUnique({
+            where: { application_number: applicationNumber },
+          })
+        ) {
+          appSeq++;
+          applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+        }
+
+        try {
+          application = await tx.admissions_applications.create({
+            data: {
+              lead_id: lead.lead_id,
+              org_id: finalOrgId,
+              academic_year_id: finalAcademicYearId,
+              application_number: applicationNumber,
+              application_date: new Date(),
+              status: application_status.submitted,
+              created_by: user.user_id,
+            },
+          });
+        } catch (createErr: any) {
+          if (createErr.code === 'P2002') {
+            application = await tx.admissions_applications.findFirst({
+              where: {
+                org_id: finalOrgId,
+                lead_id: lead.lead_id,
+              },
+            });
+            if (!application) throw createErr;
+          } else {
+            throw createErr;
+          }
+        }
+      }
+
       console.log(
-        `[PUBLIC-APPLY] application created: ${application.application_id} (${application.application_number})`,
+        `[PUBLIC-APPLY] application ready: ${application.application_id} (${application.application_number})`,
       );
       console.log('[PUBLIC-APPLY] transaction committed');
 

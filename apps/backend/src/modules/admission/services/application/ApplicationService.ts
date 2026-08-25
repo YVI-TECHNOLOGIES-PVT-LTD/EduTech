@@ -16,6 +16,7 @@ import { NotFoundError } from '../../errors/NotFoundError';
 import { ValidationError } from '../../errors/ValidationError';
 import { BusinessRuleError } from '../../errors/BusinessRuleError';
 import { AuditService } from '../AuditService';
+import { LeadIdentityResolver } from '../../../lead-management/services/lead.identity-resolver.service';
 
 import { ApplicationWorkflowOrchestrator } from './ApplicationWorkflowOrchestrator';
 
@@ -109,154 +110,49 @@ export class ApplicationService extends BaseService {
         })
       : null;
 
-    // Resolve or reuse existing Lead record (Parent + Child matching)
-    let leadId = payload.lead_id || validated.lead_id;
-    let lead: any = null;
+    // Resolve Lead deterministically using centralized LeadIdentityResolver
+    const resolution = await LeadIdentityResolver.resolveLead(
+      {
+        parentId: parentRec?.parent_id || null,
+        orgId: targetOrgId,
+        userId: createdBy,
+        parentName: payload.parent_name,
+        parentPhone: payload.parent_phone,
+        parentEmail: payload.parent_email,
+      },
+      {
+        firstName: payload.student_first_name || payload.student_name || 'Applicant',
+        lastName: payload.student_last_name || undefined,
+        dateOfBirth:
+          payload.date_of_birth && !isNaN(new Date(payload.date_of_birth).getTime())
+            ? new Date(payload.date_of_birth)
+            : undefined,
+        gender: payload.gender,
+        academicYearGradeId: payload.academic_year_grade_id,
+        curriculumPreference: payload.curriculum_preference,
+        scholarshipInterest: payload.scholarship_interest,
+        remarks: payload.remarks,
+      },
+      {
+        targetLeadId: payload.lead_id || validated.lead_id || undefined,
+        isNewChild: Boolean(payload.is_new_child),
+        performedBy: createdBy,
+      },
+    );
 
-    if (leadId) {
-      lead = await prisma.leads.findUnique({ where: { lead_id: leadId } });
+    if (resolution.resolutionType === 'AMBIGUOUS') {
+      throw new ValidationError(
+        resolution.reason ||
+          'Multiple existing children match this name under your account. Please provide the Date of Birth or select the child directly.',
+      );
     }
 
-    const inputFirstName = (payload.student_first_name || payload.student_name || '')
-      .trim()
-      .toLowerCase();
-
-    if (!lead && !payload.is_new_child) {
-      const orConditions: any[] = [];
-      if (parentRec?.parent_id) {
-        orConditions.push({ parent_id: parentRec.parent_id });
-      }
-      if (createdBy) {
-        orConditions.push({ created_by: createdBy });
-      }
-      if (payload.parent_email) {
-        orConditions.push({ contact_email: payload.parent_email });
-      }
-
-      if (orConditions.length > 0) {
-        const candidates = await prisma.leads.findMany({
-          where: { org_id: targetOrgId, OR: orConditions },
-          include: {
-            admissions_applications: {
-              select: { application_id: true, status: true },
-            },
-          },
-          orderBy: { created_at: 'asc' },
-        });
-
-        if (candidates.length > 0) {
-          if (inputFirstName) {
-            // First check if an existing lead belongs specifically to this child
-            const matchedChild = candidates.find((c) => {
-              const fn = (c.student_first_name || '').trim().toLowerCase();
-              return (
-                fn === inputFirstName &&
-                !['applicant', 'student', ''].includes(fn) &&
-                !fn.endsWith("'s ward")
-              );
-            });
-
-            if (matchedChild) {
-              lead = matchedChild;
-            } else if (parentRec?.parent_id) {
-              // If no child match, check for an unassigned/registration-created Lead under this parent
-              const unassignedLead = candidates.find((c) => {
-                const fn = (c.student_first_name || '').trim().toLowerCase();
-                const isPlaceholder =
-                  ['applicant', 'student', ''].includes(fn) || fn.endsWith("'s ward");
-                const hasNoActiveApps =
-                  !c.admissions_applications ||
-                  c.admissions_applications.length === 0 ||
-                  c.admissions_applications.every(
-                    (a: any) => a.status === 'draft' || a.status === 'withdrawn',
-                  );
-                return c.parent_id === parentRec.parent_id && isPlaceholder && hasNoActiveApps;
-              });
-              if (unassignedLead) {
-                lead = unassignedLead;
-              }
-            }
-          } else {
-            // Match latest lead only if it has an active DRAFT application
-            const candidate = candidates[0];
-            const draftApp = candidate.admissions_applications?.find(
-              (a: any) => a.status === 'draft',
-            );
-            if (draftApp) {
-              lead = candidate;
-            }
-          }
-        }
-      }
+    const resolvedLead = resolution.lead;
+    if (!resolvedLead) {
+      throw new ValidationError('Failed to resolve or create a valid Lead record for this child');
     }
 
-    const dob =
-      payload.date_of_birth && !isNaN(new Date(payload.date_of_birth).getTime())
-        ? new Date(payload.date_of_birth)
-        : undefined;
-
-    if (lead) {
-      leadId = lead.lead_id;
-      // Update existing lead with latest student/contact fields
-      const updateData: any = {
-        student_first_name:
-          payload.student_first_name || payload.student_name || lead.student_first_name,
-        student_last_name: payload.student_last_name || lead.student_last_name || undefined,
-        dob: dob || lead.dob,
-        contact_name: payload.parent_name || lead.contact_name,
-        contact_phone: payload.parent_phone || lead.contact_phone,
-        contact_email: payload.parent_email || lead.contact_email,
-      };
-      if (payload.gender) {
-        updateData.gender = payload.gender.toLowerCase() as any;
-      }
-      if (parentRec?.parent_id) {
-        updateData.parent_id = parentRec.parent_id;
-      }
-
-      await prisma.leads.update({
-        where: { lead_id: leadId },
-        data: updateData,
-      });
-    } else {
-      const year = new Date().getFullYear();
-      const leadCount = await prisma.leads.count();
-      const leadNumber = `LEAD-${year}-${String(leadCount + 1).padStart(5, '0')}`;
-      const ayg =
-        (await prisma.academic_year_grades.findFirst({
-          where: { academic_year_id: targetAyId },
-        })) ||
-        (await prisma.academic_year_grades.findFirst({
-          where: { is_active: true },
-        })) ||
-        (await prisma.academic_year_grades.findFirst());
-
-      const targetAygId = payload.academic_year_grade_id || ayg?.academic_year_grade_id;
-
-      const createData: any = {
-        org_id: targetOrgId,
-        lead_number: leadNumber,
-        academic_year_grade_id: targetAygId!,
-        student_first_name: payload.student_first_name || payload.student_name || 'Applicant',
-        student_last_name: payload.student_last_name || undefined,
-        dob: dob,
-        gender: payload.gender ? (payload.gender.toLowerCase() as any) : undefined,
-        contact_name: payload.parent_name || 'Parent User',
-        contact_phone: payload.parent_phone || '0000000000',
-        contact_email: payload.parent_email || 'parent@example.com',
-        source: 'website' as any,
-        stage: 'application_submitted' as any,
-        created_by: createdBy || undefined,
-      };
-      if (parentRec?.parent_id) {
-        createData.parent_id = parentRec.parent_id;
-      }
-
-      const newLead = await prisma.leads.create({
-        data: createData,
-      });
-      leadId = newLead.lead_id;
-    }
+    const leadId = resolvedLead.lead_id;
 
     // Check duplicate application prevention
     const existingApp = await prisma.admissions_applications.findFirst({

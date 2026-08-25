@@ -25,6 +25,7 @@ export * from './services/lead.service';
 export * from './services/lead.lifecycle.service';
 export * from './services/lead.assignment.service';
 export * from './services/lead.activity.service';
+export * from './services/lead.identity-resolver.service';
 export * from './controllers/lead.controller';
 export * from './controllers/lead-activity.controller';
 export * from './routes/lead.routes';

@@ -1,5 +1,13 @@
 import React from 'react';
-import { FileCheck, AlertCircle, UploadCloud, Trash2, Eye, RefreshCw, FileText } from 'lucide-react';
+import {
+  FileCheck,
+  AlertCircle,
+  UploadCloud,
+  Trash2,
+  Eye,
+  RefreshCw,
+  FileText,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +20,14 @@ export interface DocumentVerificationCardProps {
   uploaded?: {
     file_name: string;
     file_size: string;
-    status: 'VERIFIED' | 'IN REVIEW' | 'ACTION NEEDED' | 'REJECTED' | 'APPROVED' | 'NOT_UPLOADED' | string;
+    status:
+      | 'VERIFIED'
+      | 'IN REVIEW'
+      | 'ACTION NEEDED'
+      | 'REJECTED'
+      | 'APPROVED'
+      | 'NOT_UPLOADED'
+      | string;
     reason?: string;
     url?: string;
   };
@@ -40,34 +55,49 @@ export const DocumentVerificationCard: React.FC<DocumentVerificationCardProps> =
   const getStatusBadge = () => {
     if (!isUploaded) {
       return (
-        <Badge variant="outline" className="text-[10px] font-black uppercase text-slate-400 border-slate-200">
+        <Badge
+          variant="outline"
+          className="text-[10px] font-black uppercase text-slate-400 border-slate-200"
+        >
           NOT UPLOADED
         </Badge>
       );
     }
     if (isVerified) {
       return (
-        <Badge variant="outline" className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+        <Badge
+          variant="outline"
+          className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+        >
           VERIFIED ✓
         </Badge>
       );
     }
     if (isInReview) {
       return (
-        <Badge variant="outline" className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+        <Badge
+          variant="outline"
+          className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+        >
           IN REVIEW ⏳
         </Badge>
       );
     }
     if (isActionNeeded) {
       return (
-        <Badge variant="outline" className="text-[10px] font-black uppercase text-red-700 bg-red-50 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800">
+        <Badge
+          variant="outline"
+          className="text-[10px] font-black uppercase text-red-700 bg-red-50 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800"
+        >
           ACTION NEEDED ⚠
         </Badge>
       );
     }
     return (
-      <Badge variant="outline" className="text-[10px] font-black uppercase text-slate-600 border-slate-200">
+      <Badge
+        variant="outline"
+        className="text-[10px] font-black uppercase text-slate-600 border-slate-200"
+      >
         {status}
       </Badge>
     );
@@ -138,36 +168,26 @@ export const DocumentVerificationCard: React.FC<DocumentVerificationCardProps> =
               variant="outline"
               size="sm"
               onClick={onView}
-              className="h-9 px-3 text-xs font-bold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50"
+              className="h-9 px-3 text-xs font-bold rounded-xl border-border text-foreground hover:bg-muted"
             >
               <Eye className="w-3.5 h-3.5 mr-1" />
               <span>View</span>
             </Button>
           )}
 
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={onUpload}
-              className="hidden"
-            />
-            <span className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center justify-center space-x-1.5 shadow-xs">
-              <UploadCloud className="w-3.5 h-3.5" />
-              <span>{isActionNeeded ? 'Re-upload' : isUploaded ? 'Replace' : 'Upload'}</span>
-            </span>
-          </label>
-
-          {isUploaded && onRemove && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              className="h-9 px-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl"
-              title="Remove Document"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+          {(!isUploaded || isActionNeeded) && (
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={onUpload}
+                className="hidden"
+              />
+              <span className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center justify-center space-x-1.5 shadow-xs">
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>{isActionNeeded ? 'Resubmit Document' : 'Upload'}</span>
+              </span>
+            </label>
           )}
         </div>
       </div>

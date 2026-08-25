@@ -70,7 +70,7 @@ export const LandingPage: React.FC = () => {
                 size="lg"
                 className="px-8 font-bold border-white/20 text-white hover:bg-white/10 rounded-xl text-xs sm:text-sm h-12"
               >
-                <span>Parent Portal Sign In</span>
+                <span>Admission Portal Sign In</span>
               </Button>
 
               <Button
@@ -562,8 +562,8 @@ export const LandingPage: React.FC = () => {
             </AccordionTrigger>
             <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
               Register a Guardian Account (`/admission/register`), verify your OTP
-              (`/admission/register/otp`), and log in to the Parent Portal (`/app/admissions/my`) to
-              view real-time status and submit required documents.
+              (`/admission/register/otp`), and log in to the Admission Portal (`/app/admissions/my`)
+              to view real-time status and submit required documents.
             </AccordionContent>
           </AccordionItem>
 
@@ -573,7 +573,7 @@ export const LandingPage: React.FC = () => {
             </AccordionTrigger>
             <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
               Yes, parents can view itemized fee statements, pay online, and download official fee
-              receipts directly from the Parent Portal Fees section (`/app/admissions/fees`).
+              receipts directly from the Admission Portal Fees section (`/app/admissions/fees`).
             </AccordionContent>
           </AccordionItem>
 

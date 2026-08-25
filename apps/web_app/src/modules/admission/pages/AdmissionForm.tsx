@@ -520,7 +520,7 @@ export const AdmissionForm = () => {
               onClick={() => navigate('/login')}
               className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all hover:scale-105"
             >
-              Log In to Parent Portal
+              Log In to Admission Portal
             </button>
             <button
               onClick={() => window.location.reload()}
@@ -924,7 +924,7 @@ export const AdmissionForm = () => {
 
                 <div className="p-4 bg-blue-100/50 border border-blue-200 rounded-xl text-sm text-blue-800 font-medium flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-                  <span>Create a parent portal password to track your application status.</span>
+                  <span>Create an admission portal password to track your application status.</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

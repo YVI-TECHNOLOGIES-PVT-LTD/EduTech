@@ -65,7 +65,7 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
         url: '/app/admissions/documents',
         icon: FolderCheck,
       },
-      { id: 'p_fees', title: 'Fee Payment', url: '/app/parent/fees', icon: CreditCard },
+      { id: 'p_fees', title: 'Fee Payment', url: '/app/admissions/fees', icon: CreditCard },
       {
         id: 'p_status',
         title: 'Admission Status',

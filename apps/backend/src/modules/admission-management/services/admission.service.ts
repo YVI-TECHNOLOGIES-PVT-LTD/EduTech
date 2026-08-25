@@ -18,6 +18,7 @@ import {
   PaginatedResponse,
 } from '../dto/response/application.response.dto';
 import { AdmissionEvents, ApplicationEventType } from '../events/admission.events';
+import { LeadIdentityResolver } from '../../lead-management/services/lead.identity-resolver.service';
 import { StorageService } from '../../../services/storage.service';
 import { logger } from '../../../utils/logger';
 
@@ -176,175 +177,47 @@ export class AdmissionService {
     try {
       txResult = await prisma.$transaction(
         async (tx) => {
-          let resolvedLead: any = null;
+          // 4. Delegate to LeadIdentityResolver for deterministic matching & sibling protection
+          const resolution = await LeadIdentityResolver.resolveLead(
+            {
+              parentId: parentRecord ? parentRecord.parent_id : null,
+              orgId: safeOrgId,
+              userId: performedBy,
+              parentName: parentFullName,
+              parentPhone: dto.contact_phone || dto.parent_phone,
+              parentEmail: dto.contact_email || dto.parent_email,
+              contactRelationship: dto.contact_relationship,
+            },
+            {
+              firstName: sFirst || 'Applicant',
+              lastName: sLast,
+              dateOfBirth: validDob,
+              gender: dto.gender,
+              academicYearGradeId: aygId,
+              curriculumPreference: dto.curriculum_preference,
+              scholarshipInterest: dto.scholarship_interest,
+              remarks: dto.remarks,
+            },
+            {
+              targetLeadId,
+              isNewChild: Boolean((dto as any).is_new_child),
+              performedBy,
+              tx,
+            },
+          );
 
-          // Case A: Explicit targetLeadId supplied
-          if (targetLeadId) {
-            const lead = await tx.leads.findUnique({
-              where: { lead_id: targetLeadId },
-            });
-            if (!lead) {
-              throw new ApplicationValidationError(`Lead ${targetLeadId} not found`);
-            }
-            if (lead.org_id !== safeOrgId) {
-              throw new ApplicationValidationError(
-                'Unauthorized: Lead belongs to a different organization',
-              );
-            }
-            if (performedBy && parentRecord) {
-              const isOwner =
-                lead.parent_id === parentRecord.parent_id || lead.created_by === performedBy;
-              if (!isOwner) {
-                throw new ApplicationValidationError(
-                  'Unauthorized: You do not own this child profile',
-                );
-              }
-            }
-            resolvedLead = lead;
+          if (resolution.resolutionType === 'AMBIGUOUS') {
+            throw new ApplicationValidationError(
+              resolution.reason ||
+                'Multiple existing children match this name under your account. Please provide the Date of Birth or select the child directly.',
+            );
           }
 
-          // Case B: No targetLeadId, but parentRecord exists -> Deterministic child matching under Parent
-          if (!resolvedLead && parentRecord && sFirst) {
-            // B.1 Check for existing Lead explicitly matching this child
-            const matchingChildLead = await tx.leads.findFirst({
-              where: {
-                org_id: safeOrgId,
-                parent_id: parentRecord.parent_id,
-                student_first_name: { equals: sFirst, mode: 'insensitive' },
-                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-                ...(validDob ? { dob: validDob } : {}),
-              },
-              orderBy: { created_at: 'asc' },
-            });
-
-            if (matchingChildLead) {
-              resolvedLead = matchingChildLead;
-            } else if (!(dto as any).is_new_child) {
-              // B.2 Check if parent has an unassigned / registration-created Lead to claim for this first child
-              const parentLeads = await tx.leads.findMany({
-                where: {
-                  org_id: safeOrgId,
-                  parent_id: parentRecord.parent_id,
-                },
-                include: {
-                  admissions_applications: {
-                    select: { application_id: true, status: true },
-                  },
-                },
-                orderBy: { created_at: 'asc' },
-              });
-
-              const unassignedLead = parentLeads.find((l) => {
-                const fn = (l.student_first_name || '').trim().toLowerCase();
-                const isPlaceholder =
-                  ['applicant', 'student', ''].includes(fn) || fn.endsWith("'s ward");
-                const hasNoActiveApps =
-                  !l.admissions_applications ||
-                  l.admissions_applications.length === 0 ||
-                  l.admissions_applications.every(
-                    (a) => (a.status as string) === 'draft' || (a.status as string) === 'withdrawn',
-                  );
-                return isPlaceholder && hasNoActiveApps;
-              });
-
-              if (unassignedLead) {
-                // Update the registration lead with actual child details
-                resolvedLead = await tx.leads.update({
-                  where: { lead_id: unassignedLead.lead_id },
-                  data: {
-                    student_first_name: sFirst,
-                    student_last_name: sLast || undefined,
-                    dob: validDob || unassignedLead.dob,
-                    gender: (dto.gender?.toLowerCase() as any) || unassignedLead.gender,
-                    academic_year_grade_id: aygId || unassignedLead.academic_year_grade_id,
-                    stage: 'application_submitted' as any,
-                    updated_at: new Date(),
-                    updated_by: performedBy || undefined,
-                  },
-                });
-              }
-            }
-          }
-
-          // Case C: No targetLeadId, unlinked parent but performedBy user exists
-          if (!resolvedLead && performedBy && sFirst) {
-            resolvedLead = await tx.leads.findFirst({
-              where: {
-                org_id: safeOrgId,
-                created_by: performedBy,
-                student_first_name: { equals: sFirst, mode: 'insensitive' },
-                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-                ...(validDob ? { dob: validDob } : {}),
-              },
-              orderBy: { created_at: 'asc' },
-            });
-          }
-
-          // Case D: Public / Anonymous submission matching by contact phone + child name
-          if (!resolvedLead && !performedBy && (dto.contact_phone || dto.parent_phone) && sFirst) {
-            resolvedLead = await tx.leads.findFirst({
-              where: {
-                org_id: safeOrgId,
-                contact_phone: dto.contact_phone || dto.parent_phone,
-                student_first_name: { equals: sFirst, mode: 'insensitive' },
-                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-                ...(validDob ? { dob: validDob } : {}),
-              },
-              orderBy: { created_at: 'asc' },
-            });
-          }
-
-          // If lead was found: preserve lead identity and update stage to application_submitted
-          if (resolvedLead) {
-            if (
-              resolvedLead.stage !== 'application_submitted' &&
-              resolvedLead.stage !== 'enrolled'
-            ) {
-              await tx.leads.update({
-                where: { lead_id: resolvedLead.lead_id },
-                data: {
-                  stage: 'application_submitted' as any,
-                  updated_at: new Date(),
-                  updated_by: performedBy || undefined,
-                },
-              });
-            }
-          } else {
-            // If lead NOT found: create new Lead for this child under parent
-            const year = new Date().getFullYear();
-            const lastLead = await tx.leads.findFirst({
-              where: { lead_number: { startsWith: `LEAD-${year}-` } },
-              orderBy: { lead_number: 'desc' },
-              select: { lead_number: true },
-            });
-            let nextLeadSeq = 1;
-            if (lastLead?.lead_number) {
-              const match = lastLead.lead_number.match(/(\d+)$/);
-              if (match) nextLeadSeq = parseInt(match[1], 10) + 1;
-            }
-            const leadNumber = `LEAD-${year}-${String(nextLeadSeq).padStart(5, '0')}`;
-
-            resolvedLead = await tx.leads.create({
-              data: {
-                org_id: safeOrgId,
-                lead_number: leadNumber,
-                academic_year_grade_id: aygId!,
-                student_first_name: sFirst,
-                student_last_name: sLast || undefined,
-                dob: validDob,
-                gender: (dto.gender?.toLowerCase() as any) || undefined,
-                curriculum_preference: dto.curriculum_preference || 'CBSE',
-                contact_name: parentFullName,
-                contact_phone: dto.contact_phone || dto.parent_phone || '9999999999',
-                contact_email: dto.contact_email || dto.parent_email || undefined,
-                contact_relationship: (dto.contact_relationship?.toLowerCase() as any) || 'father',
-                source: 'website' as any,
-                stage: 'application_submitted' as any,
-                remarks: dto.remarks || undefined,
-                parent_id: parentRecord ? parentRecord.parent_id : undefined,
-                created_by: performedBy || undefined,
-              },
-            });
+          const resolvedLead = resolution.lead;
+          if (!resolvedLead) {
+            throw new ApplicationValidationError(
+              'Failed to resolve or create a valid Lead record for this child',
+            );
           }
 
           // 5. Authoritative Lead -> Application 1:1 check
