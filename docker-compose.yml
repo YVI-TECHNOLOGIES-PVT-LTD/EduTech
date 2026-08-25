@@ -1,36 +1,85 @@
-version: '3.8'
+# ==============================================================================
+# EduTrack ERP — Local Docker Compose (backend + web only)
+# ------------------------------------------------------------------------------
+# The database is intentionally NOT part of this stack. Both services connect
+# to whatever external PostgreSQL the developer already has configured
+# (Supabase dev project, a remote dev DB, or a locally-run Postgres reachable
+# from the container) via DATABASE_URL / DIRECT_URL supplied at runtime.
+#
+# Usage:
+#   1. Copy apps/backend/.env.example -> apps/backend/.env.docker and fill in
+#      real (development) values. This file is gitignored — never commit it.
+#   2. Export the VITE_* build args you need (or put them in a local,
+#      gitignored `.env` next to this file — Compose auto-loads that for
+#      variable substitution) before building the web image.
+#   3. docker compose up --build
+# ==============================================================================
 
 services:
+  # ----------------------------------------------------------------------------
+  # Backend API — service name is "api" to match apps/web_app/nginx.conf's
+  # `proxy_pass http://api:3000/api/;`, which is reused unmodified.
+  # ----------------------------------------------------------------------------
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-    image: ghcr.io/edutrack/api:2.11.0
-    container_name: edutrack-api
+      dockerfile: apps/backend/Dockerfile
+    container_name: edutrack-backend
     ports:
-      - "3000:3000"
+      - '3000:3000'
+    env_file:
+      # Developer-supplied, gitignored. Not created/committed by this repo.
+      # Copy apps/backend/.env.example as a starting point.
+      - apps/backend/.env.docker
     environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-    restart: unless-stopped
+      NODE_ENV: production
+      PORT: 3000
     networks:
       - edutrack-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:3000/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
+  # ----------------------------------------------------------------------------
+  # Web frontend — static SPA served by Nginx, proxies /api/ to the "api"
+  # service above over the Compose network.
+  # ----------------------------------------------------------------------------
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
-    image: ghcr.io/edutrack/web:2.11.0
+      dockerfile: apps/web_app/Dockerfile
+      args:
+        # Vite bakes these into the JS bundle at build time — no secrets
+        # here, no defaults containing real values. Supply via shell env or
+        # a local .env next to this compose file.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_APP_TITLE: ${VITE_APP_TITLE:-}
+        VITE_DEFAULT_TENANT_ID: ${VITE_DEFAULT_TENANT_ID:-}
+        VITE_ENABLE_MOCK_API: ${VITE_ENABLE_MOCK_API:-}
+        VITE_SESSION_TIMEOUT_MINS: ${VITE_SESSION_TIMEOUT_MINS:-}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+        VITE_TRANSLATION_API_URL: ${VITE_TRANSLATION_API_URL:-}
+        VITE_TRANSLATION_API_KEY: ${VITE_TRANSLATION_API_KEY:-}
     container_name: edutrack-web
     ports:
-      - "80:80"
+      - '80:80'
     depends_on:
-      - api
-    restart: unless-stopped
+      api:
+        condition: service_healthy
     networks:
       - edutrack-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:80/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   edutrack-network:

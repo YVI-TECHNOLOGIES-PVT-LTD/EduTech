@@ -1,0 +1,92 @@
+# ==============================================================================
+# EduTrack Monorepo — Root Docker Build Context Exclusions
+# Applies to every `docker build` in this repo (build context = repo root).
+#
+# Keep in mind: apps/backend/Dockerfile and apps/web_app/Dockerfile both use a
+# Turborepo "pruner" stage that needs the FULL workspace graph (every
+# package.json + pnpm-lock.yaml + pnpm-workspace.yaml + turbo.json + source of
+# every workspace member) to compute `turbo prune`. Do NOT exclude workspace
+# manifests, TypeScript configs, or app/package source directories here.
+# ==============================================================================
+
+# ---- Version control -------------------------------------------------------
+.git
+.gitignore
+.github
+
+# ---- Dependencies / package manager stores ---------------------------------
+node_modules
+**/node_modules
+.pnpm-store
+**/.pnpm-store
+# Stray npm lockfiles — pnpm-lock.yaml at the root is the only source of truth
+**/package-lock.json
+**/yarn.lock
+
+# ---- Build outputs (rebuilt fresh inside every image) ----------------------
+dist
+**/dist
+build
+**/build
+coverage
+**/coverage
+.turbo
+**/.turbo
+.next
+**/.next
+
+# ---- Expo / React Native generated artifacts (mobile is never containerized)
+.expo
+**/.expo
+expo-env.d.ts
+**/expo-env.d.ts
+**/android
+**/ios
+**/.gradle
+
+# ---- Environment files / credentials (never baked into an image) ----------
+.env
+.env.*
+**/.env
+**/.env.*
+
+# ---- Logs --------------------------------------------------------------
+*.log
+**/*.log
+**/logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Editor / IDE / local tooling metadata ---------------------------------
+.idea
+.vscode
+.serena
+.claude
+.agents
+.eslintcache
+
+# ---- Docs, audits, tests, and other non-build artifacts (safe to exclude) --
+docs
+testing
+audit
+auth-migration
+Workflows
+examples
+postman
+apps/*/docs
+*.md
+**/*.md
+
+# ---- Deployment configs for other targets (irrelevant inside the image) ----
+render.yaml
+netlify.toml
+
+# ---- Misc top-level assets not needed to build backend/web -----------------
+assets
+EduTrack_logo.png
+
+# ---- OS metadata files ------------------------------------------------------
+.DS_Store
+Thumbs.db
