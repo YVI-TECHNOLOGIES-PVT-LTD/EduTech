@@ -68,7 +68,7 @@ export async function runLeadModuleTests() {
       contact_email: 'jane@example.com',
       source: lead_source.walk_in,
       stage: lead_stage.enquiry_received,
-      priority: lead_priority.hot,
+      priority: lead_priority.high,
     });
     assert.strictEqual(valid.success, true);
 

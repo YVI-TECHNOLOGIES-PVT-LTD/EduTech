@@ -144,9 +144,12 @@ const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; bo
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  hot: { label: 'Hot', color: 'bg-red-500 text-white', icon: '🔥' },
-  warm: { label: 'Warm', color: 'bg-amber-500 text-white', icon: '⚡' },
-  cold: { label: 'Cold', color: 'bg-slate-400 text-white', icon: '❄️' },
+  high: { label: 'High', color: 'bg-red-500 text-white', icon: '🔥' },
+  hot: { label: 'High', color: 'bg-red-500 text-white', icon: '🔥' },
+  medium: { label: 'Medium', color: 'bg-amber-500 text-white', icon: '⚡' },
+  warm: { label: 'Medium', color: 'bg-amber-500 text-white', icon: '⚡' },
+  low: { label: 'Low', color: 'bg-slate-400 text-white', icon: '❄️' },
+  cold: { label: 'Low', color: 'bg-slate-400 text-white', icon: '❄️' },
 };
 
 export const LeadsManagementPage: React.FC = () => {
@@ -243,12 +246,12 @@ export const LeadsManagementPage: React.FC = () => {
   // KPI Metrics Computed from current response and meta
   const stats = useMemo(() => {
     const total = meta.total || 0;
-    const hot = leads.filter((l) => l.priority === 'hot').length;
+    const high = leads.filter((l) => l.priority === 'high' || l.priority === 'hot').length;
     const qualified = leads.filter((l) => l.stage === 'qualified').length;
     const visits = leads.filter(
       (l) => l.stage === 'campus_visit' || l.stage === 'counselling_scheduled',
     ).length;
-    return { total, hot, qualified, visits };
+    return { total, high, qualified, visits };
   }, [leads, meta.total]);
 
   const handleResetFilters = () => {
@@ -336,10 +339,10 @@ export const LeadsManagementPage: React.FC = () => {
         <div className="p-4 rounded-2xl border border-border bg-card shadow-xs flex items-center justify-between min-h-[92px]">
           <div className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              🔥 Hot Priority
+              🔥 High Priority
             </p>
             <p className="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">
-              {stats.hot}
+              {stats.high}
             </p>
           </div>
           <div className="size-10 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-100 dark:border-red-900/40 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
@@ -429,9 +432,9 @@ export const LeadsManagementPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Priority</SelectItem>
-                <SelectItem value="hot">🔥 Hot</SelectItem>
-                <SelectItem value="warm">⚡ Warm</SelectItem>
-                <SelectItem value="cold">❄️ Cold</SelectItem>
+                <SelectItem value="high">🔥 High</SelectItem>
+                <SelectItem value="medium">⚡ Medium</SelectItem>
+                <SelectItem value="low">❄️ Low</SelectItem>
               </SelectContent>
             </Select>
 
@@ -635,7 +638,9 @@ export const LeadsManagementPage: React.FC = () => {
                     text: 'text-foreground',
                     border: 'border-border',
                   };
-                  const priorityBadge = lead.priority ? PRIORITY_CONFIG[lead.priority] : null;
+                  const priorityBadge = lead.priority
+                    ? PRIORITY_CONFIG[String(lead.priority).toLowerCase()]
+                    : null;
 
                   return (
                     <TableRow

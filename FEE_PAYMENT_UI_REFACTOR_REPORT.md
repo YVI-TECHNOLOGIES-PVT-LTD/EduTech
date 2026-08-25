@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-The **Fee Payment Step** ([ParentFeePaymentStep.tsx](file:///c:/Users/DELL/Desktop/EduTech/apps/web_app/src/modules/admission/pages/parent/ParentFeePaymentStep.tsx)) in the EduTrack Admission Application Wizard has been refactored into a modern, institutional educational-ERP financial experience inspired by the visual concepts of [payment_methods_ui.html](file:///c:/Users/DELL/Downloads/payment_methods_ui.html).
+The **Fee Payment Step** ([ParentFeePaymentStep.tsx](file:///c:/Users/DELL/Desktop/EduTech/apps/web_app/src/modules/admission/pages/parent/ParentFeePaymentStep.tsx)) in the EduTrack Admission Application has been refactored into a modern, institutional educational-ERP financial experience inspired by the visual concepts of [payment_methods_ui.html](file:///c:/Users/DELL/Downloads/payment_methods_ui.html).
 
 The upgrade strictly respects the **Frozen PostgreSQL Database** and existing **Fee Management MVP Architecture**:
 

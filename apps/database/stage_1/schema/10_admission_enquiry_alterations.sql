@@ -185,3 +185,24 @@ CREATE UNIQUE INDEX ux_admissions_applications_lead_id
 ON public.admissions_applications (lead_id)
 WHERE lead_id IS NOT NULL;
 
+ALTER TABLE public.users
+ADD COLUMN country_id uuid;
+
+ALTER TABLE public.users
+ADD CONSTRAINT users_country_id_fkey
+FOREIGN KEY (country_id)
+REFERENCES public.countries (country_id)
+ON DELETE RESTRICT;
+
+CREATE INDEX IF NOT EXISTS ix_users_country
+ON public.users (country_id);
+
+ALTER TABLE public.users
+ALTER COLUMN country_id SET NOT NULL;
+
+ALTER TABLE users
+ADD COLUMN avatar_url VARCHAR(500) NULL;
+
+ALTER TYPE lead_priority RENAME VALUE 'hot' TO 'high';
+ALTER TYPE lead_priority RENAME VALUE 'warm' TO 'medium';
+ALTER TYPE lead_priority RENAME VALUE 'cold' TO 'low';

@@ -67,7 +67,7 @@ const formSchema = z.object({
     'email',
     'other',
   ] as const),
-  priority: z.enum(['hot', 'warm', 'cold'] as const),
+  priority: z.enum(['high', 'medium', 'low', 'hot', 'warm', 'cold'] as const).optional(),
   assigned_counsellor_id: z.string().optional().nullable(),
   remarks: z.string().optional().nullable(),
 });
@@ -91,6 +91,27 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
   const { data: counsellors = [] } = useGetCounsellorsQuery();
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
 
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      student_first_name: '',
+      student_last_name: '',
+      academic_year_grade_id: '',
+      dob: '',
+      gender: null,
+      curriculum_preference: '',
+      scholarship_interest: false,
+      contact_name: '',
+      contact_relationship: 'father',
+      contact_phone: '',
+      contact_email: '',
+      source: 'walk_in',
+      priority: 'medium',
+      assigned_counsellor_id: null,
+      remarks: '',
+    },
+  });
+
   const {
     register,
     handleSubmit,
@@ -99,18 +120,16 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
     reset,
     control,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-  });
+  } = form;
 
   useEffect(() => {
     if (lead && open) {
       reset({
         student_first_name: lead.student_first_name || '',
         student_last_name: lead.student_last_name || '',
-        dob: lead.dob ? lead.dob.substring(0, 10) : '',
-        gender: (lead.gender as GenderType) || null,
         academic_year_grade_id: lead.academic_year_grade_id || '',
+        dob: lead.dob ? String(lead.dob).split('T')[0] : '',
+        gender: (lead.gender as GenderType) || null,
         curriculum_preference: lead.curriculum_preference || '',
         scholarship_interest: Boolean(lead.scholarship_interest),
         contact_name: lead.contact_name || '',
@@ -118,7 +137,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
         contact_phone: lead.contact_phone || '',
         contact_email: lead.contact_email || '',
         source: lead.source || 'walk_in',
-        priority: (lead.priority as LeadPriority) || 'warm',
+        priority: (lead.priority as LeadPriority) || 'medium',
         assigned_counsellor_id: lead.assigned_counsellor_id || null,
         remarks: lead.remarks || '',
       });
@@ -398,7 +417,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     Source
                   </Label>
                   <Select
-                    value={watch('source')}
+                    value={watch('source') || 'walk_in'}
                     onValueChange={(val) => setValue('source', val as LeadSource)}
                   >
                     <SelectTrigger id="edit_source">
@@ -424,16 +443,16 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     Priority
                   </Label>
                   <Select
-                    value={watch('priority') || 'warm'}
+                    value={watch('priority') || 'medium'}
                     onValueChange={(val) => setValue('priority', val as LeadPriority)}
                   >
                     <SelectTrigger id="edit_priority">
                       <SelectValue placeholder="Priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hot">🔥 Hot</SelectItem>
-                      <SelectItem value="warm">⚡ Warm</SelectItem>
-                      <SelectItem value="cold">❄️ Cold</SelectItem>
+                      <SelectItem value="high">🔥 High</SelectItem>
+                      <SelectItem value="medium">⚡ Medium</SelectItem>
+                      <SelectItem value="low">❄️ Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

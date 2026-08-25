@@ -55,11 +55,11 @@ export class LeadScoringService {
     }
 
     // Determine priority based on score
-    let priority: lead_priority = lead_priority.warm;
+    let priority: lead_priority = lead_priority.medium;
     if (score >= 75) {
-      priority = lead_priority.hot;
+      priority = lead_priority.high;
     } else if (score < 45) {
-      priority = lead_priority.cold;
+      priority = lead_priority.low;
     }
 
     // Determine target stage

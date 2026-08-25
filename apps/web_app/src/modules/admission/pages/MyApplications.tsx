@@ -82,7 +82,7 @@ export function MyApplications() {
             variant="outline"
             className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
           >
-            Parent Self-Service
+            Admission Self-Service
           </Badge>
         }
         actions={

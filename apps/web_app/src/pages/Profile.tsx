@@ -3,7 +3,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { ProfileService } from '../services/auth/ProfileService';
 import { ChangePasswordForm } from '../modules/auth/pages/ChangePasswordPage';
-import { useThemeContext, ThemeMode } from '@/context/ThemeContext';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSettingsStore } from '../store/settings.store';
 import {
   Select,
@@ -12,22 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfilePhotoPicker } from '@/components/ui/profile-photo-picker';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User,
   Mail,
   Phone,
   Building2,
-  Shield,
   Lock,
-  Camera,
   CheckCircle2,
-  Sliders,
   Save,
   ShieldCheck,
-  ChevronRight,
   UserCheck,
   Sun,
   Moon,
@@ -35,7 +30,6 @@ import {
   Globe,
   Bell,
   Eye,
-  Clock,
   RotateCcw,
 } from 'lucide-react';
 import { QUERY_KEYS } from '../lib/queryKeys';
@@ -91,30 +85,31 @@ export const Profile = () => {
     },
   });
 
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
+
   const handleUploadAvatar = async (file: File) => {
-    if (!user?.id) return;
+    if (!user?.id || isUploadingAvatar) return;
     try {
-      const publicUrl = await ProfileService.uploadAvatar(file, user.id);
-      await ProfileService.updateProfile({ full_name: fullName, phone_number: phone });
-      alert('Avatar uploaded successfully!');
+      setIsUploadingAvatar(true);
+      await ProfileService.uploadAvatar(file);
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_USER });
-    } catch (error: any) {
-      console.error(error);
-      alert(error.message || 'Failed to upload avatar');
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
-  const triggerFileSelect = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e: any) => {
-      if (e.target.files?.[0]) {
-        handleUploadAvatar(e.target.files[0]);
-      }
-    };
-    input.click();
+  const handleDeleteAvatar = async () => {
+    if (!user?.id || isDeletingAvatar) return;
+    try {
+      setIsDeletingAvatar(true);
+      await ProfileService.deleteAvatar();
+      await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_USER });
+    } finally {
+      setIsDeletingAvatar(false);
+    }
   };
 
   if (!user) {
@@ -197,33 +192,18 @@ export const Profile = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* ─── Left Column: Identity Sidebar Card (4 spans) ────────────────── */}
               <div className="lg:col-span-4 bg-white dark:bg-black border border-slate-100 dark:border-neutral-800 rounded-xl p-5 shadow-xs space-y-5">
-                {/* Avatar & Name Row (Aligned horizontally matching screenshot) */}
-                <div className="flex items-center gap-4">
-                  <div className="relative group shrink-0">
-                    <Avatar size="xl" className="border border-border shadow-xs">
-                      <AvatarImage
-                        src={
-                          (user as any)?.avatar_url ||
-                          (user as any)?.avatar ||
-                          (user as any)?.image ||
-                          (user as any)?.profile_photo_url
-                        }
-                        alt={fullName}
-                      />
-                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-black">
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      onClick={triggerFileSelect}
-                      aria-label="Upload avatar"
-                      className="absolute -bottom-1 -right-1 p-1 bg-slate-950 dark:bg-white text-white dark:text-slate-950 rounded-lg shadow-md hover:scale-105 transition-all"
-                    >
-                      <Camera className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
+                {/* Avatar & Name Row */}
+                <div className="flex flex-col space-y-3">
+                  <ProfilePhotoPicker
+                    avatarUrl={user?.avatar_url}
+                    name={fullName || user?.email || 'User'}
+                    onUpload={handleUploadAvatar}
+                    onDelete={handleDeleteAvatar}
+                    isUploading={isUploadingAvatar}
+                    isDeleting={isDeletingAvatar}
+                    size="xl"
+                  />
+                  <div className="min-w-0">
                     <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-50 truncate leading-snug">
                       {fullName || 'EduTrack User'}
                     </h2>

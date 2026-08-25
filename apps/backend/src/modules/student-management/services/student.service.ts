@@ -16,6 +16,8 @@ import { StudentMapper } from '../mappers/student.mapper';
 import { StudentResponseDto, PaginatedResponse } from '../dto/response/student.response.dto';
 import { StudentEvents, StudentEventType } from '../events/student.events';
 import { logger } from '../../../utils/logger';
+import { StorageService } from '../../../services/storage.service';
+import { UserAvatarRepository } from '../../user-management/repositories/user-avatar.repository';
 
 export class StudentService {
   static async createStudent(
@@ -487,6 +489,77 @@ export class StudentService {
 
       return { student, enrollment };
     });
+
+    // ADMISSION STUDENT PHOTOGRAPH COPYING (Post-Student Creation)
+    const targetUserId = result.student?.user_id || app.created_by || (parent as any)?.user_id;
+    if (targetUserId) {
+      try {
+        // Look up canonical document type for Student Photograph
+        const photoType = await prisma.document_types.findFirst({
+          where: {
+            org_id: app.org_id,
+            is_active: true,
+            OR: [
+              { document_name: { equals: "Student's Photo", mode: 'insensitive' } },
+              { document_name: { equals: 'passport_photo', mode: 'insensitive' } },
+              { document_name: { equals: 'Student Photo', mode: 'insensitive' } },
+            ],
+          },
+          select: { document_type_id: true },
+        });
+
+        const photoDoc = photoType
+          ? await prisma.admission_documents.findFirst({
+              where: {
+                application_id: applicationId,
+                document_type_id: photoType.document_type_id,
+              },
+            })
+          : await prisma.admission_documents.findFirst({
+              where: {
+                application_id: applicationId,
+                mime_type: { startsWith: 'image/' },
+              },
+            });
+
+        if (photoDoc && photoDoc.storage_path) {
+          const rawExt =
+            (photoDoc.original_file_name || photoDoc.storage_path)
+              .split('.')
+              .pop()
+              ?.toLowerCase() || 'jpg';
+          const ext = ['jpg', 'jpeg', 'png', 'webp'].includes(rawExt)
+            ? rawExt === 'jpeg'
+              ? 'jpg'
+              : rawExt
+            : 'jpg';
+
+          const destinationObjectKey = `${targetUserId}/avatar.${ext}`;
+          const destinationAvatarPath = `profile-photos/${destinationObjectKey}`;
+
+          // COPY from admission-documents to profile-photos without moving or deleting source
+          await StorageService.copyFile({
+            fromBucket: 'admission-documents',
+            fromPath: photoDoc.storage_path,
+            toBucket: 'profile-photos',
+            toPath: destinationObjectKey,
+          });
+
+          // Save relative Storage path to users.avatar_url
+          await UserAvatarRepository.updateAvatarPath(targetUserId, destinationAvatarPath);
+
+          logger.info(
+            `[StudentService] Successfully copied admission photo for application ${applicationId} to avatar path ${destinationAvatarPath} (user ${targetUserId})`,
+          );
+        }
+      } catch (copyErr: any) {
+        // Safe handling: Log storage failure without rolling back core student creation
+        logger.warn(
+          `[StudentService] Non-fatal warning: Failed copying admission photo to profile-photos for application ${applicationId}`,
+          { error: copyErr?.message || String(copyErr) },
+        );
+      }
+    }
 
     const fullStudent = await StudentRepository.findById(result.student.student_id);
 

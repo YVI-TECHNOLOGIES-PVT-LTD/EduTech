@@ -105,46 +105,67 @@ export class LeadLifecycleService {
     }
 
     // Atomic transaction for Application creation + Lead stage update
-    const application = await prisma.$transaction(async (tx) => {
-      const app = await tx.admissions_applications.create({
-        data: {
-          lead_id: leadId,
-          org_id: lead.org_id,
-          academic_year_id: academicYearId,
-          application_number: applicationNumber,
-          status: 'submitted',
-          created_by: performedBy || undefined,
-        },
+    let application: any;
+    let isNew = true;
+
+    try {
+      application = await prisma.$transaction(async (tx) => {
+        const app = await tx.admissions_applications.create({
+          data: {
+            lead_id: leadId,
+            org_id: lead.org_id,
+            academic_year_id: academicYearId,
+            application_number: applicationNumber,
+            status: 'submitted',
+            created_by: performedBy || undefined,
+          },
+        });
+
+        await tx.leads.update({
+          where: { lead_id: leadId },
+          data: {
+            stage: lead_stage.application_submitted,
+            updated_at: new Date(),
+            updated_by: performedBy || undefined,
+          },
+        });
+
+        return app;
       });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        const raceApp = await prisma.admissions_applications.findFirst({
+          where: { lead_id: leadId },
+        });
+        if (raceApp) {
+          application = raceApp;
+          isNew = false;
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
 
-      await tx.leads.update({
-        where: { lead_id: leadId },
-        data: {
-          stage: lead_stage.application_submitted,
-          updated_at: new Date(),
-          updated_by: performedBy || undefined,
-        },
-      });
-
-      return app;
-    });
-
-    logger.info(`Lead ${leadId} converted to Application ${application.application_number}`, {
-      leadId,
-      applicationId: application.application_id,
-      applicationNumber: application.application_number,
-      performedBy,
-    });
-
-    await LeadEvents.publish(LeadEventType.CONVERTED, {
-      leadId,
-      performedBy,
-      timestamp: new Date().toISOString(),
-      metadata: {
+    if (isNew) {
+      logger.info(`Lead ${leadId} converted to Application ${application.application_number}`, {
+        leadId,
         applicationId: application.application_id,
         applicationNumber: application.application_number,
-      },
-    });
+        performedBy,
+      });
+
+      await LeadEvents.publish(LeadEventType.CONVERTED, {
+        leadId,
+        performedBy,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          applicationId: application.application_id,
+          applicationNumber: application.application_number,
+        },
+      });
+    }
 
     return application;
   }

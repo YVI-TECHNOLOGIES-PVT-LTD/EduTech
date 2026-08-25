@@ -91,7 +91,7 @@ export class LeadRepository {
         contact_relationship: dto.contact_relationship || undefined,
         source: dto.source || (lead_source as any)?.website || 'website',
         stage: dto.stage || (lead_stage as any)?.enquiry_received || 'enquiry_received',
-        priority: dto.priority || (lead_priority as any)?.warm || 'warm',
+        priority: dto.priority || (lead_priority as any)?.medium || 'medium',
         assigned_counsellor_id: dto.assigned_counsellor_id || undefined,
         dob: dto.dob ? new Date(dto.dob as string) : undefined,
         gender: dto.gender || undefined,

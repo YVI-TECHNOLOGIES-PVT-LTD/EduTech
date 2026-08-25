@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
@@ -138,10 +139,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       : (user as any)?.role
         ? [(user as any).role]
         : ['PARENT'];
-  const navGroups = getNavigationForUser(userRoles);
+  const isPostAdmission = Boolean(
+    (user as any)?.hasEnrolledStudent ||
+    (user as any)?.isPostAdmission ||
+    userRoles.includes('ENROLLED_PARENT'),
+  );
+  const navGroups = getNavigationForUser(userRoles, isPostAdmission);
   const currentPath = location.pathname;
 
-  const contextLabel = navGroups[0]?.contextLabel || 'EDUTRACK PORTAL';
+  const contextLabel = navGroups[0]?.contextLabel || 'ADMISSION PORTAL';
 
   // Expanded state loaded from localStorage
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
@@ -334,12 +340,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
           {/* Render Nested Children when Expanded */}
           {!isCollapsed && isExpanded && (
-            <div
+            <SidebarMenuSub
               id={`subnav-${item.id}`}
               className="ms-3 ps-2 border-s border-sidebar-border/60 space-y-0.5 my-1"
             >
               {children!.map((child) => renderNavigationItem(child, depth + 1))}
-            </div>
+            </SidebarMenuSub>
           )}
         </SidebarMenuItem>
       );

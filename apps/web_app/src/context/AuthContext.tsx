@@ -180,7 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = useCallback(
     (code: string): boolean => {
-      const normalized = userRoles?.map((r) => r.toUpperCase().replace(/[\s_-]+/g, '_')) || [];
+      const rawRoles =
+        userRoles && userRoles.length > 0
+          ? userRoles
+          : user?.roles || ((user as any)?.role ? [(user as any).role] : []);
+      const normalized = rawRoles.map((r: string) =>
+        String(r)
+          .toUpperCase()
+          .replace(/[\s_-]+/g, '_'),
+      );
       if (
         normalized.includes('ADMIN') ||
         normalized.includes('SUPERADMIN') ||
@@ -219,19 +227,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ];
         if (parentPermissions.includes(code)) return true;
       }
-      return userPermissions?.includes(code) ?? false;
+      const rawPermissions =
+        userPermissions && userPermissions.length > 0 ? userPermissions : user?.permissions || [];
+      return rawPermissions.includes(code) ?? false;
     },
-    [userPermissions, userRoles],
+    [userPermissions, userRoles, user],
   );
 
   const hasRole = useCallback(
     (role: string): boolean => {
       const searchNorm = role.toUpperCase().replace(/[\s_-]+/g, '_');
+      const rawRoles =
+        userRoles && userRoles.length > 0
+          ? userRoles
+          : user?.roles || ((user as any)?.role ? [(user as any).role] : []);
       return (
-        userRoles?.some((r) => r.toUpperCase().replace(/[\s_-]+/g, '_') === searchNorm) ?? false
+        rawRoles.some(
+          (r: string) =>
+            String(r)
+              .toUpperCase()
+              .replace(/[\s_-]+/g, '_') === searchNorm,
+        ) ?? false
       );
     },
-    [userRoles],
+    [userRoles, user],
   );
 
   const value: AuthContextType = {

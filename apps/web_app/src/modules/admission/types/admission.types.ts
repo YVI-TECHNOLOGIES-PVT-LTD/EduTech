@@ -178,7 +178,7 @@ export interface Lead extends AdmissionInquiry {
   document_count?: number;
 }
 
-export type LeadScoreTier = 'cold' | 'warm' | 'hot' | 'excellent';
+export type LeadScoreTier = 'cold' | 'warm' | 'hot' | 'excellent' | 'high' | 'medium' | 'low';
 
 export interface Followup {
   id: string;

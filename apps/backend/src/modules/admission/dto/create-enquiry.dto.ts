@@ -3,27 +3,34 @@ import { z } from 'zod';
 export const createEnquirySchema = z.object({
   student_name: z
     .string()
-    .min(2, 'Name must contain at least 2 characters')
     .max(100, 'Name must not exceed 100 characters')
     .optional()
-    .nullable(),
+    .nullable()
+    .transform((val) => (val && val.trim() ? val.trim() : undefined)),
   grade_applied_for: z.string().min(1, 'Grade applied for is required'),
-  parent_name: z.string().min(2, 'Parent name must contain at least 2 characters'),
-  parent_email: z.string().email('Enter a valid email address'),
+  parent_name: z.string().min(1, 'Parent name is required'),
+  parent_email: z
+    .string()
+    .email('Enter a valid email address')
+    .optional()
+    .nullable()
+    .or(z.literal(''))
+    .transform((val) => (val && val.trim() ? val.trim() : undefined)),
   parent_phone: z
     .string()
-    .regex(
-      /^\+?[0-9]{10,15}$/,
-      'Enter a valid phone number with country code (e.g. +919876543210)',
+    .transform((val) => (val ? String(val).replace(/[\s\-()]/g, '') : ''))
+    .refine(
+      (val) => /^\+?[0-9]{7,16}$/.test(val),
+      'Enter a valid phone number (e.g. +919876543210)',
     ),
   source: z.string().optional().default('website'),
   date_of_birth: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), {
-      message: 'Date of birth must be a valid date string',
-    })
     .optional()
-    .nullable(),
+    .nullable()
+    .refine((val) => !val || !isNaN(Date.parse(val)), {
+      message: 'Date of birth must be a valid date string',
+    }),
   gender: z.string().optional().nullable(),
   current_school: z.string().optional().nullable(),
   address: z.string().optional().nullable(),

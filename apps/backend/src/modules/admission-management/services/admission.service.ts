@@ -65,8 +65,6 @@ export class AdmissionService {
     const safeOrgId: string = targetOrgId;
     const safeAcademicYearId: string = targetAcademicYearId;
 
-    let application: any;
-
     // 1. Resolve Parent Record if performedBy is present
     let parentRecord: any = null;
     if (performedBy) {
@@ -173,233 +171,381 @@ export class AdmissionService {
     const parentFullName = `${pFirst} ${pLast}`.trim() || 'Parent User';
 
     // 4. Atomic transaction for Lead Resolution + Application Creation
-    application = await prisma.$transaction(
-      async (tx) => {
-        let resolvedLead: any = null;
+    let txResult: { application: any; isNew: boolean };
 
-        // Case A: Explicit targetLeadId supplied
-        if (targetLeadId) {
-          const lead = await tx.leads.findUnique({
-            where: { lead_id: targetLeadId },
-          });
-          if (!lead) {
-            throw new ApplicationValidationError(`Lead ${targetLeadId} not found`);
-          }
-          if (lead.org_id !== safeOrgId) {
-            throw new ApplicationValidationError(
-              'Unauthorized: Lead belongs to a different organization',
-            );
-          }
-          if (performedBy && parentRecord) {
-            const isOwner =
-              lead.parent_id === parentRecord.parent_id || lead.created_by === performedBy;
-            if (!isOwner) {
+    try {
+      txResult = await prisma.$transaction(
+        async (tx) => {
+          let resolvedLead: any = null;
+
+          // Case A: Explicit targetLeadId supplied
+          if (targetLeadId) {
+            const lead = await tx.leads.findUnique({
+              where: { lead_id: targetLeadId },
+            });
+            if (!lead) {
+              throw new ApplicationValidationError(`Lead ${targetLeadId} not found`);
+            }
+            if (lead.org_id !== safeOrgId) {
               throw new ApplicationValidationError(
-                'Unauthorized: You do not own this child profile',
+                'Unauthorized: Lead belongs to a different organization',
               );
             }
+            if (performedBy && parentRecord) {
+              const isOwner =
+                lead.parent_id === parentRecord.parent_id || lead.created_by === performedBy;
+              if (!isOwner) {
+                throw new ApplicationValidationError(
+                  'Unauthorized: You do not own this child profile',
+                );
+              }
+            }
+            resolvedLead = lead;
           }
-          resolvedLead = lead;
-        }
 
-        // Case B: No targetLeadId, but parentRecord exists -> Deterministic child matching under Parent
-        if (!resolvedLead && parentRecord && sFirst) {
-          // B.1 Check for existing Lead explicitly matching this child
-          const matchingChildLead = await tx.leads.findFirst({
-            where: {
-              org_id: safeOrgId,
-              parent_id: parentRecord.parent_id,
-              student_first_name: { equals: sFirst, mode: 'insensitive' },
-              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-              ...(validDob ? { dob: validDob } : {}),
-            },
-            orderBy: { created_at: 'asc' },
-          });
-
-          if (matchingChildLead) {
-            resolvedLead = matchingChildLead;
-          } else if (!(dto as any).is_new_child) {
-            // B.2 Check if parent has an unassigned / registration-created Lead to claim for this first child
-            const parentLeads = await tx.leads.findMany({
+          // Case B: No targetLeadId, but parentRecord exists -> Deterministic child matching under Parent
+          if (!resolvedLead && parentRecord && sFirst) {
+            // B.1 Check for existing Lead explicitly matching this child
+            const matchingChildLead = await tx.leads.findFirst({
               where: {
                 org_id: safeOrgId,
                 parent_id: parentRecord.parent_id,
-              },
-              include: {
-                admissions_applications: {
-                  select: { application_id: true, status: true },
-                },
+                student_first_name: { equals: sFirst, mode: 'insensitive' },
+                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+                ...(validDob ? { dob: validDob } : {}),
               },
               orderBy: { created_at: 'asc' },
             });
 
-            const unassignedLead = parentLeads.find((l) => {
-              const fn = (l.student_first_name || '').trim().toLowerCase();
-              const isPlaceholder =
-                ['applicant', 'student', ''].includes(fn) || fn.endsWith("'s ward");
-              const hasNoActiveApps =
-                !l.admissions_applications ||
-                l.admissions_applications.length === 0 ||
-                l.admissions_applications.every(
-                  (a) => (a.status as string) === 'draft' || (a.status as string) === 'withdrawn',
-                );
-              return isPlaceholder && hasNoActiveApps;
-            });
+            if (matchingChildLead) {
+              resolvedLead = matchingChildLead;
+            } else if (!(dto as any).is_new_child) {
+              // B.2 Check if parent has an unassigned / registration-created Lead to claim for this first child
+              const parentLeads = await tx.leads.findMany({
+                where: {
+                  org_id: safeOrgId,
+                  parent_id: parentRecord.parent_id,
+                },
+                include: {
+                  admissions_applications: {
+                    select: { application_id: true, status: true },
+                  },
+                },
+                orderBy: { created_at: 'asc' },
+              });
 
-            if (unassignedLead) {
-              // Update the registration lead with actual child details
-              resolvedLead = await tx.leads.update({
-                where: { lead_id: unassignedLead.lead_id },
+              const unassignedLead = parentLeads.find((l) => {
+                const fn = (l.student_first_name || '').trim().toLowerCase();
+                const isPlaceholder =
+                  ['applicant', 'student', ''].includes(fn) || fn.endsWith("'s ward");
+                const hasNoActiveApps =
+                  !l.admissions_applications ||
+                  l.admissions_applications.length === 0 ||
+                  l.admissions_applications.every(
+                    (a) => (a.status as string) === 'draft' || (a.status as string) === 'withdrawn',
+                  );
+                return isPlaceholder && hasNoActiveApps;
+              });
+
+              if (unassignedLead) {
+                // Update the registration lead with actual child details
+                resolvedLead = await tx.leads.update({
+                  where: { lead_id: unassignedLead.lead_id },
+                  data: {
+                    student_first_name: sFirst,
+                    student_last_name: sLast || undefined,
+                    dob: validDob || unassignedLead.dob,
+                    gender: (dto.gender?.toLowerCase() as any) || unassignedLead.gender,
+                    academic_year_grade_id: aygId || unassignedLead.academic_year_grade_id,
+                    stage: 'application_submitted' as any,
+                    updated_at: new Date(),
+                    updated_by: performedBy || undefined,
+                  },
+                });
+              }
+            }
+          }
+
+          // Case C: No targetLeadId, unlinked parent but performedBy user exists
+          if (!resolvedLead && performedBy && sFirst) {
+            resolvedLead = await tx.leads.findFirst({
+              where: {
+                org_id: safeOrgId,
+                created_by: performedBy,
+                student_first_name: { equals: sFirst, mode: 'insensitive' },
+                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+                ...(validDob ? { dob: validDob } : {}),
+              },
+              orderBy: { created_at: 'asc' },
+            });
+          }
+
+          // Case D: Public / Anonymous submission matching by contact phone + child name
+          if (!resolvedLead && !performedBy && (dto.contact_phone || dto.parent_phone) && sFirst) {
+            resolvedLead = await tx.leads.findFirst({
+              where: {
+                org_id: safeOrgId,
+                contact_phone: dto.contact_phone || dto.parent_phone,
+                student_first_name: { equals: sFirst, mode: 'insensitive' },
+                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+                ...(validDob ? { dob: validDob } : {}),
+              },
+              orderBy: { created_at: 'asc' },
+            });
+          }
+
+          // If lead was found: preserve lead identity and update stage to application_submitted
+          if (resolvedLead) {
+            if (
+              resolvedLead.stage !== 'application_submitted' &&
+              resolvedLead.stage !== 'enrolled'
+            ) {
+              await tx.leads.update({
+                where: { lead_id: resolvedLead.lead_id },
                 data: {
-                  student_first_name: sFirst,
-                  student_last_name: sLast || undefined,
-                  dob: validDob || unassignedLead.dob,
-                  gender: (dto.gender?.toLowerCase() as any) || unassignedLead.gender,
-                  academic_year_grade_id: aygId || unassignedLead.academic_year_grade_id,
                   stage: 'application_submitted' as any,
                   updated_at: new Date(),
                   updated_by: performedBy || undefined,
                 },
               });
             }
+          } else {
+            // If lead NOT found: create new Lead for this child under parent
+            const year = new Date().getFullYear();
+            const lastLead = await tx.leads.findFirst({
+              where: { lead_number: { startsWith: `LEAD-${year}-` } },
+              orderBy: { lead_number: 'desc' },
+              select: { lead_number: true },
+            });
+            let nextLeadSeq = 1;
+            if (lastLead?.lead_number) {
+              const match = lastLead.lead_number.match(/(\d+)$/);
+              if (match) nextLeadSeq = parseInt(match[1], 10) + 1;
+            }
+            const leadNumber = `LEAD-${year}-${String(nextLeadSeq).padStart(5, '0')}`;
+
+            resolvedLead = await tx.leads.create({
+              data: {
+                org_id: safeOrgId,
+                lead_number: leadNumber,
+                academic_year_grade_id: aygId!,
+                student_first_name: sFirst,
+                student_last_name: sLast || undefined,
+                dob: validDob,
+                gender: (dto.gender?.toLowerCase() as any) || undefined,
+                curriculum_preference: dto.curriculum_preference || 'CBSE',
+                contact_name: parentFullName,
+                contact_phone: dto.contact_phone || dto.parent_phone || '9999999999',
+                contact_email: dto.contact_email || dto.parent_email || undefined,
+                contact_relationship: (dto.contact_relationship?.toLowerCase() as any) || 'father',
+                source: 'website' as any,
+                stage: 'application_submitted' as any,
+                remarks: dto.remarks || undefined,
+                parent_id: parentRecord ? parentRecord.parent_id : undefined,
+                created_by: performedBy || undefined,
+              },
+            });
+          }
+
+          // 5. Authoritative Lead -> Application 1:1 check
+          // If an application already exists for this resolved Lead within the org, return it idempotently
+          const existingApp = await tx.admissions_applications.findFirst({
+            where: {
+              org_id: safeOrgId,
+              lead_id: resolvedLead.lead_id,
+            },
+            include: {
+              leads: {
+                include: {
+                  parents: true,
+                  academic_year_grades: {
+                    include: {
+                      grades: true,
+                      academic_years: true,
+                    },
+                  },
+                  staff: {
+                    include: {
+                      users_staff_user_idTousers: true,
+                    },
+                  },
+                },
+              },
+              academic_years: true,
+              organizations: true,
+              admission_documents: {
+                include: { document_types: true },
+              },
+              application_assessments: true,
+              admission_decisions: true,
+              admission_fee_payments: true,
+            },
+          });
+
+          if (existingApp) {
+            return { application: existingApp, isNew: false };
+          }
+
+          // Generate application number
+          const year = new Date().getFullYear();
+          const lastApp = await tx.admissions_applications.findFirst({
+            where: { application_number: { startsWith: `APP-${year}-` } },
+            orderBy: { application_number: 'desc' },
+            select: { application_number: true },
+          });
+          let nextAppSeq = 1;
+          if (lastApp?.application_number) {
+            const match = lastApp.application_number.match(/(\d+)$/);
+            if (match) nextAppSeq = parseInt(match[1], 10) + 1;
+          }
+          const applicationNumber = `APP-${year}-${String(nextAppSeq).padStart(5, '0')}`;
+
+          // Create the application linked to resolvedLead.lead_id
+          const newApp = await tx.admissions_applications.create({
+            data: {
+              lead_id: resolvedLead.lead_id,
+              org_id: safeOrgId,
+              academic_year_id: safeAcademicYearId,
+              application_number: applicationNumber,
+              application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
+              status: dto.status || application_status.submitted,
+              created_by: performedBy || undefined,
+              nationality: dto.nationality || undefined,
+              previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
+              previous_school_address: dto.previous_school_address || undefined,
+              previous_school_board: dto.previous_school_board || undefined,
+              previous_grade: dto.previous_grade || undefined,
+              previous_school_year: dto.previous_school_year || undefined,
+            } as any,
+            include: {
+              leads: {
+                include: {
+                  parents: true,
+                  academic_year_grades: {
+                    include: {
+                      grades: true,
+                      academic_years: true,
+                    },
+                  },
+                  staff: {
+                    include: {
+                      users_staff_user_idTousers: true,
+                    },
+                  },
+                },
+              },
+              academic_years: true,
+              organizations: true,
+              admission_documents: {
+                include: { document_types: true },
+              },
+              application_assessments: true,
+              admission_decisions: true,
+              admission_fee_payments: true,
+            },
+          });
+
+          return { application: newApp, isNew: true };
+        },
+        { maxWait: 15000, timeout: 30000 },
+      );
+    } catch (err: any) {
+      // Concurrency protection: If race condition creates application first (P2002 on lead_id or lock timeout),
+      // safely fallback to retrieving the already-created application for this Lead.
+      if (
+        err?.code === 'P2002' ||
+        err?.message?.includes('expired transaction') ||
+        err?.message?.includes('Transaction already closed')
+      ) {
+        let existingRaceApp: any = null;
+        if (targetLeadId) {
+          existingRaceApp = await AdmissionRepository.findByLeadId(targetLeadId, safeOrgId);
+        }
+        if (!existingRaceApp && parentRecord && sFirst) {
+          const matchedLead = await prisma.leads.findFirst({
+            where: {
+              org_id: safeOrgId,
+              parent_id: parentRecord.parent_id,
+              student_first_name: { equals: sFirst, mode: 'insensitive' },
+              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+            },
+          });
+          if (matchedLead) {
+            existingRaceApp = await AdmissionRepository.findByLeadId(
+              matchedLead.lead_id,
+              safeOrgId,
+            );
           }
         }
-
-        // Case C: No targetLeadId, unlinked parent but performedBy user exists
-        if (!resolvedLead && performedBy && sFirst) {
-          resolvedLead = await tx.leads.findFirst({
+        if (!existingRaceApp && performedBy && sFirst) {
+          const matchedLead = await prisma.leads.findFirst({
             where: {
               org_id: safeOrgId,
               created_by: performedBy,
               student_first_name: { equals: sFirst, mode: 'insensitive' },
               ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-              ...(validDob ? { dob: validDob } : {}),
             },
-            orderBy: { created_at: 'asc' },
           });
+          if (matchedLead) {
+            existingRaceApp = await AdmissionRepository.findByLeadId(
+              matchedLead.lead_id,
+              safeOrgId,
+            );
+          }
         }
-
-        // Case D: Public / Anonymous submission matching by contact phone + child name
-        if (!resolvedLead && !performedBy && (dto.contact_phone || dto.parent_phone) && sFirst) {
-          resolvedLead = await tx.leads.findFirst({
+        if (!existingRaceApp && (dto.contact_phone || dto.parent_phone) && sFirst) {
+          const matchedLead = await prisma.leads.findFirst({
             where: {
               org_id: safeOrgId,
               contact_phone: dto.contact_phone || dto.parent_phone,
               student_first_name: { equals: sFirst, mode: 'insensitive' },
               ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-              ...(validDob ? { dob: validDob } : {}),
             },
-            orderBy: { created_at: 'asc' },
           });
+          if (matchedLead) {
+            existingRaceApp = await AdmissionRepository.findByLeadId(
+              matchedLead.lead_id,
+              safeOrgId,
+            );
+          }
         }
 
-        // If lead was found: preserve lead identity and update stage to application_submitted
-        if (resolvedLead) {
-          if (resolvedLead.stage !== 'application_submitted' && resolvedLead.stage !== 'enrolled') {
-            await tx.leads.update({
-              where: { lead_id: resolvedLead.lead_id },
-              data: {
-                stage: 'application_submitted' as any,
-                updated_at: new Date(),
-                updated_by: performedBy || undefined,
-              },
-            });
-          }
+        if (existingRaceApp) {
+          txResult = { application: existingRaceApp, isNew: false };
         } else {
-          // If lead NOT found: create new Lead for this child under parent
-          const year = new Date().getFullYear();
-          const lastLead = await tx.leads.findFirst({
-            where: { lead_number: { startsWith: `LEAD-${year}-` } },
-            orderBy: { lead_number: 'desc' },
-            select: { lead_number: true },
-          });
-          let nextLeadSeq = 1;
-          if (lastLead?.lead_number) {
-            const match = lastLead.lead_number.match(/(\d+)$/);
-            if (match) nextLeadSeq = parseInt(match[1], 10) + 1;
-          }
-          const leadNumber = `LEAD-${year}-${String(nextLeadSeq).padStart(5, '0')}`;
-
-          resolvedLead = await tx.leads.create({
-            data: {
-              org_id: safeOrgId,
-              lead_number: leadNumber,
-              academic_year_grade_id: aygId!,
-              student_first_name: sFirst,
-              student_last_name: sLast || undefined,
-              dob: validDob,
-              gender: (dto.gender?.toLowerCase() as any) || undefined,
-              curriculum_preference: dto.curriculum_preference || 'CBSE',
-              contact_name: parentFullName,
-              contact_phone: dto.contact_phone || dto.parent_phone || '9999999999',
-              contact_email: dto.contact_email || dto.parent_email || undefined,
-              contact_relationship: (dto.contact_relationship?.toLowerCase() as any) || 'father',
-              source: 'website' as any,
-              stage: 'application_submitted' as any,
-              remarks: dto.remarks || undefined,
-              parent_id: parentRecord ? parentRecord.parent_id : undefined,
-              created_by: performedBy || undefined,
-            },
-          });
+          throw err;
         }
+      } else {
+        throw err;
+      }
+    }
 
-        // Generate application number
-        const year = new Date().getFullYear();
-        const lastApp = await tx.admissions_applications.findFirst({
-          where: { application_number: { startsWith: `APP-${year}-` } },
-          orderBy: { application_number: 'desc' },
-          select: { application_number: true },
-        });
-        let nextAppSeq = 1;
-        if (lastApp?.application_number) {
-          const match = lastApp.application_number.match(/(\d+)$/);
-          if (match) nextAppSeq = parseInt(match[1], 10) + 1;
-        }
-        const applicationNumber = `APP-${year}-${String(nextAppSeq).padStart(5, '0')}`;
+    const application = txResult.application;
 
-        // Create the application linked to resolvedLead.lead_id
-        const newApp = await tx.admissions_applications.create({
-          data: {
-            lead_id: resolvedLead.lead_id,
-            org_id: safeOrgId,
-            academic_year_id: safeAcademicYearId,
-            application_number: applicationNumber,
-            application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
-            status: dto.status || application_status.submitted,
-            created_by: performedBy || undefined,
-            nationality: dto.nationality || undefined,
-            previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
-            previous_school_address: dto.previous_school_address || undefined,
-            previous_school_board: dto.previous_school_board || undefined,
-            previous_grade: dto.previous_grade || undefined,
-            previous_school_year: dto.previous_school_year || undefined,
-          } as any,
-          include: {
-            leads: true,
-            academic_years: true,
-          },
-        });
+    if (txResult.isNew) {
+      logger.info(`Admission application created: ${application.application_id}`, {
+        applicationId: application.application_id,
+        applicationNumber: application.application_number,
+        leadId: application.lead_id,
+        performedBy,
+      });
 
-        return newApp;
-      },
-      { maxWait: 5000, timeout: 10000 },
-    );
-
-    logger.info(`Admission application created: ${application.application_id}`, {
-      applicationId: application.application_id,
-      applicationNumber: application.application_number,
-      leadId: application.lead_id,
-      performedBy,
-    });
-
-    // Post-commit event emission
-    await AdmissionEvents.publish(ApplicationEventType.CREATED, {
-      applicationId: application.application_id,
-      applicationNumber: application.application_number,
-      leadId: application.lead_id,
-      performedBy,
-      timestamp: new Date().toISOString(),
-    });
+      // Post-commit event emission only for newly created application
+      await AdmissionEvents.publish(ApplicationEventType.CREATED, {
+        applicationId: application.application_id,
+        applicationNumber: application.application_number,
+        leadId: application.lead_id,
+        performedBy,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      logger.info(`Admission application retrieved (idempotent): ${application.application_id}`, {
+        applicationId: application.application_id,
+        applicationNumber: application.application_number,
+        leadId: application.lead_id,
+        performedBy,
+      });
+    }
 
     return AdmissionMapper.toResponseDto(application);
   }

@@ -15,6 +15,13 @@ export const MODULE_REGISTRY: ErpModule[] = [
     priority: 100,
   },
   {
+    id: 'workspace',
+    name: 'Front Office Workspace',
+    permission: 'admission.enquiry.create',
+    route: '/app/workspace',
+    priority: 80,
+  },
+  {
     id: 'fees',
     name: 'Finance & Fees',
     permission: 'fees.dashboard.view',
@@ -25,7 +32,7 @@ export const MODULE_REGISTRY: ErpModule[] = [
     id: 'admission',
     name: 'Admissions Desk',
     permission: 'admission.dashboard.view',
-    route: '/app/admissions/dashboard',
+    route: '/app/workspace',
     priority: 60,
   },
   {

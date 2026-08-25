@@ -40,43 +40,20 @@ import { PageSkeleton } from '../components/common/LoadingSkeleton';
 
 import { ROUTE_REGISTRY, RouteConfig } from '../config/route_registry';
 import { AutoTranslator } from '../components/i18n/AutoTranslator';
-
+import { LandingResolver } from '../services/LandingResolver';
 import { useAuth } from '../context/AuthContext';
 
 const RoleBasedDefaultRedirect: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const rawRoles =
     user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const userRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
 
-  if (
-    userRoles.some((r: string) =>
-      [
-        'ADMIN',
-        'SUPERADMIN',
-        'SUPER_ADMIN',
-        'FRONT_OFFICE',
-        'FO',
-        'FRONT_OFFICE_STAFF',
-        'STAFF',
-        'ADMISSION_OFFICER',
-        'COUNSELLOR',
-        'COUNSELOR',
-        'HOI',
-        'PRINCIPAL',
-        'HEAD_OF_INSTITUTE',
-        'TEACHER',
-        'FINANCE',
-        'FINANCE_OFFICER',
-        'EXAM_CELL_ADMIN',
-        'EXAM_CELL',
-      ].includes(r),
-    )
-  ) {
-    return <Navigate to="/app/workspace" replace />;
+  if (loading) {
+    return <PageSkeleton />;
   }
 
-  return <Navigate to="/app/admissions/dashboard" replace />;
+  const destination = LandingResolver.resolveLandingRoute(rawRoles, [], user);
+  return <Navigate to={destination} replace />;
 };
 
 export const AppRouter = () => {

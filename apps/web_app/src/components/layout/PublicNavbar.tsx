@@ -101,7 +101,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
               EDUTRACK
             </span>
             <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-[#E7B76A] mt-1">
-              Parent Portal
+              Admission Portal
             </span>
           </div>
         </Link>
@@ -229,7 +229,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
                 className="w-full h-11 bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] font-extrabold rounded-xl text-xs shadow-md flex items-center justify-center space-x-2"
               >
                 <LayoutDashboard className="w-4 h-4" />
-                <span>Go to Parent Portal</span>
+                <span>Go to Portal</span>
               </Button>
             ) : (
               <>
@@ -244,7 +244,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
                     isLoginActive && 'border-[#E7B76A] text-[#E7B76A] bg-white/10',
                   )}
                 >
-                  Sign In to Parent Portal
+                  Sign In
                 </Button>
                 <Button
                   onClick={() => {
@@ -253,7 +253,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
                   }}
                   className="w-full h-11 bg-[#E7B76A] hover:bg-[#d8a658] text-[#042A2B] font-extrabold rounded-xl text-xs shadow-md flex items-center justify-center space-x-2"
                 >
-                  <span>Create Parent Account</span>
+                  <span>Admission Registration</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </>

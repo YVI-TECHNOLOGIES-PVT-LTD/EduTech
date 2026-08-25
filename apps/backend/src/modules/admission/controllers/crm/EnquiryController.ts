@@ -33,37 +33,66 @@ export class EnquiryController {
   }
 
   public create = async (req: Request, res: Response) => {
+    const requestId = (req.headers['x-request-id'] ||
+      req.headers['x-correlation-id'] ||
+      crypto.randomUUID()) as string;
+    const authUserId = req.context?.user?.id || 'anonymous';
+
     try {
       await this.checkFlags(req);
-      let schoolId = req.context?.user?.school_id;
+      let schoolId = req.context?.user?.school_id || (req as any).tenantOrgId;
       let academicYearId =
-        (req.headers['x-academic-year-id'] as string) || req.body.academic_year_id;
+        (req.headers['x-academic-year-id'] as string) || req.body?.academic_year_id;
 
       if (!schoolId || !academicYearId) {
         const requestedYear =
-          req.body.academic_year || req.body.academicYear || req.body.academic_year_name;
+          req.body?.academic_year || req.body?.academicYear || req.body?.academic_year_name;
         const resolved = await AdmissionService.resolveContext(requestedYear);
         if (!schoolId) schoolId = resolved.school_id;
         if (!academicYearId) academicYearId = resolved.academic_year_id || '';
       }
 
-      const correlationId = req.headers['x-correlation-id'] as string;
+      console.log('[ENQUIRY-CONTROLLER-START]', {
+        requestId,
+        authUserId,
+        resolvedOrgId: schoolId,
+        resolvedAcademicYearId: academicYearId,
+        incomingFields: Object.keys(req.body || {}),
+        hasParentName: !!req.body?.parent_name,
+        hasParentPhone: !!req.body?.parent_phone,
+        gradeAppliedFor: req.body?.grade_applied_for,
+      });
+
       const data = await this.enquiryService.createEnquiry(
         schoolId!,
         academicYearId!,
         req.body,
-        correlationId,
+        requestId,
       );
       const referenceCode = `ENQ-2026-${data.id.slice(0, 8).toUpperCase()}`;
+
+      console.log('[ENQUIRY-CONTROLLER-SUCCESS-201]', {
+        requestId,
+        enquiryId: data.id,
+        referenceCode,
+        orgId: schoolId,
+      });
+
       res.status(201).json({
         ...data,
         id: data.id,
         reference_code: referenceCode,
         reference: referenceCode,
+        requestId,
       });
-    } catch (err) {
-      console.error('[ENQUIRY-CONTROLLER-ERROR]', err);
-      handleControllerError(res, err);
+    } catch (err: any) {
+      console.error('[ENQUIRY-CONTROLLER-ERROR]', {
+        requestId,
+        authUserId,
+        error: err?.message || err,
+        stack: err?.stack,
+      });
+      handleControllerError(res, err, requestId);
     }
   };
 

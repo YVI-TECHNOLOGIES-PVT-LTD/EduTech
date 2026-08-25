@@ -21,7 +21,7 @@
 
 ---
 
-## 3. 8-Step Admission Application Wizard
+## 3. 8-Step Admission Application
 
 - [x] **Step 1 (Guidelines)**: Read and accept admission rules.
 - [x] **Step 2 (Student Details)**: Enter personal, gender, and date of birth info with Zod schema validation.

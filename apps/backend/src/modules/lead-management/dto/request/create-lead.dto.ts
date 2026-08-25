@@ -19,7 +19,7 @@ export const createLeadSchema = z.object({
   contact_relationship: z.nativeEnum(relationship_type).optional().nullable(),
   source: z.nativeEnum(lead_source).optional().default(lead_source.website),
   stage: z.nativeEnum(lead_stage).optional().default(lead_stage.enquiry_received),
-  priority: z.nativeEnum(lead_priority).optional().default(lead_priority.warm),
+  priority: z.nativeEnum(lead_priority).optional().default(lead_priority.medium),
   assigned_counsellor_id: z.string().uuid('Invalid counselor ID').optional().nullable(),
   dob: z.string().optional().nullable(),
   gender: z.nativeEnum(gender_type).optional().nullable(),

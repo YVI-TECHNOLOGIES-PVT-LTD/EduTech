@@ -620,7 +620,7 @@ export function ApplicationWizardPage() {
     <PageContainer variant="default">
       {currentStep < 8 && (
         <PageHeader
-          title="Admission Application Wizard"
+          title="Admission Application"
           description="Complete the official online enrollment application for your child."
           badge={
             <Badge

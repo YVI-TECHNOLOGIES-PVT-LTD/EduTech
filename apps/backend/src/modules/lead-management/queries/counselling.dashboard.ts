@@ -43,7 +43,7 @@ export class CounsellingDashboardQuery {
       prisma.leads.count({
         where: {
           ...whereBase,
-          priority: 'hot',
+          priority: 'high',
         },
       }),
       prisma.lead_activities.count({
