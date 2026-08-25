@@ -36,7 +36,35 @@ export class EnquiryService extends BaseService {
     payload: any,
     correlationId?: string,
   ): Promise<AdmissionEnquiry> {
-    const validated = this.validate(createEnquirySchema, payload);
+    console.log('[ENQUIRY-SERVICE-START]', {
+      requestId: correlationId,
+      schoolId,
+      academicYearId,
+      payloadKeys: Object.keys(payload || {}),
+    });
+
+    let validated: any;
+    try {
+      validated = this.validate(createEnquirySchema, payload);
+    } catch (valErr: any) {
+      console.error('[ENQUIRY-DTO-VALIDATION-FAILED-400]', {
+        requestId: correlationId,
+        validationError: valErr?.message,
+        details: valErr?.errors,
+      });
+      throw valErr;
+    }
+
+    console.log('[ENQUIRY-DTO-VALIDATED-OK]', {
+      requestId: correlationId,
+      schoolId,
+      academicYearId,
+      gradeAppliedFor: validated.grade_applied_for,
+      source: validated.source,
+      hasParentEmail: !!validated.parent_email,
+      hasStudentName: !!validated.student_name,
+      contactConsent: validated.contact_consent,
+    });
 
     // Check for duplicates
     const dupCheck = await this.checkDuplicates({
@@ -45,6 +73,10 @@ export class EnquiryService extends BaseService {
     });
 
     if (dupCheck.status === 'exact_match' && !payload.ignore_duplicate) {
+      console.warn('[ENQUIRY-DUPLICATE-FOUND-409]', {
+        requestId: correlationId,
+        matchesCount: dupCheck.matches?.length,
+      });
       throw new ConflictError('Exact duplicate enquiry found', { matches: dupCheck.matches });
     }
 
@@ -79,6 +111,7 @@ export class EnquiryService extends BaseService {
     const saved = await this.enquiryRepo.save(enquiry, {
       contact_consent: validated.contact_consent,
       query_type: validated.query_type || undefined,
+      correlationId,
     });
 
     await this.auditService.logAudit({

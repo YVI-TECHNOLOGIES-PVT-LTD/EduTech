@@ -138,13 +138,25 @@ export class EnquiryRepository {
 
   public async save(
     enquiry: AdmissionEnquiry,
-    extra?: { contact_consent?: boolean; query_type?: string | null },
+    extra?: { contact_consent?: boolean; query_type?: string | null; correlationId?: string },
   ): Promise<AdmissionEnquiry & { lead_number?: string }> {
+    const correlationId = extra?.correlationId;
     const aygId = await this.resolveAcademicYearGradeId(
       enquiry.schoolId,
       enquiry.academicYearId,
       enquiry.gradeAppliedFor,
     );
+
+    console.log('[ENQUIRY-REPO-SAVE-START]', {
+      requestId: correlationId,
+      enquiryId: enquiry.id,
+      orgId: enquiry.schoolId,
+      academicYearId: enquiry.academicYearId,
+      gradeAppliedFor: enquiry.gradeAppliedFor,
+      resolvedAygId: aygId,
+      rawSource: enquiry.source,
+      priority: 'medium',
+    });
 
     // Split student name
     const rawStudentName = (enquiry.studentName || '').trim();
@@ -215,58 +227,69 @@ export class EnquiryRepository {
     const resolvedSource = validSources.includes(rawSource) ? (rawSource as any) : 'website';
 
     let saved: any;
-    if (existing) {
-      saved = await prisma.leads.update({
-        where: { lead_id: enquiry.id },
-        data: {
-          student_first_name: firstName,
-          student_last_name: lastName,
-          contact_name: enquiry.parentName,
-          contact_email: enquiry.parentEmail || null,
-          contact_phone: enquiry.parentPhone,
-          source: resolvedSource,
-          remarks: enquiry.remarks || null,
-          contact_consent: isConsent,
-          contact_consent_at: isConsent ? new Date() : null,
-          updated_at: new Date(),
-        },
-        include: {
-          academic_year_grades: {
-            include: { grades: true },
+    try {
+      if (existing) {
+        saved = await prisma.leads.update({
+          where: { lead_id: enquiry.id },
+          data: {
+            student_first_name: firstName,
+            student_last_name: lastName,
+            contact_name: enquiry.parentName,
+            contact_email: enquiry.parentEmail || null,
+            contact_phone: enquiry.parentPhone,
+            source: resolvedSource,
+            remarks: enquiry.remarks || null,
+            contact_consent: isConsent,
+            contact_consent_at: isConsent ? new Date() : null,
+            updated_at: new Date(),
           },
-          lead_query_type_mappings: {
-            include: { lead_query_types: true },
+          include: {
+            academic_year_grades: {
+              include: { grades: true },
+            },
+            lead_query_type_mappings: {
+              include: { lead_query_types: true },
+            },
           },
-        },
+        });
+      } else {
+        saved = await prisma.leads.create({
+          data: {
+            lead_id: enquiry.id,
+            org_id: enquiry.schoolId,
+            lead_number: leadNumber,
+            academic_year_grade_id: aygId,
+            student_first_name: firstName,
+            student_last_name: lastName,
+            contact_name: enquiry.parentName,
+            contact_email: enquiry.parentEmail || null,
+            contact_phone: enquiry.parentPhone,
+            source: resolvedSource,
+            stage: 'enquiry_received',
+            priority: 'medium' as any,
+            remarks: enquiry.remarks || null,
+            contact_consent: isConsent,
+            contact_consent_at: isConsent ? new Date() : null,
+          },
+          include: {
+            academic_year_grades: {
+              include: { grades: true },
+            },
+            lead_query_type_mappings: {
+              include: { lead_query_types: true },
+            },
+          },
+        });
+      }
+    } catch (prismaErr: any) {
+      console.error('[ENQUIRY-PRISMA-SAVE-ERROR]', {
+        requestId: correlationId,
+        enquiryId: enquiry.id,
+        code: prismaErr?.code,
+        message: prismaErr?.message,
+        meta: prismaErr?.meta,
       });
-    } else {
-      saved = await prisma.leads.create({
-        data: {
-          lead_id: enquiry.id,
-          org_id: enquiry.schoolId,
-          lead_number: leadNumber,
-          academic_year_grade_id: aygId,
-          student_first_name: firstName,
-          student_last_name: lastName,
-          contact_name: enquiry.parentName,
-          contact_email: enquiry.parentEmail || null,
-          contact_phone: enquiry.parentPhone,
-          source: resolvedSource,
-          stage: 'enquiry_received',
-          priority: 'medium',
-          remarks: enquiry.remarks || null,
-          contact_consent: isConsent,
-          contact_consent_at: isConsent ? new Date() : null,
-        },
-        include: {
-          academic_year_grades: {
-            include: { grades: true },
-          },
-          lead_query_type_mappings: {
-            include: { lead_query_types: true },
-          },
-        },
-      });
+      throw prismaErr;
     }
 
     if (queryTypeId && saved?.lead_id) {

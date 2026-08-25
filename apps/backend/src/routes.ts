@@ -97,14 +97,14 @@ router.get('/v1/admission/query-types', enquiryController.getQueryTypes);
 router.get('/admission/query-types', enquiryController.getQueryTypes);
 router.post(
   '/v1/admission/crm/enquiries',
-  resolveTenantMiddleware,
   authenticateOptional,
+  resolveTenantMiddleware,
   enquiryController.create,
 );
 router.post(
   '/v1/admission/enquiries',
-  resolveTenantMiddleware,
   authenticateOptional,
+  resolveTenantMiddleware,
   enquiryController.create,
 );
 
