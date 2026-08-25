@@ -167,17 +167,36 @@ export const admissionApi = {
   getEnquiryById: (id: string) => apiClient.get<any>(`/v1/leads/${id}`),
 
   createEnquiry: (data?: any) => {
-    const payload = {
+    const payload: any = {
       parent_name: data?.parent_name || data?.name || '',
-      parent_email: data?.parent_email || data?.email || '',
       parent_phone: data?.parent_phone || data?.phone || '',
-      student_name: data?.student_name || '',
       grade_applied_for: data?.grade_applied_for || data?.academic_year_grade_id || '',
-      query_type: data?.query_type || '',
-      remarks: data?.remarks || data?.message || '',
       contact_consent: data?.contact_consent ?? data?.consent ?? true,
-      source: 'website',
+      source: data?.source || 'website',
     };
+
+    if (data?.parent_email || data?.email) {
+      payload.parent_email = data.parent_email || data.email;
+    }
+    if (data?.student_name) {
+      payload.student_name = data.student_name;
+    }
+    if (data?.query_type) {
+      payload.query_type = data.query_type;
+    }
+    if (data?.remarks || data?.message) {
+      payload.remarks = data.remarks || data.message;
+    }
+    if (data?.date_of_birth || data?.dob) {
+      payload.date_of_birth = data.date_of_birth || data.dob;
+    }
+    if (data?.gender) {
+      payload.gender = data.gender;
+    }
+    if (data?.academic_year_id) {
+      payload.academic_year_id = data.academic_year_id;
+    }
+
     return apiClient.post<any>('/v1/admission/enquiries', payload, { silent: true } as any);
   },
 
