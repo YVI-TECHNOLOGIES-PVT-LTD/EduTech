@@ -52,9 +52,9 @@ export const activity_status = (PrismaClientPkg as any).activity_status || {
 };
 
 export const lead_priority = (PrismaClientPkg as any).lead_priority || {
-  hot: 'hot',
-  warm: 'warm',
-  cold: 'cold',
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
 };
 
 export type lead_stage = keyof typeof lead_stage;

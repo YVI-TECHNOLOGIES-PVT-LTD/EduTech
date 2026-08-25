@@ -253,7 +253,7 @@ export class EnquiryRepository {
           contact_phone: enquiry.parentPhone,
           source: resolvedSource,
           stage: 'enquiry_received',
-          priority: 'warm',
+          priority: 'medium',
           remarks: enquiry.remarks || null,
           contact_consent: isConsent,
           contact_consent_at: isConsent ? new Date() : null,

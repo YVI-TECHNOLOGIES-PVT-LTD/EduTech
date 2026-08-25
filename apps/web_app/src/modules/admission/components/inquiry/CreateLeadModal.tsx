@@ -97,7 +97,7 @@ const formSchema = z.object({
     'fee_payment_pending',
     'enrolled',
   ] as const),
-  priority: z.enum(['hot', 'warm', 'cold'] as const),
+  priority: z.enum(['high', 'medium', 'low', 'hot', 'warm', 'cold'] as const).optional(),
   assigned_counsellor_id: z.string().optional().nullable(),
   remarks: z.string().optional().nullable(),
   contact_consent: z.boolean().optional().nullable(),
@@ -147,7 +147,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
       contact_email: '',
       source: 'walk_in',
       stage: 'enquiry_received',
-      priority: 'warm',
+      priority: 'medium',
       assigned_counsellor_id: null,
       remarks: '',
     },
@@ -553,7 +553,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       Inquiry Source <span className="text-red-500">*</span>
                     </Label>
                     <Select
-                      value={watch('source')}
+                      value={watch('source') || 'walk_in'}
                       onValueChange={(val) => setValue('source', val as LeadSource)}
                     >
                       <SelectTrigger id="source">
@@ -579,16 +579,16 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       Initial Priority
                     </Label>
                     <Select
-                      value={watch('priority') || 'warm'}
+                      value={watch('priority') || 'medium'}
                       onValueChange={(val) => setValue('priority', val as LeadPriority)}
                     >
                       <SelectTrigger id="priority">
                         <SelectValue placeholder="Priority" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="hot">🔥 Hot (High Intent)</SelectItem>
-                        <SelectItem value="warm">⚡ Warm (Standard)</SelectItem>
-                        <SelectItem value="cold">❄️ Cold (Informational)</SelectItem>
+                        <SelectItem value="high">🔥 High (High Intent)</SelectItem>
+                        <SelectItem value="medium">⚡ Medium (Standard)</SelectItem>
+                        <SelectItem value="low">❄️ Low (Informational)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -598,7 +598,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       Initial Stage
                     </Label>
                     <Select
-                      value={watch('stage')}
+                      value={watch('stage') || 'enquiry_received'}
                       onValueChange={(val) => setValue('stage', val as LeadStage)}
                     >
                       <SelectTrigger id="stage">

@@ -508,7 +508,7 @@ model leads {
   contact_email                 String?                    @db.VarChar(200)
   source                        lead_source
   stage                         lead_stage                 @default(enquiry_received)
-  priority                      lead_priority?             @default(warm)
+  priority                      lead_priority?             @default(medium)
   ai_lead_score                 Decimal?                   @db.Decimal(5, 2)
   assigned_counsellor_id        String?                    @db.Uuid
   remarks                       String?
@@ -1146,9 +1146,9 @@ enum lead_activity_type {
 }
 
 enum lead_priority {
-  hot
-  warm
-  cold
+  high
+  medium
+  low
 
   @@schema("public")
 }

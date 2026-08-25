@@ -177,7 +177,7 @@ export const CounsellingPage: React.FC = () => {
     } else if (type === 'unassigned') {
       setCounsellorFilter('unassigned');
     } else if (type === 'hot') {
-      setPriorityFilter('hot');
+      setPriorityFilter('high');
     }
   };
 
@@ -211,30 +211,29 @@ export const CounsellingPage: React.FC = () => {
   // Helper for priority badges
   const renderPriorityBadge = (priority?: string | null) => {
     switch (priority?.toLowerCase()) {
+      case 'high':
       case 'hot':
         return (
           <Badge className="bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 text-[10px] font-bold uppercase gap-1">
-            <Flame className="w-3 h-3 fill-rose-500 text-rose-500" /> Hot
+            <Flame className="w-3 h-3 fill-rose-500 text-rose-500" /> High
           </Badge>
         );
+      case 'medium':
       case 'warm':
         return (
           <Badge className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-[10px] font-bold uppercase">
-            Warm
+            Medium
           </Badge>
         );
+      case 'low':
       case 'cold':
         return (
           <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase">
-            Cold
+            Low
           </Badge>
         );
       default:
-        return (
-          <Badge variant="outline" className="text-[10px] font-bold uppercase">
-            {priority || 'Normal'}
-          </Badge>
-        );
+        return <span className="text-xs text-muted-foreground font-medium">—</span>;
     }
   };
 
@@ -487,14 +486,14 @@ export const CounsellingPage: React.FC = () => {
                 <SelectItem value="all" className="text-xs">
                   All Priorities
                 </SelectItem>
-                <SelectItem value="hot" className="text-xs text-rose-600 font-bold">
-                  Hot
+                <SelectItem value="high" className="text-xs text-rose-600 font-bold">
+                  High
                 </SelectItem>
-                <SelectItem value="warm" className="text-xs text-amber-600 font-bold">
-                  Warm
+                <SelectItem value="medium" className="text-xs text-amber-600 font-bold">
+                  Medium
                 </SelectItem>
-                <SelectItem value="cold" className="text-xs text-slate-600 font-bold">
-                  Cold
+                <SelectItem value="low" className="text-xs text-slate-600 font-bold">
+                  Low
                 </SelectItem>
               </SelectContent>
             </Select>

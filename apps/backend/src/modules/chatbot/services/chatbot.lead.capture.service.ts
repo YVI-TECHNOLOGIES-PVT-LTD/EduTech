@@ -228,7 +228,7 @@ export class ChatbotLeadCaptureService {
       scholarship_interest: false,
       source: lead_source.chatbot,
       stage: lead_stage.enquiry_received,
-      priority: lead_priority.warm,
+      priority: lead_priority.medium,
       curriculum_preference: extractedFields.preferred_board || undefined,
       remarks: conversationSummary
         ? `Originated from AI Admission Chatbot: ${conversationSummary}`

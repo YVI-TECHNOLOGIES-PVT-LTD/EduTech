@@ -148,9 +148,12 @@ const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; bo
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  hot: { label: 'Hot Priority', color: 'bg-red-500 text-white', icon: '🔥' },
-  warm: { label: 'Warm Priority', color: 'bg-amber-500 text-white', icon: '⚡' },
-  cold: { label: 'Cold Priority', color: 'bg-slate-400 text-white', icon: '❄️' },
+  high: { label: 'High Priority', color: 'bg-red-500 text-white', icon: '🔥' },
+  hot: { label: 'High Priority', color: 'bg-red-500 text-white', icon: '🔥' },
+  medium: { label: 'Medium Priority', color: 'bg-amber-500 text-white', icon: '⚡' },
+  warm: { label: 'Medium Priority', color: 'bg-amber-500 text-white', icon: '⚡' },
+  low: { label: 'Low Priority', color: 'bg-slate-400 text-white', icon: '❄️' },
+  cold: { label: 'Low Priority', color: 'bg-slate-400 text-white', icon: '❄️' },
 };
 
 export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
@@ -311,11 +314,12 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                       {lead.priority && (
                         <span
                           className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                            PRIORITY_CONFIG[lead.priority]?.color || 'bg-slate-500 text-white'
+                            PRIORITY_CONFIG[String(lead.priority).toLowerCase()]?.color ||
+                            'bg-slate-500 text-white'
                           }`}
                         >
-                          {PRIORITY_CONFIG[lead.priority]?.icon}{' '}
-                          {PRIORITY_CONFIG[lead.priority]?.label}
+                          {PRIORITY_CONFIG[String(lead.priority).toLowerCase()]?.icon}{' '}
+                          {PRIORITY_CONFIG[String(lead.priority).toLowerCase()]?.label}
                         </span>
                       )}
                       {lead.ai_lead_score !== null && lead.ai_lead_score !== undefined && (

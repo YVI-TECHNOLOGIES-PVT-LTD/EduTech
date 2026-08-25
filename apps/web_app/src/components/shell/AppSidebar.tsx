@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
@@ -334,12 +335,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
           {/* Render Nested Children when Expanded */}
           {!isCollapsed && isExpanded && (
-            <div
+            <SidebarMenuSub
               id={`subnav-${item.id}`}
               className="ms-3 ps-2 border-s border-sidebar-border/60 space-y-0.5 my-1"
             >
               {children!.map((child) => renderNavigationItem(child, depth + 1))}
-            </div>
+            </SidebarMenuSub>
           )}
         </SidebarMenuItem>
       );

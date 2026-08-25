@@ -27,7 +27,7 @@ export type LeadStage =
   | 'fee_payment_pending'
   | 'enrolled';
 
-export type LeadPriority = 'hot' | 'warm' | 'cold';
+export type LeadPriority = 'high' | 'medium' | 'low' | 'hot' | 'warm' | 'cold';
 export type GenderType = 'male' | 'female' | 'other' | 'undisclosed';
 export type RelationshipType = 'father' | 'mother' | 'guardian' | 'grandparent' | 'other';
 export type ActivityType =
