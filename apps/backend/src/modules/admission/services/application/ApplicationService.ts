@@ -290,17 +290,47 @@ export class ApplicationService extends BaseService {
     const appCount = await prisma.admissions_applications.count();
     const appNumber = `APP-${year}-${String(appCount + 1).padStart(5, '0')}`;
 
-    const newAppRecord = await prisma.admissions_applications.create({
-      data: {
-        application_id: id,
-        application_number: appNumber,
-        org_id: targetOrgId,
-        academic_year_id: targetAyId,
-        lead_id: leadId,
-        status: 'submitted',
-        created_by: createdBy || undefined,
-      },
-    });
+    let newAppRecord: any;
+    try {
+      newAppRecord = await prisma.admissions_applications.create({
+        data: {
+          application_id: id,
+          application_number: appNumber,
+          org_id: targetOrgId,
+          academic_year_id: targetAyId,
+          lead_id: leadId,
+          status: 'submitted',
+          created_by: createdBy || undefined,
+        },
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        const raceApp = await prisma.admissions_applications.findFirst({
+          where: { lead_id: leadId },
+        });
+        if (raceApp) {
+          const app = new AdmissionApplication(
+            raceApp.application_id,
+            raceApp.org_id,
+            raceApp.academic_year_id,
+            raceApp.lead_id,
+            (raceApp.status || 'SUBMITTED').toUpperCase() as ApplicationStatus,
+            1,
+            true,
+            raceApp.created_by,
+            'Existing application retrieved',
+            null,
+            new Date(raceApp.created_at),
+            new Date(raceApp.updated_at),
+            null,
+            raceApp.application_number,
+          );
+          app.applicationNumber = raceApp.application_number;
+          return app;
+        }
+      }
+      throw err;
+    }
 
     const application = new AdmissionApplication(
       newAppRecord.application_id,

@@ -338,9 +338,9 @@ export async function runParentLeadApplicationCardinalityTests() {
     });
 
     // -------------------------------------------------------------------------------------------------
-    // TEST 5: Existing child's Lead is reused for multiple applications (no duplicate lead)
+    // TEST 5: Repeating application creation for same child (Rahul) returns existing Application (1:1 rule)
     // -------------------------------------------------------------------------------------------------
-    await test('TEST 5: Second application for same child (Rahul) reuses existing Lead L001', async () => {
+    await test('TEST 5: Repeating application creation for same child (Rahul) returns existing Application idempotently', async () => {
       const appHariRahul2 = await AdmissionService.createApplication(
         {
           org_id: org.org_id,
@@ -355,19 +355,44 @@ export async function runParentLeadApplicationCardinalityTests() {
         org.org_id,
       );
 
-      appIdsToClean.push(appHariRahul2.application_id);
-
-      assert.ok(appHariRahul2.application_id, 'Second application for Rahul must be created');
-      assert.notStrictEqual(
-        appHariRahul.application_id,
+      // Verify idempotent return
+      assert.ok(appHariRahul2.application_id, 'Application for Rahul must be returned');
+      assert.strictEqual(
         appHariRahul2.application_id,
-        'Application IDs must be distinct',
+        appHariRahul.application_id,
+        'Repeating application creation for the same Lead must return the existing Application (1:1 Lead -> Application)',
+      );
+      assert.strictEqual(
+        appHariRahul2.application_number,
+        appHariRahul.application_number,
+        'Application number must match existing Application',
       );
       assert.strictEqual(
         appHariRahul2.lead_id,
         regHariLead.lead_id,
-        'Second application must reuse same Lead L001',
+        'Application must reuse same Lead L001',
       );
+
+      // Verify existing application persisted fields remain unchanged
+      const dbApp = await prisma.admissions_applications.findUnique({
+        where: { application_id: appHariRahul.application_id },
+      });
+      assert.strictEqual(
+        dbApp?.status,
+        appHariRahul.status,
+        'Application status must remain unchanged',
+      );
+      assert.strictEqual(
+        dbApp?.lead_id,
+        regHariLead.lead_id,
+        'Application lead_id must remain unchanged',
+      );
+
+      // Verify only 1 application exists in DB for Rahul's lead
+      const rahulAppCount = await prisma.admissions_applications.count({
+        where: { lead_id: regHariLead.lead_id },
+      });
+      assert.strictEqual(rahulAppCount, 1, 'Rahul must have exactly 1 Application record in DB');
 
       const hariLeadCount = await prisma.leads.count({
         where: { parent_id: hariParent.parent_id },
@@ -404,12 +429,92 @@ export async function runParentLeadApplicationCardinalityTests() {
     });
 
     // -------------------------------------------------------------------------------------------------
-    // TEST 7: Enrollment preserves Lead -> Application cardinality
+    // TEST 7: Concurrent / duplicate application creation safely resolves without P2002 failure
     // -------------------------------------------------------------------------------------------------
-    await test('TEST 7: Enrollment converts application to Student while preserving Lead relationships', async () => {
+    await test('TEST 7: Concurrent application creation for same Lead resolves idempotently leaving 1 record', async () => {
+      const regAnil = await AuthService.registerParent({
+        full_name: 'Anil Sharma',
+        email: `anil_sharma_${testSuffix}@example.com`,
+        phone: `93333${testSuffix}`,
+        password: 'Password123!',
+        org_id: org.org_id,
+      });
+
+      userIdsToClean.push(regAnil.user_id);
+      parentIdsToClean.push(regAnil.parent_id);
+      leadIdsToClean.push(regAnil.lead_id);
+
+      const appPayload = {
+        org_id: org.org_id,
+        academic_year_id: academicYear.academic_year_id,
+        grade_id: grade.grade_id,
+        student_first_name: 'Aarav',
+        student_last_name: 'Sharma',
+        date_of_birth: '2017-02-14',
+        gender: 'male',
+        parent_name: 'Anil Sharma',
+        parent_phone: `93333${testSuffix}`,
+      };
+
+      // Launch 3 simultaneous concurrent application creation requests
+      const [res1, res2, res3] = await Promise.all([
+        AdmissionService.createApplication(appPayload, regAnil.user_id, org.org_id),
+        AdmissionService.createApplication(appPayload, regAnil.user_id, org.org_id),
+        AdmissionService.createApplication(appPayload, regAnil.user_id, org.org_id),
+      ]);
+
+      appIdsToClean.push(res1.application_id);
+
+      assert.ok(res1.application_id, 'First concurrent response must have application_id');
+      assert.ok(res2.application_id, 'Second concurrent response must have application_id');
+      assert.ok(res3.application_id, 'Third concurrent response must have application_id');
+
+      assert.strictEqual(
+        res1.application_id,
+        res2.application_id,
+        'Concurrent request 1 and 2 must resolve to same application_id',
+      );
+      assert.strictEqual(
+        res2.application_id,
+        res3.application_id,
+        'Concurrent request 2 and 3 must resolve to same application_id',
+      );
+
+      // Verify exactly 1 application was created in DB for Aarav
+      const aaravAppCount = await prisma.admissions_applications.count({
+        where: { lead_id: res1.lead_id },
+      });
+      assert.strictEqual(
+        aaravAppCount,
+        1,
+        'Exactly 1 Application record must exist in DB despite concurrent creation requests',
+      );
+    });
+
+    // -------------------------------------------------------------------------------------------------
+    // TEST 8: Enrollment preserves Lead -> Application cardinality
+    // -------------------------------------------------------------------------------------------------
+    await test('TEST 8: Enrollment converts application to Student while preserving Lead relationships', async () => {
       await prisma.admissions_applications.update({
         where: { application_id: appHariRahul.application_id },
         data: { status: 'approved' },
+      });
+
+      await prisma.admission_decisions.create({
+        data: {
+          application_id: appHariRahul.application_id,
+          decision_status: 'approved',
+          decision_date: new Date(),
+        },
+      });
+
+      await prisma.admission_fee_payments.create({
+        data: {
+          application_id: appHariRahul.application_id,
+          payment_status: 'paid',
+          amount: 5000,
+          payment_date: new Date(),
+        },
       });
 
       const student = await StudentService.convertApplicationToStudent(
@@ -446,7 +551,7 @@ export async function runParentLeadApplicationCardinalityTests() {
           where: { application_id: { in: appIdsToClean } },
           select: { student_id: true },
         });
-        const studentIds = students.map((s) => s.student_id);
+        const studentIds = students.map((s: { student_id: string }) => s.student_id);
         if (studentIds.length > 0) {
           await prisma.student_enrollments.deleteMany({
             where: { student_id: { in: studentIds } },
