@@ -351,7 +351,11 @@ export const AdmissionForm = () => {
           ? res.data
           : res.data?.data || res.data || {};
         const appNum =
-          resultData?.application_number || resultData?.applicationNumber || 'APP-2026-00001';
+          resultData?.application_number ||
+          resultData?.applicationNumber ||
+          (resultData?.application_id
+            ? `APP-${resultData.application_id.slice(0, 8).toUpperCase()}`
+            : 'PENDING');
 
         setSubmittedResult(resultData);
         setSubmitted(true);
@@ -494,7 +498,9 @@ export const AdmissionForm = () => {
               <span className="text-lg font-black text-blue-700 tracking-wide">
                 {submittedResult?.application_number ||
                   submittedResult?.applicationNumber ||
-                  'APP-2026-PENDING'}
+                  (submittedResult?.application_id
+                    ? `APP-${submittedResult.application_id.slice(0, 8).toUpperCase()}`
+                    : 'PENDING')}
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">

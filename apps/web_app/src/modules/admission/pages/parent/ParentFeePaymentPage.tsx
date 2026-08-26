@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useActiveAdmissionApplication } from '../../hooks/useActiveAdmissionApplication';
+import { ActiveApplicationBanner } from '../../components/ActiveApplicationBanner';
 import {
   useGetApplicationFeeQuery,
   useGetApplicationReceiptQuery,
@@ -72,6 +73,13 @@ export function ParentFeePaymentPage() {
     'upi',
   );
   const [payError, setPayError] = useState<string | null>(null);
+
+  // Reset modal and error state whenever active application changes or resets
+  React.useEffect(() => {
+    setShowReceiptModal(false);
+    setShowPaymentModal(false);
+    setPayError(null);
+  }, [activeApplicationId]);
 
   if (isAppLoading) {
     return (
@@ -258,52 +266,17 @@ export function ParentFeePaymentPage() {
         }
       />
 
-      {/* Multi-Application Selector Banner */}
-      {hasMultiple && (
-        <div className="p-4 bg-muted/40 rounded-2xl border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-foreground">Multiple Applications Registered</p>
-              <p className="text-[11px] text-muted-foreground">
-                Currently displaying fee statement for{' '}
-                <span className="font-bold text-foreground">{studentName}</span> ({gradeApplied}).
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <label className="text-xs font-bold text-muted-foreground shrink-0">
-              Switch Child:
-            </label>
-            <select
-              value={activeApplicationId}
-              onChange={(e) => setActiveApplicationId(e.target.value)}
-              aria-label="Select Active Admission Application"
-              className="bg-card text-foreground text-xs font-bold px-3 py-1.5 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
-            >
-              {applications.map((app) => {
-                const name =
-                  app.student_name ||
-                  (app.leads
-                    ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`.trim()
-                    : app.lead
-                      ? `${app.lead.student_first_name || ''} ${app.lead.student_last_name || ''}`.trim()
-                      : 'Applicant');
-                const num =
-                  app.application_number ||
-                  app.applicationNumber ||
-                  app.application_id?.slice(0, 8);
-                const id = app.application_id || app.id;
-                return (
-                  <option key={id} value={id}>
-                    {name} ({num})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        </div>
-      )}
+      {/* Canonical Active Application Overview Banner with Child Switcher */}
+      <ActiveApplicationBanner
+        activeApplication={activeApplication}
+        applications={applications}
+        activeApplicationId={activeApplicationId}
+        setActiveApplicationId={setActiveApplicationId}
+        hasMultiple={hasMultiple}
+        studentName={studentName}
+        appNumber={appNumber}
+        gradeApplied={gradeApplied}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

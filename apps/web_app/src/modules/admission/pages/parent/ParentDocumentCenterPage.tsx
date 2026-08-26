@@ -18,8 +18,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ActiveApplicationBanner } from '../../components/ActiveApplicationBanner';
 import { DocumentVerificationCard } from '../../components/DocumentVerificationCard';
-import { AlertCircle, Plus, RefreshCw, Users } from 'lucide-react';
+import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 function formatFileSize(bytes?: number | null): string {
@@ -73,6 +74,12 @@ export function ParentDocumentCenterPage() {
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Clear local component state whenever active application ID changes or resets
+  React.useEffect(() => {
+    setActionError(null);
+    setUploadingDocId(null);
+  }, [activeApplicationId]);
+
   // Fallback default checklist requirements if backend document_types table is empty
   const defaultDocRequirements: Partial<DocumentTypeDto>[] = [
     {
@@ -104,7 +111,11 @@ export function ParentDocumentCenterPage() {
   const effectiveDocTypes: (DocumentTypeDto | Partial<DocumentTypeDto>)[] =
     docTypes && docTypes.length > 0 ? docTypes : defaultDocRequirements;
 
-  const handleFileUpload = async (docTypeId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    docTypeId: string,
+    docTypeName: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !activeApplicationId) return;
 
@@ -119,7 +130,11 @@ export function ParentDocumentCenterPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('document_type_id', docTypeId);
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(docTypeId)) {
+        formData.append('document_type_id', docTypeId);
+      }
+      formData.append('document_type', docTypeName);
+      formData.append('document_code', docTypeName);
       formData.append('application_id', activeApplicationId);
 
       await uploadDoc({ applicationId: activeApplicationId, formData }).unwrap();
@@ -256,52 +271,17 @@ export function ParentDocumentCenterPage() {
         }
       />
 
-      {/* Multi-Application Selector Banner (if parent has multiple applications) */}
-      {hasMultiple && (
-        <div className="p-4 bg-muted/40 rounded-2xl border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-foreground">Multiple Applications Registered</p>
-              <p className="text-[11px] text-muted-foreground">
-                Currently managing documents for{' '}
-                <span className="font-bold text-foreground">{studentName}</span> ({gradeApplied}).
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <label className="text-xs font-bold text-muted-foreground shrink-0">
-              Switch Child:
-            </label>
-            <select
-              value={activeApplicationId}
-              onChange={(e) => setActiveApplicationId(e.target.value)}
-              aria-label="Select Active Admission Application"
-              className="bg-card text-foreground text-xs font-bold px-3 py-1.5 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
-            >
-              {applications.map((app) => {
-                const name =
-                  app.student_name ||
-                  (app.leads
-                    ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`.trim()
-                    : app.lead
-                      ? `${app.lead.student_first_name || ''} ${app.lead.student_last_name || ''}`.trim()
-                      : 'Applicant');
-                const num =
-                  app.application_number ||
-                  app.applicationNumber ||
-                  app.application_id?.slice(0, 8);
-                const id = app.application_id || app.id;
-                return (
-                  <option key={id} value={id}>
-                    {name} ({num})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        </div>
-      )}
+      {/* Canonical Active Application Overview Banner with Child Switcher */}
+      <ActiveApplicationBanner
+        activeApplication={activeApplication}
+        applications={applications}
+        activeApplicationId={activeApplicationId}
+        setActiveApplicationId={setActiveApplicationId}
+        hasMultiple={hasMultiple}
+        studentName={studentName}
+        appNumber={appNumber}
+        gradeApplied={gradeApplied}
+      />
 
       {actionError && (
         <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
@@ -383,7 +363,7 @@ export function ParentDocumentCenterPage() {
                   mandatory={isMandatory}
                   hint={hintText}
                   uploaded={uploadedInfo}
-                  onUpload={(e) => handleFileUpload(docTypeId, e)}
+                  onUpload={(e) => handleFileUpload(docTypeId, docTypeName, e)}
                   onRemove={matchedDoc ? () => handleRemoveDoc(matchedDoc.document_id) : undefined}
                   onView={matchedDoc ? () => handleViewDoc(matchedDoc.document_id) : undefined}
                 />

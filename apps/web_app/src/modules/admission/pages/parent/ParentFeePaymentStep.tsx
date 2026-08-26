@@ -266,7 +266,7 @@ export const ParentFeePaymentStep: React.FC<ParentFeePaymentStepProps> = ({
     `${formData?.student_first_name || ''} ${formData?.student_last_name || ''}`.trim() ||
     'Student Candidate';
 
-  // Canonical Application Reference (Priority: feeDetails.application_number > formData.application_number > application_id > APP-2026-00042)
+  // Canonical Application Reference (Priority: feeDetails.application_number > formData.application_number > application_id)
   const canonicalAppRef =
     feeDetails.application_number ||
     formData?.application_number ||
@@ -274,7 +274,7 @@ export const ParentFeePaymentStep: React.FC<ParentFeePaymentStepProps> = ({
       ? applicationId.startsWith('APP-')
         ? applicationId
         : `APP-${applicationId.slice(0, 8).toUpperCase()}`
-      : 'APP-2026-00042');
+      : '');
 
   const institutionName =
     feeDetails.org_name || formData?.school_name || 'EduTrack Partner Institution';

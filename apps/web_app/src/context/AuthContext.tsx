@@ -14,6 +14,11 @@ import {
 import { setPermissions, clearPermissions } from '../shared/store/permissionSlice';
 import { setActiveTenant, setSchoolId } from '../shared/store/tenantSlice';
 import { selectHasPermission, selectHasRole } from '../shared/auth/permissionSelectors';
+import {
+  resetAuthenticatedClientState,
+  getCurrentSessionGeneration,
+  getNextSessionGeneration,
+} from '../lib/auth/sessionReset';
 
 export interface AuthContextType {
   session: Session | null;
@@ -46,18 +51,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const userPermissions = useAppSelector((state) => state.permission.permissions);
   const userRoles = useAppSelector((state) => state.permission.roles);
 
-  // Profile fetch tracker to avoid duplicate calls
+  // Profile fetch tracker and auth boundary tracker (userId + tenantId)
   const profileFetchTracker = useRef<string | null>(null);
+  const currentAuthBoundaryRef = useRef<string | null>(null);
 
   /**
    * Fetches enriched user profile from backend and dispatches to Redux auth & tenant slices.
+   * Employs generation checking to discard responses if session changed while in flight.
    */
   const fetchUserProfile = useCallback(
     async (token?: string) => {
+      const requestGeneration = getCurrentSessionGeneration();
       try {
         const activeToken = token || (await supabase.auth.getSession()).data.session?.access_token;
         if (!activeToken) {
-          dispatch(setInitializing(false));
+          if (requestGeneration === getCurrentSessionGeneration()) {
+            dispatch(setInitializing(false));
+          }
           return;
         }
 
@@ -65,8 +75,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
+        // Drop response if auth state changed while request was in flight
+        if (requestGeneration !== getCurrentSessionGeneration()) {
+          return;
+        }
+
         if (res.data?.user) {
           const enrichedUser: EnrichedUser = res.data.user;
+          currentAuthBoundaryRef.current = `${enrichedUser.id}:${enrichedUser.school_id || ''}`;
+
           // Dispatch identity profile to authSlice
           dispatch(setUser(enrichedUser));
           // Dispatch roles and permissions to permissionSlice
@@ -86,11 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           dispatch(clearPermissions());
         }
       } catch (error: any) {
-        console.error('[Auth] Profile fetch failed:', error.response?.status || error.message);
-        dispatch(setUser(null));
-        dispatch(clearPermissions());
+        if (requestGeneration === getCurrentSessionGeneration()) {
+          console.error('[Auth] Profile fetch failed:', error.response?.status || error.message);
+          dispatch(setUser(null));
+          dispatch(clearPermissions());
+        }
       } finally {
-        dispatch(setInitializing(false));
+        if (requestGeneration === getCurrentSessionGeneration()) {
+          dispatch(setInitializing(false));
+        }
       }
     },
     [dispatch],
@@ -123,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (initSession?.access_token) {
         setSession(initSession);
         profileFetchTracker.current = initSession.user.id;
+        currentAuthBoundaryRef.current = initSession.user.id;
         await new Promise((r) => setTimeout(r, 100));
         await fetchUserProfile(initSession.access_token);
       } else if (storedToken) {
@@ -134,6 +156,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initialize();
 
+    // Browser bfcache protection (pageshow event)
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('[Auth] Page restored from bfcache, revalidating session');
+        }
+        void fetchUserProfile();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
     // Supabase Auth Lifecycle Subscription
     const {
       data: { subscription },
@@ -141,39 +174,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return;
 
       console.debug(`[Auth] Event: ${event}`);
-      setSession(currentSession);
 
       if (currentSession) {
         const isNewUser = currentSession.user.id !== profileFetchTracker.current;
 
+        if (isNewUser) {
+          // Hard client reset BEFORE allowing new user data to load/render
+          await resetAuthenticatedClientState('user_switch_detected');
+          dispatch(setInitializing(true));
+        }
+
+        setSession(currentSession);
+        profileFetchTracker.current = currentSession.user.id;
+
         if (isNewUser || event === 'SIGNED_IN') {
-          profileFetchTracker.current = currentSession.user.id;
-          if (isNewUser) {
-            dispatch(setInitializing(true));
-          }
           await fetchUserProfile(currentSession.access_token);
         }
       } else {
-        // Do NOT wipe Native JWT Redux credentials on Supabase event
+        // If transitioning to signed out from an authenticated session
+        if (profileFetchTracker.current) {
+          await resetAuthenticatedClientState('session_expired_or_signed_out');
+          profileFetchTracker.current = null;
+          currentAuthBoundaryRef.current = null;
+        }
+        setSession(null);
         dispatch(setInitializing(false));
       }
     });
 
     return () => {
       isMounted = false;
+      window.removeEventListener('pageshow', handlePageShow);
       subscription.unsubscribe();
     };
   }, [fetchUserProfile, dispatch]);
 
+  /**
+   * Canonical single entry point for user logout across the entire application.
+   */
   const signOut = async () => {
     dispatch(setInitializing(true));
     try {
-      await supabase.auth.signOut();
-    } finally {
       profileFetchTracker.current = null;
+      currentAuthBoundaryRef.current = null;
       setSession(null);
-      dispatch(logoutAction());
-      dispatch(clearPermissions());
+      await resetAuthenticatedClientState('user_explicit_sign_out');
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[Auth] Error during signOut:', err);
+    } finally {
       dispatch(setInitializing(false));
     }
   };

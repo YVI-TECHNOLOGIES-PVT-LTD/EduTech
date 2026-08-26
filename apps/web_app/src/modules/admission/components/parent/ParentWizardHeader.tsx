@@ -9,7 +9,7 @@ interface ParentWizardHeaderProps {
 }
 
 export const ParentWizardHeader: React.FC<ParentWizardHeaderProps> = ({
-  appNumber = 'APP-2026-00368',
+  appNumber = '',
   isReadOnly = false,
 }) => {
   const { logout } = useAuthStore();

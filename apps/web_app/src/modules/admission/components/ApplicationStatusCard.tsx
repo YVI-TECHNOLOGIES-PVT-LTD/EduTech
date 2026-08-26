@@ -49,7 +49,7 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
   const appNumber =
     application.application_number ||
     application.applicationNumber ||
-    (appId ? `APP-${appId.slice(0, 8).toUpperCase()}` : 'APP-2026');
+    (appId ? `APP-${appId.slice(0, 8).toUpperCase()}` : '');
 
   const appStatus = application.status || 'submitted';
 
