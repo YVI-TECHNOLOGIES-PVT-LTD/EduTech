@@ -1,16 +1,56 @@
-name: EduTrack ERP CI Quality Gates
+name: EduTrack CI
+
+# ==============================================================================
+# CI ONLY — no deployment, no AWS, no registry push.
+#
+# Pipeline shape:
+#   push / pull_request
+#     -> quality gates (lint, typecheck) + application build   [backend/web]
+#     -> quality gates (lint, typecheck, jest unit tests)      [mobile]
+#     -> Docker image build validation (backend + web, not pushed)
+#
+# See docs/ci-pipeline.md for the full audit findings, what is intentionally
+# excluded, and why.
+# ==============================================================================
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, docker-cicd-mani]
   pull_request:
-    branches: [main, develop]
+    branches: [main, docker-cicd-mani]
+  workflow_dispatch: {}
+
+# Cancel superseded runs on the same branch/PR so CI minutes aren't wasted on
+# stale pushes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.18.0'
+  PNPM_VERSION: '9.15.4'
 
 jobs:
-  quality-gates:
-    name: Lint, Typecheck, Build Verification
+  # ----------------------------------------------------------------------------
+  # Backend + Web quality gates and application build.
+  #
+  # Runs lint, typecheck and build via Turbo, filtered to @edutrack/api and
+  # @edutrack/web (Turbo automatically pulls in their workspace dependencies —
+  # @edutrack/types, @edutrack/validation, @edutrack/ui, @edutrack/config —
+  # for the typecheck/build tasks per turbo.json's `dependsOn: ["^task"]`).
+  #
+  # No `pnpm run test`/`test:api`/`test:auth`/`test:admission` here:
+  #   - @edutrack/api's "test" script is a placeholder echo, not a real test.
+  #   - "test:*" scripts run Newman against Postman collections and require a
+  #     live backend + seeded database — infrastructure this job does not have.
+  #   - @edutrack/web has no "test" script at all.
+  # ----------------------------------------------------------------------------
+  quality-backend-web:
+    name: Backend & Web — Lint, Typecheck, Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
@@ -18,25 +58,122 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9.15.4
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Setup Node.js Environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      # Only reads prisma/schema.prisma to emit a client — never connects to
+      # a database. Required before typecheck/build so `@prisma/client`
+      # types exist.
       - name: Generate Prisma Client
         run: pnpm --filter @edutrack/api exec prisma generate
 
-      - name: Run Codebase Linting
-        run: pnpm run lint
+      - name: Lint (backend + web)
+        run: pnpm exec turbo run lint --filter=@edutrack/api --filter=@edutrack/web
 
-      - name: Run Workspace Typechecking
-        run: pnpm run typecheck
+      - name: Typecheck (backend + web + shared packages)
+        run: pnpm exec turbo run typecheck --filter=@edutrack/api --filter=@edutrack/web
 
-      - name: Run Workspace Build Verification
-        run: pnpm run build
+      - name: Build (backend + web + shared packages)
+        run: pnpm exec turbo run build --filter=@edutrack/api --filter=@edutrack/web
+
+  # ----------------------------------------------------------------------------
+  # Mobile quality gates. The mobile app is Node/Expo tooling only — it is
+  # never containerized, so it gets its own job independent of the Docker
+  # stage. Jest here runs only apps/mobile_app/tests/unit/** (per
+  # jest.config.js's testMatch); those specs mock React Native, Expo modules,
+  # secure storage and the API client, so they need no device, emulator, or
+  # live backend. tests/integration/** is excluded from testMatch and is a
+  # placeholder today.
+  # ----------------------------------------------------------------------------
+  quality-mobile:
+    name: Mobile — Lint, Typecheck, Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (mobile)
+        run: pnpm exec turbo run lint --filter=@edutrack/mobile
+
+      - name: Typecheck (mobile)
+        run: pnpm exec turbo run typecheck --filter=@edutrack/mobile
+
+      - name: Jest Unit Tests (mobile)
+        run: pnpm exec turbo run test --filter=@edutrack/mobile
+
+  # ----------------------------------------------------------------------------
+  # Docker build validation. Proves both images build successfully from the
+  # repo root context — nothing is pushed, and no registry credentials are
+  # configured (GHCR/ECR/Docker Hub auth is intentionally absent).
+  #
+  # Gated on quality-backend-web so a broken lint/typecheck/build fails fast
+  # without spending runner minutes on an image build that would fail anyway.
+  # ----------------------------------------------------------------------------
+  docker-build-validation:
+    name: Docker Build Validation (Backend + Web)
+    runs-on: ubuntu-latest
+    needs: [quality-backend-web]
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Image (validation only — not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: false
+          tags: edutrack-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      # VITE_* values are Vite build-time variables baked into the static JS
+      # bundle at build time — they are client-visible by design (e.g.
+      # VITE_SUPABASE_ANON_KEY is Supabase's public anon key). The values
+      # below are CI-only placeholders, not real credentials, and exist only
+      # so the Vite build has something to compile against; they are never
+      # real Supabase/JWT/DB secrets and are never pushed anywhere.
+      - name: Build Web Image (validation only — not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web_app/Dockerfile
+          push: false
+          tags: edutrack-web:ci
+          build-args: |
+            VITE_API_URL=http://localhost:3000/api
+            VITE_APP_TITLE=EduTrack CI Build
+            VITE_DEFAULT_TENANT_ID=ci-placeholder
+            VITE_ENABLE_MOCK_API=false
+            VITE_SESSION_TIMEOUT_MINS=30
+            VITE_SUPABASE_URL=https://ci-placeholder.supabase.co
+            VITE_SUPABASE_ANON_KEY=ci-placeholder-anon-key
+            VITE_TRANSLATION_API_URL=http://localhost:3000/translate
+            VITE_TRANSLATION_API_KEY=ci-placeholder-key
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
