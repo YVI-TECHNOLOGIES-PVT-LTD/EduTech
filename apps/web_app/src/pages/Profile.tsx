@@ -342,21 +342,13 @@ export const Profile = () => {
                   <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider border-b border-slate-100 dark:border-neutral-800 pb-3">
                     Workspace Context
                   </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div>
                     <div className="p-3 bg-slate-50/50 dark:bg-neutral-950 border border-slate-100 dark:border-neutral-800 rounded-xl">
                       <span className="text-[9px] font-black text-slate-400 dark:text-neutral-500 uppercase tracking-wide">
                         School / Institution
                       </span>
                       <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-0.5">
                         EduTrack Global School
-                      </p>
-                    </div>
-                    <div className="p-3 bg-slate-50/50 dark:bg-neutral-950 border border-slate-100 dark:border-neutral-800 rounded-xl">
-                      <span className="text-[9px] font-black text-slate-400 dark:text-neutral-500 uppercase tracking-wide">
-                        Tenant ID Reference
-                      </span>
-                      <p className="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono mt-0.5 truncate">
-                        {user.school_id}
                       </p>
                     </div>
                   </div>
