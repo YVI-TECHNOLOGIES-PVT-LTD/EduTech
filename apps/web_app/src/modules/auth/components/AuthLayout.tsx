@@ -198,7 +198,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             {/* Bottom Security / Copyright Tag */}
             <div className="mt-6 text-center text-[11px] text-muted-foreground flex items-center justify-center space-x-2">
               <Lock className="w-3 h-3 text-[#063F40] dark:text-[#E7B76A]" />
-              <span>EduTrack Parent Portal &bull; Secure Institutional Access</span>
+              <span>EduTrack Institutional Portal &bull; Secure Institutional Access</span>
             </div>
           </div>
         </main>

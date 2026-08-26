@@ -31,6 +31,8 @@ export const createApplicationSchema = z.object({
   previous_grade: z.string().optional(),
   previous_school_year: z.string().optional(),
   remarks: z.string().optional(),
+  scholarship_interest: z.boolean().optional(),
+  is_new_child: z.boolean().optional(),
   application_date: z.string().optional(),
   status: z
     .nativeEnum(application_status as any)

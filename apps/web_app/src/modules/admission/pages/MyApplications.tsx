@@ -1,16 +1,7 @@
 import React from 'react';
-import {
-  Plus,
-  ChevronRight,
-  FileText,
-  Calendar,
-  GraduationCap,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApplicationList } from '../hooks/useApplication';
-import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper';
 import {
   PageContainer,
   PageHeader,
@@ -19,7 +10,7 @@ import {
 } from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { ApplicationStatusCard } from '../components/ApplicationStatusCard';
 import type { ApplicationRecord } from '@/shared/api/admission.api';
 
 export function MyApplications() {
@@ -111,7 +102,7 @@ export function MyApplications() {
           }
         />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <SectionHeader
             title={`Your Registered Applications (${applications.length})`}
             action={
@@ -126,79 +117,10 @@ export function MyApplications() {
             }
           />
 
-          <div className="grid gap-4">
-            {applications.map((app: ApplicationRecord) => {
-              const studentName =
-                app.student_name ||
-                (app.leads
-                  ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`.trim()
-                  : 'Applicant');
-              const gradeApplied =
-                app.grade_applied_for ||
-                app.leads?.academic_year_grades?.grades?.grade_name ||
-                'Grade Applied';
-              const appNumber =
-                app.application_number ||
-                app.applicationNumber ||
-                `APP-${app.application_id?.slice(0, 8) || '2026'}`;
-              const appStatus = app.status || 'submitted';
-
-              return (
-                <Card
-                  key={app.application_id || app.id}
-                  className="rounded-2xl border border-border/80 bg-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-2xl flex items-center justify-center font-black text-lg border border-indigo-200/80 dark:border-indigo-800 shrink-0">
-                      {studentName.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-foreground text-base">{studentName}</h3>
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-bold font-mono tracking-wider text-indigo-600 bg-indigo-50/50 border-indigo-200"
-                        >
-                          {appNumber}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 font-medium">
-                        <span className="flex items-center gap-1">
-                          <GraduationCap className="w-3.5 h-3.5 text-muted-foreground/70" /> Grade:{' '}
-                          {gradeApplied}
-                        </span>
-                        {app.application_date && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-muted-foreground/70" /> Submitted:{' '}
-                            {new Date(app.application_date).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border/60">
-                    <span
-                      className={`px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wider ${getStatusColor(appStatus)}`}
-                    >
-                      {formatStatusLabel(appStatus)}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Link to={`/app/admissions/${app.application_id || app.id}`}>
-                        <Button
-                          size="sm"
-                          className="font-bold text-xs flex items-center gap-1.5 shadow-sm"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>View Application</span>
-                          <ChevronRight className="w-3.5 h-3.5 opacity-80" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {applications.map((app: ApplicationRecord) => (
+              <ApplicationStatusCard key={app.application_id || app.id} application={app} />
+            ))}
           </div>
         </div>
       )}

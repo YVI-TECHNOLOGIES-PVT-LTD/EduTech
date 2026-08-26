@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthService } from '../../auth/auth.service';
+import { useAuth } from '../../context/AuthContext';
 
 export const useLogout = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [isPending, setIsPending] = useState(false);
 
   const mutateAsync = async () => {
     setIsPending(true);
     try {
-      await AuthService.logout();
+      await signOut();
     } catch (error: any) {
       console.error('[useLogout] Logout failed:', error.message);
     } finally {
@@ -25,3 +26,4 @@ export const useLogout = () => {
     isLoading: isPending,
   };
 };
+

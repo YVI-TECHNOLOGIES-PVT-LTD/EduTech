@@ -44,7 +44,7 @@ export const ParentConfirmationStep: React.FC<ParentConfirmationStepProps> = ({ 
         <p className="text-xs font-semibold text-gray-500 max-w-md mx-auto leading-relaxed">
           Your application for{' '}
           <span className="font-bold text-gray-900">
-            {submittedApp.student_name || 'Arjun Rajesh Sharma'}
+            {submittedApp.student_name || 'Applicant'}
           </span>{' '}
           has been received. Our admissions team is now reviewing your details.
         </p>
@@ -87,7 +87,7 @@ export const ParentConfirmationStep: React.FC<ParentConfirmationStepProps> = ({ 
           <p className="text-xs text-indigo-200 leading-relaxed font-medium">
             We&apos;ve sent the application acknowledgement and next steps to{' '}
             <span className="text-white font-bold">
-              {submittedApp.parent_email || 'rajesh.sharma@gmail.com'}
+              {submittedApp.parent_email || 'your registered email'}
             </span>
             . Please keep this for your records.
           </p>

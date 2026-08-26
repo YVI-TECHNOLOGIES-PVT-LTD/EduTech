@@ -643,7 +643,12 @@ export function ApplicationWizardPage() {
             currentStep={currentStep}
             onStepClick={(stepId) => setCurrentStep(stepId)}
             isReadOnly={isReadOnly}
-            appNumber={submittedApp?.application_number || 'APP-2026-00368'}
+            appNumber={
+              submittedApp?.application_number ||
+              (submittedApp?.application_id
+                ? `APP-${submittedApp.application_id.slice(0, 8).toUpperCase()}`
+                : '')
+            }
           />
 
           {/* Full-Width Form Step Content Workspace */}

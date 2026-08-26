@@ -9,7 +9,7 @@ export const RegistrationSuccessPage: React.FC = () => {
     <AuthLayout
       badgeText="Registration Completed"
       title="Welcome to EduTrack"
-      subtitle="Your parent guardian portal account is verified and ready."
+      subtitle="Your admission portal account is verified and ready."
     >
       <div className="text-center space-y-6">
         {/* Glowing Emerald Success Mark */}
@@ -23,8 +23,8 @@ export const RegistrationSuccessPage: React.FC = () => {
             Account Ready for Use
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-            You can now sign in to your EduTrack Parent Portal to start new admission applications,
-            upload student documents, and track admission approvals.
+            You can now sign in to your EduTrack Admission Portal to start new admission
+            applications, upload student documents, and track admission approvals.
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export const RegistrationSuccessPage: React.FC = () => {
         <div className="pt-2">
           <Link to="/login" className="block w-full">
             <Button className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2">
-              <span>Sign In to Parent Portal</span>
+              <span>Sign In to Admission Portal</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>

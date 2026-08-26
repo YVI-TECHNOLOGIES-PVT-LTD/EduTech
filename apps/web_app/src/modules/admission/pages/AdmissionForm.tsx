@@ -351,7 +351,11 @@ export const AdmissionForm = () => {
           ? res.data
           : res.data?.data || res.data || {};
         const appNum =
-          resultData?.application_number || resultData?.applicationNumber || 'APP-2026-00001';
+          resultData?.application_number ||
+          resultData?.applicationNumber ||
+          (resultData?.application_id
+            ? `APP-${resultData.application_id.slice(0, 8).toUpperCase()}`
+            : 'PENDING');
 
         setSubmittedResult(resultData);
         setSubmitted(true);
@@ -494,7 +498,9 @@ export const AdmissionForm = () => {
               <span className="text-lg font-black text-blue-700 tracking-wide">
                 {submittedResult?.application_number ||
                   submittedResult?.applicationNumber ||
-                  'APP-2026-PENDING'}
+                  (submittedResult?.application_id
+                    ? `APP-${submittedResult.application_id.slice(0, 8).toUpperCase()}`
+                    : 'PENDING')}
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">
@@ -520,7 +526,7 @@ export const AdmissionForm = () => {
               onClick={() => navigate('/login')}
               className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all hover:scale-105"
             >
-              Log In to Parent Portal
+              Log In to Admission Portal
             </button>
             <button
               onClick={() => window.location.reload()}
@@ -924,7 +930,7 @@ export const AdmissionForm = () => {
 
                 <div className="p-4 bg-blue-100/50 border border-blue-200 rounded-xl text-sm text-blue-800 font-medium flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-                  <span>Create a parent portal password to track your application status.</span>
+                  <span>Create an admission portal password to track your application status.</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

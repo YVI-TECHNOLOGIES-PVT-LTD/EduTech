@@ -1,92 +1,251 @@
 import React, { useState } from 'react';
-import { useApplicationList } from '../../hooks/useApplication';
-import { PageContainer, PageHeader, SectionHeader } from '@/components/layout/PageLayout';
+import { useActiveAdmissionApplication } from '../../hooks/useActiveAdmissionApplication';
+import {
+  useGetDocumentTypesQuery,
+  useGetApplicationDocumentsQuery,
+  useUploadAdmissionDocumentMutation,
+  useDeleteAdmissionDocumentMutation,
+  useLazyGetDocumentSignedUrlQuery,
+  type DocumentResponseDto,
+  type DocumentTypeDto,
+} from '@/shared/api/admission.api';
+import {
+  PageContainer,
+  PageHeader,
+  SectionHeader,
+  EmptyState,
+} from '@/components/layout/PageLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ActiveApplicationBanner } from '../../components/ActiveApplicationBanner';
 import { DocumentVerificationCard } from '../../components/DocumentVerificationCard';
+import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes || isNaN(bytes)) return '0 KB';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function normalizeDocStatus(status?: string): string {
+  if (!status) return 'NOT_UPLOADED';
+  const s = status.toLowerCase();
+  if (s === 'verified' || s === 'approved') return 'VERIFIED';
+  if (s === 'rejected') return 'REJECTED';
+  if (s === 'resubmission_requested' || s === 'correction_required') return 'ACTION NEEDED';
+  if (s === 'pending' || s === 'under_review' || s === 'in_review') return 'IN REVIEW';
+  return status.toUpperCase();
+}
 
 export function ParentDocumentCenterPage() {
-  const { applications, isLoading } = useApplicationList({ limit: 10 }, { mine: true });
+  const navigate = useNavigate();
+  const {
+    activeApplication,
+    activeApplicationId,
+    applications,
+    setActiveApplicationId,
+    hasMultiple,
+    studentName,
+    appNumber,
+    gradeApplied,
+    isLoading: isAppLoading,
+    error: appError,
+    refetch: refetchApps,
+  } = useActiveAdmissionApplication();
 
-  const [uploadedDocs, setUploadedDocs] = useState<
-    Record<string, { file_name: string; file_size: string; status: string; reason?: string }>
-  >({
-    birth_cert: { file_name: 'birth_cert_official.pdf', file_size: '1.8 MB', status: 'VERIFIED' },
-    aadhaar_card: { file_name: 'aadhaar_card_scan.pdf', file_size: '1.2 MB', status: 'VERIFIED' },
-    transfer_cert: {
-      file_name: 'transfer_cert_school.pdf',
-      file_size: '2.4 MB',
-      status: 'IN REVIEW',
-    },
-    photo: {
-      file_name: 'passport_photo_v1.jpg',
-      file_size: '850 KB',
-      status: 'ACTION NEEDED',
-      reason: 'Photograph is unclear. Please upload a clear color photo.',
-    },
+  const { data: docTypes = [], isLoading: isDocTypesLoading } = useGetDocumentTypesQuery(
+    activeApplicationId ? { application_id: activeApplicationId } : undefined,
+  );
+
+  const {
+    data: uploadedDocs = [],
+    isLoading: isDocsLoading,
+    refetch: refetchDocs,
+  } = useGetApplicationDocumentsQuery(activeApplicationId, {
+    skip: !activeApplicationId,
   });
 
-  const handleFileUpload = (docKey: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploadDoc, { isLoading: isUploading }] = useUploadAdmissionDocumentMutation();
+  const [deleteDoc] = useDeleteAdmissionDocumentMutation();
+  const [getSignedUrl] = useLazyGetDocumentSignedUrlQuery();
+
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Clear local component state whenever active application ID changes or resets
+  React.useEffect(() => {
+    setActionError(null);
+    setUploadingDocId(null);
+  }, [activeApplicationId]);
+
+  // Fallback default checklist requirements if backend document_types table is empty
+  const defaultDocRequirements: Partial<DocumentTypeDto>[] = [
+    {
+      document_type_id: 'doc_type_birth_cert',
+      document_name: "Student's Birth Certificate",
+      description: 'Government-issued birth certificate copy',
+      is_mandatory: true,
+    },
+    {
+      document_type_id: 'doc_type_aadhaar',
+      document_name: "Student's Aadhaar / ID Card",
+      description: 'Aadhaar Card or Passport copy',
+      is_mandatory: true,
+    },
+    {
+      document_type_id: 'doc_type_photo',
+      document_name: 'Passport Size Photograph',
+      description: 'Recent color photograph (JPG/PNG)',
+      is_mandatory: true,
+    },
+    {
+      document_type_id: 'doc_type_tc',
+      document_name: 'Transfer Certificate (TC)',
+      description: 'Previous school leaving certificate',
+      is_mandatory: false,
+    },
+  ];
+
+  const effectiveDocTypes: (DocumentTypeDto | Partial<DocumentTypeDto>)[] =
+    docTypes && docTypes.length > 0 ? docTypes : defaultDocRequirements;
+
+  const handleFileUpload = async (
+    docTypeId: string,
+    docTypeName: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds maximum allowed limit of 5MB.');
+    if (!file || !activeApplicationId) return;
+
+    setActionError(null);
+
+    if (file.size > 10 * 1024 * 1024) {
+      setActionError('File size exceeds maximum allowed limit of 10MB.');
       return;
     }
-    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-    setUploadedDocs((prev) => ({
-      ...prev,
-      [docKey]: { file_name: file.name, file_size: `${sizeMb} MB`, status: 'IN REVIEW' },
-    }));
+
+    setUploadingDocId(docTypeId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(docTypeId)) {
+        formData.append('document_type_id', docTypeId);
+      }
+      formData.append('document_type', docTypeName);
+      formData.append('document_code', docTypeName);
+      formData.append('application_id', activeApplicationId);
+
+      await uploadDoc({ applicationId: activeApplicationId, formData }).unwrap();
+      refetchDocs();
+      refetchApps();
+    } catch (err: any) {
+      console.error('Failed to upload document:', err);
+      setActionError(
+        err?.data?.message || err?.message || 'Failed to upload document. Please try again.',
+      );
+    } finally {
+      setUploadingDocId(null);
+    }
   };
 
-  const handleRemoveDoc = (docKey: string) => {
-    setUploadedDocs((prev) => {
-      const copy = { ...prev };
-      delete copy[docKey];
-      return copy;
-    });
+  const handleRemoveDoc = async (documentId: string) => {
+    if (!documentId || !activeApplicationId) return;
+    setActionError(null);
+    try {
+      await deleteDoc({ documentId, applicationId: activeApplicationId }).unwrap();
+      refetchDocs();
+      refetchApps();
+    } catch (err: any) {
+      console.error('Failed to remove document:', err);
+      setActionError(
+        err?.data?.message || err?.message || 'Failed to remove document. Please try again.',
+      );
+    }
   };
 
-  if (isLoading) {
+  const handleViewDoc = async (documentId: string) => {
+    if (!documentId) return;
+    try {
+      const res = await getSignedUrl(documentId).unwrap();
+      if (res?.signed_url) {
+        window.open(res.signed_url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      console.error('Failed to get signed download URL:', err);
+    }
+  };
+
+  if (isAppLoading) {
     return (
       <PageContainer variant="default">
         <div className="p-12 text-center space-y-3">
           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-bold text-slate-500">Loading document vault...</p>
+          <p className="text-xs font-bold text-muted-foreground">Loading document vault...</p>
         </div>
       </PageContainer>
     );
   }
 
-  const primaryApp = applications[0] || null;
+  if (appError) {
+    return (
+      <PageContainer variant="default">
+        <div className="p-12 text-center space-y-4 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Failed to load applications</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Unable to retrieve your admission applications. Please try again.
+            </p>
+          </div>
+          <Button
+            onClick={() => refetchApps()}
+            variant="outline"
+            size="sm"
+            className="font-bold text-xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
 
-  const docRequirementDefs = [
-    {
-      key: 'birth_cert',
-      name: "Student's Birth Certificate",
-      mandatory: true,
-      hint: 'Government-issued birth certificate',
-    },
-    {
-      key: 'aadhaar_card',
-      name: "Student's Aadhaar / ID Card",
-      mandatory: true,
-      hint: 'Aadhaar Card or Passport copy',
-    },
-    {
-      key: 'transfer_cert',
-      name: 'Transfer Certificate (TC)',
-      mandatory: false,
-      hint: 'Previous school leaving certificate',
-    },
-    {
-      key: 'photo',
-      name: 'Passport Size Photograph',
-      mandatory: true,
-      hint: 'Recent color photograph (JPG/PNG)',
-    },
-  ];
+  if (!activeApplication) {
+    return (
+      <PageContainer variant="default">
+        <PageHeader
+          title="Document Center & Verification Vault"
+          description="Manage student birth certificates, Aadhaar cards, report cards, and verification clearance."
+          badge={
+            <Badge
+              variant="outline"
+              className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
+            >
+              Admission Self-Service
+            </Badge>
+          }
+        />
+        <EmptyState
+          title="No Admission Applications Found"
+          description="You need an active admission application to upload verification certificates."
+          action={
+            <Button
+              onClick={() => navigate('/app/admissions/wizard')}
+              className="font-bold text-xs px-6 shadow-md"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Start New Application
+            </Button>
+          }
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer variant="default">
@@ -99,56 +258,119 @@ export function ParentDocumentCenterPage() {
             variant="outline"
             className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
           >
-            Parent Self-Service
+            Admission Self-Service
           </Badge>
         }
         actions={
-          primaryApp && (
-            <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
-              <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
-              <span className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
-                {primaryApp.application_number || primaryApp.id || 'APP-2026-00368'}
-              </span>
-            </div>
-          )
+          <div className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800">
+            <span className="text-[10px] font-bold text-muted-foreground">ACTIVE APP:</span>
+            <span className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
+              {appNumber}
+            </span>
+          </div>
         }
       />
+
+      {/* Canonical Active Application Overview Banner with Child Switcher */}
+      <ActiveApplicationBanner
+        activeApplication={activeApplication}
+        applications={applications}
+        activeApplicationId={activeApplicationId}
+        setActiveApplicationId={setActiveApplicationId}
+        hasMultiple={hasMultiple}
+        studentName={studentName}
+        appNumber={appNumber}
+        gradeApplied={gradeApplied}
+      />
+
+      {actionError && (
+        <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
 
       {/* Submitted Certificates Grid */}
       <Card className="p-6 rounded-2xl border-border/80 bg-card shadow-sm space-y-6">
         <SectionHeader
-          title="Verification Documents Vault"
+          title={`Verification Documents Vault (${uploadedDocs.length} Uploaded)`}
           description="Uploaded certificates are securely audited by the school admission desk."
           action={
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-              SECURE VAULT
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  refetchDocs();
+                  refetchApps();
+                }}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Refresh</span>
+              </button>
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                SECURE VAULT
+              </span>
+            </div>
           }
         />
 
-        <div className="grid grid-cols-1 gap-4">
-          {docRequirementDefs.map((def) => {
-            const uploaded = uploadedDocs[def.key];
+        {isDocsLoading || isDocTypesLoading ? (
+          <div className="p-8 text-center space-y-2">
+            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-muted-foreground font-semibold">
+              Updating documents list...
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {effectiveDocTypes.map((typeDef) => {
+              const docTypeId = typeDef.document_type_id || '';
+              const docTypeName = typeDef.document_name || 'Verification Document';
+              const isMandatory = typeDef.is_mandatory ?? true;
+              const hintText = typeDef.description || 'Upload official document scan (PDF/JPG/PNG)';
 
-            return (
-              <DocumentVerificationCard
-                key={def.key}
-                docKey={def.key}
-                name={def.name}
-                mandatory={def.mandatory}
-                hint={def.hint}
-                uploaded={uploaded}
-                onUpload={(e) => handleFileUpload(def.key, e)}
-                onRemove={uploaded ? () => handleRemoveDoc(def.key) : undefined}
-                onView={
-                  uploaded
-                    ? () => alert(`Viewing document: ${uploaded.file_name} (${uploaded.status})`)
-                    : undefined
-                }
-              />
-            );
-          })}
-        </div>
+              // Match uploaded record against this requirement
+              const matchedDoc = uploadedDocs.find((doc: DocumentResponseDto) => {
+                if (doc.document_type_id && doc.document_type_id === docTypeId) return true;
+                if (
+                  doc.document_type_name &&
+                  doc.document_type_name.toLowerCase() === docTypeName.toLowerCase()
+                )
+                  return true;
+                if (
+                  doc.document_types?.document_name &&
+                  doc.document_types.document_name.toLowerCase() === docTypeName.toLowerCase()
+                )
+                  return true;
+                return false;
+              });
+
+              const uploadedInfo = matchedDoc
+                ? {
+                    file_name: matchedDoc.original_file_name || `${docTypeName}.pdf`,
+                    file_size: formatFileSize(matchedDoc.file_size),
+                    status: normalizeDocStatus(matchedDoc.verify_status),
+                    reason: matchedDoc.verification_remarks || undefined,
+                  }
+                : undefined;
+
+              return (
+                <DocumentVerificationCard
+                  key={docTypeId || docTypeName}
+                  docKey={docTypeId || docTypeName}
+                  name={docTypeName}
+                  mandatory={isMandatory}
+                  hint={hintText}
+                  uploaded={uploadedInfo}
+                  onUpload={(e) => handleFileUpload(docTypeId, docTypeName, e)}
+                  onRemove={matchedDoc ? () => handleRemoveDoc(matchedDoc.document_id) : undefined}
+                  onView={matchedDoc ? () => handleViewDoc(matchedDoc.document_id) : undefined}
+                />
+              );
+            })}
+          </div>
+        )}
       </Card>
     </PageContainer>
   );

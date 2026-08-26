@@ -52,7 +52,10 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <ParentDocumentCenterPage />,
     layout: 'parent_admission',
   },
+  { path: 'admissions/fees', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
+  { path: 'admissions/payments', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'admissions/status', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
+  { path: 'admissions/:id', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
 
   // PARENT PORTAL CANONICAL ROUTES (POST-ADMISSION PARENT LAYOUT)
   { path: 'parent/dashboard', element: <ParentDashboard />, layout: 'dashboard' },

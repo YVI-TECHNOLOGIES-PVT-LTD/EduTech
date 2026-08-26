@@ -5,11 +5,15 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
-  Eye,
+  AlertCircle,
   FileText,
   ArrowRight,
 } from 'lucide-react';
-import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper';
+import {
+  formatStatusLabel,
+  getStatusColor,
+  getApplicationStatusSummary,
+} from '../core/AdmissionStatusMapper';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,18 +39,9 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
 
   const displayName = studentName || 'Applicant';
 
-  const initials =
-    displayName && displayName !== 'Applicant'
-      ? displayName
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part: string) => part.charAt(0).toUpperCase())
-          .join('')
-      : 'A';
-
   const gradeApplied =
     application.grade_applied_for ||
+    application.grade_name ||
     application.lead?.grade_applied_for ||
     application.leads?.academic_year_grades?.grades?.grade_name ||
     'Grade Applied';
@@ -54,7 +49,7 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
   const appNumber =
     application.application_number ||
     application.applicationNumber ||
-    (appId ? `APP-${appId.slice(0, 8).toUpperCase()}` : 'APP-2026');
+    (appId ? `APP-${appId.slice(0, 8).toUpperCase()}` : '');
 
   const appStatus = application.status || 'submitted';
 
@@ -64,6 +59,34 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           application.application_date || application.submitted_at || application.created_at,
         ).toLocaleDateString()
       : 'Recently';
+
+  const summary = getApplicationStatusSummary(application);
+
+  const renderStatusIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'check':
+        return <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />;
+      case 'alert':
+        return <AlertCircle className="w-3.5 h-3.5 shrink-0" />;
+      default:
+        return <Clock className="w-3.5 h-3.5 shrink-0" />;
+    }
+  };
+
+  const getVariantClasses = (variant: string) => {
+    switch (variant) {
+      case 'success':
+        return 'text-emerald-600 dark:text-emerald-400';
+      case 'destructive':
+        return 'text-rose-600 dark:text-rose-400';
+      case 'warning':
+        return 'text-amber-600 dark:text-amber-400';
+      case 'info':
+        return 'text-indigo-600 dark:text-indigo-400';
+      default:
+        return 'text-muted-foreground';
+    }
+  };
 
   return (
     <Card className="p-6 rounded-2xl border-border/80 shadow-sm hover:shadow-md transition-shadow space-y-5 bg-card">
@@ -117,15 +140,17 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
 
       <div className="border-t border-border/60" />
 
-      {/* Progress Status Grid */}
+      {/* Dynamic Progress Status Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3 bg-muted/40 rounded-xl border border-border/50 text-center space-y-1">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
             FORM
           </span>
-          <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Submitted</span>
+          <span
+            className={`text-xs font-extrabold flex items-center justify-center gap-1 ${getVariantClasses(summary.form.variant)}`}
+          >
+            {renderStatusIcon(summary.form.iconName)}
+            <span>{summary.form.label}</span>
           </span>
         </div>
 
@@ -133,13 +158,11 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
             DOCUMENTS
           </span>
-          <span className="text-xs font-extrabold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>
-              {application.documents_count
-                ? `${application.documents_count} Files`
-                : 'Pending Check'}
-            </span>
+          <span
+            className={`text-xs font-extrabold flex items-center justify-center gap-1 ${getVariantClasses(summary.documents.variant)}`}
+          >
+            {renderStatusIcon(summary.documents.iconName)}
+            <span className="truncate">{summary.documents.label}</span>
           </span>
         </div>
 
@@ -147,9 +170,11 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
             PAYMENT
           </span>
-          <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{application.payment_status || 'Verified'}</span>
+          <span
+            className={`text-xs font-extrabold flex items-center justify-center gap-1 ${getVariantClasses(summary.payment.variant)}`}
+          >
+            {renderStatusIcon(summary.payment.iconName)}
+            <span>{summary.payment.label}</span>
           </span>
         </div>
 
@@ -157,8 +182,11 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
             EVALUATION
           </span>
-          <span className="text-xs font-extrabold text-foreground flex items-center justify-center gap-1 truncate px-1">
-            <span>{formatStatusLabel(appStatus)}</span>
+          <span
+            className={`text-xs font-extrabold flex items-center justify-center gap-1 truncate px-1 ${getVariantClasses(summary.evaluation.variant)}`}
+          >
+            {renderStatusIcon(summary.evaluation.iconName)}
+            <span className="truncate">{summary.evaluation.label}</span>
           </span>
         </div>
       </div>

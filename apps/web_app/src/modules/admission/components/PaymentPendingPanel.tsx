@@ -223,7 +223,7 @@ export const PaymentPendingPanel = ({
           <DialogHeader>
             <DialogTitle className="uppercase tracking-tight font-black">Final Review</DialogTitle>
             <DialogDescription>
-              Review the itemized bill before enabling the parent portal.
+              Review the itemized bill before enabling fee payment in the admission portal.
             </DialogDescription>
           </DialogHeader>
 

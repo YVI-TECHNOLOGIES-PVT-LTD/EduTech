@@ -60,7 +60,7 @@ export const ParentWizardSidebar: React.FC<ParentWizardSidebarProps> = ({
   currentStep,
   onStepClick,
   isReadOnly = false,
-  appNumber = 'APP-2026-00368',
+  appNumber = '',
 }) => {
   const currentStepDef =
     WIZARD_STEPS.find((s) => s.id === Math.min(currentStep, 7)) || WIZARD_STEPS[0];

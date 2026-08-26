@@ -5,6 +5,8 @@ import type { RootState } from './index';
 import { logout, setCredentials } from '@/shared/store/authSlice';
 import { mapApiError } from '@/shared/errors/apiErrorMapper';
 
+import { resetAuthenticatedClientState } from '@/lib/auth/sessionReset';
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseUrl,
   prepareHeaders: (headers, { getState }) => {
@@ -71,12 +73,15 @@ export const baseQueryWithReauth: BaseQueryFn<
           // Retry the original query with the new access token
           result = await rawBaseQuery(args, api, extraOptions);
         } else {
+          void resetAuthenticatedClientState('token_refresh_failed_no_user');
           api.dispatch(logout());
         }
       } else {
+        void resetAuthenticatedClientState('token_refresh_failed_invalid_data');
         api.dispatch(logout());
       }
     } else {
+      void resetAuthenticatedClientState('token_refresh_failed_no_token');
       api.dispatch(logout());
     }
   }

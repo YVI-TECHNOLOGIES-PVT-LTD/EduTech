@@ -279,7 +279,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onEnquireClick }) => {
               variant="outline"
               className="w-full h-11 text-xs font-bold rounded-xl border-slate-800 text-slate-300 hover:bg-slate-900"
             >
-              Parent Portal Sign In
+              Sign In
             </Button>
           </div>
         </div>

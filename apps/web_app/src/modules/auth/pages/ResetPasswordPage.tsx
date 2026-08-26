@@ -91,7 +91,7 @@ export const ResetPasswordPage: React.FC = () => {
               onClick={() => navigate('/login')}
               className="w-full h-12 bg-[#E7B76A] hover:bg-[#d8a658] active:scale-[0.98] text-[#042A2B] font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2"
             >
-              <span>Sign In to Parent Portal</span>
+              <span>Sign In to Admission Portal</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

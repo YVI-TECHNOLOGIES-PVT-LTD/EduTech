@@ -45,7 +45,12 @@ export const CinematicPageHero: React.FC<CinematicPageHeroProps> = ({
   className,
 }) => {
   return (
-    <section className={cn('relative w-full min-h-[540px] lg:min-h-[640px] flex items-center justify-center overflow-hidden bg-[#042A2B] text-white', className)}>
+    <section
+      className={cn(
+        'relative w-full min-h-[540px] lg:min-h-[640px] flex items-center justify-center overflow-hidden bg-[#042A2B] text-white',
+        className,
+      )}
+    >
       {/* Background Image with Scale Animation */}
       <motion.div
         initial={{ scale: 1.05, opacity: 0.8 }}
@@ -56,7 +61,10 @@ export const CinematicPageHero: React.FC<CinematicPageHeroProps> = ({
         <img
           src={backgroundImage}
           alt={title}
-          className={cn('w-full h-full object-cover transition-transform duration-700 hover:scale-[1.02]', imagePosition)}
+          className={cn(
+            'w-full h-full object-cover transition-transform duration-700 hover:scale-[1.02]',
+            imagePosition,
+          )}
         />
         {/* Layered Cinematic Deep Teal Overlays */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#042A2B]/95 via-[#063F40]/85 to-[#063F40]/40" />
@@ -89,7 +97,9 @@ export const CinematicPageHero: React.FC<CinematicPageHeroProps> = ({
               className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 text-[#E7B76A] text-xs font-bold border border-[#E7B76A]/30 backdrop-blur-md"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#E7B76A]" />
-              <span className="uppercase tracking-[0.18em] text-[10px] font-black">{badgeText}</span>
+              <span className="uppercase tracking-[0.18em] text-[10px] font-black">
+                {badgeText}
+              </span>
             </motion.div>
           )}
 
@@ -100,11 +110,26 @@ export const CinematicPageHero: React.FC<CinematicPageHeroProps> = ({
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.05]"
           >
-            {title}{' '}
-            {accentText && (
-              <span className="text-[#E7B76A] underline decoration-[#E7B76A]/40 decoration-wavy decoration-2">
-                {accentText}
-              </span>
+            {accentText && title.includes(accentText) ? (
+              (() => {
+                const parts = title.split(accentText);
+                return (
+                  <>
+                    {parts[0]}
+                    <span className="text-[#E7B76A]">{accentText}</span>
+                    {parts[1]}
+                  </>
+                );
+              })()
+            ) : (
+              <>
+                {title}{' '}
+                {accentText && (
+                  <span className="text-[#E7B76A] underline decoration-[#E7B76A]/40 decoration-wavy decoration-2">
+                    {accentText}
+                  </span>
+                )}
+              </>
             )}
           </motion.h1>
 
