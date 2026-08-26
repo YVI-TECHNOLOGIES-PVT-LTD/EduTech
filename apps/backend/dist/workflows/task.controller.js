@@ -8,10 +8,12 @@ class TaskController {
             const userId = req.context?.user?.id;
             const userRoles = req.context?.user?.roles || [];
             // Fetch tasks assigned directly or via roles
-            let query = supabase_1.supabase.from('tasks').select('*, comments:task_comments(*), attachments:task_attachments(*)');
+            let query = supabase_1.supabase
+                .from('tasks')
+                .select('*, comments:task_comments(*), attachments:task_attachments(*)');
             if (userId) {
                 if (userRoles.length > 0) {
-                    const rolesFilter = userRoles.map(r => `assigned_role.eq.${r}`).join(',');
+                    const rolesFilter = userRoles.map((r) => `assigned_role.eq.${r}`).join(',');
                     query = query.or(`assigned_to.eq.${userId},${rolesFilter}`);
                 }
                 else {
@@ -29,7 +31,7 @@ class TaskController {
     }
     static async createTask(req, res) {
         try {
-            const { title, description, assigned_to, assigned_role, priority, due_at, related_entity_type, related_entity_id } = req.body;
+            const { title, description, assigned_to, assigned_role, priority, due_at, related_entity_type, related_entity_id, } = req.body;
             const { data, error } = await supabase_1.supabase
                 .from('tasks')
                 .insert({
@@ -40,7 +42,7 @@ class TaskController {
                 priority: priority || 'medium',
                 due_at,
                 related_entity_type,
-                related_entity_id
+                related_entity_id,
             })
                 .select()
                 .single();
@@ -75,13 +77,13 @@ class TaskController {
             const { comment } = req.body;
             const userId = req.context?.user?.id;
             if (!comment)
-                return res.status(400).json({ error: "Comment is required" });
+                return res.status(400).json({ error: 'Comment is required' });
             const { data, error } = await supabase_1.supabase
                 .from('task_comments')
                 .insert({
                 task_id: id,
                 user_id: userId,
-                comment
+                comment,
             })
                 .select()
                 .single();
@@ -99,7 +101,7 @@ class TaskController {
             const { file_name, file_url } = req.body;
             const userId = req.context?.user?.id;
             if (!file_name || !file_url) {
-                return res.status(400).json({ error: "file_name and file_url are required" });
+                return res.status(400).json({ error: 'file_name and file_url are required' });
             }
             const { data, error } = await supabase_1.supabase
                 .from('task_attachments')
@@ -107,7 +109,7 @@ class TaskController {
                 task_id: id,
                 file_name,
                 file_url,
-                uploaded_by: userId
+                uploaded_by: userId,
             })
                 .select()
                 .single();

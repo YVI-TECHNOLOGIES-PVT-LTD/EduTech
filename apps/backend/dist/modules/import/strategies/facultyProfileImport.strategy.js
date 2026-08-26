@@ -8,6 +8,7 @@ const supabase_1 = require("../../../config/supabase");
 const index_1 = require("../index");
 const crypto_utils_1 = require("../../../auth/crypto.utils");
 const prismaClient_1 = __importDefault(require("../../../lib/prismaClient"));
+const country_resolver_1 = require("../../../utils/country-resolver");
 class FacultyProfileImportStrategy extends index_1.BaseImportStrategy {
     async validateRow(row, context) {
         const errors = [];
@@ -43,6 +44,7 @@ class FacultyProfileImportStrategy extends index_1.BaseImportStrategy {
                     createdUserId = existingUser.user_id;
                 }
                 else {
+                    const resolved = await (0, country_resolver_1.resolveCountryAndPhone)(prismaClient_1.default, { phone: row.phone });
                     const tempPassword = 'FacultyTempPass123!';
                     const passwordHash = await crypto_utils_1.NativePassword.hash(tempPassword);
                     const newUser = await prismaClient_1.default.users.create({
@@ -50,7 +52,8 @@ class FacultyProfileImportStrategy extends index_1.BaseImportStrategy {
                             org_id: context.schoolId,
                             first_name: row.full_name,
                             email: cleanEmail,
-                            phone: row.phone || '',
+                            phone: resolved.phone,
+                            country_id: resolved.country_id,
                             password_hash: passwordHash,
                             status: 'active',
                         },

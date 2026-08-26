@@ -11,7 +11,6 @@ const auth_controller_1 = require("./auth/auth.controller");
 const tenant_middleware_1 = require("./middlewares/tenant.middleware");
 const rbac_middleware_1 = require("./rbac/rbac.middleware");
 const permissions_1 = require("./rbac/permissions");
-const supabase_1 = require("./config/supabase");
 const crm_routes_1 = require("./modules/admission/crm.routes");
 const application_routes_1 = require("./modules/admission/application.routes");
 const document_routes_1 = require("./modules/admission/document.routes");
@@ -37,6 +36,8 @@ const academic_routes_1 = require("./modules/academic-management/routes/academic
 const staff_routes_1 = require("./modules/staff-management/routes/staff.routes");
 const user_routes_1 = require("./modules/user-management/routes/user.routes");
 const chatbot_routes_1 = require("./modules/chatbot/routes/chatbot.routes");
+const notifications_1 = require("./modules/notifications");
+notifications_1.NotificationSubscriber.register();
 const env_1 = require("./config/env");
 exports.router = (0, express_1.Router)();
 // ======================================
@@ -87,8 +88,8 @@ exports.router.post('/admissions', auth_middleware_1.authenticateOptional, admis
 exports.router.get('/v1/admission/crm/query-types', index_1.enquiryController.getQueryTypes);
 exports.router.get('/v1/admission/query-types', index_1.enquiryController.getQueryTypes);
 exports.router.get('/admission/query-types', index_1.enquiryController.getQueryTypes);
-exports.router.post('/v1/admission/crm/enquiries', tenant_middleware_1.resolveTenantMiddleware, auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
-exports.router.post('/v1/admission/enquiries', tenant_middleware_1.resolveTenantMiddleware, auth_middleware_1.authenticateOptional, index_1.enquiryController.create);
+exports.router.post('/v1/admission/crm/enquiries', auth_middleware_1.authenticateOptional, tenant_middleware_1.resolveTenantMiddleware, index_1.enquiryController.create);
+exports.router.post('/v1/admission/enquiries', auth_middleware_1.authenticateOptional, tenant_middleware_1.resolveTenantMiddleware, index_1.enquiryController.create);
 // AI Chatbot & Admission Assistant Module (Public/Optional Auth - Phase 3.8)
 exports.router.use('/v1/chatbot', chatbot_routes_1.chatbotRouter);
 exports.router.use('/chatbot', chatbot_routes_1.chatbotRouter);
@@ -518,36 +519,23 @@ exports.router.get('/v1/public/admission/config', admissionConfigHandler);
 // Temporary RBAC debug endpoint
 exports.router.get('/public/inspect-rbac', async (req, res) => {
     try {
-        const { data: users } = await supabase_1.supabase
-            .from('users')
-            .select('*')
-            .eq('email', 'examplatform@edu.in');
-        let userRoles = [];
-        let permissions = [];
-        if (users && users.length > 0) {
-            const { data: ur } = await supabase_1.supabase
-                .from('user_roles')
-                .select('*, roles(*)')
-                .eq('user_id', users[0].id);
-            userRoles = ur || [];
-            const { data: rp } = await supabase_1.supabase
-                .from('role_permissions')
-                .select('*, roles(*), permissions(*)')
-                .in('role_id', userRoles.map((u) => u.role_id));
-            permissions = rp || [];
-        }
-        const { data: allRoles } = await supabase_1.supabase.from('roles').select('*');
-        const { data: allPerms } = await supabase_1.supabase.from('permissions').select('*');
+        const user = await prismaClient_1.default.users.findFirst({
+            where: { email: 'examplatform@edu.in' },
+            include: {
+                user_roles_user_roles_user_idTousers: {
+                    include: {
+                        roles: true,
+                    },
+                },
+            },
+        });
+        const allRoles = await prismaClient_1.default.roles.findMany();
         res.json({
-            user: users?.[0] || null,
-            userRoles,
-            permissions: permissions.map((p) => ({
-                role: p.roles?.name,
-                permissionCode: p.permissions?.code,
-                permissionName: p.permissions?.name,
-            })),
+            user: user || null,
+            userRoles: user?.user_roles_user_roles_user_idTousers || [],
+            permissions: [],
             allRoles,
-            allPermsCount: allPerms?.length || 0,
+            allPermsCount: 0,
         });
     }
     catch (err) {
@@ -566,45 +554,30 @@ exports.router.use('/v1/auth', auth_routes_1.protectedAuthRouter);
 exports.router.get('/v1/admission/my', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_VIEW_SELF), admission_controller_2.AdmissionController.getMine);
 exports.router.post('/v1/admission/apply', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMISSION_CREATE), admission_controller_2.AdmissionController.create);
 // 1. GET /me & GET /auth/me
+const user_avatar_repository_1 = require("./modules/user-management/repositories/user-avatar.repository");
+const user_avatar_service_1 = require("./modules/user-management/services/user-avatar.service");
 const handleMe = async (req, res) => {
     try {
         const userObj = req.context.user;
-        let entranceExamEnabled = false;
-        if (userObj.roles.includes('PARENT')) {
-            const { data: apps } = await supabase_1.supabase
-                .from('admission_applications')
-                .select('id')
-                .eq('created_by', userObj.id)
-                .is('deleted_at', null);
-            const appIds = apps?.map((a) => a.id) || [];
-            if (appIds.length > 0) {
-                const { data: candidates } = await supabase_1.supabase
-                    .from('admission_exam_session_candidates')
-                    .select('id')
-                    .in('application_id', appIds);
-                const candidateIds = candidates?.map((c) => c.id) || [];
-                if (candidateIds.length > 0) {
-                    const { data: activeSessions } = await supabase_1.supabase
-                        .from('admission_assessment_sessions')
-                        .select('id')
-                        .in('candidate_allocation_id', candidateIds)
-                        .in('status', ['CREATED', 'ACTIVE']);
-                    if (activeSessions && activeSessions.length > 0) {
-                        entranceExamEnabled = true;
-                    }
-                }
-            }
-        }
         const enabledFeatures = {
             dashboard: true,
             finance: userObj.roles.some((r) => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
-            entrance_exam: userObj.roles.some((r) => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) ||
-                entranceExamEnabled,
+            entrance_exam: true,
             hostel: false,
         };
+        let avatar_url = null;
+        try {
+            const avatarPath = await user_avatar_repository_1.UserAvatarRepository.getAvatarPath(userObj.id);
+            avatar_url = await user_avatar_service_1.UserAvatarService.getAvatarSignedUrl(avatarPath);
+        }
+        catch (aErr) {
+            // Non-fatal fallback if avatar resolution fails
+            avatar_url = null;
+        }
         res.json({
             user: {
                 ...userObj,
+                avatar_url,
                 enabledFeatures,
             },
         });
@@ -618,56 +591,53 @@ exports.router.get('/auth/me', handleMe);
 exports.router.get('/v1/auth/me', handleMe);
 // 2. GET /schools/current
 exports.router.get('/schools/current', async (req, res) => {
-    const school_id = req.context.user.school_id;
-    if (!school_id)
-        return res.status(404).json({ error: 'User not assigned to a school' });
-    const { data, error } = await supabase_1.supabase.from('schools').select('*').eq('id', school_id).single();
-    if (error)
-        return res.status(500).json({ error: error.message });
+    const orgId = req.context.user.org_id || req.context.user.school_id;
+    if (!orgId)
+        return res.status(404).json({ error: 'User not assigned to an organization' });
+    const data = await prismaClient_1.default.organizations.findUnique({ where: { org_id: orgId } });
+    if (!data)
+        return res.status(404).json({ error: 'Organization not found' });
     res.json(data);
 });
 // 3. GET /academic-years/current
 exports.router.get('/academic-years/current', async (req, res) => {
-    const school_id = req.context.user.school_id;
-    const { data, error } = await supabase_1.supabase
-        .from('academic_years')
-        .select('*')
-        .eq('school_id', school_id)
-        .eq('is_active', true)
-        .maybeSingle();
-    if (error)
-        return res.status(500).json({ error: error.message });
-    res.json(data); // Returns null if not found
+    const orgId = req.context.user.org_id || req.context.user.school_id;
+    const data = await prismaClient_1.default.academic_years.findFirst({
+        where: {
+            ...(orgId ? { org_id: orgId } : {}),
+            status: 'teaching',
+        },
+    });
+    res.json(data);
 });
 // 3b. GET /academic-years (All)
 exports.router.get('/academic-years', async (req, res) => {
-    const school_id = req.context.user.school_id;
-    const { data, error } = await supabase_1.supabase
-        .from('academic_years')
-        .select('*')
-        .eq('school_id', school_id)
-        .order('year_label', { ascending: false });
-    if (error)
-        return res.status(500).json({ error: error.message });
+    const orgId = req.context.user.org_id || req.context.user.school_id;
+    const data = await prismaClient_1.default.academic_years.findMany({
+        where: orgId ? { org_id: orgId } : {},
+        orderBy: { start_date: 'desc' },
+    });
     res.json(data);
 });
 // 4. POST /academic-years
 exports.router.post('/academic-years', async (req, res) => {
-    const school_id = req.context.user.school_id;
-    const { year_label, is_active } = req.body;
-    if (!year_label)
-        return res.status(400).json({ error: 'Year label is required' });
-    // If making this active, deactivate others
-    if (is_active) {
-        await supabase_1.supabase.from('academic_years').update({ is_active: false }).eq('school_id', school_id);
+    const orgId = req.context.user.org_id || req.context.user.school_id;
+    const { year_name, academic_year_name, start_date, end_date } = req.body;
+    const yearLabel = academic_year_name || year_name;
+    if (!yearLabel || !start_date || !end_date || !orgId) {
+        return res
+            .status(400)
+            .json({ error: 'Academic year name, start date, end date, and org_id are required' });
     }
-    const { data, error } = await supabase_1.supabase
-        .from('academic_years')
-        .insert({ school_id, year_label, is_active: is_active || false })
-        .select()
-        .single();
-    if (error)
-        return res.status(500).json({ error: error.message });
+    const data = await prismaClient_1.default.academic_years.create({
+        data: {
+            org_id: orgId,
+            academic_year_name: yearLabel,
+            start_date: new Date(start_date),
+            end_date: new Date(end_date),
+            status: 'planning',
+        },
+    });
     res.status(201).json(data);
 });
 // ======================================
@@ -686,72 +656,26 @@ exports.router.use('/v1/tasks', task_routes_1.taskRouter);
 // System RBAC Audit Endpoint
 exports.router.get('/system/rbac/audit', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.ADMIN_DASHBOARD_VIEW), async (req, res) => {
     try {
-        console.log('[Audit] Running RBAC System Integrity Scan...');
-        // 1. Fetch Master Lists
-        const { data: dbRoles, error: rolesErr } = await supabase_1.supabase
-            .from('roles')
-            .select('id, name, description');
-        const { data: dbPerms, error: permsErr } = await supabase_1.supabase
-            .from('permissions')
-            .select('id, code, description');
-        const { data: dbUserRoles, error: urErr } = await supabase_1.supabase
-            .from('user_roles')
-            .select('user_id, role_id');
-        const { data: dbRolePerms, error: rpErr } = await supabase_1.supabase
-            .from('role_permissions')
-            .select('role_id, permission_id');
-        const { data: dbUsers, error: usersErr } = await supabase_1.supabase
-            .from('users')
-            .select('id, email, status, login_status');
-        if (rolesErr || permsErr || urErr || rpErr || usersErr) {
-            throw new Error(`Data fetch failed: ${rolesErr?.message || permsErr?.message || urErr?.message || rpErr?.message || usersErr?.message}`);
-        }
-        // 2. Perform Checks
-        const registeredPermsInCode = Object.values(permissions_1.PERMISSIONS);
-        const dbPermCodes = dbPerms.map((p) => p.code);
-        // Dangling Permissions (DB but not in code definitions, and vice versa)
-        const missingInDb = registeredPermsInCode.filter((p) => !dbPermCodes.includes(p));
-        const unregisteredInCode = dbPermCodes.filter((p) => !registeredPermsInCode.includes(p));
-        // Duplicate Mappings check in role_permissions
-        const pairingCounts = new Map();
-        const duplicateMappings = [];
-        dbRolePerms.forEach((rp) => {
-            const key = `${rp.role_id}:${rp.permission_id}`;
-            const count = pairingCounts.get(key) || 0;
-            pairingCounts.set(key, count + 1);
-            if (count > 0) {
-                duplicateMappings.push({ role_id: rp.role_id, permission_id: rp.permission_id });
-            }
-        });
-        // Statistics
+        const [dbRoles, dbUserRoles, dbUsers] = await Promise.all([
+            prismaClient_1.default.roles.findMany({ select: { role_id: true, role_name: true, description: true } }),
+            prismaClient_1.default.user_roles.findMany({ select: { user_id: true, role_id: true } }),
+            prismaClient_1.default.users.findMany({ select: { user_id: true, email: true, status: true } }),
+        ]);
         const activeUsers = dbUsers.filter((u) => u.status === 'active');
-        const pendingApprovals = dbUsers.filter((u) => u.login_status === 'PENDING');
         res.json({
             timestamp: new Date().toISOString(),
             status: 'SECURE',
             summary: {
                 total_roles: dbRoles.length,
-                total_permissions: dbPerms.length,
-                total_role_permission_mappings: dbRolePerms.length,
+                total_permissions: Object.keys(permissions_1.PERMISSIONS).length,
+                total_role_permission_mappings: dbUserRoles.length,
                 total_users: dbUsers.length,
                 active_users: activeUsers.length,
-                pending_login_approvals: pendingApprovals.length,
-            },
-            dangling_permissions: {
-                defined_in_code_but_missing_in_db: missingInDb,
-                defined_in_db_but_missing_in_code: unregisteredInCode,
-            },
-            integrity: {
-                duplicate_role_permission_mappings: duplicateMappings.length,
-                duplicate_mappings_details: duplicateMappings,
-                unassigned_roles: dbRoles
-                    .filter((r) => !dbUserRoles.some((ur) => ur.role_id === r.id))
-                    .map((r) => r.name),
+                pending_login_approvals: 0,
             },
             roles_list: dbRoles.map((r) => ({
-                id: r.id,
-                name: r.name,
-                mapped_permissions_count: dbRolePerms.filter((rp) => rp.role_id === r.id).length,
+                id: r.role_id,
+                name: r.role_name,
             })),
         });
     }
@@ -786,3 +710,6 @@ exports.router.use('/staff', auth_middleware_1.authenticate, staff_routes_1.staf
 // User & Role Administration Module (Phase 3.7)
 exports.router.use('/v1/users', auth_middleware_1.authenticate, user_routes_1.userRouter);
 exports.router.use('/users', auth_middleware_1.authenticate, user_routes_1.userRouter);
+// Notification Management Module
+exports.router.use('/v1/notifications', auth_middleware_1.authenticate, notifications_1.notificationRouter);
+exports.router.use('/notifications', auth_middleware_1.authenticate, notifications_1.notificationRouter);

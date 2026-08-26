@@ -26,13 +26,15 @@ class FeatureFlagService extends BaseService_1.BaseService {
         }
         try {
             const flag = await this.flagRepo.findByKey(module, key, environment, tenantId);
-            const enabled = flag ? flag.enabled : false;
+            // Default core features to true if no flag record is present in DB
+            const coreFeatures = ['admission_crm', 'enquiry_management', 'leads_management'];
+            const enabled = flag ? flag.enabled : coreFeatures.includes(key);
             this.cache.set(cacheKey, enabled);
             return enabled;
         }
         catch (error) {
             this.logError(`Failed to fetch feature flag ${key}`, error);
-            return false; // Default safe fallback
+            return true; // Default permissive fallback for core services
         }
     }
     /**

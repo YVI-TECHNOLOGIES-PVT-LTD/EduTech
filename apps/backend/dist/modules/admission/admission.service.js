@@ -8,6 +8,7 @@ const supabase_1 = require("../../config/supabase");
 const utils_1 = require("../../utils");
 const crypto_utils_1 = require("../../auth/crypto.utils");
 const prismaClient_1 = __importDefault(require("../../lib/prismaClient"));
+const country_resolver_1 = require("../../utils/country-resolver");
 class AdmissionService {
     static async resolveContext(academicYearName) {
         const org = (await prismaClient_1.default.organizations.findFirst({
@@ -108,13 +109,17 @@ class AdmissionService {
             if (existingUser) {
                 throw new Error('A user with this email already exists. Please login to apply.');
             }
+            const resolved = await (0, country_resolver_1.resolveCountryAndPhone)(prismaClient_1.default, {
+                phone: data.parent_phone || '',
+            });
             const passwordHash = await crypto_utils_1.NativePassword.hash(data.parent_password);
             const newUser = await prismaClient_1.default.users.create({
                 data: {
                     org_id: data.school_id,
                     first_name: data.parent_name,
                     email: cleanEmail,
-                    phone: data.parent_phone || '',
+                    phone: resolved.phone,
+                    country_id: resolved.country_id,
                     password_hash: passwordHash,
                     status: 'active',
                 },

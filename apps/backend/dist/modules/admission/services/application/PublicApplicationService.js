@@ -9,6 +9,7 @@ const crypto_utils_1 = require("../../../../auth/crypto.utils");
 const client_1 = require("@prisma/client");
 const ValidationError_1 = require("../../errors/ValidationError");
 const BusinessRuleError_1 = require("../../errors/BusinessRuleError");
+const country_resolver_1 = require("../../../../utils/country-resolver");
 class PublicApplicationService {
     constructor(enquiryService, counselorAssignmentService, applicationService, applicationRepository, auditService) {
         this.enquiryService = enquiryService;
@@ -210,13 +211,15 @@ class PublicApplicationService {
                 where: { org_id: finalOrgId, email: targetEmail },
             });
             if (!user) {
+                const resolved = await (0, country_resolver_1.resolveCountryAndPhone)(tx, { phone });
                 const passwordHash = await crypto_utils_1.NativePassword.hash(targetPassword);
                 user = await tx.users.create({
                     data: {
                         org_id: finalOrgId,
                         first_name: targetParentName || 'Parent User',
                         email: targetEmail,
-                        phone,
+                        phone: resolved.phone,
+                        country_id: resolved.country_id,
                         password_hash: passwordHash,
                         status: 'active',
                     },

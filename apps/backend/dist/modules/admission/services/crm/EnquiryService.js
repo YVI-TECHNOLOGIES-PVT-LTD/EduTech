@@ -44,23 +44,55 @@ class EnquiryService extends BaseService_1.BaseService {
         this.applicationService = applicationService;
     }
     async createEnquiry(schoolId, academicYearId, payload, correlationId) {
-        const validated = this.validate(create_enquiry_dto_1.createEnquirySchema, payload);
+        console.log('[ENQUIRY-SERVICE-START]', {
+            requestId: correlationId,
+            schoolId,
+            academicYearId,
+            payloadKeys: Object.keys(payload || {}),
+        });
+        let validated;
+        try {
+            validated = this.validate(create_enquiry_dto_1.createEnquirySchema, payload);
+        }
+        catch (valErr) {
+            console.error('[ENQUIRY-DTO-VALIDATION-FAILED-400]', {
+                requestId: correlationId,
+                validationError: valErr?.message,
+                details: valErr?.errors,
+            });
+            throw valErr;
+        }
+        console.log('[ENQUIRY-DTO-VALIDATED-OK]', {
+            requestId: correlationId,
+            schoolId,
+            academicYearId,
+            gradeAppliedFor: validated.grade_applied_for,
+            source: validated.source,
+            hasParentEmail: !!validated.parent_email,
+            hasStudentName: !!validated.student_name,
+            contactConsent: validated.contact_consent,
+        });
         // Check for duplicates
         const dupCheck = await this.checkDuplicates({
             ...validated,
             academic_year_id: academicYearId,
         });
         if (dupCheck.status === 'exact_match' && !payload.ignore_duplicate) {
+            console.warn('[ENQUIRY-DUPLICATE-FOUND-409]', {
+                requestId: correlationId,
+                matchesCount: dupCheck.matches?.length,
+            });
             throw new ConflictError_1.ConflictError('Exact duplicate enquiry found', { matches: dupCheck.matches });
         }
         const id = crypto.randomUUID();
         const studentName = validated.student_name && validated.student_name.trim()
             ? validated.student_name.trim()
             : 'Applicant';
-        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, studentName, validated.grade_applied_for, validated.parent_name, validated.parent_email, validated.parent_phone, 'website', 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null, validated.query_type || null);
+        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, studentName, validated.grade_applied_for, validated.parent_name, validated.parent_email || '', validated.parent_phone, 'website', 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null, validated.query_type || null);
         const saved = await this.enquiryRepo.save(enquiry, {
             contact_consent: validated.contact_consent,
             query_type: validated.query_type || undefined,
+            correlationId,
         });
         await this.auditService.logAudit({
             userId: null,
@@ -82,7 +114,7 @@ class EnquiryService extends BaseService_1.BaseService {
         // Map values
         const updated = new AdmissionEnquiry_1.AdmissionEnquiry(existing.id, existing.schoolId, existing.academicYearId, validated.student_name ? validated.student_name : existing.studentName || 'Applicant', validated.grade_applied_for !== undefined
             ? validated.grade_applied_for
-            : existing.gradeAppliedFor, validated.parent_name !== undefined ? validated.parent_name : existing.parentName, validated.parent_email !== undefined ? validated.parent_email : existing.parentEmail, validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone, validated.source !== undefined ? validated.source : existing.source, existing.status, existing.createdAt, new Date(), existing.deletedAt, validated.date_of_birth !== undefined
+            : existing.gradeAppliedFor, validated.parent_name !== undefined ? validated.parent_name : existing.parentName, validated.parent_email !== undefined ? validated.parent_email || '' : existing.parentEmail, validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone, validated.source !== undefined ? validated.source : existing.source, existing.status, existing.createdAt, new Date(), existing.deletedAt, validated.date_of_birth !== undefined
             ? validated.date_of_birth
                 ? new Date(validated.date_of_birth)
                 : null

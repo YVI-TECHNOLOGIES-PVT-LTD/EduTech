@@ -64,6 +64,7 @@ class SessionService {
             // 2. Fetch User Profile from public.users via Prisma ORM
             const user = await prismaClient_1.default.users.findUnique({
                 where: { user_id: decoded.userId },
+                include: { countries: true },
             });
             if (!user || user.status !== 'active') {
                 return null;
@@ -120,6 +121,7 @@ class SessionService {
                 permissions.add('admission.create');
                 permissions.add('admission.application.view_own');
                 permissions.add('admission.application.create');
+                permissions.add('admission.application.update');
                 permissions.add('admission.application.view');
             }
             if (roles.some((r) => [
@@ -138,10 +140,17 @@ class SessionService {
                 'HOI',
                 'HEAD_OF_INSTITUTE',
                 'PRINCIPAL',
+                'EXAM_CELL_ADMIN',
+                'EXAM_CELL',
             ].includes(r))) {
                 permissions.add('admission.create');
                 permissions.add('admission.view_all');
                 permissions.add('admission.review');
+                permissions.add('admission.recommend');
+                permissions.add('admission.approve');
+                permissions.add('admission.assessment.evaluate');
+                permissions.add('admission.assessment.config.manage');
+                permissions.add('admission.assessment.dashboard.view');
                 permissions.add('admission.document.view');
                 permissions.add('admission.document.verify');
                 permissions.add('admission.application.view');
@@ -152,6 +161,11 @@ class SessionService {
                 permissions.add('admission.enquiry.create');
                 permissions.add('admission.leads.manage');
                 permissions.add('admission.visitors.manage');
+                permissions.add('admission.enrol');
+                permissions.add('STUDENT_CREATE');
+                permissions.add('STUDENT_VIEW');
+                permissions.add('STUDENT_UPDATE');
+                permissions.add('STUDENT_ASSIGN_SECTION');
                 permissions.add('admin.dashboard.view');
                 permissions.add('fees.view');
                 permissions.add('fees.payment.collect');
@@ -163,6 +177,11 @@ class SessionService {
             const profile = {
                 id: user.user_id,
                 email: user.email,
+                phone: user.phone,
+                country_id: user.country_id,
+                country_code: user.countries?.country_code || 'IN',
+                calling_code: user.countries?.calling_code || '+91',
+                country: user.countries || null,
                 org_id: user.org_id,
                 school_id: user.org_id,
                 full_name: `${user.first_name} ${user.last_name || ''}`.trim(),

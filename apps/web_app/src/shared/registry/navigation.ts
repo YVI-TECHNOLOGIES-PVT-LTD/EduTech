@@ -47,12 +47,12 @@ export const getSidebarNavigation = (): NavSection[] => {
           children: [
             { title: 'Enquiries & Leads', path: '/app/admissions/inquiries', icon: null },
             { title: 'Counselling', path: '/app/admissions/counselling', icon: null },
+            { title: 'Campus Visits', path: '/app/admissions/interviews', icon: null },
             { title: 'Applications', path: '/app/admissions/applications', icon: null },
             { title: 'Document Verification', path: '/app/admissions/verification', icon: null },
-            { title: 'Fee Collection', path: '/app/admissions/fees', icon: null },
-            { title: 'Campus Visits & Interviews', path: '/app/admissions/interviews', icon: null },
             { title: 'Entrance Exams', path: '/app/admissions/exams', icon: null },
-            { title: 'Admission Decisions', path: '/app/admissions/decisions', icon: null },
+            { title: 'Admission Decision', path: '/app/admissions/decisions', icon: null },
+            { title: 'Fee Collection', path: '/app/admissions/fees', icon: null },
           ],
         },
         {

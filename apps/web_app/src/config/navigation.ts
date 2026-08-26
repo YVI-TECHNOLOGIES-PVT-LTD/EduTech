@@ -182,6 +182,32 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
             ],
           },
           {
+            id: 'fo_visits',
+            title: 'Campus Visits',
+            url: '/app/admissions/interviews',
+            icon: Calendar,
+            items: [
+              {
+                id: 'fo_visits_schedule_sub',
+                title: 'Visit Schedule',
+                url: '/app/admissions/visits',
+                icon: Calendar,
+              },
+              {
+                id: 'fo_interviews_sub',
+                title: 'Interviews',
+                url: '/app/admissions/interviews',
+                icon: UserCheck,
+              },
+              {
+                id: 'fo_visits_history_sub',
+                title: 'Visit History',
+                url: '/app/front-office/visits',
+                icon: Clock,
+              },
+            ],
+          },
+          {
             id: 'fo_applications',
             title: 'Applications',
             url: '/app/admissions/applications',
@@ -222,58 +248,6 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
             ],
           },
           {
-            id: 'fo_fees',
-            title: 'Fee Collection',
-            url: '/app/admissions/fees',
-            icon: Receipt,
-            items: [
-              {
-                id: 'fo_fees_desk_sub',
-                title: 'Fee Collection',
-                url: '/app/admissions/fees',
-                icon: Receipt,
-              },
-              {
-                id: 'fo_fees_pending_sub',
-                title: 'Pending Payments',
-                url: '/app/admissions/fees',
-                icon: Clock,
-              },
-              {
-                id: 'fo_fees_history_sub',
-                title: 'Payment History',
-                url: '/app/front-office/fees',
-                icon: CreditCard,
-              },
-            ],
-          },
-          {
-            id: 'fo_visits',
-            title: 'Campus Visits & Interviews',
-            url: '/app/admissions/interviews',
-            icon: Calendar,
-            items: [
-              {
-                id: 'fo_visits_schedule_sub',
-                title: 'Visit Schedule',
-                url: '/app/admissions/visits',
-                icon: Calendar,
-              },
-              {
-                id: 'fo_interviews_sub',
-                title: 'Interviews',
-                url: '/app/admissions/interviews',
-                icon: UserCheck,
-              },
-              {
-                id: 'fo_visits_history_sub',
-                title: 'Visit History',
-                url: '/app/front-office/visits',
-                icon: Clock,
-              },
-            ],
-          },
-          {
             id: 'fo_exams',
             title: 'Entrance Exams',
             url: '/app/admissions/exams',
@@ -307,7 +281,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           },
           {
             id: 'fo_decisions',
-            title: 'Admission Decisions',
+            title: 'Admission Decision',
             url: '/app/admissions/decisions',
             icon: Scale,
             items: [
@@ -340,6 +314,32 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
                 title: 'Enrollment',
                 url: '/app/admissions/enrollment',
                 icon: UserCheck,
+              },
+            ],
+          },
+          {
+            id: 'fo_fees',
+            title: 'Fee Collection',
+            url: '/app/admissions/fees',
+            icon: Receipt,
+            items: [
+              {
+                id: 'fo_fees_desk_sub',
+                title: 'Fee Collection',
+                url: '/app/admissions/fees',
+                icon: Receipt,
+              },
+              {
+                id: 'fo_fees_pending_sub',
+                title: 'Pending Payments',
+                url: '/app/admissions/fees',
+                icon: Clock,
+              },
+              {
+                id: 'fo_fees_history_sub',
+                title: 'Payment History',
+                url: '/app/front-office/fees',
+                icon: CreditCard,
               },
             ],
           },

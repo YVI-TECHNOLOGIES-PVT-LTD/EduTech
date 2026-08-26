@@ -8,6 +8,8 @@ const supabase_1 = require("../../../config/supabase");
 const index_1 = require("../index");
 const crypto_utils_1 = require("../../../auth/crypto.utils");
 const prismaClient_1 = __importDefault(require("../../../lib/prismaClient"));
+const validation_1 = require("@edutrack/validation");
+const country_resolver_1 = require("../../../utils/country-resolver");
 class FacultyImportStrategy extends index_1.BaseImportStrategy {
     constructor() {
         super(...arguments);
@@ -15,8 +17,8 @@ class FacultyImportStrategy extends index_1.BaseImportStrategy {
     }
     async validateRow(row, context) {
         const errors = [];
-        if (!row.email || !row.email.includes('@'))
-            errors.push('Valid email is required');
+        if (!row.email || !(0, validation_1.isValidEmail)(row.email))
+            errors.push('Enter a valid email address.');
         if (!row.full_name || row.full_name.trim().length === 0)
             errors.push('Full name is required');
         if (!row.department_id)
@@ -25,8 +27,8 @@ class FacultyImportStrategy extends index_1.BaseImportStrategy {
             errors.push('Designation is required');
         if (!row.employee_code)
             errors.push('Employee code is required');
-        if (!row.phone)
-            errors.push('Phone is required');
+        if (!row.phone || !(0, validation_1.isValidPhoneNumber)(row.phone))
+            errors.push('Enter a valid 10-digit mobile number.');
         return errors;
     }
     async process(rows, context) {
@@ -79,12 +81,14 @@ class FacultyImportStrategy extends index_1.BaseImportStrategy {
             try {
                 const tempPassword = 'FacultyTempPass123!';
                 const passwordHash = await crypto_utils_1.NativePassword.hash(tempPassword);
+                const resolved = await (0, country_resolver_1.resolveCountryAndPhone)(prismaClient_1.default, { phone: row.phone });
                 const newUser = await prismaClient_1.default.users.create({
                     data: {
                         org_id: context.schoolId,
                         first_name: row.full_name,
                         email: cleanEmail,
-                        phone: row.phone,
+                        phone: resolved.phone,
+                        country_id: resolved.country_id,
                         password_hash: passwordHash,
                         status: 'active',
                     },

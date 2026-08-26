@@ -84,6 +84,7 @@ const checkPermission = (requiredPermission) => {
                 'admission.view_own',
                 'admission.create',
                 'admission.application.create',
+                'admission.application.update',
                 'admission.application.view_own',
                 'admission.application.view',
             ].includes(requiredPermission)) {
@@ -95,11 +96,26 @@ const checkPermission = (requiredPermission) => {
             (requiredPermission === 'admission.view_own' &&
                 (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) ||
             ((requiredPermission === 'admission.leads.manage' ||
-                requiredPermission === 'admission.enquiry.view') &&
+                requiredPermission === 'admission.enquiry.view' ||
+                requiredPermission === 'admission.recommend' ||
+                requiredPermission === 'admission.approve' ||
+                requiredPermission === 'admission.enrol' ||
+                requiredPermission === 'admission.assessment.evaluate' ||
+                requiredPermission === 'admission.assessment.config.manage' ||
+                requiredPermission === 'admission.assessment.dashboard.view') &&
                 (permissions.includes('admission.leads.manage') ||
                     permissions.includes('admission.enquiry.view') ||
                     permissions.includes('admission.review') ||
-                    permissions.includes('admission.view_all')))) {
+                    permissions.includes('admission.view_all') ||
+                    permissions.includes('admission.recommend') ||
+                    permissions.includes('admission.approve') ||
+                    permissions.includes('admission.enrol') ||
+                    roles.includes('ADMIN') ||
+                    roles.includes('SUPERADMIN') ||
+                    roles.includes('FRONT_OFFICE') ||
+                    roles.includes('COUNSELLOR') ||
+                    roles.includes('ADMISSION_OFFICER') ||
+                    roles.includes('EXAM_CELL_ADMIN')))) {
             return next();
         }
         // 4. Deny Access — Dynamic RBAC Enforcement

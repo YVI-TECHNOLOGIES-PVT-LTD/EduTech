@@ -206,3 +206,10 @@ ADD COLUMN avatar_url VARCHAR(500) NULL;
 ALTER TYPE lead_priority RENAME VALUE 'hot' TO 'high';
 ALTER TYPE lead_priority RENAME VALUE 'warm' TO 'medium';
 ALTER TYPE lead_priority RENAME VALUE 'cold' TO 'low';
+
+
+ALTER TYPE lead_activity_type
+ADD VALUE IF NOT EXISTS 'campus_visit';
+
+ALTER TYPE lead_activity_type
+ADD VALUE IF NOT EXISTS 'application_started';

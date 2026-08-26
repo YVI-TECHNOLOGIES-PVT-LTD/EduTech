@@ -13,31 +13,56 @@ class EnquiryController {
         this.enquiryService = enquiryService;
         this.flagService = flagService;
         this.create = async (req, res) => {
+            const requestId = (req.headers['x-request-id'] ||
+                req.headers['x-correlation-id'] ||
+                crypto.randomUUID());
+            const authUserId = req.context?.user?.id || 'anonymous';
             try {
                 await this.checkFlags(req);
-                let schoolId = req.context?.user?.school_id;
-                let academicYearId = req.headers['x-academic-year-id'] || req.body.academic_year_id;
+                let schoolId = req.context?.user?.school_id || req.tenantOrgId;
+                let academicYearId = req.headers['x-academic-year-id'] || req.body?.academic_year_id;
                 if (!schoolId || !academicYearId) {
-                    const requestedYear = req.body.academic_year || req.body.academicYear || req.body.academic_year_name;
+                    const requestedYear = req.body?.academic_year || req.body?.academicYear || req.body?.academic_year_name;
                     const resolved = await admission_service_1.AdmissionService.resolveContext(requestedYear);
                     if (!schoolId)
                         schoolId = resolved.school_id;
                     if (!academicYearId)
                         academicYearId = resolved.academic_year_id || '';
                 }
-                const correlationId = req.headers['x-correlation-id'];
-                const data = await this.enquiryService.createEnquiry(schoolId, academicYearId, req.body, correlationId);
+                console.log('[ENQUIRY-CONTROLLER-START]', {
+                    requestId,
+                    authUserId,
+                    resolvedOrgId: schoolId,
+                    resolvedAcademicYearId: academicYearId,
+                    incomingFields: Object.keys(req.body || {}),
+                    hasParentName: !!req.body?.parent_name,
+                    hasParentPhone: !!req.body?.parent_phone,
+                    gradeAppliedFor: req.body?.grade_applied_for,
+                });
+                const data = await this.enquiryService.createEnquiry(schoolId, academicYearId, req.body, requestId);
                 const referenceCode = `ENQ-2026-${data.id.slice(0, 8).toUpperCase()}`;
+                console.log('[ENQUIRY-CONTROLLER-SUCCESS-201]', {
+                    requestId,
+                    enquiryId: data.id,
+                    referenceCode,
+                    orgId: schoolId,
+                });
                 res.status(201).json({
                     ...data,
                     id: data.id,
                     reference_code: referenceCode,
                     reference: referenceCode,
+                    requestId,
                 });
             }
             catch (err) {
-                console.error('[ENQUIRY-CONTROLLER-ERROR]', err);
-                (0, ControllerErrorHandler_1.handleControllerError)(res, err);
+                console.error('[ENQUIRY-CONTROLLER-ERROR]', {
+                    requestId,
+                    authUserId,
+                    error: err?.message || err,
+                    stack: err?.stack,
+                });
+                (0, ControllerErrorHandler_1.handleControllerError)(res, err, requestId);
             }
         };
         this.getQueryTypes = async (req, res) => {
