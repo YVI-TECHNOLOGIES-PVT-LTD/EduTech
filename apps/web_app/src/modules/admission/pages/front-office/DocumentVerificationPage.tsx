@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import {
   FileText,
   Search,
@@ -55,6 +56,8 @@ import { useGetAcademicYearsQuery, useGetGradesQuery } from '@/shared/api/academ
 import { useTableSelection } from '@/hooks/useTableSelection';
 
 export const DocumentVerificationPage: React.FC = () => {
+  const { user } = useAuth();
+
   // Filter States
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -72,6 +75,17 @@ export const DocumentVerificationPage: React.FC = () => {
   const [quickResubmitDoc, setQuickResubmitDoc] = useState<DocumentPreviewItem | null>(null);
   const [splitMode, setSplitMode] = useState(false);
   const [selectedSplitDoc, setSelectedSplitDoc] = useState<DocumentPreviewItem | null>(null);
+
+  // Hard reset document previews and quick action modals on auth boundary change
+  useEffect(() => {
+    setPreviewDoc(null);
+    setIsPreviewOpen(false);
+    setQuickVerifyDoc(null);
+    setQuickRejectDoc(null);
+    setQuickResubmitDoc(null);
+    setSelectedSplitDoc(null);
+    setSplitMode(false);
+  }, [user?.id, user?.school_id]);
 
   // Queries
   const {

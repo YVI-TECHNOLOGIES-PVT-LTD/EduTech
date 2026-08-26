@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 import {
   useGetCounsellingMetricsQuery,
   useGetLeadsQuery,
@@ -58,6 +59,8 @@ import { AddActivityModal } from '../../components/inquiry/AddActivityModal';
 import { ScheduleVisitModal } from '../../components/inquiry/ScheduleVisitModal';
 
 export const CounsellingPage: React.FC = () => {
+  const { user } = useAuth();
+
   // Search & Filter State
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -82,6 +85,18 @@ export const CounsellingPage: React.FC = () => {
   >('assign');
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isBulkAssignmentOpen, setIsBulkAssignmentOpen] = useState(false);
+
+  // Hard reset all active modals, lead selection, and bulk actions on user/tenant transition
+  useEffect(() => {
+    setActiveLeadId(null);
+    setIsDetailsOpen(false);
+    setActivityLead(null);
+    setVisitLead(null);
+    setAssignmentModalLead(null);
+    setIsAssignmentModalOpen(false);
+    setIsBulkAssignmentOpen(false);
+    setSelectedLeadIds([]);
+  }, [user?.id, user?.school_id]);
 
   // Debounce search input
   useEffect(() => {

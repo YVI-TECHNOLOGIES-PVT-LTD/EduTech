@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import {
   Calendar,
   Search,
@@ -120,9 +121,12 @@ export const CampusVisitsPage: React.FC = () => {
 
   // Dialog States
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
-  const [selectedVisitForReschedule, setSelectedVisitForReschedule] = useState<LeadVisitItem | null>(null);
+  const [selectedVisitForReschedule, setSelectedVisitForReschedule] =
+    useState<LeadVisitItem | null>(null);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [selectedVisitForComplete, setSelectedVisitForComplete] = useState<LeadVisitItem | null>(null);
+  const [selectedVisitForComplete, setSelectedVisitForComplete] = useState<LeadVisitItem | null>(
+    null,
+  );
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [selectedVisitForCancel, setSelectedVisitForCancel] = useState<LeadVisitItem | null>(null);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
@@ -132,6 +136,23 @@ export const CampusVisitsPage: React.FC = () => {
   // Lead Details Drawer State
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
+
+  const { user } = useAuth();
+
+  // Reset all dialogs and active lead drawers on user/tenant change
+  useEffect(() => {
+    setIsScheduleOpen(false);
+    setSelectedVisitForReschedule(null);
+    setIsRescheduleOpen(false);
+    setSelectedVisitForComplete(null);
+    setIsCompleteOpen(false);
+    setSelectedVisitForCancel(null);
+    setIsCancelOpen(false);
+    setSelectedVisitForNoShow(null);
+    setIsNoShowOpen(false);
+    setSelectedLeadId(null);
+    setIsLeadDetailsOpen(false);
+  }, [user?.id, user?.school_id]);
 
   // Staff List Query
   const { data: staffList = [] } = useGetStaffListQuery();
@@ -373,68 +394,86 @@ export const CampusVisitsPage: React.FC = () => {
           </form>
 
           {/* Date Filter */}
-          <Select
-            value={dateRangeFilter}
-            onValueChange={(val) => updateQuery('date_range', val)}
-          >
+          <Select value={dateRangeFilter} onValueChange={(val) => updateQuery('date_range', val)}>
             <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border">
               <SelectValue placeholder="Date Range" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL" className="text-xs">All Dates</SelectItem>
-              <SelectItem value="today" className="text-xs">Today's Visits</SelectItem>
-              <SelectItem value="this_week" className="text-xs">Next 7 Days</SelectItem>
-              <SelectItem value="upcoming" className="text-xs">All Upcoming</SelectItem>
-              <SelectItem value="past" className="text-xs">Past Visits</SelectItem>
+              <SelectItem value="ALL" className="text-xs">
+                All Dates
+              </SelectItem>
+              <SelectItem value="today" className="text-xs">
+                Today's Visits
+              </SelectItem>
+              <SelectItem value="this_week" className="text-xs">
+                Next 7 Days
+              </SelectItem>
+              <SelectItem value="upcoming" className="text-xs">
+                All Upcoming
+              </SelectItem>
+              <SelectItem value="past" className="text-xs">
+                Past Visits
+              </SelectItem>
             </SelectContent>
           </Select>
 
           {/* Visit Type Filter */}
-          <Select
-            value={visitTypeFilter}
-            onValueChange={(val) => updateQuery('visit_type', val)}
-          >
+          <Select value={visitTypeFilter} onValueChange={(val) => updateQuery('visit_type', val)}>
             <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border">
               <SelectValue placeholder="Visit Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL" className="text-xs">All Types</SelectItem>
-              <SelectItem value="campus" className="text-xs">Campus Tour</SelectItem>
-              <SelectItem value="virtual" className="text-xs">Virtual Session</SelectItem>
+              <SelectItem value="ALL" className="text-xs">
+                All Types
+              </SelectItem>
+              <SelectItem value="campus" className="text-xs">
+                Campus Tour
+              </SelectItem>
+              <SelectItem value="virtual" className="text-xs">
+                Virtual Session
+              </SelectItem>
             </SelectContent>
           </Select>
 
           {/* Status Filter */}
-          <Select
-            value={statusFilter}
-            onValueChange={(val) => updateQuery('status', val)}
-          >
+          <Select value={statusFilter} onValueChange={(val) => updateQuery('status', val)}>
             <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL" className="text-xs">All Statuses</SelectItem>
-              <SelectItem value="scheduled" className="text-xs">Scheduled</SelectItem>
-              <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-              <SelectItem value="cancelled" className="text-xs">Cancelled</SelectItem>
-              <SelectItem value="no_show" className="text-xs">No Show</SelectItem>
+              <SelectItem value="ALL" className="text-xs">
+                All Statuses
+              </SelectItem>
+              <SelectItem value="scheduled" className="text-xs">
+                Scheduled
+              </SelectItem>
+              <SelectItem value="completed" className="text-xs">
+                Completed
+              </SelectItem>
+              <SelectItem value="cancelled" className="text-xs">
+                Cancelled
+              </SelectItem>
+              <SelectItem value="no_show" className="text-xs">
+                No Show
+              </SelectItem>
             </SelectContent>
           </Select>
 
           {/* Staff / Counsellor Filter */}
-          <Select
-            value={staffFilter}
-            onValueChange={(val) => updateQuery('staff_id', val)}
-          >
+          <Select value={staffFilter} onValueChange={(val) => updateQuery('staff_id', val)}>
             <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border">
               <SelectValue placeholder="Counsellor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL" className="text-xs">All Counsellors</SelectItem>
+              <SelectItem value="ALL" className="text-xs">
+                All Counsellors
+              </SelectItem>
               {staffList.map((s: any) => (
                 <SelectItem key={s.staff_id || s.id} value={s.staff_id || s.id} className="text-xs">
                   {s.name ||
-                    (s.first_name ? `${s.first_name} ${s.last_name || ''}`.trim() : s.employee_code)}
+                    (s.first_name
+                      ? `${s.first_name} ${s.last_name || ''}`.trim()
+                      : s.employee_code)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -497,7 +536,8 @@ export const CampusVisitsPage: React.FC = () => {
               <>
                 <p className="text-sm font-bold text-foreground">No visits match your filters</p>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Try adjusting your search criteria or resetting filters to view all scheduled visits.
+                  Try adjusting your search criteria or resetting filters to view all scheduled
+                  visits.
                 </p>
                 <Button
                   variant="outline"
@@ -566,10 +606,9 @@ export const CampusVisitsPage: React.FC = () => {
 
               <TableBody>
                 {visits.map((v, index) => {
-                  const studentName =
-                    v.leads?.student_first_name
-                      ? `${v.leads.student_first_name} ${v.leads.student_last_name || ''}`.trim()
-                      : 'Applicant';
+                  const studentName = v.leads?.student_first_name
+                    ? `${v.leads.student_first_name} ${v.leads.student_last_name || ''}`.trim()
+                    : 'Applicant';
                   const leadNumber = v.leads?.lead_number || 'N/A';
                   const gradeName =
                     v.leads?.academic_year_grades?.grades?.grade_name || 'Not assigned';

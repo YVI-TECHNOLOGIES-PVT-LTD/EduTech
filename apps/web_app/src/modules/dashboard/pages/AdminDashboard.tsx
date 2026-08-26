@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 import { useMasterData } from '../../admission/context/MasterDataContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
@@ -80,24 +81,35 @@ export const AdminDashboard = () => {
 };
 
 const AdminDashboardInner = () => {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, isAuthenticated } = useAuth();
   const { activeSchool, activeAcademicYear } = useMasterData();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
+    const requestGen = getCurrentSessionGeneration();
+    setLoading(true);
+    setStats(null);
+
     apiClient
       .get('/dashboard/admin/overview')
       .then((res) => {
-        if (isMounted) setStats(res.data);
+        if (isMounted && requestGen === getCurrentSessionGeneration()) setStats(res.data);
       })
       .catch((err) => {
-        if (isMounted) console.error('Dashboard load failed', err);
+        if (isMounted && requestGen === getCurrentSessionGeneration())
+          console.error('Dashboard load failed', err);
       })
       .finally(() => {
-        if (isMounted) setLoading(false);
+        if (isMounted && requestGen === getCurrentSessionGeneration()) setLoading(false);
       });
 
     // Set timer for greeting context
@@ -107,7 +119,7 @@ const AdminDashboardInner = () => {
       isMounted = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [user?.id, user?.school_id, isAuthenticated]);
 
   const isFullAdmin = hasPermission('admin.dashboard.view');
 
@@ -203,7 +215,7 @@ const AdminDashboardInner = () => {
     {
       label: 'Admissions Desk',
       icon: GraduationCap,
-      link: '/app/admissions/dashboard',
+      link: '/app/workspace',
       desc: 'Workspace & Pipeline',
     },
     {

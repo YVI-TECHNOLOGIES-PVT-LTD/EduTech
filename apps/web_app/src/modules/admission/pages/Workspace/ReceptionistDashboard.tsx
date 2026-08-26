@@ -20,7 +20,7 @@ import {
 import { PhoneInput } from '@/components/ui/phone-input';
 
 export function ReceptionistDashboard() {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { grades } = useMasterData();
   const canManageLeads = hasPermission('admission.leads.manage');
 
@@ -36,6 +36,15 @@ export function ReceptionistDashboard() {
   const [phone, setPhone] = useState('');
   const [grade, setGrade] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Reset form inputs whenever user or tenant changes
+  React.useEffect(() => {
+    setParentName('');
+    setStudentName('');
+    setEmail('');
+    setPhone('');
+    setIsSuccess(false);
+  }, [user?.id, user?.school_id]);
 
   // Initialize default grade from dynamic master data
   React.useEffect(() => {

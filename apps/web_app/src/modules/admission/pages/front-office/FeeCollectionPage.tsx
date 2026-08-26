@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import {
   Receipt,
   Search,
@@ -77,6 +78,18 @@ export const FeeCollectionPage: React.FC = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedAppForDetails, setSelectedAppForDetails] = useState<ApplicationItem | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const { user } = useAuth();
+
+  // Reset all fee dialogs and active application selections on user/tenant change
+  useEffect(() => {
+    setSelectedAppForPayment(null);
+    setIsCollectOpen(false);
+    setSelectedAppForReceipt(null);
+    setIsReceiptOpen(false);
+    setSelectedAppForDetails(null);
+    setIsDetailsOpen(false);
+  }, [user?.id, user?.school_id]);
 
   // Reference Queries
   const { data: gradesData = [] } = useGetGradesQuery();

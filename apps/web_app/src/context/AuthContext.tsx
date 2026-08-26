@@ -20,11 +20,14 @@ import {
   getNextSessionGeneration,
 } from '../lib/auth/sessionReset';
 
+export type AuthBoundaryState = 'initializing' | 'stable' | 'switching' | 'signed_out';
+
 export interface AuthContextType {
   session: Session | null;
   user: EnrichedUser | null;
   accessToken: string | null;
   loading: boolean;
+  boundaryState: AuthBoundaryState;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
   hasPermission: (code: string) => boolean;
@@ -40,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Supabase session remains in local React state inside AuthProvider (sole credential authority)
   const [session, setSession] = useState<Session | null>(null);
+  const [boundaryState, setBoundaryState] = useState<AuthBoundaryState>('initializing');
 
   // Redux Application Auth State
   const user = useAppSelector((state) => state.auth.user) as EnrichedUser | null;
@@ -51,9 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const userPermissions = useAppSelector((state) => state.permission.permissions);
   const userRoles = useAppSelector((state) => state.permission.roles);
 
-  // Profile fetch tracker and auth boundary tracker (userId + tenantId)
+  // Profile fetch tracker and auth boundary tracker (userId:tenantId:role)
   const profileFetchTracker = useRef<string | null>(null);
   const currentAuthBoundaryRef = useRef<string | null>(null);
+  const initialSessionResolvedRef = useRef<boolean>(false);
 
   /**
    * Fetches enriched user profile from backend and dispatches to Redux auth & tenant slices.
@@ -67,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!activeToken) {
           if (requestGeneration === getCurrentSessionGeneration()) {
             dispatch(setInitializing(false));
+            setBoundaryState('signed_out');
           }
           return;
         }
@@ -82,7 +88,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (res.data?.user) {
           const enrichedUser: EnrichedUser = res.data.user;
-          currentAuthBoundaryRef.current = `${enrichedUser.id}:${enrichedUser.school_id || ''}`;
+          const tenantId = enrichedUser.school_id || '';
+          const primaryRole = enrichedUser.roles?.[0] || (enrichedUser as any)?.role || '';
+          const newBoundary = `${enrichedUser.id}:${tenantId}:${primaryRole}`;
+
+          // Check if boundary changed for an already-resolved session
+          if (
+            initialSessionResolvedRef.current &&
+            currentAuthBoundaryRef.current &&
+            currentAuthBoundaryRef.current !== newBoundary
+          ) {
+            const [prevUserId, prevTenantId, prevRole] = currentAuthBoundaryRef.current.split(':');
+            if (prevUserId !== enrichedUser.id) {
+              await resetAuthenticatedClientState('user_changed');
+            } else if (prevTenantId !== tenantId) {
+              await resetAuthenticatedClientState('tenant_changed');
+            } else if (prevRole !== primaryRole) {
+              await resetAuthenticatedClientState('role_changed');
+            }
+          }
+
+          currentAuthBoundaryRef.current = newBoundary;
+          profileFetchTracker.current = enrichedUser.id;
+          initialSessionResolvedRef.current = true;
 
           // Dispatch identity profile to authSlice
           dispatch(setUser(enrichedUser));
@@ -98,15 +126,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             dispatch(setActiveTenant({ id: enrichedUser.school_id }));
             dispatch(setSchoolId(enrichedUser.school_id));
           }
+
+          setBoundaryState('stable');
         } else {
           dispatch(setUser(null));
           dispatch(clearPermissions());
+          setBoundaryState('signed_out');
         }
       } catch (error: any) {
         if (requestGeneration === getCurrentSessionGeneration()) {
           console.error('[Auth] Profile fetch failed:', error.response?.status || error.message);
           dispatch(setUser(null));
           dispatch(clearPermissions());
+          setBoundaryState('signed_out');
         }
       } finally {
         if (requestGeneration === getCurrentSessionGeneration()) {
@@ -122,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initialize = async () => {
       dispatch(setInitializing(true));
+      setBoundaryState('initializing');
 
       // Fetch System Info (Public)
       try {
@@ -144,12 +177,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (initSession?.access_token) {
         setSession(initSession);
         profileFetchTracker.current = initSession.user.id;
-        currentAuthBoundaryRef.current = initSession.user.id;
-        await new Promise((r) => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 50));
         await fetchUserProfile(initSession.access_token);
       } else if (storedToken) {
         await fetchUserProfile(storedToken);
       } else {
+        initialSessionResolvedRef.current = true;
+        setBoundaryState('signed_out');
         dispatch(setInitializing(false));
       }
     };
@@ -176,9 +210,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.debug(`[Auth] Event: ${event}`);
 
       if (currentSession) {
-        const isNewUser = currentSession.user.id !== profileFetchTracker.current;
+        const isNewUser =
+          initialSessionResolvedRef.current &&
+          currentSession.user.id !== profileFetchTracker.current;
 
         if (isNewUser) {
+          setBoundaryState('switching');
           // Hard client reset BEFORE allowing new user data to load/render
           await resetAuthenticatedClientState('user_switch_detected');
           dispatch(setInitializing(true));
@@ -187,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         profileFetchTracker.current = currentSession.user.id;
 
-        if (isNewUser || event === 'SIGNED_IN') {
+        if (isNewUser || event === 'SIGNED_IN' || !initialSessionResolvedRef.current) {
           await fetchUserProfile(currentSession.access_token);
         }
       } else {
@@ -198,6 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           currentAuthBoundaryRef.current = null;
         }
         setSession(null);
+        setBoundaryState('signed_out');
         dispatch(setInitializing(false));
       }
     });
@@ -214,6 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const signOut = async () => {
     dispatch(setInitializing(true));
+    setBoundaryState('switching');
     try {
       profileFetchTracker.current = null;
       currentAuthBoundaryRef.current = null;
@@ -223,6 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('[Auth] Error during signOut:', err);
     } finally {
+      setBoundaryState('signed_out');
       dispatch(setInitializing(false));
     }
   };
@@ -307,6 +347,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     accessToken,
     loading: isInitializing,
+    boundaryState,
     isAuthenticated: Boolean((session || accessToken) && user && reduxIsAuthenticated),
     signOut,
     hasPermission,

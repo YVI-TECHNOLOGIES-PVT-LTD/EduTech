@@ -8,7 +8,9 @@ import {
   AlertCircle,
   FileText,
   ArrowRight,
+  User,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import {
   formatStatusLabel,
   getStatusColor,
@@ -26,6 +28,41 @@ export interface ApplicationStatusCardProps {
 
 export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ application }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const rawRoles = user?.roles || ((user as any)?.role ? [(user as any).role] : []);
+  const normalizedRoles = rawRoles.map((r: string) =>
+    String(r)
+      .toUpperCase()
+      .replace(/[\s_-]+/g, '_'),
+  );
+
+  const isStaff = normalizedRoles.some((r: string) =>
+    [
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'FRONT_OFFICE',
+      'FO',
+      'FRONT_OFFICE_STAFF',
+      'RECEPTIONIST',
+      'STAFF',
+      'FACULTY',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+      'TEACHER',
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'EXAM_CELL_ADMIN',
+      'EXAM_CELL',
+    ].includes(r),
+  );
 
   const appId = application.application_id || application.id;
 
@@ -38,6 +75,15 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
         : 'Applicant');
 
   const displayName = studentName || 'Applicant';
+
+  const parentName =
+    application.parent_name ||
+    application.parentName ||
+    application.leads?.contact_name ||
+    application.lead?.contact_name ||
+    (application.applicant?.full_name && application.applicant.full_name !== displayName
+      ? application.applicant.full_name
+      : null);
 
   const gradeApplied =
     application.grade_applied_for ||
@@ -88,6 +134,14 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
     }
   };
 
+  const handleViewApplication = () => {
+    if (isStaff) {
+      navigate(`/app/admissions/application/${appId}`);
+    } else {
+      navigate(`/app/admissions/status?appId=${appId}`);
+    }
+  };
+
   return (
     <Card className="p-6 rounded-2xl border-border/80 shadow-sm hover:shadow-md transition-shadow space-y-5 bg-card">
       {/* Card Header */}
@@ -125,6 +179,12 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
                 <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
                 <span>Submitted: {submittedDate}</span>
               </span>
+              {isStaff && parentName && (
+                <span className="flex items-center space-x-1 font-semibold">
+                  <User className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  <span>Parent: {parentName}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -197,7 +257,7 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
       <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-1">
         <Button
           size="sm"
-          onClick={() => navigate(`/app/admissions/${appId}`)}
+          onClick={handleViewApplication}
           className="w-full sm:w-auto font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm"
         >
           <FileText className="w-3.5 h-3.5" />

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import {
   useGetLeadsQuery,
   LeadItem,
@@ -153,6 +154,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: stri
 };
 
 export const LeadsManagementPage: React.FC = () => {
+  const { user } = useAuth();
   const { grades } = useMasterData();
   const { data: staffList = [] } = useGetStaffListQuery();
 
@@ -178,6 +180,19 @@ export const LeadsManagementPage: React.FC = () => {
   const [showVisitModal, setShowVisitModal] = useState<boolean>(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
   const [showConvertDialog, setShowConvertDialog] = useState<boolean>(false);
+
+  // Hard reset all modal and selected lead states when user identity or tenant changes
+  useEffect(() => {
+    setSelectedLeadId(null);
+    setSelectedLead(null);
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setShowDetailsSheet(false);
+    setShowActivityModal(false);
+    setShowVisitModal(false);
+    setShowDeleteDialog(false);
+    setShowConvertDialog(false);
+  }, [user?.id, user?.school_id]);
 
   // Build query params
   const queryParams: SearchLeadParams = useMemo(() => {

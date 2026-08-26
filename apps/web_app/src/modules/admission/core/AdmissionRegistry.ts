@@ -46,7 +46,7 @@ export const ADMISSION_PAGES = {
     ],
   },
   dashboard: {
-    path: '/app/admissions/dashboard',
+    path: '/app/workspace',
     hook: 'useAdmission',
     permission: 'admission.review',
     widgets: ['role-kpis', 'action-queues'],

@@ -8,10 +8,10 @@ import { useModuleVisibility } from '../../services/ModuleVisibilityService';
 import { LandingResolver } from '../../services/LandingResolver';
 
 export const ProtectedRoute = () => {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, boundaryState } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  if (loading || boundaryState === 'initializing' || boundaryState === 'switching') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loading message="Securing session..." />
@@ -20,7 +20,7 @@ export const ProtectedRoute = () => {
   }
 
   // Must be authenticated with active user profile
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated || !user || boundaryState !== 'stable') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -8,6 +8,7 @@ import { clearUnreadCount } from '@/shared/store/notificationSlice';
 import { useProfileStore } from '@/store/profile.store';
 import { useDashboardStore } from '@/store/dashboard.store';
 import { useAuthStore } from '@/store/auth.store';
+import { useAppStore } from '@/store/app.store';
 import { API_CONFIG } from '@/config/api';
 
 /**
@@ -27,10 +28,24 @@ export function getCurrentSessionGeneration(): number {
 }
 
 /**
- * Strict allowlist of auth-scoped localStorage/sessionStorage keys that
- * must be cleared on logout or user/tenant transition.
+ * Storage Classification Matrix:
+ *
+ * 1. GLOBAL (Preserved across all logouts & user transitions):
+ *    - 'erp-theme'
+ *    - 'erp-density'
+ *    - 'erp-font-size'
+ *    - 'erp-sidebar-collapsed'
+ *    - 'i18nextLng'
+ *
+ * 2. USER-SCOPED (Preserved across logout, isolated by userId prefix):
+ *    - 'edutrack.user.<userId>.*'
+ *
+ * 3. SESSION-SCOPED (Cleared on logout / user switch / tenant switch):
+ *    - Access tokens, refresh tokens, profiles, active IDs, temporary exam sessions,
+ *      cached API states, and dashboard widgets.
  */
-export const AUTH_SCOPED_STORAGE_KEYS = [
+
+export const SESSION_SCOPED_STORAGE_KEYS = [
   API_CONFIG.tokenKeys.accessToken, // 'edutrack_access_token'
   API_CONFIG.tokenKeys.refreshToken, // 'edutrack_refresh_token'
   API_CONFIG.tokenKeys.userProfile, // 'edutrack_user_profile'
@@ -39,51 +54,52 @@ export const AUTH_SCOPED_STORAGE_KEYS = [
   'erp-dashboard',
   'edutrack.admission.active_app_id',
   'edutrack_chatbot_session_id',
+  'admission_exam_token',
+  'admission_exam_session_id',
+  'admission_exam_attempt_id',
+  'admission_quick_note',
+  'admission_tasks',
+  'recent_searches',
+  'bookmarks',
 ] as const;
 
-/**
- * Storage key prefixes that belong strictly to individual authenticated users
- * (e.g. namespaced active application IDs).
- */
-export const AUTH_SCOPED_PREFIXES = [
+export const SESSION_SCOPED_PREFIXES = [
   'edutrack.admission.active_app_id.',
-  'edutrack.parent.',
-  'edutrack.user.',
+  'edutrack.admission.',
+  'edutrack.frontoffice.',
+  'edutrack.counselling.',
+  'edutrack.session.',
+  'edutrack.grid_state.',
+  'erp-dashboard-widgets-',
 ] as const;
-
-/**
- * Global non-sensitive settings allowlist (MUST BE PRESERVED across logouts):
- * - erp-theme
- * - erp-density
- * - erp-font-size
- * - erp-sidebar-collapsed
- * - i18nextLng
- */
 
 let isResetting = false;
 
 /**
- * Central canonical function to purge all client-side authentication,
- * parent, active application, query cache, and store state.
+ * Canonical centralized reset function to purge all client-side authentication,
+ * active records, query caches, and store state across all personas.
  *
- * Implements strict idempotency so it can be called safely from AuthContext
- * without running duplicate destructive cycles.
+ * Idempotent: safe to invoke from AuthContext lifecycle handlers without recursion.
  */
-export async function resetAuthenticatedClientState(reason: string = 'auth_transition'): Promise<void> {
+export async function resetAuthenticatedClientState(
+  reason: string = 'auth_transition',
+): Promise<void> {
   if (isResetting) {
     return;
   }
   isResetting = true;
 
   try {
-    // 1. Advance generation counter to invalidate all in-flight requests
+    // 1. Advance generation counter to invalidate all in-flight async requests
     getNextSessionGeneration();
 
     if (process.env.NODE_ENV !== 'production') {
-      console.debug(`[AuthReset] Executing centralized client reset (reason: ${reason}, generation: ${authSessionGeneration})`);
+      console.debug(
+        `[AuthReset] Executing centralized client reset (reason: ${reason}, generation: ${authSessionGeneration})`,
+      );
     }
 
-    // 2. Cancel and purge TanStack React Query cache
+    // 2. Cancel and purge TanStack React Query cache globally
     try {
       await queryClient.cancelQueries();
       queryClient.clear();
@@ -91,7 +107,7 @@ export async function resetAuthenticatedClientState(reason: string = 'auth_trans
       console.error('[AuthReset] Error clearing TanStack Query cache:', qErr);
     }
 
-    // 3. Reset all Redux RTK Query API slice caches
+    // 3. Reset all Redux RTK Query API slice caches (covers all injected endpoints)
     try {
       store.dispatch(apiSlice.util.resetApiState());
     } catch (rErr) {
@@ -127,21 +143,25 @@ export async function resetAuthenticatedClientState(reason: string = 'auth_trans
         user: null,
         isAuthenticated: false,
       });
+      useAppStore.setState({
+        schoolId: '',
+        academicYearId: '',
+        notificationCount: 0,
+      });
     } catch (zErr) {
       console.error('[AuthReset] Error resetting Zustand stores:', zErr);
     }
 
-    // 6. Purge auth-scoped localStorage keys
+    // 6. Purge session-scoped localStorage keys (preserving global UI preferences & user-scoped items)
     try {
-      for (const key of AUTH_SCOPED_STORAGE_KEYS) {
+      for (const key of SESSION_SCOPED_STORAGE_KEYS) {
         localStorage.removeItem(key);
       }
 
-      // Remove keys matching auth prefixes
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && AUTH_SCOPED_PREFIXES.some((prefix) => k.startsWith(prefix))) {
+        if (k && SESSION_SCOPED_PREFIXES.some((prefix) => k.startsWith(prefix))) {
           keysToRemove.push(k);
         }
       }
@@ -152,7 +172,7 @@ export async function resetAuthenticatedClientState(reason: string = 'auth_trans
       console.error('[AuthReset] Error cleaning localStorage:', lsErr);
     }
 
-    // 7. Purge auth-scoped sessionStorage keys
+    // 7. Purge session-scoped sessionStorage keys
     try {
       sessionStorage.removeItem('edutrack.admission.active_app_id');
       sessionStorage.removeItem('edutrack_chatbot_session_id');
@@ -160,7 +180,7 @@ export async function resetAuthenticatedClientState(reason: string = 'auth_trans
       const sessionKeysToRemove: string[] = [];
       for (let i = 0; i < sessionStorage.length; i++) {
         const k = sessionStorage.key(i);
-        if (k && AUTH_SCOPED_PREFIXES.some((prefix) => k.startsWith(prefix))) {
+        if (k && SESSION_SCOPED_PREFIXES.some((prefix) => k.startsWith(prefix))) {
           sessionKeysToRemove.push(k);
         }
       }

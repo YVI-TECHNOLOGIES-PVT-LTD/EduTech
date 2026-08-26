@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../../lib/api-client';
 import { QUERY_KEYS } from '../../../lib/queryKeys';
@@ -58,13 +59,21 @@ export function StudentDashboard() {
 }
 
 function StudentDashboardInner() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [admissions, setAdmissions] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setAdmissions([]);
+      return;
+    }
+
+    const requestGen = getCurrentSessionGeneration();
+
     const fetchAdmissions = async () => {
       try {
         const res = await apiClient.get('/v1/admission/my');
+        if (requestGen !== getCurrentSessionGeneration()) return;
         const list = res.data?.data || res.data || [];
         const active = list.filter((a: any) => {
           const status = (a.status ?? '').toLowerCase();
@@ -72,11 +81,13 @@ function StudentDashboardInner() {
         });
         setAdmissions(active);
       } catch (err) {
-        console.error('Failed to load admissions', err);
+        if (requestGen === getCurrentSessionGeneration()) {
+          console.error('Failed to load admissions', err);
+        }
       }
     };
     fetchAdmissions();
-  }, []);
+  }, [user?.id, user?.school_id, isAuthenticated]);
 
   const {
     kpis: engineKPIs,

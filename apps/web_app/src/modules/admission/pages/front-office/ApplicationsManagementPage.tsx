@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import {
   FileText,
   Search,
@@ -77,7 +78,6 @@ export const ApplicationsManagementPage: React.FC = () => {
   // Search input local state for debounced/enter typing
   const [searchInput, setSearchInput] = useState(searchText);
 
-  // Modal / Sheet states
   const [selectedAppForDetails, setSelectedAppForDetails] = useState<ApplicationItem | null>(null);
   const [selectedAppForStatus, setSelectedAppForStatus] = useState<ApplicationItem | null>(null);
   const [selectedAppForEdit, setSelectedAppForEdit] = useState<ApplicationItem | null>(null);
@@ -86,6 +86,18 @@ export const ApplicationsManagementPage: React.FC = () => {
   );
   const [selectedAppForPayment, setSelectedAppForPayment] = useState<ApplicationItem | null>(null);
   const [selectedAppForReceipt, setSelectedAppForReceipt] = useState<ApplicationItem | null>(null);
+
+  const { user } = useAuth();
+
+  // Reset all modals and active application selections on user/tenant change
+  useEffect(() => {
+    setSelectedAppForDetails(null);
+    setSelectedAppForStatus(null);
+    setSelectedAppForEdit(null);
+    setSelectedAppForWithdraw(null);
+    setSelectedAppForPayment(null);
+    setSelectedAppForReceipt(null);
+  }, [user?.id, user?.school_id]);
 
   // Queries
   const { data: gradesData = [] } = useGetGradesQuery();

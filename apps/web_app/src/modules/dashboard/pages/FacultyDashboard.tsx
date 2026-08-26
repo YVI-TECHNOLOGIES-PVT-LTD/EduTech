@@ -35,6 +35,8 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardMapper } from '../utils/dashboard.mapper';
+import { useAuth } from '../../../context/AuthContext';
+import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 // Phase 3.3 Enterprise Workspace imports
 import { WorkQueue } from '../components/workqueue/WorkQueue';
 import { QuickActions } from '../components/actions/QuickActions';
@@ -50,16 +52,33 @@ export const FacultyDashboard = () => {
 };
 
 const FacultyDashboardInner = () => {
+  const { user, isAuthenticated } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
+
+    const requestGen = getCurrentSessionGeneration();
+    setLoading(true);
+    setStats(null);
+
     apiClient
       .get('/dashboard/faculty/overview')
-      .then((res) => setStats(res.data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+      .then((res) => {
+        if (requestGen === getCurrentSessionGeneration()) setStats(res.data);
+      })
+      .catch((err) => {
+        if (requestGen === getCurrentSessionGeneration()) console.error(err);
+      })
+      .finally(() => {
+        if (requestGen === getCurrentSessionGeneration()) setLoading(false);
+      });
+  }, [user?.id, user?.school_id, isAuthenticated]);
 
   const { kpis: engineKPIs } = useDashboard();
 

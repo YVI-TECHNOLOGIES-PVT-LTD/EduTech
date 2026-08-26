@@ -18,10 +18,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useApplicationList } from '../../hooks/useApplication';
-import { formatStatusLabel, getStatusColor } from '../../core/AdmissionStatusMapper';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 import { ApplicationStatusCard } from '../../components/ApplicationStatusCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,10 +27,55 @@ import { Skeleton } from '@/components/ui/skeleton';
 export const ParentDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const rawRoles = user?.roles || ((user as any)?.role ? [(user as any).role] : []);
+  const normalizedRoles = rawRoles.map((r: string) =>
+    String(r)
+      .toUpperCase()
+      .replace(/[\s_-]+/g, '_'),
+  );
+
+  const isStaff = normalizedRoles.some((r: string) =>
+    [
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'FRONT_OFFICE',
+      'FO',
+      'FRONT_OFFICE_STAFF',
+      'RECEPTIONIST',
+      'STAFF',
+      'FACULTY',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+      'TEACHER',
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'EXAM_CELL_ADMIN',
+      'EXAM_CELL',
+    ].includes(r),
+  );
+
+  React.useEffect(() => {
+    if (isStaff) {
+      navigate('/app/workspace', { replace: true });
+    }
+  }, [isStaff, navigate]);
+
   const { applications, isLoading, error, refetch } = useApplicationList(
     { limit: 50 },
-    { mine: true },
+    { mine: true, enabled: !isStaff },
   );
+
+  if (isStaff) {
+    return null;
+  }
 
   const rawName =
     user?.full_name ||
