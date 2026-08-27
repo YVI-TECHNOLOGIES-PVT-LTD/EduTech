@@ -149,6 +149,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [dispatch],
   );
 
+  // Synchronize boundaryState when Redux auth state is populated (e.g. native JWT login)
+  useEffect(() => {
+    if (reduxIsAuthenticated && user && accessToken) {
+      if (boundaryState === 'signed_out' || boundaryState === 'initializing') {
+        initialSessionResolvedRef.current = true;
+        profileFetchTracker.current = user.id;
+        setBoundaryState('stable');
+        dispatch(setInitializing(false));
+      }
+    }
+  }, [reduxIsAuthenticated, user, accessToken, boundaryState, dispatch]);
+
   useEffect(() => {
     let isMounted = true;
 
