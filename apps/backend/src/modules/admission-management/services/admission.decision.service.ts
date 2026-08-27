@@ -92,6 +92,7 @@ export class AdmissionDecisionService {
     // Post-commit event emission
     await AdmissionEvents.publish(ApplicationEventType.DECISION_RECORDED, {
       applicationId,
+      orgId: app.org_id,
       performedBy: createdBy,
       timestamp: new Date().toISOString(),
       metadata: { decisionId: decision.decision_id, decisionStatus: decision.decision_status },
@@ -100,12 +101,14 @@ export class AdmissionDecisionService {
     if (dto.decision_status === admission_decision_status.approved) {
       await AdmissionEvents.publish(ApplicationEventType.APPROVED, {
         applicationId,
+        orgId: app.org_id,
         performedBy: createdBy,
         timestamp: new Date().toISOString(),
       });
     } else if (dto.decision_status === admission_decision_status.rejected) {
       await AdmissionEvents.publish(ApplicationEventType.REJECTED, {
         applicationId,
+        orgId: app.org_id,
         performedBy: createdBy,
         timestamp: new Date().toISOString(),
       });

@@ -280,8 +280,24 @@ export interface CounsellingMetricsData {
   leads_by_stage: Record<string, number>;
 }
 
+export interface LeadEnumsMetadata {
+  lead_stages: Array<{ value: string; label: string }>;
+  allowed_stage_transitions: Record<string, string[]>;
+  lead_activity_types: Array<{ value: string; label: string }>;
+  activity_statuses: Array<{ value: string; label: string }>;
+  lead_priorities: Array<{ value: string; label: string }>;
+  lead_sources: Array<{ value: string; label: string }>;
+  visit_types: Array<{ value: string; label: string }>;
+  visit_statuses: Array<{ value: string; label: string }>;
+}
+
 export const crmApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getLeadEnums: builder.query<{ success: boolean; data: LeadEnumsMetadata }, void>({
+      query: () => `${ENDPOINTS.CRM.LEADS}/metadata/enums`,
+      providesTags: [{ type: 'Lead', id: 'ENUMS' }],
+    }),
+
     getLeadDashboard: builder.query<LeadDashboardData, void>({
       query: () => `${ENDPOINTS.CRM.LEADS}/dashboard`,
       providesTags: [{ type: 'Lead', id: 'DASHBOARD' }],
@@ -589,6 +605,7 @@ export const crmApi = apiSlice.injectEndpoints({
 });
 
 export const {
+  useGetLeadEnumsQuery,
   useGetLeadDashboardQuery,
   useGetCounsellingMetricsQuery,
   useGetLeadsQuery,

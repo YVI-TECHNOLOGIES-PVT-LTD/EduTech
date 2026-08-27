@@ -180,12 +180,6 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     permission: 'admission.application.view',
   },
   {
-    path: 'admissions/:id',
-    element: <Applicant360Page />,
-    layout: 'admission_workspace',
-    guardType: 'admission_application',
-  },
-  {
     path: 'admissions/verification',
     element: <DocumentVerificationPage />,
     layout: 'admission_workspace',
@@ -315,22 +309,16 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     ],
   },
   {
-    path: 'admissions/fees',
-    element: <FeeCollectionPage />,
-    layout: 'admission_workspace',
-    permissions: ['fees.payment.collect', 'fees.view', 'admission.view_all'],
-  },
-  {
     path: 'front-office/fees',
     element: <FeeCollectionPage />,
     layout: 'admission_workspace',
-    permissions: ['fees.payment.collect', 'fees.view', 'admission.view_all'],
+    permissions: ['fees.payment.collect', 'fees.view', 'admission.view_all', 'admission.review'],
   },
   {
     path: 'admissions/enrollment',
-    element: <WorkspaceDashboard />,
+    element: <AdmissionDecisionPage />,
     layout: 'admission_workspace',
-    permission: 'admission.review',
+    permissions: ['admission.review', 'admission.approve', 'admission.enrol', 'admission.view_all'],
   },
   {
     path: 'admissions/reports',

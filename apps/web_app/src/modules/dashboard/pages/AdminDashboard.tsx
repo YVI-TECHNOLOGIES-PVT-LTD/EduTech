@@ -23,7 +23,7 @@ import {
   CalendarDays,
   ShieldCheck,
 } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 import { useMasterData } from '../../admission/context/MasterDataContext';
@@ -46,21 +46,9 @@ import {
   Legend,
 } from 'recharts';
 
-// Custom CountUp Component using Framer Motion
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-
-const AnimatedNumber = ({ value }: { value: number }) => {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => Math.round(latest));
-  const [displayVal, setDisplayVal] = useState(0);
-
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 1.2, ease: 'easeOut' });
-    return rounded.on('change', (latest) => setDisplayVal(latest));
-  }, [value]);
-
-  return <span>{displayVal.toLocaleString()}</span>;
-};
+import { CountUp } from '../../../components/react-bits/CountUp';
+import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
+import { SpecularButton } from '../../../components/react-bits/SpecularButton';
 
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
@@ -81,6 +69,7 @@ export const AdminDashboard = () => {
 };
 
 const AdminDashboardInner = () => {
+  const navigate = useNavigate();
   const { user, hasPermission, isAuthenticated } = useAuth();
   const { activeSchool, activeAcademicYear } = useMasterData();
   const [stats, setStats] = useState<any>(null);
@@ -276,9 +265,10 @@ const AdminDashboardInner = () => {
 
   // Layout customizer KPI cards
   const kpiElements = cards.map((c, i) => (
-    <div
+    <SpotlightCard
       key={i}
-      className="group relative bg-card p-6 rounded-2xl border border-border/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+      spotlightColor="rgba(6, 63, 64, 0.08)"
+      className="group relative bg-card p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
     >
       <div className="flex items-start justify-between">
         <div
@@ -310,7 +300,7 @@ const AdminDashboardInner = () => {
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-black text-foreground tracking-tight">
             {c.format}
-            <AnimatedNumber value={c.value} />
+            <CountUp to={c.value} />
           </span>
           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1">
             {c.trend}
@@ -326,12 +316,12 @@ const AdminDashboardInner = () => {
           <ArrowUpRight className="w-3.5 h-3.5" />
         </Link>
       )}
-    </div>
+    </SpotlightCard>
   ));
 
   return (
     <PageWrapper
-      title={`${getGreeting()}, Sathish`}
+      title={`${getGreeting()}, ${user?.full_name || 'Administrator'}`}
       description={`Academic Year ${activeAcademicYear?.year_label || 'No Academic Year'} | Active Campus: ${activeSchool?.name || 'No Campus'} | Dashboard overview`}
       icon={Sparkles}
       actions={
@@ -339,13 +329,14 @@ const AdminDashboardInner = () => {
           <button className="flex items-center gap-2 p-2.5 bg-card border border-border/80 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm">
             <Bell className="w-4 h-4" />
           </button>
-          <Link
-            to="/app/admissions/review"
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
+          <SpecularButton
+            size="sm"
+            onClick={() => navigate('/app/admissions/review')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
           >
             <ShieldCheck className="w-4 h-4" />
             Admin Panel Actions
-          </Link>
+          </SpecularButton>
         </div>
       }
       kpis={<>{kpiElements}</>}

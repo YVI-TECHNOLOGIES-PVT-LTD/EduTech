@@ -12,6 +12,7 @@ export enum StudentEventType {
 
 export interface StudentEventPayload {
   studentId: string;
+  orgId?: string;
   admissionNo?: string;
   applicationId?: string;
   previousStatus?: string;

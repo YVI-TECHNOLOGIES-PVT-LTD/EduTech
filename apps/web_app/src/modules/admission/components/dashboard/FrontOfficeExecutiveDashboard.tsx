@@ -6,9 +6,15 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { useAuth } from '@/context/AuthContext';
-import { useGetLeadDashboardQuery, useGetCampusVisitsQuery, useGetDueFollowUpsQuery } from '@/shared/api/crm.api';
-import { useGetApplicationDashboardQuery, useGetApplicationsQuery } from '@/shared/api/admission.api';
-import { useGetDashboardSummaryQuery } from '@/shared/api/dashboard.api';
+import {
+  useGetLeadDashboardQuery,
+  useGetCampusVisitsQuery,
+  useGetDueFollowUpsQuery,
+} from '@/shared/api/crm.api';
+import {
+  useGetApplicationDashboardQuery,
+  useGetApplicationsQuery,
+} from '@/shared/api/admission.api';
 import { useGetStaffListQuery } from '@/shared/api/staff.api';
 
 import { DashboardHeader, DateRangeOption } from './DashboardHeader';
@@ -61,13 +67,6 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
   } = useGetApplicationDashboardQuery();
 
   const {
-    data: adminOverview,
-    isLoading: isAdminOverviewLoading,
-    isFetching: isAdminOverviewFetching,
-    refetch: refetchAdminOverview,
-  } = useGetDashboardSummaryQuery();
-
-  const {
     data: visitsResponse,
     isLoading: isVisitsLoading,
     isFetching: isVisitsFetching,
@@ -93,7 +92,6 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
   const isRefreshing =
     isLeadDashFetching ||
     isAppDashFetching ||
-    isAdminOverviewFetching ||
     isVisitsFetching ||
     isFollowUpsFetching ||
     isAppsFetching;
@@ -101,7 +99,6 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
   const handleRefreshAll = () => {
     refetchLeadDash();
     refetchAppDash();
-    refetchAdminOverview();
     refetchVisits();
     refetchFollowUps();
     refetchApps();
@@ -125,35 +122,29 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
   const userRole = user?.roles?.includes('SUPER_ADMIN')
     ? 'Super Admin'
     : user?.roles?.includes('ADMISSION_OFFICER')
-    ? 'Admissions Head'
-    : 'Front Office Desk';
+      ? 'Admissions Head'
+      : 'Front Office Desk';
 
   // 2. Executive KPI Data Aggregation
   const kpiData: KPIMetricsData = useMemo(() => {
-    const totalInquiries =
-      leadDashboard?.total_leads ?? adminOverview?.kpis?.totalLeads ?? 0;
+    const totalInquiries = leadDashboard?.total_leads ?? 0;
 
     const activeLeads =
       (leadDashboard?.leads_by_status?.inquiry || 0) +
-      (leadDashboard?.leads_by_status?.lead || 0) +
-      (leadDashboard?.qualified_leads || 0) ||
-      totalInquiries;
+        (leadDashboard?.leads_by_status?.lead || 0) +
+        (leadDashboard?.qualified_leads || 0) || totalInquiries;
 
-    const totalApplications =
-      appDashboard?.total_applications ?? adminOverview?.kpis?.activeApplications ?? 0;
+    const totalApplications = appDashboard?.total_applications ?? 0;
 
     const applicationsSubmitted =
       (appDashboard?.applications_by_status?.submitted || 0) +
       (appDashboard?.applications_by_status?.under_review || 0) +
       (appDashboard?.applications_by_status?.docs_pending || 0);
 
-    const feesCollected = adminOverview?.feeCollection || 0;
+    const feesCollected = 0;
 
     const admissionsEnrolled =
-      leadDashboard?.converted_leads ||
-      appDashboard?.applications_by_status?.enrolled ||
-      adminOverview?.students ||
-      0;
+      leadDashboard?.converted_leads || appDashboard?.applications_by_status?.enrolled || 0;
 
     return {
       totalInquiries,
@@ -166,12 +157,13 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       inquiriesTrend: totalInquiries > 0 ? 12.5 : undefined,
       applicationsTrend: totalApplications > 0 ? 8.2 : undefined,
     };
-  }, [leadDashboard, appDashboard, adminOverview]);
+  }, [leadDashboard, appDashboard]);
 
   // 3. Admissions Overview Time Trend Data
   const trendData: TrendDataPoint[] = useMemo(() => {
     const apps = applicationsResponse?.data || [];
-    const dateMap: Record<string, { inquiries: number; applications: number; admissions: number }> = {};
+    const dateMap: Record<string, { inquiries: number; applications: number; admissions: number }> =
+      {};
 
     // Generate last 7 days keys
     for (let i = 6; i >= 0; i--) {
@@ -282,9 +274,18 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
     const rawStatuses = appDashboard?.applications_by_status || {};
     const statusOrder = [
       { key: 'draft', label: t('dashboard.frontOffice.pipeline.statuses.draft', 'Draft') },
-      { key: 'submitted', label: t('dashboard.frontOffice.pipeline.statuses.submitted', 'Submitted') },
-      { key: 'under_review', label: t('dashboard.frontOffice.pipeline.statuses.under_review', 'Under Review') },
-      { key: 'docs_pending', label: t('dashboard.frontOffice.pipeline.statuses.docs_pending', 'Docs Pending') },
+      {
+        key: 'submitted',
+        label: t('dashboard.frontOffice.pipeline.statuses.submitted', 'Submitted'),
+      },
+      {
+        key: 'under_review',
+        label: t('dashboard.frontOffice.pipeline.statuses.under_review', 'Under Review'),
+      },
+      {
+        key: 'docs_pending',
+        label: t('dashboard.frontOffice.pipeline.statuses.docs_pending', 'Docs Pending'),
+      },
       { key: 'approved', label: t('dashboard.frontOffice.pipeline.statuses.approved', 'Approved') },
       { key: 'rejected', label: t('dashboard.frontOffice.pipeline.statuses.rejected', 'Rejected') },
       { key: 'enrolled', label: t('dashboard.frontOffice.pipeline.statuses.enrolled', 'Enrolled') },
@@ -344,9 +345,9 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
 
   // 9. Fee Collection Data
   const feeData: FeeCollectionData = useMemo(() => {
-    const collected = adminOverview?.feeCollection || 0;
     const totalApps = appDashboard?.total_applications || 0;
-    const expected = totalApps * 1000 || collected * 1.5;
+    const collected = 0;
+    const expected = totalApps * 1000 || 0;
     const pending = Math.max(expected - collected, 0);
 
     return {
@@ -356,7 +357,7 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       currency: '₹',
       collectionRate: expected > 0 ? Math.round((collected / expected) * 100) : 0,
     };
-  }, [adminOverview?.feeCollection, appDashboard?.total_applications]);
+  }, [appDashboard?.total_applications]);
 
   // 10. Document Verification Data
   const docVerificationData: DocumentVerificationData = useMemo(() => {
@@ -441,7 +442,9 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
     return staffList.slice(0, 5).map((s: any, idx: number) => {
       const name =
         s.name ||
-        (s.first_name ? `${s.first_name} ${s.last_name || ''}`.trim() : s.employee_code || `Staff ${idx + 1}`);
+        (s.first_name
+          ? `${s.first_name} ${s.last_name || ''}`.trim()
+          : s.employee_code || `Staff ${idx + 1}`);
       return {
         id: s.staff_id || s.id || `staff-${idx}`,
         name,
@@ -458,7 +461,7 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
     const apps = appDashboard?.total_applications || 0;
     const submitted =
       (appDashboard?.applications_by_status?.submitted || 0) +
-      (appDashboard?.applications_by_status?.under_review || 0) || apps * 0.8;
+        (appDashboard?.applications_by_status?.under_review || 0) || apps * 0.8;
     const admitted = appDashboard?.approved_applications || 0;
     const enrolled =
       leadDashboard?.converted_leads || appDashboard?.applications_by_status?.enrolled || 0;
@@ -492,14 +495,16 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `edutrack-front-office-summary-${new Date().toISOString().substring(0, 10)}.csv`);
+    link.setAttribute(
+      'download',
+      `edutrack-front-office-summary-${new Date().toISOString().substring(0, 10)}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const isAnyLoading =
-    isLeadDashLoading || isAppDashLoading || isAdminOverviewLoading || isAppsLoading;
+  const isAnyLoading = isLeadDashLoading || isAppDashLoading || isAppsLoading;
   const isFatalError = leadDashError && appDashError;
 
   if (isFatalError) {
@@ -510,7 +515,8 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
           {t('dashboard.frontOffice.errors.loadingFailed', 'Unable to load dashboard data.')}
         </h3>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          The admissions metrics could not be retrieved from the server. Please check your connectivity and retry.
+          The admissions metrics could not be retrieved from the server. Please check your
+          connectivity and retry.
         </p>
         <Button onClick={handleRefreshAll} className="h-9 rounded-xl text-xs font-bold gap-2">
           <RefreshCw className="w-3.5 h-3.5" />
@@ -546,7 +552,8 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
           isLoading={isAnyLoading}
           onCardClick={(key) => {
             if (key === 'inquiries' || key === 'leads') navigate('/app/admissions/inquiries');
-            else if (key === 'applications' || key === 'submitted') navigate('/app/admissions/applications');
+            else if (key === 'applications' || key === 'submitted')
+              navigate('/app/admissions/applications');
             else if (key === 'fees') navigate('/app/admissions/fees');
             else if (key === 'enrolled') navigate('/app/people/students');
           }}
@@ -566,7 +573,10 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       </section>
 
       {/* 4. Row 2: Admissions Overview Trend & Lead Sources Donut */}
-      <section aria-label="Admissions Trend and Sources" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section
+        aria-label="Admissions Trend and Sources"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
         <div className="lg:col-span-8">
           <AdmissionsOverviewTrendChart data={trendData} isLoading={isAppsLoading} />
         </div>
@@ -595,7 +605,10 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       </section>
 
       {/* 7. Row 4: Lead Performance & Grade Distribution */}
-      <section aria-label="Lead Performance and Grade Demand" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section
+        aria-label="Lead Performance and Grade Demand"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
         <div className="lg:col-span-7">
           <LeadPerformanceSection data={leadPerfData} isLoading={isLeadDashLoading} />
         </div>
@@ -605,9 +618,12 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       </section>
 
       {/* 8. Row 5: Fee Collection Summary & Document Verification */}
-      <section aria-label="Fee Collection and Document Verification" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section
+        aria-label="Fee Collection and Document Verification"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
         <div className="lg:col-span-6">
-          <FeeCollectionWidget data={feeData} isLoading={isAdminOverviewLoading} />
+          <FeeCollectionWidget data={feeData} isLoading={isAppDashLoading} />
         </div>
         <div className="lg:col-span-6">
           <DocumentVerificationWidget data={docVerificationData} isLoading={isAppsLoading} />
@@ -615,7 +631,10 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       </section>
 
       {/* 9. Campus Visits & Due Activities */}
-      <section aria-label="Campus Visits and Upcoming Agenda" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section
+        aria-label="Campus Visits and Upcoming Agenda"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
         <div className="lg:col-span-6">
           <CampusVisitsWidget
             metrics={campusVisitsMetrics}
@@ -635,7 +654,10 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       </section>
 
       {/* 10. Recent Activity Stream & Counsellor Leaderboard */}
-      <section aria-label="Recent Activity and Team Performance" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section
+        aria-label="Recent Activity and Team Performance"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
         <div className="lg:col-span-6">
           <RecentActivityStream activities={recentActivitiesList} isLoading={isAppsLoading} />
         </div>

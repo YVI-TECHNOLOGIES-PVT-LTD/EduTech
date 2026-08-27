@@ -24,23 +24,9 @@ import {
   Wifi,
   Sparkles,
 } from 'lucide-react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { formatCurrency } from '../../../utils/currency';
-import { formatDate } from '../../../utils/date';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
-
-const AnimatedNumber = ({ value }: { value: number }) => {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => Math.round(latest));
-  const [displayVal, setDisplayVal] = useState(0);
-
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 1.2, ease: 'easeOut' });
-    return rounded.on('change', (latest) => setDisplayVal(latest));
-  }, [value]);
-
-  return <span>{displayVal.toLocaleString()}</span>;
-};
+import { CountUp } from '../../../components/react-bits/CountUp';
+import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
 
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
@@ -252,9 +238,10 @@ function StudentDashboardInner() {
   ];
 
   const kpiElements = kpis.map((c, i) => (
-    <div
+    <SpotlightCard
       key={i}
-      className="group relative bg-white dark:bg-card p-6 rounded-3xl border border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
+      spotlightColor="rgba(6, 63, 64, 0.08)"
+      className="group relative bg-white dark:bg-card p-6 border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
     >
       <div className="flex items-start justify-between">
         <div
@@ -271,13 +258,13 @@ function StudentDashboardInner() {
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
             {c.format !== '%' && c.format}
-            <AnimatedNumber value={c.value} />
+            <CountUp to={c.value} />
             {c.format === '%' && c.format}
           </span>
           <span className="text-[10px] font-bold text-muted-foreground ml-1">{c.sub}</span>
         </div>
       </div>
-    </div>
+    </SpotlightCard>
   ));
 
   return (

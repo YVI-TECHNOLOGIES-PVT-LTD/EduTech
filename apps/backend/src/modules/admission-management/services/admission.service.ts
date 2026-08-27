@@ -536,6 +536,34 @@ export class AdmissionService {
 
     const updated = await AdmissionRepository.updateStatus(id, targetStatus);
 
+    // Synchronize candidate lead stage if linked lead exists
+    if (existing.lead_id) {
+      let targetLeadStage: import('@prisma/client').lead_stage | null = null;
+      if (targetStatus === application_status.submitted) targetLeadStage = 'application_submitted';
+      else if (targetStatus === application_status.documents_pending)
+        targetLeadStage = 'document_verification';
+      else if (targetStatus === application_status.assessment_pending)
+        targetLeadStage = 'assessment';
+      else if (targetStatus === application_status.approved) targetLeadStage = 'admission_approved';
+      else if (targetStatus === application_status.waitlisted) targetLeadStage = 'waitlisted';
+      else if (targetStatus === application_status.rejected) targetLeadStage = 'rejected';
+
+      if (targetLeadStage) {
+        await prisma.leads
+          .update({
+            where: { lead_id: existing.lead_id },
+            data: {
+              stage: targetLeadStage,
+              updated_at: new Date(),
+              updated_by: performedBy || undefined,
+            },
+          })
+          .catch((err) => {
+            logger.warn(`Could not sync lead stage for lead ${existing.lead_id}: ${err.message}`);
+          });
+      }
+    }
+
     logger.info(
       `Admission application status changed: ${id} (${existing.status} -> ${targetStatus})`,
       {
@@ -549,6 +577,7 @@ export class AdmissionService {
     // Post-commit event emission
     await AdmissionEvents.publish(ApplicationEventType.STATUS_CHANGED, {
       applicationId: id,
+      orgId: existing.org_id,
       previousStatus: existing.status,
       newStatus: targetStatus,
       performedBy,

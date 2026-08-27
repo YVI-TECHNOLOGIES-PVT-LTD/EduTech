@@ -9,8 +9,18 @@ import {
   FileText,
   ArrowRight,
   User,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import { useUpdateApplicationStatusMutation } from '@/shared/api/admission.api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   formatStatusLabel,
   getStatusColor,
@@ -142,6 +152,28 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
     }
   };
 
+  const rawStage =
+    application.lead?.stage ||
+    application.leads?.stage ||
+    (appStatus === 'approved'
+      ? 'admission_approved'
+      : appStatus === 'waitlisted'
+        ? 'waitlisted'
+        : appStatus === 'rejected'
+          ? 'rejected'
+          : 'application_submitted');
+
+  const [updateApplicationStatus, { isLoading: isUpdating }] = useUpdateApplicationStatusMutation();
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateApplicationStatus({ id: appId, status: newStatus }).unwrap();
+      toast.success(`Application status updated to ${newStatus.replace(/_/g, ' ')}`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || 'Failed to update application status');
+    }
+  };
+
   return (
     <Card className="p-6 rounded-2xl border-border/80 shadow-sm hover:shadow-md transition-shadow space-y-5 bg-card">
       {/* Card Header */}
@@ -189,12 +221,43 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           </div>
         </div>
 
-        <div className="shrink-0 self-start sm:self-auto">
-          <span
-            className={`px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wider ${getStatusColor(appStatus)}`}
-          >
-            {formatStatusLabel(appStatus)}
+        <div className="shrink-0 self-start sm:self-auto flex items-center gap-2">
+          {/* Stage Badge */}
+          <span className="px-2.5 py-1 rounded-full border text-[10px] font-bold bg-muted text-muted-foreground">
+            Stage: {formatStatusLabel(rawStage)}
           </span>
+
+          {/* Status Dropdown for Staff, Badge for Parents */}
+          {isStaff ? (
+            <Select value={appStatus} onValueChange={handleStatusChange} disabled={isUpdating}>
+              <SelectTrigger className="h-7 text-xs font-semibold rounded-lg border-border w-[140px]">
+                {isUpdating ? (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
+                    <span>Saving...</span>
+                  </div>
+                ) : (
+                  <SelectValue />
+                )}
+              </SelectTrigger>
+              <SelectContent className="text-xs">
+                <SelectItem value="submitted">Submitted</SelectItem>
+                <SelectItem value="documents_pending">Docs Pending</SelectItem>
+                <SelectItem value="assessment_pending">Assessment Pending</SelectItem>
+                <SelectItem value="under_review">Under Review</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="waitlisted">Waitlisted</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="withdrawn">Withdrawn</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <span
+              className={`px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wider ${getStatusColor(appStatus)}`}
+            >
+              {formatStatusLabel(appStatus)}
+            </span>
+          )}
         </div>
       </div>
 

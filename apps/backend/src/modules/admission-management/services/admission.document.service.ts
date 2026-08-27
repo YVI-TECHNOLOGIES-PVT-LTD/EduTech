@@ -356,6 +356,7 @@ export class AdmissionDocumentService {
 
     await AdmissionEvents.publish(ApplicationEventType.DOCUMENT_VERIFIED, {
       applicationId: doc.application_id,
+      orgId: existing.admissions_applications?.org_id,
       performedBy: verifiedBy,
       timestamp: new Date().toISOString(),
       metadata: { documentId: doc.document_id, verifyStatus: doc.verify_status },

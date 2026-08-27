@@ -2,6 +2,7 @@ import { Server as HttpServer, IncomingMessage } from 'http';
 import { Socket } from 'net';
 import { URL } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
+import { EventBus } from '../../../workflows/event-bus.service';
 import { sessionService, UserProfile } from '../../../auth/session.service';
 import { logger } from '../../../utils/logger';
 
@@ -31,8 +32,9 @@ export class RealtimeNotificationServer {
    */
   public init(server: HttpServer): void {
     if (this.wss) {
-      logger.warn('[RealtimeNotifications] WebSocketServer already initialized.');
-      return;
+      try {
+        this.close();
+      } catch {}
     }
 
     this.wss = new WebSocketServer({ noServer: true });
@@ -41,7 +43,7 @@ export class RealtimeNotificationServer {
       try {
         const reqUrl = req.url || '';
         const parsedUrl = new URL(reqUrl, 'http://127.0.0.1');
-        const pathname = parsedUrl.pathname;
+        const pathname = parsedUrl.pathname.replace(/\/+$/, '');
 
         // Only handle notification websocket paths
         if (pathname !== '/ws/notifications' && pathname !== '/api/v1/notifications/ws') {
@@ -90,6 +92,9 @@ export class RealtimeNotificationServer {
     this.heartbeatTimer = setInterval(() => {
       this.pingClients();
     }, 30000);
+
+    // Register EventBus subscribers for realtime cross-client updates
+    this.registerEventBusSubscribers();
 
     logger.info(
       '[RealtimeNotifications] WebSocket server initialized on paths /ws/notifications and /api/v1/notifications/ws',
@@ -188,6 +193,97 @@ export class RealtimeNotificationServer {
     } catch (err: any) {
       logger.error(`[RealtimeNotifications] Failed to dispatch realtime event:`, {
         error: err?.message || String(err),
+      });
+    }
+  }
+
+  /**
+   * Broadcast domain event payload to all connected clients within an organization/tenant
+   */
+  public sendToOrg(orgId: string, payload: any): void {
+    try {
+      if (!orgId) return;
+      const messageStr = JSON.stringify({
+        ...payload,
+        orgId,
+        timestamp: payload.timestamp || new Date().toISOString(),
+      });
+
+      let sentCount = 0;
+      for (const [key, sockets] of this.clients.entries()) {
+        if (key.startsWith(`${orgId}:`)) {
+          for (const ws of sockets) {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(messageStr);
+              sentCount++;
+            }
+          }
+        }
+      }
+
+      if (sentCount > 0) {
+        logger.info(
+          `[RealtimeNotifications] Broadcast ${payload.type} to org=${orgId} across ${sentCount} open socket(s).`,
+        );
+      }
+    } catch (err: any) {
+      logger.error(`[RealtimeNotifications] Failed to broadcast org event:`, {
+        error: err?.message || String(err),
+      });
+    }
+  }
+
+  private eventBusSubscribed = false;
+
+  public registerEventBusSubscribers(): void {
+    if (this.eventBusSubscribed) return;
+    this.eventBusSubscribed = true;
+
+    const domainEvents = [
+      'lead.created',
+      'lead.updated',
+      'lead.assigned',
+      'lead.status_changed',
+      'lead.qualified',
+      'lead.converted',
+      'lead.deleted',
+      'lead.activity_added',
+      'application.created',
+      'application.updated',
+      'application.status_changed',
+      'application.document_uploaded',
+      'application.document_verified',
+      'application.assessment_recorded',
+      'application.decision_recorded',
+      'application.approved',
+      'application.rejected',
+      'application.payment_recorded',
+      'application.deleted',
+      'student.created',
+      'student.status_changed',
+    ];
+
+    for (const eventName of domainEvents) {
+      EventBus.subscribe(eventName, async (payload: any) => {
+        try {
+          const orgId =
+            payload?.orgId ||
+            payload?.org_id ||
+            payload?.metadata?.orgId ||
+            payload?.metadata?.org_id;
+          if (orgId) {
+            this.sendToOrg(orgId, {
+              type: eventName,
+              data: payload,
+              orgId,
+              timestamp: payload?.timestamp || new Date().toISOString(),
+            });
+          }
+        } catch (err: any) {
+          logger.warn(
+            `[RealtimeNotifications] Failed to forward ${eventName} to realtime clients: ${err.message}`,
+          );
+        }
       });
     }
   }

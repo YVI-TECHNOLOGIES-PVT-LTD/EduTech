@@ -13,6 +13,7 @@ export enum LeadEventType {
 
 export interface LeadEventPayload {
   leadId: string;
+  orgId?: string;
   enquiryId?: string | null;
   studentName?: string;
   counselorId?: string | null;

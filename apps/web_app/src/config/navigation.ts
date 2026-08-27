@@ -150,7 +150,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
               {
                 id: 'fo_lead_act_sub',
                 title: 'Lead Activities',
-                url: '/app/front-office/leads',
+                url: '/app/front-office/leads?tab=activities',
                 icon: Activity,
               },
             ],
@@ -170,13 +170,13 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
               {
                 id: 'fo_coun_followups_sub',
                 title: 'Follow-ups',
-                url: '/app/front-office/counselling',
+                url: '/app/front-office/counselling?tab=followups',
                 icon: Clock,
               },
               {
                 id: 'fo_coun_act_sub',
                 title: 'Counselling Activities',
-                url: '/app/admissions/counselling',
+                url: '/app/admissions/counselling?tab=activities',
                 icon: Activity,
               },
             ],
@@ -190,19 +190,19 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
               {
                 id: 'fo_visits_schedule_sub',
                 title: 'Visit Schedule',
-                url: '/app/admissions/visits',
+                url: '/app/admissions/visits?status=scheduled',
                 icon: Calendar,
               },
               {
                 id: 'fo_interviews_sub',
                 title: 'Interviews',
-                url: '/app/admissions/interviews',
+                url: '/app/admissions/interviews?visit_type=interview',
                 icon: UserCheck,
               },
               {
                 id: 'fo_visits_history_sub',
                 title: 'Visit History',
-                url: '/app/front-office/visits',
+                url: '/app/front-office/visits?status=completed',
                 icon: Clock,
               },
             ],
@@ -236,13 +236,13 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
               {
                 id: 'fo_verif_queue_sub',
                 title: 'Verification Queue',
-                url: '/app/admissions/verification',
+                url: '/app/admissions/verification?status=pending',
                 icon: CheckCircle2,
               },
               {
                 id: 'fo_verif_docs_sub',
                 title: 'Verified Documents',
-                url: '/app/admissions/queues',
+                url: '/app/admissions/queues?status=verified',
                 icon: FolderCheck,
               },
             ],
@@ -274,7 +274,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
               {
                 id: 'fo_exams_analytics_sub',
                 title: 'Assessment Analytics',
-                url: '/app/admissions/exams',
+                url: '/app/admissions/exams?tab=analytics',
                 icon: BarChart3,
               },
             ],
@@ -294,19 +294,19 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
               {
                 id: 'fo_decisions_approved_sub',
                 title: 'Approved Admissions',
-                url: '/app/front-office/decisions',
+                url: '/app/front-office/decisions?status=approved',
                 icon: CheckCircle2,
               },
               {
                 id: 'fo_decisions_waitlist_sub',
                 title: 'Waitlisted',
-                url: '/app/admissions/decisions',
+                url: '/app/admissions/decisions?status=waitlisted',
                 icon: Clock,
               },
               {
                 id: 'fo_decisions_rejected_sub',
                 title: 'Rejected',
-                url: '/app/admissions/decisions',
+                url: '/app/admissions/decisions?status=rejected',
                 icon: Scale,
               },
               {
@@ -320,25 +320,25 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           {
             id: 'fo_fees',
             title: 'Fee Collection',
-            url: '/app/admissions/fees',
+            url: '/app/front-office/fees',
             icon: Receipt,
             items: [
               {
                 id: 'fo_fees_desk_sub',
                 title: 'Fee Collection',
-                url: '/app/admissions/fees',
+                url: '/app/front-office/fees',
                 icon: Receipt,
               },
               {
                 id: 'fo_fees_pending_sub',
                 title: 'Pending Payments',
-                url: '/app/admissions/fees',
+                url: '/app/front-office/fees?payment_status=pending',
                 icon: Clock,
               },
               {
                 id: 'fo_fees_history_sub',
                 title: 'Payment History',
-                url: '/app/front-office/fees',
+                url: '/app/front-office/fees?payment_status=paid',
                 icon: CreditCard,
               },
             ],

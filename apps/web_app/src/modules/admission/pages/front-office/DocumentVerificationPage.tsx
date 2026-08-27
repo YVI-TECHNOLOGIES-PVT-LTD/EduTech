@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   FileText,
@@ -57,15 +58,28 @@ import { useTableSelection } from '@/hooks/useTableSelection';
 
 export const DocumentVerificationPage: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const initialStatus = searchParams.get('status') || 'all';
 
   // Filter States
-  const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [docTypeFilter, setDocTypeFilter] = useState('all');
-  const [gradeFilter, setGradeFilter] = useState('all');
-  const [academicYearFilter, setAcademicYearFilter] = useState('all');
+  const [searchText, setSearchText] = useState(searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [docTypeFilter, setDocTypeFilter] = useState(searchParams.get('doc_type') || 'all');
+  const [gradeFilter, setGradeFilter] = useState(searchParams.get('grade_id') || 'all');
+  const [academicYearFilter, setAcademicYearFilter] = useState(
+    searchParams.get('academic_year_id') || 'all',
+  );
   const [page, setPage] = useState(1);
   const pageSize = 20;
+
+  // Sync when searchParams change
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status && status !== statusFilter) {
+      setStatusFilter(status);
+    }
+  }, [searchParams]);
 
   // Document Viewer & Quick Action Dialog States
   const [previewDoc, setPreviewDoc] = useState<DocumentPreviewItem | null>(null);

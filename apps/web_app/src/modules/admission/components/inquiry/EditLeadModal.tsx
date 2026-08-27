@@ -122,25 +122,35 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
     formState: { errors },
   } = form;
 
+  const wasOpenRef = React.useRef(false);
+  const currentLeadIdRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     if (lead && open) {
-      reset({
-        student_first_name: lead.student_first_name || '',
-        student_last_name: lead.student_last_name || '',
-        academic_year_grade_id: lead.academic_year_grade_id || '',
-        dob: lead.dob ? String(lead.dob).split('T')[0] : '',
-        gender: (lead.gender as GenderType) || null,
-        curriculum_preference: lead.curriculum_preference || '',
-        scholarship_interest: Boolean(lead.scholarship_interest),
-        contact_name: lead.contact_name || '',
-        contact_relationship: (lead.contact_relationship as RelationshipType) || 'father',
-        contact_phone: lead.contact_phone || '',
-        contact_email: lead.contact_email || '',
-        source: lead.source || 'walk_in',
-        priority: (lead.priority as LeadPriority) || 'medium',
-        assigned_counsellor_id: lead.assigned_counsellor_id || null,
-        remarks: lead.remarks || '',
-      });
+      if (!wasOpenRef.current || currentLeadIdRef.current !== lead.lead_id) {
+        wasOpenRef.current = true;
+        currentLeadIdRef.current = lead.lead_id;
+        reset({
+          student_first_name: lead.student_first_name || '',
+          student_last_name: lead.student_last_name || '',
+          academic_year_grade_id: lead.academic_year_grade_id || '',
+          dob: lead.dob ? String(lead.dob).split('T')[0] : '',
+          gender: (lead.gender as GenderType) || null,
+          curriculum_preference: lead.curriculum_preference || '',
+          scholarship_interest: Boolean(lead.scholarship_interest),
+          contact_name: lead.contact_name || '',
+          contact_relationship: (lead.contact_relationship as RelationshipType) || 'father',
+          contact_phone: lead.contact_phone || '',
+          contact_email: lead.contact_email || '',
+          source: lead.source || 'walk_in',
+          priority: (lead.priority as LeadPriority) || 'medium',
+          assigned_counsellor_id: lead.assigned_counsellor_id || null,
+          remarks: lead.remarks || '',
+        });
+      }
+    } else if (!open && wasOpenRef.current) {
+      wasOpenRef.current = false;
+      currentLeadIdRef.current = null;
     }
   }, [lead, open, reset]);
 
@@ -171,7 +181,10 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
+      <DialogContent
+        overlayClassName="z-[60] bg-black/60 backdrop-blur-xs"
+        className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl z-[60] bg-background shadow-2xl border border-border"
+      >
         <DialogHeader className="p-6 pb-3 border-b border-border">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-black text-foreground flex items-center gap-2">

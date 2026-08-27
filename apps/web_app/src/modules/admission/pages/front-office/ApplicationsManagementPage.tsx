@@ -49,8 +49,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 import { useTableSelection } from '@/hooks/useTableSelection';
-import { useGetApplicationsQuery, ApplicationItem } from '@/shared/api/admission.api';
+import {
+  useGetApplicationsQuery,
+  useUpdateApplicationStatusMutation,
+  ApplicationItem,
+} from '@/shared/api/admission.api';
 import { useGetGradesQuery, useGetAcademicYearsQuery } from '@/shared/api/academic.api';
 import { ApplicationStatusBadge } from '../../components/application/ApplicationStatusBadge';
 import { ApplicationDetailsSheet } from '../../components/application/ApplicationDetailsSheet';
@@ -60,6 +65,81 @@ import { WithdrawApplicationDialog } from '../../components/application/Withdraw
 import { PaymentStatusBadge } from '../../components/fee/PaymentStatusBadge';
 import { CollectAdmissionFeeDialog } from '../../components/fee/CollectAdmissionFeeDialog';
 import { AdmissionFeeReceiptDialog } from '../../components/fee/AdmissionFeeReceiptDialog';
+
+const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  enquiry_received: {
+    label: 'Enquiry',
+    bg: 'bg-blue-50 dark:bg-blue-950/50',
+    text: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-200 dark:border-blue-800',
+  },
+  qualified: {
+    label: 'Qualified',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-200 dark:border-emerald-800',
+  },
+  counselling_scheduled: {
+    label: 'Counselling',
+    bg: 'bg-purple-50 dark:bg-purple-950/50',
+    text: 'text-purple-700 dark:text-purple-300',
+    border: 'border-purple-200 dark:border-purple-800',
+  },
+  campus_visit: {
+    label: 'Campus Visit',
+    bg: 'bg-indigo-50 dark:bg-indigo-950/50',
+    text: 'text-indigo-700 dark:text-indigo-300',
+    border: 'border-indigo-200 dark:border-indigo-800',
+  },
+  application_submitted: {
+    label: 'Application Submitted',
+    bg: 'bg-amber-50 dark:bg-amber-950/50',
+    text: 'text-amber-700 dark:text-amber-300',
+    border: 'border-amber-200 dark:border-amber-800',
+  },
+  document_verification: {
+    label: 'Document Verification',
+    bg: 'bg-sky-50 dark:bg-sky-950/50',
+    text: 'text-sky-700 dark:text-sky-300',
+    border: 'border-sky-200 dark:border-sky-800',
+  },
+  assessment: {
+    label: 'Assessment',
+    bg: 'bg-violet-50 dark:bg-violet-950/50',
+    text: 'text-violet-700 dark:text-violet-300',
+    border: 'border-violet-200 dark:border-violet-800',
+  },
+  admission_approved: {
+    label: 'Admission Approved',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-200 dark:border-emerald-800',
+  },
+  waitlisted: {
+    label: 'Waitlisted',
+    bg: 'bg-orange-50 dark:bg-orange-950/50',
+    text: 'text-orange-700 dark:text-orange-300',
+    border: 'border-orange-200 dark:border-orange-800',
+  },
+  rejected: {
+    label: 'Rejected',
+    bg: 'bg-red-50 dark:bg-red-950/50',
+    text: 'text-red-700 dark:text-red-300',
+    border: 'border-red-200 dark:border-red-800',
+  },
+  fee_payment_pending: {
+    label: 'Fee Payment',
+    bg: 'bg-yellow-50 dark:bg-yellow-950/50',
+    text: 'text-yellow-700 dark:text-yellow-300',
+    border: 'border-yellow-200 dark:border-yellow-800',
+  },
+  enrolled: {
+    label: 'Enrolled',
+    bg: 'bg-teal-50 dark:bg-teal-950/50',
+    text: 'text-teal-700 dark:text-teal-300',
+    border: 'border-teal-200 dark:border-teal-800',
+  },
+};
 
 export const ApplicationsManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -173,6 +253,21 @@ export const ApplicationsManagementPage: React.FC = () => {
   };
 
   // Calculate high-level KPIs from list / summary
+  const [updateApplicationStatus] = useUpdateApplicationStatusMutation();
+  const [updatingAppId, setUpdatingAppId] = useState<string | null>(null);
+
+  const handleInlineStatusChange = async (appId: string, newStatus: string) => {
+    try {
+      setUpdatingAppId(appId);
+      await updateApplicationStatus({ id: appId, status: newStatus }).unwrap();
+      toast.success(`Application status updated to ${newStatus.replace(/_/g, ' ')}`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || 'Failed to update application status');
+    } finally {
+      setUpdatingAppId(null);
+    }
+  };
+
   const kpiStats = useMemo(() => {
     const total = meta.total || applicationsList.length;
     const underReview = applicationsList.filter((a) => a.status === 'under_review').length;
@@ -450,31 +545,36 @@ export const ApplicationsManagementPage: React.FC = () => {
                 </TableHead>
 
                 {/* 7. App Date */}
-                <TableHead className="w-[110px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
+                <TableHead className="w-[105px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
                   App Date
                 </TableHead>
 
-                {/* 8. Status */}
-                <TableHead className="w-[150px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
+                {/* 8. Stage */}
+                <TableHead className="w-[145px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
+                  Stage
+                </TableHead>
+
+                {/* 9. Status */}
+                <TableHead className="w-[165px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
                   Status
                 </TableHead>
 
-                {/* 9. Docs */}
+                {/* 10. Docs */}
                 <TableHead className="w-[110px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
                   Docs
                 </TableHead>
 
-                {/* 10. Assessment */}
+                {/* 11. Assessment */}
                 <TableHead className="w-[120px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
                   Assessment
                 </TableHead>
 
-                {/* 11. Payment */}
+                {/* 12. Payment */}
                 <TableHead className="w-[110px] text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 px-3">
                   Payment
                 </TableHead>
 
-                {/* 12. Actions */}
+                {/* 13. Actions */}
                 <TableHead className="w-[70px] text-center text-xs font-bold text-slate-600 dark:text-slate-300 px-2">
                   Actions
                 </TableHead>
@@ -484,7 +584,7 @@ export const ApplicationsManagementPage: React.FC = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-48 text-center">
+                  <TableCell colSpan={13} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
                       <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
                       <span>Loading applications...</span>
@@ -493,7 +593,7 @@ export const ApplicationsManagementPage: React.FC = () => {
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-48 text-center">
+                  <TableCell colSpan={13} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-xs text-red-600 dark:text-red-400">
                       <AlertCircle className="w-6 h-6" />
                       <span className="font-semibold">Failed to load applications</span>
@@ -510,7 +610,7 @@ export const ApplicationsManagementPage: React.FC = () => {
                 </TableRow>
               ) : applicationsList.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-48 text-center">
+                  <TableCell colSpan={13} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
                       <FileText className="w-8 h-8 text-slate-300 dark:text-slate-700" />
                       <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -634,9 +734,69 @@ export const ApplicationsManagementPage: React.FC = () => {
                         {dateStr}
                       </TableCell>
 
-                      {/* 8. Pipeline Status */}
+                      {/* 8. Candidate Lifecycle Stage */}
                       <TableCell className="border-r border-slate-200/80 dark:border-slate-800/80 px-3 py-3">
-                        <ApplicationStatusBadge status={app.status} />
+                        {(() => {
+                          const appStatusStr = (app.status as string)?.toLowerCase() || '';
+                          const rawStage =
+                            (lead as any)?.stage ||
+                            (app as any)?.stage ||
+                            (appStatusStr === 'approved'
+                              ? 'admission_approved'
+                              : appStatusStr === 'waitlisted'
+                                ? 'waitlisted'
+                                : appStatusStr === 'rejected'
+                                  ? 'rejected'
+                                  : 'application_submitted');
+                          const stageConf = STAGE_CONFIG[rawStage] || {
+                            label: rawStage.replace(/_/g, ' '),
+                            bg: 'bg-muted',
+                            text: 'text-foreground',
+                            border: 'border-border',
+                          };
+                          return (
+                            <span
+                              className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border leading-tight ${stageConf.bg} ${stageConf.text} ${stageConf.border}`}
+                            >
+                              {stageConf.label}
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
+
+                      {/* 9. Interactive Application Status Dropdown */}
+                      <TableCell className="border-r border-slate-200/80 dark:border-slate-800/80 px-3 py-3">
+                        <div
+                          className="flex items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Select
+                            value={app.status || 'submitted'}
+                            onValueChange={(val) => handleInlineStatusChange(appId, val)}
+                            disabled={updatingAppId === appId}
+                          >
+                            <SelectTrigger className="h-7 text-xs font-semibold bg-background rounded-lg border-border w-[150px]">
+                              {updatingAppId === appId ? (
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                  <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
+                                  <span>Saving...</span>
+                                </div>
+                              ) : (
+                                <SelectValue />
+                              )}
+                            </SelectTrigger>
+                            <SelectContent className="text-xs">
+                              <SelectItem value="submitted">Submitted</SelectItem>
+                              <SelectItem value="documents_pending">Docs Pending</SelectItem>
+                              <SelectItem value="assessment_pending">Assessment Pending</SelectItem>
+                              <SelectItem value="under_review">Under Review</SelectItem>
+                              <SelectItem value="approved">Approved</SelectItem>
+                              <SelectItem value="waitlisted">Waitlisted</SelectItem>
+                              <SelectItem value="rejected">Rejected</SelectItem>
+                              <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </TableCell>
 
                       {/* 9. Documents Summary */}

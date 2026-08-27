@@ -122,6 +122,7 @@ export class StudentService {
     // Post-commit event emission
     await StudentEvents.publish(StudentEventType.STATUS_CHANGED, {
       studentId: id,
+      orgId: existing.org_id,
       admissionNo: existing.admission_no,
       previousStatus: existing.status,
       newStatus: dto.status,
@@ -576,6 +577,7 @@ export class StudentService {
 
     await StudentEvents.publish(StudentEventType.ENROLLED, {
       studentId: result.student.student_id,
+      orgId: app.org_id,
       admissionNo,
       applicationId,
       performedBy: performedBy ? String(performedBy) : undefined,

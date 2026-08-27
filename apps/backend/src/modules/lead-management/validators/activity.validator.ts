@@ -3,8 +3,14 @@ import { LeadValidationError } from '../errors/lead.errors';
 
 export class ActivityValidator {
   static validateCreate(dto: CreateActivityDto): void {
-    if (!dto.notes || dto.notes.trim().length === 0) {
-      throw new LeadValidationError('Activity notes are required');
+    if (dto.activity_date && isNaN(Date.parse(dto.activity_date))) {
+      throw new LeadValidationError('Invalid activity date format');
+    }
+    if (dto.next_followup_date && isNaN(Date.parse(dto.next_followup_date))) {
+      throw new LeadValidationError('Invalid next follow-up date format');
+    }
+    if (dto.notes && dto.notes.length > 5000) {
+      throw new LeadValidationError('Activity notes cannot exceed 5000 characters');
     }
   }
 }

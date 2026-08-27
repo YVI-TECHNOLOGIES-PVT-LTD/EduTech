@@ -1,13 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   useGetLeadsQuery,
+  useGetLeadEnumsQuery,
+  useUpdateLeadStatusMutation,
   LeadItem,
   SearchLeadParams,
   LeadStage,
   LeadPriority,
   LeadSource,
 } from '@/shared/api/crm.api';
+import { toast } from 'sonner';
 import { useMasterData } from '../../context/MasterDataContext';
 import { useGetStaffListQuery } from '@/shared/api/staff.api';
 import { CreateLeadModal } from '../../components/inquiry/CreateLeadModal';
@@ -95,13 +99,13 @@ const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; bo
     border: 'border-indigo-200 dark:border-indigo-800',
   },
   application_submitted: {
-    label: 'App Submitted',
+    label: 'Application Submitted',
     bg: 'bg-emerald-50 dark:bg-emerald-950/40',
     text: 'text-emerald-700 dark:text-emerald-300',
     border: 'border-emerald-200 dark:border-emerald-800',
   },
   document_verification: {
-    label: 'Doc Verification',
+    label: 'Document Verification',
     bg: 'bg-cyan-50 dark:bg-cyan-950/40',
     text: 'text-cyan-700 dark:text-cyan-300',
     border: 'border-cyan-200 dark:border-cyan-800',
@@ -144,6 +148,21 @@ const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; bo
   },
 };
 
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  enquiry_received: ['qualified', 'counselling_scheduled', 'campus_visit', 'rejected'],
+  qualified: ['counselling_scheduled', 'campus_visit', 'application_submitted', 'rejected'],
+  counselling_scheduled: ['campus_visit', 'application_submitted', 'rejected'],
+  campus_visit: ['application_submitted', 'rejected'],
+  application_submitted: ['document_verification', 'assessment', 'rejected'],
+  document_verification: ['assessment', 'admission_approved', 'rejected'],
+  assessment: ['admission_approved', 'waitlisted', 'rejected'],
+  admission_approved: ['fee_payment_pending', 'enrolled', 'rejected'],
+  waitlisted: ['admission_approved', 'rejected'],
+  fee_payment_pending: ['enrolled', 'rejected'],
+  rejected: ['enquiry_received'],
+  enrolled: [],
+};
+
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   high: { label: 'High', color: 'bg-red-500 text-white', icon: '🔥' },
   hot: { label: 'High', color: 'bg-red-500 text-white', icon: '🔥' },
@@ -158,17 +177,41 @@ export const LeadsManagementPage: React.FC = () => {
   const { grades } = useMasterData();
   const { data: staffList = [] } = useGetStaffListQuery();
 
-  // Filters and Pagination State
-  const [searchText, setSearchText] = useState<string>('');
-  const [selectedStage, setSelectedStage] = useState<string>('ALL');
-  const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
-  const [selectedSource, setSelectedSource] = useState<string>('ALL');
-  const [selectedGradeId, setSelectedGradeId] = useState<string>('ALL');
+  const [searchParams] = useSearchParams();
+
+  // Filters and Pagination State from URL search params
+  const initialStage =
+    searchParams.get('stage') ||
+    (searchParams.get('tab') === 'activities' ? 'counselling_scheduled' : 'ALL');
+  const initialPriority = searchParams.get('priority') || 'ALL';
+  const initialSource = searchParams.get('source') || 'ALL';
+  const initialGrade = searchParams.get('grade_id') || 'ALL';
+  const initialSearch = searchParams.get('search') || '';
+
+  const [searchText, setSearchText] = useState<string>(initialSearch);
+  const [selectedStage, setSelectedStage] = useState<string>(initialStage);
+  const [selectedPriority, setSelectedPriority] = useState<string>(initialPriority);
+  const [selectedSource, setSelectedSource] = useState<string>(initialSource);
+  const [selectedGradeId, setSelectedGradeId] = useState<string>(initialGrade);
   const [selectedCounsellorId, setSelectedCounsellorId] = useState<string>('ALL');
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
+
+  // Sync state when URL search params change (e.g. sidebar navigation clicks)
+  useEffect(() => {
+    const stage =
+      searchParams.get('stage') ||
+      (searchParams.get('tab') === 'activities' ? 'counselling_scheduled' : 'ALL');
+    const priority = searchParams.get('priority') || 'ALL';
+    const source = searchParams.get('source') || 'ALL';
+    const search = searchParams.get('search') || '';
+    if (stage !== selectedStage) setSelectedStage(stage);
+    if (priority !== selectedPriority) setSelectedPriority(priority);
+    if (source !== selectedSource) setSelectedSource(source);
+    if (search !== searchText) setSearchText(search);
+  }, [searchParams]);
 
   // Active Modals & Selected Lead
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -268,6 +311,61 @@ export const LeadsManagementPage: React.FC = () => {
     ).length;
     return { total, high, qualified, visits };
   }, [leads, meta.total]);
+
+  // Database-authoritative Enums & Transition Matrix
+  const { data: enumsResponse } = useGetLeadEnumsQuery();
+  const dbEnums = enumsResponse?.data;
+
+  const allowedTransitions = useMemo(() => {
+    return dbEnums?.allowed_stage_transitions || ALLOWED_STATUS_TRANSITIONS;
+  }, [dbEnums]);
+
+  const stagesList = useMemo(() => {
+    if (dbEnums?.lead_stages && dbEnums.lead_stages.length > 0) {
+      return dbEnums.lead_stages.map((s) => ({
+        value: s.value,
+        label: STAGE_CONFIG[s.value]?.label || s.label,
+        bg: STAGE_CONFIG[s.value]?.bg || 'bg-slate-50 dark:bg-slate-950/40',
+        text: STAGE_CONFIG[s.value]?.text || 'text-slate-700 dark:text-slate-300',
+        border: STAGE_CONFIG[s.value]?.border || 'border-slate-200 dark:border-slate-800',
+      }));
+    }
+    return Object.entries(STAGE_CONFIG).map(([key, config]) => ({
+      value: key,
+      ...config,
+    }));
+  }, [dbEnums]);
+
+  const prioritiesList = useMemo(() => {
+    if (dbEnums?.lead_priorities && dbEnums.lead_priorities.length > 0) {
+      return dbEnums.lead_priorities;
+    }
+    return [
+      { value: 'high', label: 'High' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'low', label: 'Low' },
+    ];
+  }, [dbEnums]);
+
+  const [updateLeadStatus] = useUpdateLeadStatusMutation();
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+
+  const handleInlineStageChange = async (leadId: string, newStage: string) => {
+    try {
+      setUpdatingLeadId(leadId);
+      const defaultRemarks =
+        newStage === 'rejected' ? 'Marked as rejected by Front Office Executive' : undefined;
+      await updateLeadStatus({ id: leadId, stage: newStage, remarks: defaultRemarks }).unwrap();
+      const stageLabel = stagesList.find((s) => s.value === newStage)?.label || newStage;
+      toast.success(`Lead stage updated to ${stageLabel}`);
+    } catch (err: any) {
+      const errMsg =
+        err?.data?.error || err?.data?.message || err?.message || 'Failed to update lead stage';
+      toast.error(errMsg);
+    } finally {
+      setUpdatingLeadId(null);
+    }
+  };
 
   const handleResetFilters = () => {
     setSearchText('');
@@ -426,9 +524,9 @@ export const LeadsManagementPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Stages</SelectItem>
-                {Object.entries(STAGE_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key} className="text-xs">
-                    {config.label}
+                {stagesList.map((s) => (
+                  <SelectItem key={s.value} value={s.value} className="text-xs">
+                    {s.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -447,9 +545,11 @@ export const LeadsManagementPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Priority</SelectItem>
-                <SelectItem value="high">🔥 High</SelectItem>
-                <SelectItem value="medium">⚡ Medium</SelectItem>
-                <SelectItem value="low">❄️ Low</SelectItem>
+                {prioritiesList.map((p) => (
+                  <SelectItem key={p.value} value={p.value} className="text-xs">
+                    {p.value === 'high' ? '🔥 High' : p.value === 'medium' ? '⚡ Medium' : '❄️ Low'}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -756,26 +856,66 @@ export const LeadsManagementPage: React.FC = () => {
                         </Badge>
                       </TableCell>
 
-                      {/* 9. Stage */}
-                      <TableCell className="border-r border-border/80 px-3 py-3">
-                        <span
-                          className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border leading-tight ${stageBadge.bg} ${stageBadge.text} ${stageBadge.border}`}
+                      {/* 9. Stage (Interactive Dropdown) */}
+                      <TableCell
+                        className="border-r border-border/80 px-3 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Select
+                          value={lead.stage || 'enquiry_received'}
+                          onValueChange={(val) => handleInlineStageChange(leadId, val)}
+                          disabled={updatingLeadId === leadId}
                         >
-                          {stageBadge.label}
-                        </span>
+                          <SelectTrigger className="h-7 text-xs font-semibold bg-background rounded-lg border-border w-[145px]">
+                            {updatingLeadId === leadId ? (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Loader2 className="w-3 h-3 animate-spin text-indigo-600" />
+                                <span>Saving...</span>
+                              </div>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${stageBadge.bg} ${stageBadge.text}`}
+                              >
+                                {stageBadge.label}
+                              </span>
+                            )}
+                          </SelectTrigger>
+                          <SelectContent className="text-xs">
+                            {stagesList.map((s) => {
+                              const currentStage = lead.stage || 'enquiry_received';
+                              const isCurrent = currentStage === s.value;
+                              const isAllowed =
+                                isCurrent ||
+                                (allowedTransitions[currentStage] || []).includes(s.value);
+                              return (
+                                <SelectItem
+                                  key={s.value}
+                                  value={s.value}
+                                  disabled={!isAllowed}
+                                  className={`text-xs ${!isAllowed ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                >
+                                  {s.label} {isCurrent ? '•' : ''}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
 
-                      {/* 10. Priority */}
+                      {/* 10. Status / Priority */}
                       <TableCell className="border-r border-border/80 px-3 py-3">
-                        {priorityBadge ? (
-                          <span
-                            className={`inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full ${priorityBadge.color}`}
-                          >
-                            <span className="mr-1">{priorityBadge.icon}</span> {priorityBadge.label}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground font-medium">—</span>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {priorityBadge ? (
+                            <span
+                              className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full w-fit ${priorityBadge.color}`}
+                            >
+                              <span className="mr-1">{priorityBadge.icon}</span>{' '}
+                              {priorityBadge.label}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-medium">—</span>
+                          )}
+                        </div>
                       </TableCell>
 
                       {/* 11. AI Lead Score */}

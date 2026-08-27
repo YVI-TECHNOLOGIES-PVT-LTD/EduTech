@@ -126,6 +126,7 @@ export class AdmissionAssessmentService {
     // Post-commit event emission
     await AdmissionEvents.publish(ApplicationEventType.ASSESSMENT_RECORDED, {
       applicationId,
+      orgId: app.org_id,
       performedBy: createdBy,
       timestamp: new Date().toISOString(),
       metadata: { assessmentId: assessment.assessment_id, result: assessment.result },

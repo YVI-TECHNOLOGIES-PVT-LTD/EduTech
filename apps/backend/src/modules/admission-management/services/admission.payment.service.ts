@@ -278,6 +278,7 @@ export class AdmissionPaymentService {
     // Post-commit event emission
     await AdmissionEvents.publish(ApplicationEventType.PAYMENT_RECORDED, {
       applicationId,
+      orgId: authoritativeOrgId,
       performedBy: actorId,
       timestamp: new Date().toISOString(),
       metadata: {

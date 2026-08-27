@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Sheet,
@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import {
   LeadItem,
   useGetLeadByIdQuery,
+  useGetLeadEnumsQuery,
   useGetLeadActivitiesQuery,
   useGetLeadVisitsQuery,
   useUpdateLeadStatusMutation,
@@ -104,7 +105,7 @@ const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; bo
     border: 'border-emerald-200 dark:border-emerald-800',
   },
   document_verification: {
-    label: 'Doc Verification',
+    label: 'Document Verification',
     bg: 'bg-cyan-50 dark:bg-cyan-950/40',
     text: 'text-cyan-700 dark:text-cyan-300',
     border: 'border-cyan-200 dark:border-cyan-800',
@@ -147,6 +148,21 @@ const STAGE_CONFIG: Record<string, { label: string; bg: string; text: string; bo
   },
 };
 
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  enquiry_received: ['qualified', 'counselling_scheduled', 'campus_visit', 'rejected'],
+  qualified: ['counselling_scheduled', 'campus_visit', 'application_submitted', 'rejected'],
+  counselling_scheduled: ['campus_visit', 'application_submitted', 'rejected'],
+  campus_visit: ['application_submitted', 'rejected'],
+  application_submitted: ['document_verification', 'assessment', 'rejected'],
+  document_verification: ['assessment', 'admission_approved', 'rejected'],
+  assessment: ['admission_approved', 'waitlisted', 'rejected'],
+  admission_approved: ['fee_payment_pending', 'enrolled', 'rejected'],
+  waitlisted: ['admission_approved', 'rejected'],
+  fee_payment_pending: ['enrolled', 'rejected'],
+  rejected: ['enquiry_received'],
+  enrolled: [],
+};
+
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   high: { label: 'High Priority', color: 'bg-red-500 text-white', icon: '🔥' },
   hot: { label: 'High Priority', color: 'bg-red-500 text-white', icon: '🔥' },
@@ -181,6 +197,26 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
     isError: isErrorCounsellors,
   } = useGetCounsellorsQuery(undefined, { skip: !open });
 
+  const { data: enumsResponse } = useGetLeadEnumsQuery(undefined, { skip: !open });
+  const dbEnums = enumsResponse?.data;
+
+  const allowedTransitions = useMemo(() => {
+    return dbEnums?.allowed_stage_transitions || ALLOWED_STATUS_TRANSITIONS;
+  }, [dbEnums]);
+
+  const stagesList = useMemo<{ value: string; label: string }[]>(() => {
+    if (dbEnums?.lead_stages && dbEnums.lead_stages.length > 0) {
+      return dbEnums.lead_stages.map((s: { value: string; label: string }) => ({
+        value: s.value,
+        label: STAGE_CONFIG[s.value]?.label || s.label,
+      }));
+    }
+    return Object.entries(STAGE_CONFIG).map(([key, config]) => ({
+      value: key,
+      label: config.label,
+    }));
+  }, [dbEnums]);
+
   const [updateLeadStatus, { isLoading: isUpdatingStatus }] = useUpdateLeadStatusMutation();
   const [assignLead, { isLoading: isAssigning }] = useAssignLeadMutation();
   const [deleteActivity] = useDeleteLeadActivityMutation();
@@ -211,11 +247,21 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
   const handleStageChange = async (newStage: string) => {
     if (!lead) return;
     try {
-      await updateLeadStatus({ id: lead.lead_id, stage: newStage }).unwrap();
-      toast.success(`Stage updated to ${STAGE_CONFIG[newStage]?.label || newStage}`);
+      const defaultRemarks =
+        newStage === 'rejected' ? 'Marked as rejected via Lead Details Drawer' : undefined;
+      await updateLeadStatus({
+        id: lead.lead_id,
+        stage: newStage,
+        remarks: defaultRemarks,
+      }).unwrap();
+      const stageLabel =
+        stagesList.find((s: { value: string; label: string }) => s.value === newStage)?.label ||
+        newStage;
+      toast.success(`Stage updated to ${stageLabel}`);
       onLeadUpdated?.();
     } catch (err: any) {
-      const msg = err?.data?.error || err?.message || 'Failed to update stage';
+      const msg =
+        err?.data?.error || err?.data?.message || err?.message || 'Failed to update stage';
       toast.error(msg);
     }
   };
@@ -355,11 +401,22 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(STAGE_CONFIG).map(([key, config]) => (
-                          <SelectItem key={key} value={key} className="text-xs font-medium">
-                            {config.label}
-                          </SelectItem>
-                        ))}
+                        {stagesList.map((s: { value: string; label: string }) => {
+                          const currentStage = lead.stage || 'enquiry_received';
+                          const isCurrent = currentStage === s.value;
+                          const isAllowed =
+                            isCurrent || (allowedTransitions[currentStage] || []).includes(s.value);
+                          return (
+                            <SelectItem
+                              key={s.value}
+                              value={s.value}
+                              disabled={!isAllowed}
+                              className={`text-xs font-medium ${!isAllowed ? 'opacity-40 cursor-not-allowed' : ''}`}
+                            >
+                              {s.label} {isCurrent ? '•' : ''}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -616,66 +673,111 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                       </div>
                     ) : (
                       <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-                        {activities.map((act) => (
-                          <div
-                            key={act.activity_id}
-                            className="relative group p-3.5 rounded-xl border border-border bg-card hover:shadow-sm transition-all"
-                          >
-                            <div className="absolute -left-[23px] top-4 w-3.5 h-3.5 rounded-full border-2 border-background bg-indigo-600" />
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <div>
-                                <span className="text-xs font-bold text-foreground capitalize">
-                                  {act.activity_type.replace('_', ' ')}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground ml-2">
-                                  {new Date(act.activity_date).toLocaleString()}
-                                </span>
+                        {activities.map((act) => {
+                          const isSystemAudit = act.notes?.startsWith('[LeadIdentityResolver]');
+                          const cleanNotes = isSystemAudit
+                            ? act.notes
+                                ?.replace('[LeadIdentityResolver] ', '')
+                                .replace(
+                                  'PLACEHOLDER_MATCH | Fields: [registration_placeholder] | ',
+                                  '⚡ Identity Matched: ',
+                                )
+                            : act.notes;
+
+                          return (
+                            <div
+                              key={act.activity_id}
+                              className={`relative group p-3.5 rounded-xl border transition-all ${
+                                isSystemAudit
+                                  ? 'border-sky-200 dark:border-sky-900/40 bg-sky-50/40 dark:bg-sky-950/20'
+                                  : 'border-border bg-card hover:shadow-sm'
+                              }`}
+                            >
+                              <div
+                                className={`absolute -left-[23px] top-4 w-3.5 h-3.5 rounded-full border-2 border-background ${
+                                  isSystemAudit ? 'bg-sky-500' : 'bg-indigo-600'
+                                }`}
+                              />
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-foreground capitalize">
+                                      {isSystemAudit
+                                        ? 'System Audit'
+                                        : act.activity_type.replace('_', ' ')}
+                                    </span>
+                                    {isSystemAudit && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[9px] font-bold text-sky-600 border-sky-300 bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0"
+                                      >
+                                        Auto Resolver
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {new Date(act.activity_date).toLocaleString([], {
+                                      dateStyle: 'medium',
+                                      timeStyle: 'short',
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] capitalize ${
+                                      act.status === 'completed'
+                                        ? 'text-green-600 border-green-300 bg-green-50/50 dark:bg-green-950/20'
+                                        : act.status === 'scheduled'
+                                          ? 'text-amber-600 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20'
+                                          : 'text-slate-500 border-slate-300'
+                                    }`}
+                                  >
+                                    {act.status}
+                                  </Badge>
+                                  {!isSystemAudit && (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setSelectedActivityForEdit(act);
+                                          setShowActivityModal(true);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-indigo-600 p-1 transition-opacity"
+                                        title="Edit Activity"
+                                      >
+                                        <Edit3 className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteActivityItem(act.activity_id)}
+                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-600 p-1 transition-opacity"
+                                        title="Delete Activity"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Badge
-                                  variant="outline"
-                                  className={`text-[10px] capitalize ${
-                                    act.status === 'completed'
-                                      ? 'text-green-600 border-green-300'
-                                      : 'text-amber-600 border-amber-300'
-                                  }`}
-                                >
-                                  {act.status}
-                                </Badge>
-                                <button
-                                  onClick={() => {
-                                    setSelectedActivityForEdit(act);
-                                    setShowActivityModal(true);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-indigo-600 p-1 transition-opacity"
-                                  title="Edit Activity"
-                                >
-                                  <Edit3 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteActivityItem(act.activity_id)}
-                                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-600 p-1 transition-opacity"
-                                  title="Delete Activity"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
+
+                              {cleanNotes && (
+                                <p className="text-xs text-muted-foreground leading-relaxed mt-1 whitespace-pre-wrap">
+                                  {cleanNotes}
+                                </p>
+                              )}
+
+                              {act.next_followup_date && (
+                                <p className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-2 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Next Follow-up:{' '}
+                                  {new Date(act.next_followup_date).toLocaleString([], {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short',
+                                  })}
+                                </p>
+                              )}
                             </div>
-
-                            {act.notes && (
-                              <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                                {act.notes}
-                              </p>
-                            )}
-
-                            {act.next_followup_date && (
-                              <p className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-2 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Next Follow-up: {new Date(act.next_followup_date).toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </TabsContent>
@@ -939,99 +1041,99 @@ export const LeadDetailsSheet: React.FC<LeadDetailsSheetProps> = ({
                   </TabsContent>
                 </Tabs>
               </div>
+
+              {/* Child Modals nested inside SheetContent context */}
+              {lead && (
+                <>
+                  <EditLeadModal
+                    lead={lead}
+                    open={showEditModal}
+                    onOpenChange={setShowEditModal}
+                    onSuccess={() => onLeadUpdated?.()}
+                  />
+                  <AddActivityModal
+                    leadId={lead.lead_id}
+                    leadNumber={lead.lead_number}
+                    studentName={lead.student_name}
+                    initialActivity={selectedActivityForEdit}
+                    open={showActivityModal}
+                    onOpenChange={(op) => {
+                      setShowActivityModal(op);
+                      if (!op) setSelectedActivityForEdit(null);
+                    }}
+                    onSuccess={() => {
+                      setSelectedActivityForEdit(null);
+                      onLeadUpdated?.();
+                    }}
+                  />
+                  <ScheduleVisitModal
+                    leadId={lead.lead_id}
+                    leadNumber={lead.lead_number}
+                    studentName={lead.student_name}
+                    open={showVisitModal}
+                    onOpenChange={setShowVisitModal}
+                    onSuccess={() => onLeadUpdated?.()}
+                  />
+                  <DeleteLeadDialog
+                    lead={lead}
+                    open={showDeleteDialog}
+                    onOpenChange={(open) => {
+                      setShowDeleteDialog(open);
+                      if (!open) onOpenChange(false);
+                    }}
+                    onSuccess={() => {
+                      onOpenChange(false);
+                      onLeadUpdated?.();
+                    }}
+                  />
+                  <CreateApplicationDialog
+                    lead={lead}
+                    open={showConvertDialog}
+                    onOpenChange={setShowConvertDialog}
+                    onSuccess={() => onLeadUpdated?.()}
+                  />
+                  <RescheduleVisitDialog
+                    visit={selectedVisitForReschedule}
+                    open={!!selectedVisitForReschedule}
+                    onOpenChange={(op) => !op && setSelectedVisitForReschedule(null)}
+                    onSuccess={() => {
+                      setSelectedVisitForReschedule(null);
+                      onLeadUpdated?.();
+                    }}
+                  />
+                  <CompleteVisitDialog
+                    visit={selectedVisitForComplete}
+                    open={!!selectedVisitForComplete}
+                    onOpenChange={(op) => !op && setSelectedVisitForComplete(null)}
+                    onSuccess={() => {
+                      setSelectedVisitForComplete(null);
+                      onLeadUpdated?.();
+                    }}
+                  />
+                  <CancelVisitDialog
+                    visit={selectedVisitForCancel}
+                    open={!!selectedVisitForCancel}
+                    onOpenChange={(op) => !op && setSelectedVisitForCancel(null)}
+                    onSuccess={() => {
+                      setSelectedVisitForCancel(null);
+                      onLeadUpdated?.();
+                    }}
+                  />
+                  <NoShowVisitDialog
+                    visit={selectedVisitForNoShow}
+                    open={!!selectedVisitForNoShow}
+                    onOpenChange={(op) => !op && setSelectedVisitForNoShow(null)}
+                    onSuccess={() => {
+                      setSelectedVisitForNoShow(null);
+                      onLeadUpdated?.();
+                    }}
+                  />
+                </>
+              )}
             </>
           )}
         </SheetContent>
       </Sheet>
-
-      {/* Child Modals */}
-      {lead && (
-        <>
-          <EditLeadModal
-            lead={lead}
-            open={showEditModal}
-            onOpenChange={setShowEditModal}
-            onSuccess={() => onLeadUpdated?.()}
-          />
-          <AddActivityModal
-            leadId={lead.lead_id}
-            leadNumber={lead.lead_number}
-            studentName={lead.student_name}
-            initialActivity={selectedActivityForEdit}
-            open={showActivityModal}
-            onOpenChange={(op) => {
-              setShowActivityModal(op);
-              if (!op) setSelectedActivityForEdit(null);
-            }}
-            onSuccess={() => {
-              setSelectedActivityForEdit(null);
-              onLeadUpdated?.();
-            }}
-          />
-          <ScheduleVisitModal
-            leadId={lead.lead_id}
-            leadNumber={lead.lead_number}
-            studentName={lead.student_name}
-            open={showVisitModal}
-            onOpenChange={setShowVisitModal}
-            onSuccess={() => onLeadUpdated?.()}
-          />
-          <DeleteLeadDialog
-            lead={lead}
-            open={showDeleteDialog}
-            onOpenChange={(open) => {
-              setShowDeleteDialog(open);
-              if (!open) onOpenChange(false);
-            }}
-            onSuccess={() => {
-              onOpenChange(false);
-              onLeadUpdated?.();
-            }}
-          />
-          <CreateApplicationDialog
-            lead={lead}
-            open={showConvertDialog}
-            onOpenChange={setShowConvertDialog}
-            onSuccess={() => onLeadUpdated?.()}
-          />
-          <RescheduleVisitDialog
-            visit={selectedVisitForReschedule}
-            open={!!selectedVisitForReschedule}
-            onOpenChange={(op) => !op && setSelectedVisitForReschedule(null)}
-            onSuccess={() => {
-              setSelectedVisitForReschedule(null);
-              onLeadUpdated?.();
-            }}
-          />
-          <CompleteVisitDialog
-            visit={selectedVisitForComplete}
-            open={!!selectedVisitForComplete}
-            onOpenChange={(op) => !op && setSelectedVisitForComplete(null)}
-            onSuccess={() => {
-              setSelectedVisitForComplete(null);
-              onLeadUpdated?.();
-            }}
-          />
-          <CancelVisitDialog
-            visit={selectedVisitForCancel}
-            open={!!selectedVisitForCancel}
-            onOpenChange={(op) => !op && setSelectedVisitForCancel(null)}
-            onSuccess={() => {
-              setSelectedVisitForCancel(null);
-              onLeadUpdated?.();
-            }}
-          />
-          <NoShowVisitDialog
-            visit={selectedVisitForNoShow}
-            open={!!selectedVisitForNoShow}
-            onOpenChange={(op) => !op && setSelectedVisitForNoShow(null)}
-            onSuccess={() => {
-              setSelectedVisitForNoShow(null);
-              onLeadUpdated?.();
-            }}
-          />
-        </>
-      )}
     </>
   );
 };

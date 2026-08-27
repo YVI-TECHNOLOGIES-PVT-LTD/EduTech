@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -60,16 +61,37 @@ import { ScheduleVisitModal } from '../../components/inquiry/ScheduleVisitModal'
 
 export const CounsellingPage: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
   // Search & Filter State
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [counsellorFilter, setCounsellorFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [stageFilter, setStageFilter] = useState<string>('all');
-  const [followupStatusFilter, setFollowupStatusFilter] = useState<string>('all');
+  const initialTab = searchParams.get('tab');
+  const initialFollowup =
+    initialTab === 'followups' || searchParams.get('followup') === 'due' ? 'due_today' : 'all';
+  const initialStage =
+    initialTab === 'activities' ? 'counselling_scheduled' : searchParams.get('stage') || 'all';
+
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
+  const [counsellorFilter, setCounsellorFilter] = useState<string>(
+    searchParams.get('counsellor') || 'all',
+  );
+  const [priorityFilter, setPriorityFilter] = useState<string>(
+    searchParams.get('priority') || 'all',
+  );
+  const [stageFilter, setStageFilter] = useState<string>(initialStage);
+  const [followupStatusFilter, setFollowupStatusFilter] = useState<string>(initialFollowup);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 15;
+
+  // Sync with searchParams on navigation
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'followups') {
+      setFollowupStatusFilter('due_today');
+    } else if (tab === 'activities') {
+      setStageFilter('counselling_scheduled');
+    }
+  }, [searchParams]);
 
   // Selection State for Bulk Actions
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);

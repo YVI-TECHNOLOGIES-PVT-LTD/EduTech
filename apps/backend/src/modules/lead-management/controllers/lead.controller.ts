@@ -1,5 +1,14 @@
 import { Request, Response } from 'express';
-import { lead_stage } from '@prisma/client';
+import {
+  lead_stage,
+  lead_activity_type,
+  activity_status,
+  lead_priority,
+  lead_source,
+  visit_type,
+  visit_status,
+} from '@prisma/client';
+import { ALLOWED_STATUS_TRANSITIONS } from '../constants/lead.constants';
 import { LeadService } from '../services/lead.service';
 import { LeadLifecycleService } from '../services/lead.lifecycle.service';
 import { LeadAssignmentService } from '../services/lead.assignment.service';
@@ -13,6 +22,44 @@ import { LeadScoringService } from '../services/lead.scoring.service';
 import { CounsellingDashboardQuery } from '../queries/counselling.dashboard';
 
 export class LeadController {
+  static async getEnumsMetadata(req: Request, res: Response) {
+    try {
+      const data = {
+        lead_stages: Object.values(lead_stage).map((val) => ({
+          value: val,
+          label: val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        })),
+        allowed_stage_transitions: ALLOWED_STATUS_TRANSITIONS,
+        lead_activity_types: Object.values(lead_activity_type).map((val) => ({
+          value: val,
+          label: val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        })),
+        activity_statuses: Object.values(activity_status).map((val) => ({
+          value: val,
+          label: val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        })),
+        lead_priorities: Object.values(lead_priority).map((val) => ({
+          value: val,
+          label: val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        })),
+        lead_sources: Object.values(lead_source).map((val) => ({
+          value: val,
+          label: val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        })),
+        visit_types: Object.values(visit_type).map((val) => ({
+          value: val,
+          label: val === 'campus' ? 'Campus Visit' : 'Virtual Counselling',
+        })),
+        visit_statuses: Object.values(visit_status).map((val) => ({
+          value: val,
+          label: val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        })),
+      };
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
   static async create(req: Request, res: Response) {
     try {
       const user = req.context?.user;
@@ -141,9 +188,16 @@ export class LeadController {
       return res.json(result);
     } catch (error: any) {
       if (error instanceof LeadError) {
-        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+        return res.status(error.statusCode).json({
+          error: error.message,
+          message: error.message,
+          code: error.code,
+        });
       }
-      return res.status(500).json({ error: error.message || 'Internal server error' });
+      return res.status(500).json({
+        error: error.message || 'Internal server error',
+        message: error.message || 'Internal server error',
+      });
     }
   }
 

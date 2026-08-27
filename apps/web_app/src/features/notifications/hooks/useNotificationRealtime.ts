@@ -6,16 +6,43 @@ import { apiSlice } from '@/app/store/apiSlice';
 export type RealtimeStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING';
 
 export interface RealtimeNotificationMessage {
-  type:
-    | 'notification.created'
-    | 'notification.updated'
-    | 'notification.deleted'
-    | 'connection.ack'
-    | 'pong';
+  type: string;
   data?: any;
   userId?: string;
   orgId?: string;
   timestamp?: string;
+}
+
+export function getWebSocketBaseUrl(): string {
+  try {
+    const defaultHost =
+      typeof window !== 'undefined' && window.location.hostname
+        ? window.location.hostname
+        : '127.0.0.1';
+    const protocol =
+      typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+    const baseUrl = API_CONFIG.baseUrl;
+    if (baseUrl && (baseUrl.startsWith('http://') || baseUrl.startsWith('https://'))) {
+      const parsed = new URL(baseUrl);
+      const wsProtocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
+      const hostName =
+        parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+          ? defaultHost
+          : parsed.hostname;
+      const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '3000');
+      return `${wsProtocol}//${hostName}:${port}/ws/notifications`;
+    }
+
+    if (baseUrl && baseUrl.startsWith('/')) {
+      const host = typeof window !== 'undefined' ? window.location.host : '127.0.0.1:3000';
+      return `${protocol}//${host}/ws/notifications`;
+    }
+
+    return `${protocol}//${defaultHost}:3000/ws/notifications`;
+  } catch {
+    return 'ws://127.0.0.1:3000/ws/notifications';
+  }
 }
 
 export function useNotificationRealtime() {
@@ -38,16 +65,6 @@ export function useNotificationRealtime() {
   const attemptsRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
-  const getWsUrl = useCallback(() => {
-    try {
-      const baseUrl = API_CONFIG.baseUrl || 'http://127.0.0.1:3000/api';
-      const wsBase = baseUrl.replace(/^http/, 'ws').replace(/\/api\/?$/, '');
-      return `${wsBase}/ws/notifications`;
-    } catch {
-      return 'ws://127.0.0.1:3000/ws/notifications';
-    }
-  }, []);
-
   const connect = useCallback(() => {
     if (!isAuthenticated || !accessToken) {
       if (socketRef.current) {
@@ -66,7 +83,8 @@ export function useNotificationRealtime() {
 
     try {
       setStatus(attemptsRef.current === 0 ? 'CONNECTING' : 'RECONNECTING');
-      const wsEndpoint = `${getWsUrl()}?token=${encodeURIComponent(accessToken)}`;
+      const wsUrl = getWebSocketBaseUrl();
+      const wsEndpoint = `${wsUrl}?token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsEndpoint);
       socketRef.current = ws;
 
@@ -82,14 +100,56 @@ export function useNotificationRealtime() {
         if (!isMountedRef.current) return;
         try {
           const payload: RealtimeNotificationMessage = JSON.parse(event.data);
-          if (payload.type === 'notification.created') {
-            // Update RTK Query cache with zero full-page reload
-            dispatch(apiSlice.util.invalidateTags(['Notification', 'NotificationCount']));
-          } else if (
-            payload.type === 'notification.updated' ||
-            payload.type === 'notification.deleted'
+          const type = payload?.type;
+
+          if (
+            type === 'notification.created' ||
+            type === 'notification.updated' ||
+            type === 'notification.deleted'
           ) {
             dispatch(apiSlice.util.invalidateTags(['Notification', 'NotificationCount']));
+          } else if (
+            type === 'application.created' ||
+            type === 'application.updated' ||
+            type === 'application.status_changed' ||
+            type === 'application.approved' ||
+            type === 'application.rejected' ||
+            type === 'application.deleted' ||
+            type === 'application.document_uploaded' ||
+            type === 'application.document_verified'
+          ) {
+            dispatch(apiSlice.util.invalidateTags(['Application', 'Lead']));
+          } else if (type === 'application.assessment_recorded') {
+            dispatch(apiSlice.util.invalidateTags(['Application', 'Assessment', 'Lead']));
+          } else if (type === 'application.decision_recorded') {
+            dispatch(apiSlice.util.invalidateTags(['Application', 'Lead', 'Student']));
+          } else if (type === 'application.payment_recorded') {
+            dispatch(apiSlice.util.invalidateTags(['Application', 'FeePayment', 'Lead']));
+          } else if (
+            type === 'lead.created' ||
+            type === 'lead.updated' ||
+            type === 'lead.assigned' ||
+            type === 'lead.status_changed' ||
+            type === 'lead.qualified' ||
+            type === 'lead.converted' ||
+            type === 'lead.deleted' ||
+            type === 'lead.activity_added'
+          ) {
+            dispatch(
+              apiSlice.util.invalidateTags(['Lead', 'LeadActivity', 'CampusVisit', 'Application']),
+            );
+          } else if (
+            type === 'student.created' ||
+            type === 'student.updated' ||
+            type === 'student.enrolled' ||
+            type === 'student.section_assigned' ||
+            type === 'student.parent_linked' ||
+            type === 'student.status_changed' ||
+            type === 'student.deleted'
+          ) {
+            dispatch(
+              apiSlice.util.invalidateTags(['Student', 'Enrollment', 'Application', 'Lead']),
+            );
           }
         } catch {
           // Ignore invalid messages
@@ -126,7 +186,7 @@ export function useNotificationRealtime() {
     } catch {
       setStatus('DISCONNECTED');
     }
-  }, [isAuthenticated, accessToken, getWsUrl, dispatch]);
+  }, [isAuthenticated, accessToken, dispatch]);
 
   useEffect(() => {
     isMountedRef.current = true;

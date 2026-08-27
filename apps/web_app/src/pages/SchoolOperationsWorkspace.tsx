@@ -6,7 +6,6 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGetDashboardSummaryQuery } from '../shared/api/dashboard.api';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api-client';
 import {
@@ -41,6 +40,9 @@ import {
 } from 'lucide-react';
 import { ICON_MAP } from '../config/menu_registry';
 import { FrontOfficeExecutiveDashboard } from '../modules/admission/components/dashboard/FrontOfficeExecutiveDashboard';
+import { SpotlightCard } from '@/components/react-bits/SpotlightCard';
+import { FadeContent } from '@/components/react-bits/FadeContent';
+import { SpecularButton } from '@/components/react-bits/SpecularButton';
 
 export function SchoolOperationsWorkspace() {
   const { user } = useAuth();
@@ -54,13 +56,6 @@ export function SchoolOperationsWorkspace() {
     roles: user?.roles || [],
     isSuperAdmin: user?.roles?.includes('SUPER_ADMIN'),
   };
-
-  // Live operational inbox metrics query via RTK Query
-  const {
-    data: adminOverview,
-    isLoading: isMetricsLoading,
-    refetch: refetchMetrics,
-  } = useGetDashboardSummaryQuery();
 
   const rawStaffName =
     user?.full_name ||
@@ -135,7 +130,11 @@ export function SchoolOperationsWorkspace() {
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
       {/* Workspace Header Banner */}
       <div className="bg-slate-950 text-white rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-900">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+        <FadeContent
+          direction="up"
+          duration={0.35}
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10"
+        >
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-900/60 text-indigo-300 text-xs font-bold border border-indigo-700/50">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -151,11 +150,11 @@ export function SchoolOperationsWorkspace() {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
-              onClick={() => refetchMetrics()}
+              onClick={() => window.location.reload()}
               className="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 text-white transition-colors"
-              title="Refresh Metrics"
+              title="Refresh Workspace"
             >
-              <RefreshCw className={`w-4 h-4 ${isMetricsLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-4 h-4" />
             </button>
             <div className="bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800 text-right">
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
@@ -166,7 +165,7 @@ export function SchoolOperationsWorkspace() {
               </p>
             </div>
           </div>
-        </div>
+        </FadeContent>
 
         <div className="mt-8 border-t border-slate-800/80 pt-4">{moduleTabs}</div>
       </div>
@@ -182,12 +181,13 @@ export function SchoolOperationsWorkspace() {
                 enrollment.
               </p>
             </div>
-            <button
+            <SpecularButton
+              size="sm"
               onClick={() => navigate('/app/admissions/wizard')}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all"
+              className="rounded-xl font-bold text-xs shadow-sm"
             >
               + New Application Form
-            </button>
+            </SpecularButton>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -242,8 +242,9 @@ export function SchoolOperationsWorkspace() {
             ].map((card, idx) => {
               const CardIcon = card.icon;
               return (
-                <div
+                <SpotlightCard
                   key={idx}
+                  spotlightColor="rgba(6, 63, 64, 0.08)"
                   className="p-5 bg-muted/20 rounded-2xl border border-border/80 hover:border-indigo-300 transition-all flex flex-col justify-between"
                 >
                   <div>
@@ -257,7 +258,7 @@ export function SchoolOperationsWorkspace() {
                   >
                     Open Desk <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-                </div>
+                </SpotlightCard>
               );
             })}
           </div>
@@ -274,7 +275,10 @@ export function SchoolOperationsWorkspace() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <GraduationCap className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Student Directory</h3>
@@ -288,8 +292,11 @@ export function SchoolOperationsWorkspace() {
               >
                 View Students <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            </SpotlightCard>
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Parent Directory</h3>
@@ -303,8 +310,11 @@ export function SchoolOperationsWorkspace() {
               >
                 View Parents <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            </SpotlightCard>
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <Briefcase className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Staff Directory</h3>
@@ -318,7 +328,7 @@ export function SchoolOperationsWorkspace() {
               >
                 View Staff <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
+            </SpotlightCard>
           </div>
         </div>
       )}
@@ -333,7 +343,10 @@ export function SchoolOperationsWorkspace() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <Building className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Academic Structure</h3>
@@ -347,8 +360,11 @@ export function SchoolOperationsWorkspace() {
               >
                 Manage Academics <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            </SpotlightCard>
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <CheckSquare className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Bulk Operations</h3>
@@ -362,8 +378,11 @@ export function SchoolOperationsWorkspace() {
               >
                 Open Bulk Tools <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            </SpotlightCard>
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <Activity className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Import History</h3>
@@ -377,7 +396,7 @@ export function SchoolOperationsWorkspace() {
               >
                 View Import Logs <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
+            </SpotlightCard>
           </div>
         </div>
       )}
@@ -397,7 +416,10 @@ export function SchoolOperationsWorkspace() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Organization Settings */}
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <Building className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Organization</h3>
@@ -412,10 +434,13 @@ export function SchoolOperationsWorkspace() {
               >
                 Manage Organization <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
+            </SpotlightCard>
 
             {/* Security & System Templates */}
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <ShieldCheck className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Security & Role Templates</h3>
@@ -430,10 +455,13 @@ export function SchoolOperationsWorkspace() {
               >
                 Security & Role Templates <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
+            </SpotlightCard>
 
             {/* Customization */}
-            <div className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between">
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
               <div>
                 <Settings className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Customization</h3>
@@ -448,7 +476,7 @@ export function SchoolOperationsWorkspace() {
               >
                 Manage Customization <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
+            </SpotlightCard>
           </div>
         </div>
       )}

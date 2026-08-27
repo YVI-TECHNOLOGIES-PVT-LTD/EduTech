@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
   RefreshCw,
@@ -36,14 +36,27 @@ import { useLanguage } from '@/context/LanguageContext';
 export function ExamWorkspace() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<'queue' | 'configs' | 'analytics'>('queue');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [resultFilter, setResultFilter] = useState<string>('all');
+  const tabParam = searchParams.get('tab');
+  const initialTab: 'queue' | 'configs' | 'analytics' =
+    tabParam === 'analytics' || tabParam === 'configs' || tabParam === 'queue' ? tabParam : 'queue';
+
+  const [activeTab, setActiveTab] = useState<'queue' | 'configs' | 'analytics'>(initialTab);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [resultFilter, setResultFilter] = useState<string>(searchParams.get('result') || 'all');
   const [selectedAppForMarks, setSelectedAppForMarks] = useState<any | null>(null);
   const [selectedConfigForEdit, setSelectedConfigForEdit] = useState<AssessmentConfigDto | null>(
     null,
   );
+
+  // Sync tab with searchParams on navigation
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (currentTab === 'analytics' || currentTab === 'configs' || currentTab === 'queue') {
+      if (currentTab !== activeTab) setActiveTab(currentTab);
+    }
+  }, [searchParams]);
 
   // RTK Queries
   const {

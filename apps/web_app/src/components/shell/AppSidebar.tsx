@@ -22,7 +22,6 @@ import {
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton,
   SidebarMenuSub,
   SidebarRail,
   useSidebar,
@@ -46,45 +45,54 @@ interface AppSidebarProps {
 const EXPANDED_STORAGE_KEY = 'edutrack.sidebar.expanded';
 
 /**
- * Check if a path matches an item's url directly or as a child route
+ * Check if a path matches an item's url directly or with query params
  */
-function isItemDirectlyActive(item: NavigationItem, currentPath: string): boolean {
-  if (currentPath === item.url) return true;
+function isItemDirectlyActive(
+  item: NavigationItem,
+  currentPath: string,
+  currentSearch: string = '',
+): boolean {
+  if (!item.url) return false;
+  const fullCurrentUrl = currentPath + currentSearch;
+
+  // Exact match with query params if item.url specifies query params
+  if (item.url.includes('?')) {
+    return item.url === fullCurrentUrl;
+  }
+
+  // Exact match with path
+  if (item.url === currentPath) {
+    // If current URL has search params, but another item in the menu matches the search params, don't prioritize non-query item
+    return true;
+  }
+
+  // Prefix match for detail routes (e.g. /app/admissions/applications/:id -> /app/admissions/applications)
   if (
-    item.url &&
     item.url !== '/app/dashboard' &&
     item.url !== '/app/workspace' &&
     item.url !== '/app/admissions' &&
-    currentPath.startsWith(item.url)
+    item.url !== '/app' &&
+    currentPath.startsWith(item.url + '/')
   ) {
-    // If it has children, make sure it's not a generic prefix match that belongs to a specific child
-    const children = item.items || item.children;
-    if (children && children.length > 0) {
-      return children.some((c) => currentPath === c.url);
-    }
     return true;
   }
+
   return false;
 }
 
 /**
  * Recursively check if an item or any of its descendants is active
  */
-function isItemOrDescendantActive(item: NavigationItem, currentPath: string): boolean {
-  if (currentPath === item.url) return true;
-  if (
-    item.url &&
-    item.url !== '/app/dashboard' &&
-    item.url !== '/app/workspace' &&
-    item.url !== '/app/admissions' &&
-    currentPath.startsWith(item.url)
-  ) {
-    return true;
-  }
+function isItemOrDescendantActive(
+  item: NavigationItem,
+  currentPath: string,
+  currentSearch: string = '',
+): boolean {
+  if (isItemDirectlyActive(item, currentPath, currentSearch)) return true;
 
   const children = item.items || item.children;
   if (children && children.length > 0) {
-    return children.some((child) => isItemOrDescendantActive(child, currentPath));
+    return children.some((child) => isItemOrDescendantActive(child, currentPath, currentSearch));
   }
   return false;
 }
@@ -95,26 +103,24 @@ function isItemOrDescendantActive(item: NavigationItem, currentPath: string): bo
 function findActiveAncestorIds(
   items: NavigationItem[],
   currentPath: string,
+  currentSearch: string = '',
   ancestors: string[] = [],
 ): string[] {
   let activeIds: string[] = [];
 
   for (const item of items) {
     const children = item.items || item.children;
-    const isDirectMatch = currentPath === item.url;
-    const isPrefixMatch =
-      item.url &&
-      item.url !== '/app/dashboard' &&
-      item.url !== '/app/workspace' &&
-      item.url !== '/app/admissions' &&
-      currentPath.startsWith(item.url);
+    const isDirectMatch = isItemDirectlyActive(item, currentPath, currentSearch);
 
-    if (isDirectMatch || isPrefixMatch) {
+    if (isDirectMatch) {
       activeIds = activeIds.concat(ancestors);
     }
 
     if (children && children.length > 0) {
-      const childActiveIds = findActiveAncestorIds(children, currentPath, [...ancestors, item.id]);
+      const childActiveIds = findActiveAncestorIds(children, currentPath, currentSearch, [
+        ...ancestors,
+        item.id,
+      ]);
       if (childActiveIds.length > 0) {
         activeIds = activeIds.concat(childActiveIds);
         activeIds.push(item.id);
@@ -167,7 +173,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
   // Auto-expand all ancestors of the currently active route
   useEffect(() => {
     const allItems = navGroups.flatMap((g) => g.items);
-    const activeAncestors = findActiveAncestorIds(allItems, currentPath);
+    const activeAncestors = findActiveAncestorIds(allItems, currentPath, location.search);
 
     if (activeAncestors.length > 0) {
       setExpandedIds((prev) => {
@@ -188,7 +194,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
         return prev;
       });
     }
-  }, [currentPath, navGroups]);
+  }, [currentPath, location.search, navGroups]);
 
   // Toggle item expansion
   const toggleExpanded = useCallback((id: string, e?: React.MouseEvent | React.KeyboardEvent) => {
@@ -262,8 +268,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
     const children = item.items || item.children;
     const hasChildren = Boolean(children && children.length > 0);
     const isExpanded = expandedIds.has(item.id);
-    const isDirectActive = currentPath === item.url;
-    const isSubActive = isItemOrDescendantActive(item, currentPath);
+    const isDirectActive = isItemDirectlyActive(item, currentPath, location.search);
+    const isSubActive = isItemOrDescendantActive(item, currentPath, location.search);
     const Icon = item.icon || Building;
     const itemTitle = getNavTitle(item);
 
@@ -296,7 +302,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
                   toggleExpanded(item.id);
                 }
               }}
-              className="flex-1 flex items-center gap-2.5 min-w-0 group-data-[collapsible=icon]:justify-center"
+              className="flex-1 flex items-center gap-2.5 min-w-0 group-data-[collapsible=icon]:justify-center cursor-pointer"
               title={isCollapsed ? itemTitle : undefined}
             >
               <Icon
@@ -351,17 +357,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       );
     }
 
-    // Leaf node: standard navigation button
+    // Leaf node: standard navigation link button
     return (
       <SidebarMenuItem
         key={item.id}
         className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
       >
-        <SidebarMenuButton
-          render={<Link to={item.url} />}
-          isActive={isDirectActive}
-          tooltip={itemTitle}
-          className={`w-full flex items-center gap-2.5 rounded-xl transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 ${
+        <Link
+          to={item.url}
+          title={isCollapsed ? itemTitle : undefined}
+          className={`w-full flex items-center gap-2.5 rounded-xl transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 cursor-pointer ${
             depth === 0 ? 'px-2.5 py-2 text-xs font-bold' : 'px-2 py-1.5 text-[11px] font-semibold'
           } ${
             isDirectActive
@@ -375,7 +380,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
             }`}
           />
           {!isCollapsed && <span className="truncate">{itemTitle}</span>}
-        </SidebarMenuButton>
+        </Link>
       </SidebarMenuItem>
     );
   };

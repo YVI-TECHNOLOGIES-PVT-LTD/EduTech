@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Scale,
   CheckCircle2,
@@ -36,10 +36,21 @@ import { toast } from 'sonner';
 
 export function AdmissionDecisionPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const urlStatus = searchParams.get('status')?.toUpperCase() || 'ALL';
 
   // Search & Filter States
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(urlStatus);
+
+  // Sync with searchParams
+  useEffect(() => {
+    const status = searchParams.get('status')?.toUpperCase() || 'ALL';
+    if (status !== statusFilter) {
+      setStatusFilter(status);
+    }
+  }, [searchParams]);
 
   // Modal Selection States
   const [selectedAppForDecision, setSelectedAppForDecision] = useState<any | null>(null);

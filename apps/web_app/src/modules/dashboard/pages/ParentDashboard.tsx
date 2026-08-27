@@ -61,18 +61,8 @@ const Sparkline = ({ points, color = 'text-primary' }: { points: number[]; color
   );
 };
 
-const AnimatedNumber = ({ value }: { value: number }) => {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => Math.round(latest));
-  const [displayVal, setDisplayVal] = useState(0);
-
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 1.2, ease: 'easeOut' });
-    return rounded.on('change', (latest) => setDisplayVal(latest));
-  }, [value]);
-
-  return <span>{displayVal.toLocaleString()}</span>;
-};
+import { CountUp } from '../../../components/react-bits/CountUp';
+import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
 
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
@@ -258,9 +248,10 @@ const ParentDashboardInner = () => {
   ];
 
   const kpiElements = kpis.map((c, i) => (
-    <div
+    <SpotlightCard
       key={i}
-      className="group relative bg-white dark:bg-card p-6 rounded-3xl border border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
+      spotlightColor="rgba(6, 63, 64, 0.08)"
+      className="group relative bg-white dark:bg-card p-6 border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
     >
       <div className="flex items-start justify-between">
         <div
@@ -278,12 +269,12 @@ const ParentDashboardInner = () => {
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-black text-navy dark:text-white tracking-tight">
             {c.format}
-            <AnimatedNumber value={c.value} />
+            <CountUp to={c.value} />
           </span>
           <span className="text-[10px] font-bold text-muted-foreground ml-1">{c.sub}</span>
         </div>
       </div>
-    </div>
+    </SpotlightCard>
   ));
 
   return (

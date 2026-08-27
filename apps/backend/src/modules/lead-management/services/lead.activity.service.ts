@@ -26,6 +26,7 @@ export class LeadActivityService {
 
     await LeadEvents.publish(LeadEventType.ACTIVITY_ADDED, {
       leadId,
+      orgId: lead.org_id,
       performedBy: createdBy || undefined,
       timestamp: new Date().toISOString(),
       metadata: { activityId: activity.activity_id, status: activity.status },
@@ -53,7 +54,16 @@ export class LeadActivityService {
       throw new LeadValidationError(`Activity with ID '${activityId}' was not found`);
     }
 
-    return LeadActivityRepository.update(activityId, dto);
+    const updated = await LeadActivityRepository.update(activityId, dto);
+
+    await LeadEvents.publish(LeadEventType.ACTIVITY_ADDED, {
+      leadId: existing.lead_id,
+      orgId: existing.leads?.org_id,
+      timestamp: new Date().toISOString(),
+      metadata: { activityId, status: updated.status },
+    });
+
+    return updated;
   }
 
   static async deleteActivity(activityId: string, performedBy?: string | null, orgId?: string) {
@@ -67,6 +77,14 @@ export class LeadActivityService {
     }
 
     await LeadActivityRepository.delete(activityId);
+
+    await LeadEvents.publish(LeadEventType.ACTIVITY_ADDED, {
+      leadId: existing.lead_id,
+      orgId: existing.leads?.org_id,
+      performedBy: performedBy || undefined,
+      timestamp: new Date().toISOString(),
+      metadata: { activityId, deleted: true },
+    });
 
     logger.info(`Lead activity deleted: ${activityId}`, { activityId, performedBy });
     return { success: true };

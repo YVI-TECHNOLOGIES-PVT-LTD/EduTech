@@ -10,6 +10,13 @@ import { StaffController } from '../../staff-management/controllers/staff.contro
 
 export const leadRouter = Router();
 
+// Metadata & Enums
+leadRouter.get(
+  '/metadata/enums',
+  checkPermission(LeadPolicy.canView()),
+  LeadController.getEnumsMetadata,
+);
+
 // Dashboard, Search, Duplicates, Visits Queue, Counselling Metrics & Counsellors
 leadRouter.get(
   '/counsellors',

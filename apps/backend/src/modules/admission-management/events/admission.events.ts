@@ -16,6 +16,7 @@ export enum ApplicationEventType {
 
 export interface ApplicationEventPayload {
   applicationId: string;
+  orgId?: string;
   applicationNumber?: string;
   leadId?: string;
   previousStatus?: string;

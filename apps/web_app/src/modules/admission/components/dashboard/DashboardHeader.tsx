@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Sparkles,
-  RefreshCw,
-  Calendar as CalendarIcon,
-  Download,
-  ShieldCheck,
-} from 'lucide-react';
+import { Sparkles, RefreshCw, Calendar as CalendarIcon, Download, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -15,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLanguage } from '@/context/LanguageContext';
+import { FadeContent } from '@/components/react-bits/FadeContent';
 
 export type DateRangeOption =
   | 'today'
@@ -88,9 +83,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <SelectTrigger className="h-8.5 w-40 bg-transparent border-0 text-foreground dark:text-white text-xs font-bold focus:ring-0 focus:ring-offset-0 shadow-none">
                 <SelectValue placeholder="Select Range" />
               </SelectTrigger>
-              <SelectContent
-                className="bg-white dark:bg-zinc-950 border-border dark:border-zinc-800 text-foreground dark:text-zinc-100"
-              >
+              <SelectContent className="bg-white dark:bg-zinc-950 border-border dark:border-zinc-800 text-foreground dark:text-zinc-100">
                 <SelectItem value="today" className="text-xs">
                   {t('dashboard.frontOffice.dateRanges.today', 'Today')}
                 </SelectItem>
@@ -158,7 +151,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </div>
 
       {/* Main Greeting & Subtitle Area */}
-      <div className="pt-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-3">
+      <FadeContent
+        direction="up"
+        duration={0.35}
+        className="pt-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-3"
+      >
         <div className="space-y-1 max-w-4xl">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-white font-sans truncate">
             {t('dashboard.frontOffice.goodDay', 'Good day')}, {userName}
@@ -178,7 +175,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             {userRole}
           </span>
         </div>
-      </div>
+      </FadeContent>
 
       {/* Optional Contextual Tabs */}
       {customTabs && (

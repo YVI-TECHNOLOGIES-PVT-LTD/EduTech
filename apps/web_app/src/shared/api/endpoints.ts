@@ -26,9 +26,9 @@ export const ENDPOINTS = {
     STAFF_BY_ID: (id: string) => `/v1/staff/${id}`,
   },
   ACADEMICS: {
-    YEARS: '/academics/years',
-    GRADES: '/academics/grades',
-    SECTIONS: '/academics/sections',
+    YEARS: '/v1/academic/years',
+    GRADES: '/v1/academic/grades',
+    SECTIONS: '/v1/academic/sections',
   },
   CRM: {
     LEADS: '/v1/leads',
