@@ -52,6 +52,7 @@ export function ParentFeePaymentPage() {
   const {
     data: feeData,
     isLoading: isFeeLoading,
+    isFetching: isFeeFetching,
     refetch: refetchFee,
   } = useGetApplicationFeeQuery(activeApplicationId, {
     skip: !activeApplicationId,
@@ -60,6 +61,7 @@ export function ParentFeePaymentPage() {
   const {
     data: receiptData,
     isLoading: isReceiptLoading,
+    isFetching: isReceiptFetching,
     refetch: refetchReceipt,
   } = useGetApplicationReceiptQuery(activeApplicationId, {
     skip: !activeApplicationId,
@@ -151,11 +153,27 @@ export function ParentFeePaymentPage() {
     );
   }
 
-  // Authoritative dynamic calculations
+  // Identity-safe derivation: only accept data verified to belong to activeApplicationId
+  const isMatchingFee = Boolean(feeData && feeData.application_id === activeApplicationId);
+  const currentFee = isMatchingFee ? feeData : null;
+
+  const isMatchingReceipt = Boolean(
+    receiptData &&
+    (receiptData.application_id === activeApplicationId ||
+      (receiptData.application_number &&
+        activeApplication?.application_number &&
+        receiptData.application_number === activeApplication.application_number)),
+  );
+  const currentReceipt = isMatchingReceipt ? receiptData : null;
+
+  const isFeeDataLoading = isFeeLoading || (isFeeFetching && !currentFee);
+
+  // Authoritative dynamic calculations derived exclusively from identity-guarded current objects
   const rawPayStatus = (
-    feeData?.payment_status ||
-    feeData?.payment?.payment_status ||
-    activeApplication.payment_status ||
+    currentFee?.payment_status ||
+    currentFee?.payment?.payment_status ||
+    activeApplication.payment?.payment_status ||
+    activeApplication.admission_fee_payments?.payment_status ||
     (activeApplication.is_fee_paid ? 'paid' : 'pending')
   ).toLowerCase();
 
@@ -168,24 +186,27 @@ export function ParentFeePaymentPage() {
   const isRefunded = rawPayStatus === 'refunded';
   const isPending = !isPaid && !isWaived && !isFailed && !isRefunded;
 
-  const appFee = feeData?.application_fee ?? 500;
-  const processingFee = feeData?.processing_fee ?? 0;
-  const totalFee = feeData?.total_fee ?? appFee + processingFee;
-  const currencySymbol = feeData?.currency === 'USD' ? '$' : '₹';
+  const appFee = currentFee?.application_fee ?? activeApplication.payment?.amount ?? 500;
+  const processingFee = currentFee?.processing_fee ?? 0;
+  const totalFee = currentFee?.total_fee ?? appFee + processingFee;
+  const currencySymbol = currentFee?.currency === 'USD' ? '$' : '₹';
 
   const txnRef =
-    feeData?.payment?.transaction_reference ||
-    receiptData?.transaction_reference ||
+    currentFee?.payment?.transaction_reference ||
+    currentReceipt?.transaction_reference ||
+    activeApplication.payment?.transaction_reference ||
     (isPaid ? `TXN-${activeApplicationId.slice(0, 8).toUpperCase()}` : 'N/A');
 
   const paymentMode =
-    feeData?.payment?.payment_mode?.toUpperCase() ||
-    receiptData?.payment_mode?.toUpperCase() ||
+    currentFee?.payment?.payment_mode?.toUpperCase() ||
+    currentReceipt?.payment_mode?.toUpperCase() ||
+    activeApplication.payment?.payment_mode?.toUpperCase() ||
     (isPaid ? 'ONLINE UPI' : 'PAYMENT PENDING');
 
   const paymentDate =
-    feeData?.payment?.payment_date ||
-    receiptData?.payment_date ||
+    currentFee?.payment?.payment_date ||
+    currentReceipt?.payment_date ||
+    activeApplication.payment?.payment_date ||
     activeApplication.application_date ||
     activeApplication.created_at;
 
@@ -279,42 +300,54 @@ export function ParentFeePaymentPage() {
       />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-5 rounded-2xl border-border/80 bg-card space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Total Payable Fee
-          </span>
-          <p className="text-2xl font-black text-foreground">
-            {currencySymbol} {totalFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </p>
-          <p className="text-xs text-muted-foreground font-medium">Application & Evaluation</p>
-        </Card>
+      {isFeeDataLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-5 rounded-2xl border-border/80 bg-card space-y-3">
+              <div className="h-3 w-20 bg-muted rounded-md animate-pulse" />
+              <div className="h-7 w-32 bg-muted rounded-md animate-pulse" />
+              <div className="h-3 w-24 bg-muted rounded-md animate-pulse" />
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="p-5 rounded-2xl border-border/80 bg-card space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Total Payable Fee
+            </span>
+            <p className="text-2xl font-black text-foreground">
+              {currencySymbol} {totalFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-muted-foreground font-medium">Application & Evaluation</p>
+          </Card>
 
-        <Card className="p-5 rounded-2xl border-border/80 bg-card space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Payment Status
-          </span>
-          <div className="pt-1">{getStatusBadge()}</div>
-          <p className="text-xs text-muted-foreground font-medium mt-1">
-            {isPaid ? `Cleared on ${formattedDate}` : 'Pending gateway clearance'}
-          </p>
-        </Card>
+          <Card className="p-5 rounded-2xl border-border/80 bg-card space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Payment Status
+            </span>
+            <div className="pt-1">{getStatusBadge()}</div>
+            <p className="text-xs text-muted-foreground font-medium mt-1">
+              {isPaid ? `Cleared on ${formattedDate}` : 'Pending gateway clearance'}
+            </p>
+          </Card>
 
-        <Card className="p-5 rounded-2xl border-border/80 bg-card space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Official Receipt
-          </span>
-          <p className="text-sm font-bold font-mono text-foreground pt-1">
-            {isPaid
-              ? receiptData?.receipt_number ||
-                `REC-${activeApplicationId.slice(0, 8).toUpperCase()}`
-              : 'Receipt Pending'}
-          </p>
-          <p className="text-xs text-muted-foreground font-medium">
-            {isPaid ? 'Available for download' : 'Issued upon settlement'}
-          </p>
-        </Card>
-      </div>
+          <Card className="p-5 rounded-2xl border-border/80 bg-card space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Official Receipt
+            </span>
+            <p className="text-sm font-bold font-mono text-foreground pt-1">
+              {isPaid
+                ? currentReceipt?.receipt_number ||
+                  `REC-${activeApplicationId.slice(0, 8).toUpperCase()}`
+                : 'Receipt Pending'}
+            </p>
+            <p className="text-xs text-muted-foreground font-medium">
+              {isPaid ? 'Available for download' : 'Issued upon settlement'}
+            </p>
+          </Card>
+        </div>
+      )}
 
       {/* Transaction History Card */}
       <Card className="p-6 rounded-2xl border-border/80 bg-card shadow-sm space-y-6">
@@ -343,58 +376,66 @@ export function ParentFeePaymentPage() {
         />
 
         <div className="space-y-3">
-          <div className="p-5 rounded-2xl border border-border/80 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
-            <div className="flex items-center space-x-4 min-w-0">
-              <div
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shrink-0 border ${
-                  isPaid
-                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
-                    : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800'
-                }`}
-              >
-                <Receipt className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-sm font-extrabold text-foreground truncate">
-                  Admission Registration & Processing Fee
-                </h4>
-                <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">
-                  Ref: <span className="font-mono">{txnRef}</span> • {paymentMode} • {formattedDate}
-                </p>
-              </div>
+          {isFeeDataLoading ? (
+            <div className="p-6 rounded-2xl border border-border/80 bg-muted/10 flex items-center justify-center space-x-2 text-xs text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+              <span>Loading fee statement for {studentName}...</span>
             </div>
+          ) : (
+            <div className="p-5 rounded-2xl border border-border/80 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+              <div className="flex items-center space-x-4 min-w-0">
+                <div
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shrink-0 border ${
+                    isPaid
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
+                      : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800'
+                  }`}
+                >
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-extrabold text-foreground truncate">
+                    Admission Registration & Processing Fee
+                  </h4>
+                  <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">
+                    Ref: <span className="font-mono">{txnRef}</span> • {paymentMode} •{' '}
+                    {formattedDate}
+                  </p>
+                </div>
+              </div>
 
-            <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border/60 shrink-0">
-              <span className="text-sm font-extrabold text-foreground">
-                {currencySymbol} {totalFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-              {getStatusBadge()}
-              {isPaid ? (
-                <Button
-                  onClick={() => setShowReceiptModal(true)}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 px-3 rounded-xl border-border text-foreground font-bold text-xs flex items-center space-x-1.5 shadow-xs"
-                  title="View / Print Digital Receipt"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Receipt</span>
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => {
-                    setPayError(null);
-                    setShowPaymentModal(true);
-                  }}
-                  size="sm"
-                  className="h-9 px-3.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 shadow-xs"
-                >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>Settle Fee</span>
-                </Button>
-              )}
+              <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border/60 shrink-0">
+                <span className="text-sm font-extrabold text-foreground">
+                  {currencySymbol} {totalFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+                {getStatusBadge()}
+                {isPaid ? (
+                  <Button
+                    onClick={() => setShowReceiptModal(true)}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 rounded-xl border-border text-foreground font-bold text-xs flex items-center space-x-1.5 shadow-xs"
+                    title="View / Print Digital Receipt"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Receipt</span>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setPayError(null);
+                      setShowPaymentModal(true);
+                    }}
+                    size="sm"
+                    className="h-9 px-3.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 shadow-xs"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Settle Fee</span>
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </Card>
 
@@ -555,7 +596,7 @@ export function ParentFeePaymentPage() {
                 <div>
                   <h3 className="text-base font-black text-foreground">Payment Receipt</h3>
                   <p className="text-[11px] font-mono text-muted-foreground">
-                    {receiptData?.receipt_number ||
+                    {currentReceipt?.receipt_number ||
                       `REC-${activeApplicationId.slice(0, 8).toUpperCase()}`}
                   </p>
                 </div>
@@ -630,8 +671,8 @@ export function ParentFeePaymentPage() {
                 </p>
                 <p>
                   <span className="font-bold text-foreground">Issued By:</span>{' '}
-                  {receiptData?.org_name ||
-                    feeData?.org_name ||
+                  {currentReceipt?.org_name ||
+                    currentFee?.org_name ||
                     'EduTrack International Admissions Desk'}
                 </p>
               </div>

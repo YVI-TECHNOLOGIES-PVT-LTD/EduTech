@@ -126,74 +126,45 @@ export const ParentAcademicsStep: React.FC<ParentAcademicsStepProps> = ({
         </div>
 
         {/* Curriculum Preference */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
             CURRICULUM PREFERENCE <span className="text-red-500">*</span>
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <select
+            disabled={isReadOnly}
+            value={formData.curriculum_preference || 'CBSE'}
+            onChange={(e) =>
+              setFormData((prev: any) => ({ ...prev, curriculum_preference: e.target.value }))
+            }
+            className="w-full max-w-xs px-3 py-1.5 h-9 rounded-lg border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all cursor-pointer disabled:bg-gray-50"
+          >
             {['CBSE', 'ICSE', 'IB', 'IGCSE', 'State Board'].map((curr) => (
-              <button
-                key={curr}
-                type="button"
-                disabled={isReadOnly}
-                onClick={() =>
-                  setFormData((prev: any) => ({ ...prev, curriculum_preference: curr }))
-                }
-                className={`py-3 px-4 rounded-xl text-xs font-bold border transition-all ${
-                  formData.curriculum_preference === curr
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-300'
-                }`}
-              >
+              <option key={curr} value={curr}>
                 {curr}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
-        {/* Select Grade Applying For */}
-        <div className="space-y-2 pt-2">
+        {/* Grade Applying For (Read-Only) */}
+        <div className="space-y-1.5 pt-2">
           <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
-            SELECT GRADE APPLYING FOR <span className="text-red-500">*</span>
+            APPLYING FOR GRADE <span className="text-red-500">*</span>
           </label>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {[
-              'Grade 1',
-              'Grade 2',
-              'Grade 3',
-              'Grade 4',
-              'Grade 5',
-              'Grade 6',
-              'Grade 7',
-              'Grade 8',
-              'Grade 9',
-              'Grade 10',
-            ].map((gName) => {
-              const isSelected = formData.grade_applied_for === gName;
-              return (
-                <button
-                  key={gName}
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={() =>
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      grade_applied_for: gName,
-                      grade_id: gName.toLowerCase().replace(' ', '-'),
-                    }))
-                  }
-                  className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
-                    isSelected
-                      ? 'bg-indigo-50 border-indigo-600 text-indigo-950 font-black shadow-sm ring-2 ring-indigo-600/20'
-                      : 'bg-white border-gray-200 hover:border-gray-300 text-gray-800 font-semibold'
-                  }`}
-                >
-                  <span className="text-xs">{gName}</span>
-                  {isSelected && <Check className="w-4 h-4 text-indigo-600 stroke-[3]" />}
-                </button>
-              );
-            })}
+          <div className="w-full max-w-md px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-bold text-gray-900 flex items-center justify-between">
+            <span
+              className={
+                formData.grade_applied_for
+                  ? 'text-gray-900 font-bold'
+                  : 'text-gray-400 font-medium italic'
+              }
+            >
+              {formData.grade_applied_for || 'Not Selected (Select in Student Information)'}
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+              Selected in Step 2
+            </span>
           </div>
         </div>
       </div>

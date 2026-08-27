@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useApplicationList } from './useApplication';
 import { useAuth } from '@/context/AuthContext';
 import type { ApplicationRecord } from '@/shared/api/admission.api';
@@ -31,6 +31,8 @@ export interface UseActiveAdmissionApplicationResult {
 export function useActiveAdmissionApplication(): UseActiveAdmissionApplicationResult {
   const { user, isAuthenticated } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const routeParams = useParams<{ id?: string; applicationId?: string }>();
   const { applications, isLoading, error, refetch } = useApplicationList(
     { limit: 50 },
@@ -44,19 +46,20 @@ export function useActiveAdmissionApplication(): UseActiveAdmissionApplicationRe
 
   const routeAppId = routeParams.id || routeParams.applicationId;
   const queryAppId = searchParams.get('appId') || searchParams.get('applicationId');
-
-  // Internal state tracking selected ID
-  const [selectedId, setSelectedId] = useState<string>(() => {
-    if (routeAppId) return routeAppId;
-    if (queryAppId) return queryAppId;
-    if (userStorageKey) {
-      try {
-        return sessionStorage.getItem(userStorageKey) || '';
-      } catch {
-        return '';
-      }
+  const storedAppId = useMemo(() => {
+    if (!userStorageKey) return '';
+    try {
+      return sessionStorage.getItem(userStorageKey)?.trim() || '';
+    } catch {
+      return '';
     }
-    return '';
+  }, [userStorageKey]);
+
+  // Synchronous React local state for 0ms immediate UI responsiveness
+  const [selectedId, setSelectedId] = useState<string>(() => {
+    if (routeAppId) return routeAppId.trim();
+    if (queryAppId) return queryAppId.trim();
+    return storedAppId;
   });
 
   // Track previous authenticated user ID to reset local selectedId on user change
@@ -103,12 +106,13 @@ export function useActiveAdmissionApplication(): UseActiveAdmissionApplicationRe
 
     // 1. Try matching explicit selectedId within current user's authorized applications
     if (selectedId) {
+      const target = selectedId.toLowerCase().trim();
       const match = applications.find(
         (app) =>
-          app.application_id === selectedId ||
-          app.id === selectedId ||
-          app.application_number === selectedId ||
-          app.applicationNumber === selectedId,
+          (app.application_id || '').toLowerCase().trim() === target ||
+          (app.id || '').toLowerCase().trim() === target ||
+          (app.application_number || '').toLowerCase().trim() === target ||
+          (app.applicationNumber || '').toLowerCase().trim() === target,
       );
       if (match) return match;
     }
@@ -147,18 +151,32 @@ export function useActiveAdmissionApplication(): UseActiveAdmissionApplicationRe
 
   const setActiveApplicationId = useCallback(
     (appId: string) => {
-      setSelectedId(appId);
+      const cleanId = (appId || '').trim();
+      if (!cleanId) return;
+
+      setSelectedId(cleanId);
       if (userStorageKey) {
         try {
-          sessionStorage.setItem(userStorageKey, appId);
+          sessionStorage.setItem(userStorageKey, cleanId);
         } catch {}
       }
-      // Update query param without full reload
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('appId', appId);
-      setSearchParams(newParams, { replace: true });
+
+      if (routeParams.id || routeParams.applicationId) {
+        navigate(`/app/admissions/status?appId=${encodeURIComponent(cleanId)}`, { replace: true });
+      } else {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('appId', cleanId);
+        setSearchParams(newParams, { replace: true });
+      }
     },
-    [searchParams, setSearchParams, userStorageKey],
+    [
+      routeParams.id,
+      routeParams.applicationId,
+      navigate,
+      searchParams,
+      setSearchParams,
+      userStorageKey,
+    ],
   );
 
   const studentName = useMemo(() => {
@@ -178,8 +196,9 @@ export function useActiveAdmissionApplication(): UseActiveAdmissionApplicationRe
     return (
       activeApplication.grade_applied_for ||
       activeApplication.grade_name ||
+      activeApplication.lead?.grade_name ||
       (activeApplication.lead as any)?.grade_applied_for ||
-      (activeApplication.leads as any)?.academic_year_grades?.grades?.grade_name ||
+      activeApplication.leads?.academic_year_grades?.grades?.grade_name ||
       'Grade Applied'
     );
   }, [activeApplication]);
@@ -207,4 +226,3 @@ export function useActiveAdmissionApplication(): UseActiveAdmissionApplicationRe
     gradeApplied,
   };
 }
-

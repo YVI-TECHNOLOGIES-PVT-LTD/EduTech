@@ -30,6 +30,7 @@ import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDas
 import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
 import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
 import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/ParentAdmissionStatusPage';
+import { ParentSubmittedApplicationPage } from '../modules/admission/pages/parent/ParentSubmittedApplicationPage';
 
 import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
 
@@ -48,7 +49,17 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   { path: 'admissions/my', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'admissions/wizard', element: <ApplicationWizardPage />, layout: 'parent_admission' },
   {
+    path: 'admissions/view/:id',
+    element: <ParentSubmittedApplicationPage />,
+    layout: 'parent_admission',
+  },
+  {
     path: 'admissions/documents',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+  },
+  {
+    path: 'admissions/documents/:applicationId',
     element: <ParentDocumentCenterPage />,
     layout: 'parent_admission',
   },
@@ -62,6 +73,11 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   { path: 'parent/my-child', element: <ParentDashboard />, layout: 'dashboard' },
   { path: 'parent/applications', element: <MyApplications />, layout: 'parent_admission' },
   { path: 'parent/documents', element: <ParentDocumentCenterPage />, layout: 'parent_admission' },
+  {
+    path: 'parent/documents/:applicationId',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+  },
   { path: 'parent/payments', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'parent/fees', element: <ParentFeePaymentPage />, layout: 'parent_admission' },
   { path: 'parent/decision', element: <ParentAdmissionStatusPage />, layout: 'parent_admission' },
@@ -110,7 +126,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     guardType: 'admission_application',
   },
   {
-    path: 'admissions/documents/:id',
+    path: 'admissions/application/:id/documents',
     element: <Applicant360Page />,
     layout: 'admission_workspace',
     guardType: 'admission_application',

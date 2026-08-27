@@ -54,6 +54,7 @@ export function ParentAdmissionStatusPage() {
   const {
     data: decisionData,
     isLoading: isDecisionLoading,
+    isFetching: isDecisionFetching,
     refetch: refetchDecision,
   } = useGetDecisionQuery(activeApplicationId, {
     skip: !activeApplicationId,
@@ -62,6 +63,7 @@ export function ParentAdmissionStatusPage() {
   const {
     data: feeData,
     isLoading: isFeeLoading,
+    isFetching: isFeeFetching,
     refetch: refetchFee,
   } = useGetApplicationFeeQuery(activeApplicationId, {
     skip: !activeApplicationId,
@@ -70,6 +72,7 @@ export function ParentAdmissionStatusPage() {
   const {
     data: assessmentData,
     isLoading: isAssessmentLoading,
+    isFetching: isAssessmentFetching,
     refetch: refetchAssessment,
   } = useGetApplicationAssessmentQuery(activeApplicationId, {
     skip: !activeApplicationId,
@@ -78,6 +81,7 @@ export function ParentAdmissionStatusPage() {
   const {
     data: uploadedDocs = [],
     isLoading: isDocsLoading,
+    isFetching: isDocsFetching,
     refetch: refetchDocs,
   } = useGetApplicationDocumentsQuery(activeApplicationId, {
     skip: !activeApplicationId,
@@ -153,9 +157,39 @@ export function ParentAdmissionStatusPage() {
     );
   }
 
+  // Strict identity guarded decision resolution
+  const isMatchingDecision = Boolean(
+    !isDecisionFetching &&
+    decisionData &&
+    (!('application_id' in decisionData) ||
+      (decisionData as any).application_id === activeApplicationId),
+  );
+  const currentDecision = isMatchingDecision
+    ? decisionData
+    : activeApplication.admission_decisions || null;
+
+  // Strict identity guarded fee resolution
+  const isMatchingFee = Boolean(
+    !isFeeFetching && feeData && feeData.application_id === activeApplicationId,
+  );
+  const currentFee = isMatchingFee
+    ? feeData
+    : activeApplication.admission_fee_payments || (activeApplication as any).payment || null;
+
+  // Strict identity guarded assessment resolution
+  const isMatchingAssessment = Boolean(
+    !isAssessmentFetching &&
+    assessmentData &&
+    (!('application_id' in assessmentData) ||
+      (assessmentData as any).application_id === activeApplicationId),
+  );
+  const currentAssessment = isMatchingAssessment
+    ? assessmentData
+    : activeApplication.application_assessments || null;
+
   const rawStatus = (activeApplication.status || 'submitted').toLowerCase();
   const decisionStatus = (
-    decisionData?.decision_status ||
+    currentDecision?.decision_status ||
     activeApplication.admission_decisions?.decision_status ||
     ''
   ).toLowerCase();
@@ -170,27 +204,43 @@ export function ParentAdmissionStatusPage() {
     !!(activeApplication as any)?.students;
 
   const isFeePaid =
-    feeData?.payment_status === 'paid' ||
-    feeData?.payment_status === 'waived' ||
+    currentFee?.payment_status === 'paid' ||
+    currentFee?.payment_status === 'waived' ||
     activeApplication.is_fee_paid ||
     activeApplication.payment_status === 'paid' ||
+    activeApplication.payment?.payment_status === 'paid' ||
     isEnrolled;
 
-  // Document verification stage calculation
-  const hasDocCorrection = uploadedDocs.some(
-    (d) => d.verify_status === 'rejected' || d.verify_status === 'resubmission_requested',
+  // Strict identity guarded document list resolution
+  const isMatchingDocs = Boolean(
+    !isDocsFetching &&
+    uploadedDocs &&
+    Array.isArray(uploadedDocs) &&
+    (uploadedDocs.length === 0 ||
+      uploadedDocs.every(
+        (d: any) => !d.application_id || d.application_id === activeApplicationId,
+      )),
+  );
+
+  const allDocs =
+    isMatchingDocs && uploadedDocs.length > 0
+      ? uploadedDocs
+      : activeApplication.documents || (activeApplication as any).admission_documents || [];
+
+  const hasDocCorrection = allDocs.some(
+    (d: any) => d.verify_status === 'rejected' || d.verify_status === 'resubmission_requested',
   );
   const allDocsVerified =
-    uploadedDocs.length > 0 && uploadedDocs.every((d) => d.verify_status === 'verified');
-  const hasDocsUploaded = uploadedDocs.length > 0;
+    allDocs.length > 0 && allDocs.every((d: any) => d.verify_status === 'verified');
+  const hasDocsUploaded = allDocs.length > 0;
 
   // Assessment stage calculation
   const hasAssessmentScore =
-    assessmentData?.marks_obtained !== null && assessmentData?.marks_obtained !== undefined;
+    currentAssessment?.marks_obtained !== null && currentAssessment?.marks_obtained !== undefined;
   const assessmentPassed =
-    assessmentData?.result === 'pass' ||
-    assessmentData?.result === 'recommended' ||
-    (assessmentData?.percentage ?? 0) >= 40;
+    currentAssessment?.result === 'pass' ||
+    currentAssessment?.result === 'recommended' ||
+    (currentAssessment?.percentage ?? 0) >= 40;
 
   const submittedDate =
     activeApplication.application_date ||
@@ -396,11 +446,11 @@ export function ParentAdmissionStatusPage() {
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
                   Assessment completed. Result:{' '}
                   <span className="uppercase font-bold">
-                    {assessmentData?.result || (assessmentPassed ? 'Cleared' : 'Evaluated')}
+                    {currentAssessment?.result || (assessmentPassed ? 'Cleared' : 'Evaluated')}
                   </span>
-                  {assessmentData?.percentage !== null &&
-                    assessmentData?.percentage !== undefined && (
-                      <span> ({assessmentData.percentage}%)</span>
+                  {currentAssessment?.percentage !== null &&
+                    currentAssessment?.percentage !== undefined && (
+                      <span> ({currentAssessment.percentage}%)</span>
                     )}
                 </p>
               ) : rawStatus === 'assessment_pending' ? (
@@ -442,25 +492,25 @@ export function ParentAdmissionStatusPage() {
                     The admissions committee has approved admission for {studentName} in{' '}
                     {gradeApplied}.
                   </p>
-                  {decisionData?.offer_expiry_date && (
+                  {currentDecision?.offer_expiry_date && (
                     <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
                       Offer valid until:{' '}
-                      {new Date(decisionData.offer_expiry_date).toLocaleDateString()}
+                      {new Date(currentDecision.offer_expiry_date).toLocaleDateString()}
                     </p>
                   )}
                 </div>
               ) : isWaitlisted ? (
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
                   Application Waitlisted.{' '}
-                  {decisionData?.waitlist_position
-                    ? `Current Waitlist Position: #${decisionData.waitlist_position}`
+                  {currentDecision?.waitlist_position
+                    ? `Current Waitlist Position: #${currentDecision.waitlist_position}`
                     : 'Awaiting seat availability clearance.'}
                 </p>
               ) : isRejected ? (
                 <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
                   Application Not Accepted.{' '}
-                  {decisionData?.reason
-                    ? `Reason: ${decisionData.reason}`
+                  {currentDecision?.reason
+                    ? `Reason: ${currentDecision.reason}`
                     : 'Criteria not fulfilled.'}
                 </p>
               ) : (
@@ -495,7 +545,7 @@ export function ParentAdmissionStatusPage() {
           </Button>
           <Button
             size="sm"
-            onClick={() => navigate(`/app/admissions/${activeApplicationId}`)}
+            onClick={() => navigate(`/app/admissions/view/${activeApplicationId}`)}
             className="w-full sm:w-auto font-bold text-xs shadow-sm"
           >
             <span>View Full Details</span>

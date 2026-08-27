@@ -17,6 +17,7 @@ import { Label } from '../../../../components/ui/label';
 interface ParentStudentDetailsStepProps {
   formData: any;
   setFormData: React.Dispatch<React.SetStateAction<any>>;
+  classes?: any[];
   onNext: () => void;
   onBack: () => void;
   isReadOnly?: boolean;
@@ -25,6 +26,7 @@ interface ParentStudentDetailsStepProps {
 export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> = ({
   formData,
   setFormData,
+  classes = [],
   onNext,
   onBack,
   isReadOnly = false,
@@ -44,9 +46,21 @@ export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> =
       setError('Student Date of Birth is required.');
       return;
     }
+    if (!formData.grade_applied_for) {
+      setError('Please select the Grade Applied For.');
+      return;
+    }
     setError(null);
     onNext();
   };
+
+  const gradeOptions = Array.from(
+    new Set(
+      (classes || [])
+        .map((c: any) => c.name || c.grade_name || c.id)
+        .filter((val: any): val is string => typeof val === 'string' && val.length > 0),
+    ),
+  );
 
   return (
     <div className="space-y-6 font-sans">
@@ -190,29 +204,42 @@ export const ParentStudentDetailsStep: React.FC<ParentStudentDetailsStepProps> =
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
               APPLYING FOR GRADE <span className="text-red-500">*</span>
             </label>
             <select
               disabled={isReadOnly}
-              value={formData.grade_applied_for || 'Grade 1'}
-              onChange={(e) =>
-                setFormData((prev: any) => ({ ...prev, grade_applied_for: e.target.value }))
-              }
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all cursor-pointer disabled:bg-gray-50"
+              value={formData.grade_applied_for || ''}
+              onChange={(e) => {
+                const selectedVal = e.target.value;
+                const matchedClass = classes.find(
+                  (c: any) => (c.name || c.grade_name || c.id) === selectedVal,
+                );
+                setFormData((prev: any) => ({
+                  ...prev,
+                  grade_applied_for: selectedVal,
+                  grade_id:
+                    matchedClass?.grade_id ||
+                    matchedClass?.id ||
+                    selectedVal.toLowerCase().replace(/\s+/g, '-'),
+                  academic_year_grade_id:
+                    matchedClass?.academic_year_grade_id ||
+                    matchedClass?.id ||
+                    prev.academic_year_grade_id,
+                }));
+              }}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all cursor-pointer disabled:bg-gray-50"
             >
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
-              <option value="Grade 4">Grade 4</option>
-              <option value="Grade 5">Grade 5</option>
-              <option value="Grade 6">Grade 6</option>
-              <option value="Grade 7">Grade 7</option>
-              <option value="Grade 8">Grade 8</option>
-              <option value="Grade 9">Grade 9</option>
-              <option value="Grade 10">Grade 10</option>
+              <option value="" disabled>
+                Select grade
+              </option>
+              {gradeOptions.map((gName: string) => (
+                <option key={gName} value={gName}>
+                  {gName}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -543,9 +543,24 @@ export const admissionApi = apiSlice.injectEndpoints({
         url: ENDPOINTS.ADMISSIONS.DOCUMENT_TYPES,
         params: params || undefined,
       }),
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        if (Array.isArray(response?.items)) return response.items;
+        if (Array.isArray(response?.document_types)) return response.document_types;
+        return [];
+      },
+      providesTags: [{ type: 'Application', id: 'DOCUMENT_TYPES' }],
     }),
     getApplicationDocuments: builder.query<DocumentResponseDto[], string>({
       query: (applicationId: string) => ENDPOINTS.ADMISSIONS.DOCUMENTS(applicationId),
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        if (Array.isArray(response?.items)) return response.items;
+        if (Array.isArray(response?.documents)) return response.documents;
+        return [];
+      },
       providesTags: (_result, _error, id) => [{ type: 'Application', id }],
     }),
     getDocumentSignedUrl: builder.query<SignedUrlResponseDto, string>({

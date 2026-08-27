@@ -61,7 +61,7 @@ export function ApplicationWizardPage() {
     academic_year_id: '',
     academic_year_grade_id: '',
     grade_id: '',
-    grade_applied_for: 'Grade 1',
+    grade_applied_for: '',
     curriculum_preference: 'CBSE',
     student_first_name: '',
     student_last_name: '',
@@ -191,16 +191,6 @@ export function ApplicationWizardPage() {
         const res = await apiClient.get('/public/classes', { params });
         if (Array.isArray(res.data)) {
           setClasses(res.data);
-          if (res.data.length > 0 && !formData.grade_applied_for) {
-            setFormData((prev: any) => ({
-              ...prev,
-              academic_year_grade_id:
-                prev.academic_year_grade_id || res.data[0].academic_year_grade_id || res.data[0].id,
-              grade_id: prev.grade_id || res.data[0].grade_id || res.data[0].id,
-              grade_applied_for:
-                prev.grade_applied_for || res.data[0].name || res.data[0].grade_name,
-            }));
-          }
         }
       } catch (err) {
         console.error('Failed to load classes', err);
@@ -665,6 +655,7 @@ export function ApplicationWizardPage() {
               <ParentStudentDetailsStep
                 formData={formData}
                 setFormData={setFormData}
+                classes={classes}
                 onNext={handleNext}
                 onBack={handleBack}
                 isReadOnly={isReadOnly}
