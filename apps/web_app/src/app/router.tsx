@@ -7,6 +7,9 @@ import {
   ProtectedRoute,
   PermissionGuard,
   AnyPermissionGuard,
+  FrontOfficeRouteGuard,
+  ParentRouteGuard,
+  AdminRouteGuard,
 } from '../components/auth/ProtectedRoute';
 import { AppShell } from '../components/shell/AppShell';
 import PublicLayout from '../layouts/PublicLayout';
@@ -59,7 +62,13 @@ const RoleBasedDefaultRedirect: React.FC = () => {
 export const AppRouter = () => {
   const wrapWithGuards = (route: RouteConfig) => {
     let el = route.element;
-    if (route.guardType === 'admission_inquiry') {
+    if (route.guardType === 'front_office') {
+      el = <FrontOfficeRouteGuard>{el}</FrontOfficeRouteGuard>;
+    } else if (route.guardType === 'parent') {
+      el = <ParentRouteGuard>{el}</ParentRouteGuard>;
+    } else if (route.guardType === 'admin') {
+      el = <AdminRouteGuard>{el}</AdminRouteGuard>;
+    } else if (route.guardType === 'admission_inquiry') {
       el = <AdmissionInquiryGuard>{el}</AdmissionInquiryGuard>;
     } else if (route.guardType === 'admission_application') {
       el = <AdmissionApplicationGuard>{el}</AdmissionApplicationGuard>;
@@ -73,11 +82,6 @@ export const AppRouter = () => {
 
     return el;
   };
-
-  const dashboardRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'dashboard');
-  const admissionWorkspaceRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'admission_workspace');
-  const parentAdmissionRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'parent_admission');
-  const standaloneRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'none');
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -137,9 +141,9 @@ export const AppRouter = () => {
                 </Route>
               </Route>
 
-              {/* Redirects */}
-              <Route path="/parent/*" element={<Navigate to="/app/admissions/my" replace />} />
-              <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
+              {/* Canonical Persona Redirects */}
+              <Route path="/parent/*" element={<Navigate to="/app/parent/dashboard" replace />} />
+              <Route path="/app/*" element={<RoleBasedDefaultRedirect />} />
               <Route path="*" element={<Home />} />
             </Routes>
           </Suspense>

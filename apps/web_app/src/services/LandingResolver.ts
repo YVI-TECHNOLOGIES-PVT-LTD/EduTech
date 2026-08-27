@@ -1,95 +1,112 @@
 import { ErpModule } from '../config/module_registry';
 
 export const LandingResolver = {
+  /**
+   * Authoritative role normalization function
+   */
+  normalizeRole(role?: string | null): string {
+    if (!role || typeof role !== 'string') return '';
+    return role
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_');
+  },
+
   resolveLandingRoute(
     roles: string[] = [],
     visibleModules: ErpModule[] = [],
     userContext?: any,
   ): string {
-    const rawRoles =
-      roles.length > 0
+    const rawRoles: string[] =
+      Array.isArray(roles) && roles.length > 0
         ? roles
-        : userContext?.roles || (userContext?.role ? [userContext.role] : []);
-    const normalizedRoles = rawRoles.map((r: string) =>
-      String(r)
-        .toUpperCase()
-        .replace(/[\s_-]+/g, '_'),
-    );
+        : Array.isArray(userContext?.roles) && userContext.roles.length > 0
+          ? userContext.roles
+          : userContext?.role
+            ? [userContext.role]
+            : [];
 
-    const isStaff = normalizedRoles.some((r: string) =>
+    const normalizedRoles = rawRoles
+      .map((r: string) => LandingResolver.normalizeRole(r))
+      .filter(Boolean);
+
+    // 1. Admin / Institutional Leadership Roles
+    const isAdmin = normalizedRoles.some((r: string) =>
       [
         'ADMIN',
         'SUPERADMIN',
         'SUPER_ADMIN',
         'ORG_ADMIN',
+        'HOI',
+        'PRINCIPAL',
+        'HEAD_OF_INSTITUTE',
+      ].includes(r),
+    );
+
+    if (isAdmin) {
+      const destination = '/app/admin/dashboard';
+      console.log('[LandingResolver] Admin resolved:', { roles: normalizedRoles, destination });
+      return destination;
+    }
+
+    // 2. Front Office / Operations / Admissions Desk / Staff Roles
+    const isFrontOffice = normalizedRoles.some((r: string) =>
+      [
         'FRONT_OFFICE',
         'FO',
-        'FRONT_OFFICE_STAFF',
         'RECEPTIONIST',
         'STAFF',
-        'FACULTY',
         'ADMISSION_OFFICER',
         'ADMISSIONS_OFFICER',
         'COUNSELLOR',
         'COUNSELOR',
-        'HOI',
-        'PRINCIPAL',
-        'HEAD_OF_INSTITUTE',
-        'TEACHER',
         'FINANCE',
         'FINANCE_OFFICER',
-        'EXAM_CELL_ADMIN',
-        'EXAM_CELL',
       ].includes(r),
     );
 
-    if (isStaff) {
-      const destination = '/app/workspace';
-      console.log('[PortalRouting]', {
-        userId: userContext?.id || userContext?.userId || 'unknown',
-        role: normalizedRoles.join(','),
-        organizationId: userContext?.school_id || userContext?.org_id || 'unknown',
-        portalState: 'STAFF_WORKSPACE',
+    if (isFrontOffice) {
+      const destination = '/app/front-office/dashboard';
+      console.log('[LandingResolver] Front Office resolved:', {
+        roles: normalizedRoles,
         destination,
-        reason: 'Staff user resolved to School Operations Workspace',
       });
       return destination;
     }
 
+    // 3. Faculty / Teaching Staff Roles
+    const isFaculty = normalizedRoles.some((r: string) => ['FACULTY', 'TEACHER'].includes(r));
+    if (isFaculty) {
+      const destination = '/app/faculty/dashboard';
+      console.log('[LandingResolver] Faculty resolved:', { roles: normalizedRoles, destination });
+      return destination;
+    }
+
+    // 4. Student Persona Roles
+    const isStudent = normalizedRoles.some((r: string) => ['STUDENT'].includes(r));
+    if (isStudent) {
+      const destination = '/app/student/dashboard';
+      console.log('[LandingResolver] Student resolved:', { roles: normalizedRoles, destination });
+      return destination;
+    }
+
+    // 5. Examination Cell Roles
+    const isExamCell = normalizedRoles.some((r: string) =>
+      ['EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r),
+    );
+    if (isExamCell) {
+      const destination = '/app/exam-admin/dashboard';
+      console.log('[LandingResolver] Exam Cell resolved:', { roles: normalizedRoles, destination });
+      return destination;
+    }
+
+    // 6. Parent / Guardian Persona Roles
     const isParent = normalizedRoles.some((r: string) =>
       ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
     );
-
     if (isParent) {
-      const hasEnrolledStudent = Boolean(
-        userContext?.hasEnrolledStudent ||
-        userContext?.isPostAdmission ||
-        normalizedRoles.includes('ENROLLED_PARENT'),
-      );
-
-      if (hasEnrolledStudent) {
-        const destination = '/app/parent/dashboard';
-        console.log('[PortalRouting]', {
-          userId: userContext?.id || userContext?.userId || 'unknown',
-          role: normalizedRoles.join(','),
-          organizationId: userContext?.school_id || userContext?.org_id || 'unknown',
-          portalState: 'POST_ADMISSION_PARENT',
-          destination,
-          reason: 'Post-admission parent with active enrolled student',
-        });
-        return destination;
-      }
-
-      // Pre-admission applicant/parent
-      const destination = '/app/admissions/my';
-      console.log('[PortalRouting]', {
-        userId: userContext?.id || userContext?.userId || 'unknown',
-        role: normalizedRoles.join(','),
-        organizationId: userContext?.school_id || userContext?.org_id || 'unknown',
-        portalState: 'PRE_ADMISSION_PORTAL',
-        destination,
-        reason: 'Pre-admission applicant resolved to Admission Portal (My Applications)',
-      });
+      const destination = '/app/parent/dashboard';
+      console.log('[LandingResolver] Parent resolved:', { roles: normalizedRoles, destination });
       return destination;
     }
 
@@ -97,26 +114,16 @@ export const LandingResolver = {
     if (visibleModules && visibleModules.length > 0) {
       const sorted = [...visibleModules].sort((a, b) => b.priority - a.priority);
       const destination = sorted[0].route;
-      console.log('[PortalRouting]', {
-        userId: userContext?.id || 'unknown',
-        role: normalizedRoles.join(','),
-        organizationId: userContext?.school_id || userContext?.org_id || 'unknown',
-        portalState: 'MODULE_PRIORITY_FALLBACK',
-        destination,
-        reason: `Module priority resolution: ${sorted[0].name}`,
-      });
+      console.log('[LandingResolver] Module priority fallback:', { destination });
       return destination;
     }
 
-    const destination = '/app/workspace';
-    console.log('[PortalRouting]', {
-      userId: userContext?.id || 'unknown',
-      role: normalizedRoles.join(','),
-      organizationId: userContext?.school_id || userContext?.org_id || 'unknown',
-      portalState: 'DEFAULT_FALLBACK',
-      destination,
-      reason: 'General fallback to workspace',
+    // Fallback: Default to Parent dashboard (Safe default, never silently classify unknown as Front Office)
+    const fallbackDestination = '/app/parent/dashboard';
+    console.log('[LandingResolver] Fallback resolved:', {
+      roles: normalizedRoles,
+      fallbackDestination,
     });
-    return destination;
+    return fallbackDestination;
   },
 };

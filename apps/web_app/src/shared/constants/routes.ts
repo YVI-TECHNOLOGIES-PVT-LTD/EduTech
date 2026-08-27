@@ -8,6 +8,8 @@ export const ROUTES = {
   APP: {
     ROOT: '/app',
     DASHBOARD: '/app/dashboard',
+    FRONT_OFFICE_DASHBOARD: '/app/front-office/dashboard',
+    PARENT_DASHBOARD: '/app/parent/dashboard',
     ORGANIZATION: '/app/organization',
     USERS: '/app/users',
     ROLES: '/app/roles',

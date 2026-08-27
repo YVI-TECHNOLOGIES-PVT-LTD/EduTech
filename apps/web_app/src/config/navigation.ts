@@ -22,6 +22,10 @@ import {
   BookOpen,
   Activity,
   Award,
+  HelpCircle,
+  UserPlus,
+  MessageSquare,
+  ShieldCheck,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -55,7 +59,7 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
       {
         id: 'p_dashboard',
         title: 'Dashboard',
-        url: '/app/admissions/dashboard',
+        url: '/app/parent/dashboard',
         icon: LayoutDashboard,
       },
       { id: 'p_my', title: 'My Applications', url: '/app/admissions/my', icon: FileText },
@@ -122,7 +126,12 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
     title: 'Front Office Workspace',
     contextLabel: 'FRONT OFFICE',
     items: [
-      { id: 'fo_dashboard', title: 'Dashboard', url: '/app/workspace', icon: LayoutDashboard },
+      {
+        id: 'fo_dashboard',
+        title: 'Dashboard',
+        url: '/app/front-office/dashboard',
+        icon: LayoutDashboard,
+      },
       {
         id: 'fo_admissions',
         title: 'Admissions',
@@ -139,104 +148,58 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
                 id: 'fo_enq_sub',
                 title: 'Enquiries',
                 url: '/app/admissions/inquiries',
-                icon: PhoneCall,
+                icon: HelpCircle,
               },
               {
                 id: 'fo_leads_sub',
-                title: 'Leads',
+                title: 'Leads Pipeline',
                 url: '/app/front-office/leads',
-                icon: Users,
+                icon: UserPlus,
               },
               {
-                id: 'fo_lead_act_sub',
-                title: 'Lead Activities',
-                url: '/app/front-office/leads?tab=activities',
-                icon: Activity,
-              },
-            ],
-          },
-          {
-            id: 'fo_counselling',
-            title: 'Counselling',
-            url: '/app/admissions/counselling',
-            icon: UserCheck,
-            items: [
-              {
-                id: 'fo_coun_desk_sub',
+                id: 'fo_counsel_sub',
                 title: 'Counselling Desk',
-                url: '/app/admissions/counselling',
-                icon: UserCheck,
+                url: '/app/front-office/counselling',
+                icon: MessageSquare,
               },
               {
-                id: 'fo_coun_followups_sub',
-                title: 'Follow-ups',
-                url: '/app/front-office/counselling?tab=followups',
-                icon: Clock,
-              },
-              {
-                id: 'fo_coun_act_sub',
-                title: 'Counselling Activities',
-                url: '/app/admissions/counselling?tab=activities',
-                icon: Activity,
-              },
-            ],
-          },
-          {
-            id: 'fo_visits',
-            title: 'Campus Visits',
-            url: '/app/admissions/interviews',
-            icon: Calendar,
-            items: [
-              {
-                id: 'fo_visits_schedule_sub',
-                title: 'Visit Schedule',
-                url: '/app/admissions/visits?status=scheduled',
+                id: 'fo_visits_sub',
+                title: 'Campus Visits',
+                url: '/app/front-office/visits',
                 icon: Calendar,
               },
-              {
-                id: 'fo_interviews_sub',
-                title: 'Interviews',
-                url: '/app/admissions/interviews?visit_type=interview',
-                icon: UserCheck,
-              },
-              {
-                id: 'fo_visits_history_sub',
-                title: 'Visit History',
-                url: '/app/front-office/visits?status=completed',
-                icon: Clock,
-              },
             ],
           },
           {
-            id: 'fo_applications',
+            id: 'fo_apps',
             title: 'Applications',
-            url: '/app/admissions/applications',
+            url: '/app/front-office/applications',
             icon: FileText,
             items: [
               {
-                id: 'fo_app_all_sub',
-                title: 'Applications',
-                url: '/app/admissions/applications',
+                id: 'fo_apps_all_sub',
+                title: 'All Applications',
+                url: '/app/front-office/applications',
                 icon: FileText,
               },
               {
-                id: 'fo_app_details_sub',
-                title: 'Application Details',
+                id: 'fo_apps_review_sub',
+                title: 'Review Queue',
                 url: '/app/admissions/review',
                 icon: CheckSquare,
               },
             ],
           },
           {
-            id: 'fo_verification',
+            id: 'fo_verif',
             title: 'Document Verification',
-            url: '/app/admissions/verification',
-            icon: CheckCircle2,
+            url: '/app/front-office/verification',
+            icon: ShieldCheck,
             items: [
               {
                 id: 'fo_verif_queue_sub',
-                title: 'Verification Queue',
-                url: '/app/admissions/verification?status=pending',
+                title: 'Pending Verification',
+                url: '/app/front-office/verification',
                 icon: CheckCircle2,
               },
               {
@@ -391,18 +354,25 @@ export function getNavigationForUser(
   roles: string[] = [],
   isPostAdmission: boolean = false,
 ): NavigationGroup[] {
-  const normalizedRoles = roles.map((r) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
+  const normalizedRoles = roles.map((r) =>
+    String(r)
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_'),
+  );
 
   if (
     normalizedRoles.includes('FRONT_OFFICE') ||
     normalizedRoles.includes('FO') ||
+    normalizedRoles.includes('RECEPTIONIST') ||
     normalizedRoles.includes('STAFF') ||
     normalizedRoles.includes('ADMISSION_OFFICER') ||
     normalizedRoles.includes('ADMISSIONS_OFFICER') ||
     normalizedRoles.includes('COUNSELLOR') ||
     normalizedRoles.includes('COUNSELOR') ||
     normalizedRoles.includes('FRONT_OFFICE_STAFF') ||
-    normalizedRoles.includes('FACULTY')
+    normalizedRoles.includes('FINANCE') ||
+    normalizedRoles.includes('FINANCE_OFFICER')
   ) {
     return FRONT_OFFICE_NAVIGATION;
   }
@@ -411,7 +381,10 @@ export function getNavigationForUser(
     normalizedRoles.includes('ADMIN') ||
     normalizedRoles.includes('SUPERADMIN') ||
     normalizedRoles.includes('SUPER_ADMIN') ||
-    normalizedRoles.includes('ORG_ADMIN')
+    normalizedRoles.includes('ORG_ADMIN') ||
+    normalizedRoles.includes('HOI') ||
+    normalizedRoles.includes('PRINCIPAL') ||
+    normalizedRoles.includes('HEAD_OF_INSTITUTE')
   ) {
     return ADMIN_NAVIGATION;
   }

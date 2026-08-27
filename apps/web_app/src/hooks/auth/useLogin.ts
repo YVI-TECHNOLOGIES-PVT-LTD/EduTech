@@ -16,7 +16,7 @@ export const useLogin = () => {
     setIsPending(true);
     try {
       const data = await AuthService.login(email, password);
-      navigate(redirectTo ?? '/app/dashboard');
+      navigate(redirectTo ?? '/app');
       return data;
     } catch (error: any) {
       console.error('[useLogin] Login failed:', error.message);

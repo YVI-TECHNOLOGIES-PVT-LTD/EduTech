@@ -11,6 +11,7 @@ import {
   Building,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { LandingResolver } from '@/services/LandingResolver';
 import { getNavigationForUser, NavigationGroup, NavigationItem } from '@/config/navigation';
 import {
   Sidebar,
@@ -69,6 +70,11 @@ function isItemDirectlyActive(
   // Prefix match for detail routes (e.g. /app/admissions/applications/:id -> /app/admissions/applications)
   if (
     item.url !== '/app/dashboard' &&
+    item.url !== '/app/front-office/dashboard' &&
+    item.url !== '/app/parent/dashboard' &&
+    item.url !== '/app/admin/dashboard' &&
+    item.url !== '/app/faculty/dashboard' &&
+    item.url !== '/app/student/dashboard' &&
     item.url !== '/app/workspace' &&
     item.url !== '/app/admissions' &&
     item.url !== '/app' &&
@@ -139,21 +145,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
-  const userRoles =
-    user?.roles && user.roles.length > 0
+  const rawRoles: string[] =
+    Array.isArray(user?.roles) && user.roles.length > 0
       ? user.roles
       : (user as any)?.role
         ? [(user as any).role]
-        : ['PARENT'];
+        : [];
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
   const isPostAdmission = Boolean(
     (user as any)?.hasEnrolledStudent ||
     (user as any)?.isPostAdmission ||
-    userRoles.includes('ENROLLED_PARENT'),
+    normalizedRoles.includes('ENROLLED_PARENT'),
   );
-  const navGroups = getNavigationForUser(userRoles, isPostAdmission);
+  const navGroups = getNavigationForUser(normalizedRoles, isPostAdmission);
   const currentPath = location.pathname;
 
-  const contextLabel = navGroups[0]?.contextLabel || 'ADMISSION PORTAL';
+  const homeUrl = LandingResolver.resolveLandingRoute(normalizedRoles, [], user);
+  const contextLabel = navGroups[0]?.contextLabel || 'EDUTRACK ERP';
 
   // Expanded state loaded from localStorage
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
@@ -229,8 +237,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
       : 'EduTrack User');
-
-  const homeUrl = navGroups[0]?.items[0]?.url || '/app/workspace';
 
   const getNavTitle = (item: { id?: string; title: string }) => {
     const idMap: Record<string, string> = {
@@ -474,7 +480,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
             <DropdownMenuLabel className="px-3 py-2">
               <p className="text-xs font-bold text-sidebar-foreground">{displayName}</p>
               <Badge variant="info" className="mt-1 text-[9px] uppercase">
-                {userRoles[0] || 'USER'}
+                {normalizedRoles[0] || 'USER'}
               </Badge>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

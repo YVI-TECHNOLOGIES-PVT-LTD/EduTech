@@ -183,19 +183,229 @@ export const AnyPermissionGuard = ({
   return <>{children}</>;
 };
 
+/**
+ * Front Office Route Guard
+ * Strictly protects all Front Office workspace, desk, and operations routes.
+ * Blocks Parent and Student personas before component mounts.
+ */
+export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+        <Loading message="Verifying Front Office access..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const rawRoles =
+    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+
+  const isStaffOrAdmin = normalizedRoles.some((r: string) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+      'EXAM_CELL',
+      'EXAM_CELL_ADMIN',
+      'FACULTY',
+      'TEACHER',
+    ].includes(r),
+  );
+
+  if (isStaffOrAdmin) {
+    return <>{children}</>;
+  }
+
+  // If user is Parent / Guardian persona without staff roles, redirect to Parent Dashboard immediately
+  const isParent = normalizedRoles.some((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParent) {
+    return <Navigate to="/app/parent/dashboard" replace />;
+  }
+
+  // If Student persona, redirect to Student Dashboard immediately
+  if (normalizedRoles.includes('STUDENT')) {
+    return <Navigate to="/app/student/dashboard" replace />;
+  }
+
+  return <Navigate to="/app/unauthorized" replace />;
+};
+
+/**
+ * Parent Route Guard
+ * Strictly protects all Parent portal and self-service admission routes.
+ * Blocks Front Office and Admin users before component mounts, redirecting them to their respective workspace.
+ */
+export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+        <Loading message="Verifying Parent Portal access..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const rawRoles =
+    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+
+  // If user holds staff/operations roles (and not solely parent), redirect to Front Office
+  const isFrontOfficeStaff = normalizedRoles.some((r: string) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'FINANCE',
+      'FINANCE_OFFICER',
+    ].includes(r),
+  );
+
+  if (isFrontOfficeStaff) {
+    return <Navigate to="/app/front-office/dashboard" replace />;
+  }
+
+  const isAdmin = normalizedRoles.some((r: string) =>
+    [
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+    ].includes(r),
+  );
+
+  if (isAdmin) {
+    return <Navigate to="/app/admin/dashboard" replace />;
+  }
+
+  if (normalizedRoles.includes('STUDENT')) {
+    return <Navigate to="/app/student/dashboard" replace />;
+  }
+
+  const isParent = normalizedRoles.some((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+
+  if (isParent) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/app/unauthorized" replace />;
+};
+
+/**
+ * Admin Route Guard
+ * Strictly protects system administrator routes.
+ */
+export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+        <Loading message="Verifying administrative credentials..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const rawRoles =
+    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+
+  const isAdmin = normalizedRoles.some((r: string) =>
+    [
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+    ].includes(r),
+  );
+
+  if (isAdmin) {
+    return <>{children}</>;
+  }
+
+  // Non-admin redirect to persona landing
+  const isFrontOffice = normalizedRoles.some((r: string) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'FINANCE',
+      'FINANCE_OFFICER',
+    ].includes(r),
+  );
+
+  if (isFrontOffice) {
+    return <Navigate to="/app/front-office/dashboard" replace />;
+  }
+
+  const isParent = normalizedRoles.some((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+
+  if (isParent) {
+    return <Navigate to="/app/parent/dashboard" replace />;
+  }
+
+  if (normalizedRoles.includes('STUDENT')) {
+    return <Navigate to="/app/student/dashboard" replace />;
+  }
+
+  return <Navigate to="/app/unauthorized" replace />;
+};
+
 export const ExamOperationGuard = ({ children }: { children: React.ReactNode }) => {
   const { hasRole } = useAuth();
   const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
   const isAdmin = hasRole('ADMIN');
-
-  // ONLY EXAM_CELL_ADMIN is allowed to see the content.
-  // Admin is specifically blocked *from this view* even if they have DB permissions.
-  // This frontend guard enforces the "Separation of Duty".
-
-  // Logic:
-  // If isExamAdmin -> Allowed (Primary Operator)
-  // If NOT isExamAdmin AND isAdmin -> Blocked (Restricted Access)
-  // If neither -> Blocked (Standard Auth)
 
   if (isExamAdmin) {
     return <>{children}</>;
@@ -219,7 +429,5 @@ export const ExamOperationGuard = ({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // Fallback for others (will likely be empty or 404 handled by router)
-  // But safely return null or Permission denied if they somehow got here
   return <div className="p-10 text-center text-gray-400">Access Denied</div>;
 };

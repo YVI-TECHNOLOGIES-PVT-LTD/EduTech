@@ -20,9 +20,45 @@ export const ProfileMenu: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const userRoles =
-    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const primaryRole = (userRoles[0] || 'PARENT').replace(/_/g, ' ').toUpperCase();
+  const rawRoles: string[] =
+    Array.isArray(user?.roles) && user.roles.length > 0
+      ? user.roles
+      : (user as any)?.role
+        ? [(user as any).role]
+        : [];
+  const normalizedRoles = rawRoles.map((r: string) =>
+    r
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_'),
+  );
+  const primaryRole = (normalizedRoles[0] || 'MEMBER').replace(/_/g, ' ').toUpperCase();
+
+  const isStaffOrAdmin = normalizedRoles.some((r) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+    ].includes(r),
+  );
+
+  const isParent = normalizedRoles.some((r) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
 
   const rawName =
     user?.full_name ||
@@ -88,13 +124,24 @@ export const ProfileMenu: React.FC = () => {
           <User className="w-4 h-4 mr-2 text-slate-400" />
           {t('common.profile', 'User Profile')}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => navigate('/app/admissions/my')}
-          className="text-xs font-semibold cursor-pointer rounded-xl"
-        >
-          <FileText className="w-4 h-4 mr-2 text-slate-400" />
-          {t('navigation.myApplications', 'My Applications')}
-        </DropdownMenuItem>
+        {isParent && (
+          <DropdownMenuItem
+            onClick={() => navigate('/app/admissions/my')}
+            className="text-xs font-semibold cursor-pointer rounded-xl"
+          >
+            <FileText className="w-4 h-4 mr-2 text-slate-400" />
+            {t('navigation.myApplications', 'My Applications')}
+          </DropdownMenuItem>
+        )}
+        {isStaffOrAdmin && (
+          <DropdownMenuItem
+            onClick={() => navigate('/app/front-office/dashboard')}
+            className="text-xs font-semibold cursor-pointer rounded-xl"
+          >
+            <FileText className="w-4 h-4 mr-2 text-slate-400" />
+            {t('navigation.frontOfficeDesk', 'Front Office Desk')}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={() => navigate('/app/settings')}
           className="text-xs font-semibold cursor-pointer rounded-xl"

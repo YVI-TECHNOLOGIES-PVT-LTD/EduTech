@@ -21,7 +21,7 @@ export const getSidebarNavigation = (): NavSection[] => {
       items: [
         {
           title: 'Dashboard',
-          path: '/app/dashboard',
+          path: '/app/front-office/dashboard',
           icon: MODULE_REGISTRY.find((m) => m.id === 'dashboard')?.icon,
         },
       ],

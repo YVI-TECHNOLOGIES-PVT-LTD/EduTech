@@ -64,7 +64,7 @@ export const ParentDashboardPage: React.FC = () => {
 
   React.useEffect(() => {
     if (isStaff) {
-      navigate('/app/workspace', { replace: true });
+      navigate('/app/front-office/dashboard', { replace: true });
     }
   }, [isStaff, navigate]);
 

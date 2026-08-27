@@ -24,6 +24,8 @@ export const ROUTES = {
   },
   APP: {
     DASHBOARD: '/app/dashboard',
+    FRONT_OFFICE_DASHBOARD: '/app/front-office/dashboard',
+    PARENT_DASHBOARD: '/app/parent/dashboard',
     WORKSPACE: '/app/workspace',
     PROFILE: '/app/profile',
     SETTINGS: '/app/settings',

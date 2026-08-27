@@ -41,8 +41,84 @@ export const LoginPage: React.FC = () => {
 
   const [loginApi, { isLoading }] = useLoginMutation();
 
-  const from =
-    (location.state as { from?: { pathname: string } })?.from?.pathname || ROUTES.APP.DASHBOARD;
+  const rawFrom = (location.state as { from?: { pathname: string } })?.from?.pathname;
+
+  const isRouteAllowedForUser = (
+    routePath: string | undefined,
+    normalizedRoles: string[],
+  ): boolean => {
+    if (
+      !routePath ||
+      routePath === '/app' ||
+      routePath === '/app/' ||
+      routePath === '/app/dashboard' ||
+      routePath === '/login'
+    ) {
+      return false;
+    }
+
+    const isStaffOrAdmin = normalizedRoles.some((r) =>
+      [
+        'FRONT_OFFICE',
+        'FO',
+        'RECEPTIONIST',
+        'STAFF',
+        'ADMISSION_OFFICER',
+        'ADMISSIONS_OFFICER',
+        'COUNSELLOR',
+        'COUNSELOR',
+        'FINANCE',
+        'FINANCE_OFFICER',
+        'ADMIN',
+        'SUPERADMIN',
+        'SUPER_ADMIN',
+        'ORG_ADMIN',
+        'HOI',
+        'PRINCIPAL',
+        'HEAD_OF_INSTITUTE',
+        'EXAM_CELL',
+        'EXAM_CELL_ADMIN',
+        'FACULTY',
+        'TEACHER',
+      ].includes(r),
+    );
+
+    const isParent = normalizedRoles.some((r) =>
+      ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+    );
+
+    // Front Office & Staff cannot be routed to Parent portal
+    if (isStaffOrAdmin) {
+      if (
+        routePath.startsWith('/app/parent') ||
+        routePath.startsWith('/app/admissions/dashboard') ||
+        routePath.startsWith('/app/admissions/my') ||
+        routePath.startsWith('/app/admissions/wizard') ||
+        routePath.startsWith('/app/admissions/documents') ||
+        routePath.startsWith('/app/admissions/fees') ||
+        routePath.startsWith('/app/admissions/status')
+      ) {
+        return false;
+      }
+      return true;
+    }
+
+    // Parents cannot be routed to Front Office / Workspace / Operations
+    if (isParent) {
+      if (
+        routePath.startsWith('/app/front-office') ||
+        routePath.startsWith('/app/workspace') ||
+        routePath.startsWith('/app/admin') ||
+        routePath.startsWith('/app/school') ||
+        routePath.startsWith('/app/people')
+      ) {
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
 
   const {
     register,
@@ -66,7 +142,7 @@ export const LoginPage: React.FC = () => {
         ? rawUser.roles
         : rawUser.role
           ? [rawUser.role]
-          : ['PARENT'];
+          : [];
 
       const enrichedUser: EnrichedUser = {
         id: rawUser.id || rawUser.user_id || 'user-1',
@@ -109,8 +185,10 @@ export const LoginPage: React.FC = () => {
       }
 
       const targetDestination = LandingResolver.resolveLandingRoute(rawRoles, [], enrichedUser);
+      const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
       const dest =
-        from && from !== '/app' && from !== '/login' && from !== '/app/' ? from : targetDestination;
+        rawFrom && isRouteAllowedForUser(rawFrom, normalizedRoles) ? rawFrom : targetDestination;
+
       navigate(dest, { replace: true });
     } catch (err: any) {
       const status = err?.status || err?.data?.statusCode;
