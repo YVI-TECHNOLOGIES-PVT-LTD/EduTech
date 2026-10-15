@@ -35,6 +35,23 @@ import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/Par
 import { ParentSubmittedApplicationPage } from '../modules/admission/pages/parent/ParentSubmittedApplicationPage';
 
 import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
+import { FinanceConfigurationPage } from '../modules/fees/pages/FinanceConfiguration';
+import { FinanceDashboard } from '../modules/fees/pages/FinanceDashboard';
+import { FeeStructureManagement } from '../modules/fees/pages/FeeStructureManagement';
+import { DemandManagement } from '../modules/fees/pages/DemandManagement';
+import { PaymentEntry } from '../modules/fees/pages/PaymentEntry';
+import { AdminFeeLedger } from '../modules/fees/pages/AdminFeeLedger';
+import { FinanceReports } from '../modules/fees/pages/FinanceReports';
+import { ReceiptCenter } from '../modules/fees/pages/ReceiptCenter';
+import { ScholarshipsConcessions } from '../modules/fees/pages/ScholarshipsConcessions';
+import { ReceivablesCollections } from '../modules/fees/pages/ReceivablesCollections';
+import { FinanceNotificationCenter } from '../modules/fees/pages/FinanceNotificationCenter';
+import { FinanceReconciliation } from '../modules/fees/pages/FinanceReconciliation';
+import { FinanceAccounting } from '../modules/fees/pages/FinanceAccounting';
+import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
+import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
+import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
+import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
 
 export interface RouteConfig {
   path: string;
@@ -523,6 +540,121 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
     guardType: 'admin',
+  },
+
+  // ─── 7. FINANCE & FEES MANAGEMENT (PHASE 1 & PHASE 2) ─────────────────────
+  {
+    path: 'finance/dashboard',
+    element: <FinanceDashboard />,
+    layout: 'dashboard',
+    permissions: ['fees.dashboard.view', 'fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/configuration',
+    element: <FinanceConfigurationPage />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.structure.manage', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/settings',
+    element: <FinanceConfigurationPage />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.structure.manage', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/structures',
+    element: <FeeStructureManagement />,
+    layout: 'dashboard',
+    permissions: ['fees.structure.view', 'fees.structure.manage', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/demands',
+    element: <DemandManagement />,
+    layout: 'dashboard',
+    permissions: ['fees.demand.view', 'fees.demand.generate', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/payments',
+    element: <PaymentEntry />,
+    layout: 'dashboard',
+    permissions: ['fees.payment.collect', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/ledger',
+    element: <AdminFeeLedger />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/reports',
+    element: <FinanceReports />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/receipts',
+    element: <ReceiptCenter />,
+    layout: 'dashboard',
+    permissions: ['fees.receipt.generate', 'fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/scholarships',
+    element: <ScholarshipsConcessions />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.structure.manage', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/receivables',
+    element: <ReceivablesCollections />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/notifications',
+    element: <FinanceNotificationCenter />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/reconciliation',
+    element: <FinanceReconciliation />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/accounting',
+    element: <FinanceAccounting />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/planning',
+    element: <FinancePlanning />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/audit',
+    element: <FinanceAudit />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/operations',
+    element: <FinanceOperations />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/checkout',
+    element: <RazorpayCheckoutDemo />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'checkout-demo',
+    element: <RazorpayCheckoutDemo />,
+    layout: 'none',
   },
 ];
 

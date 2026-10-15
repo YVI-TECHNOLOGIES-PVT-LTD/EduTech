@@ -7,8 +7,24 @@ export class EventBus {
         if (!this.listeners[event]) {
             this.listeners[event] = [];
         }
-        this.listeners[event].push(callback);
-        console.log(`[EventBus] Subscribed handler to event: "${event}"`);
+        if (!this.listeners[event].includes(callback)) {
+            this.listeners[event].push(callback);
+            console.log(`[EventBus] Subscribed handler to event: "${event}"`);
+        }
+    }
+
+    static unsubscribe(event: string, callback: EventCallback) {
+        if (this.listeners[event]) {
+            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+        }
+    }
+
+    static clearListeners(event?: string) {
+        if (event) {
+            delete this.listeners[event];
+        } else {
+            this.listeners = {};
+        }
     }
 
     static async publish(event: string, payload: any) {
@@ -17,7 +33,7 @@ export class EventBus {
         
         // Execute all handlers concurrently without blocking publisher
         for (const handler of handlers) {
-            handler(payload).catch(err => {
+            Promise.resolve().then(() => handler(payload)).catch(err => {
                 console.error(`[EventBus] Handler failure for event "${event}":`, err);
             });
         }

@@ -14,6 +14,7 @@ const rate_limit_middleware_1 = require("./middlewares/rate-limit.middleware");
 const error_middleware_1 = require("./middlewares/error.middleware");
 const health_routes_1 = require("./routes/health.routes");
 const routes_1 = require("./routes");
+const razorpay_routes_1 = require("./routes/razorpay.routes");
 const env_1 = require("./config/env");
 exports.app = (0, express_1.default)();
 // Trust Proxy (Required for Render/Heroku/Reverse Proxies)
@@ -65,8 +66,13 @@ exports.app.use((0, cors_1.default)({
         'x-tenant-id',
     ],
 }));
-// Body Parser
-exports.app.use(express_1.default.json({ limit: '10mb' }));
+// Body Parser (with rawBody capture for cryptographic webhook signature verification)
+exports.app.use(express_1.default.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+        req.rawBody = buf;
+    },
+}));
 // 4. Rate Limiting
 exports.app.use('/api/auth/login', rate_limit_middleware_1.authRateLimiter);
 exports.app.use('/api', rate_limit_middleware_1.publicRateLimiter);
@@ -76,6 +82,7 @@ exports.app.use(logger_1.requestLoggerMiddleware);
 exports.app.use('/health', health_routes_1.healthRouter);
 // API Routes
 exports.app.use('/api', routes_1.router);
+exports.app.use(razorpay_routes_1.razorpayRouter);
 // 404 Handler
 exports.app.use((req, res) => {
     res.status(404).json({

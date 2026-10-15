@@ -35,11 +35,16 @@ import { staffRouter as staffManagementRouter } from './modules/staff-management
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
 import { chatbotRouter } from './modules/chatbot/routes/chatbot.routes';
 import { notificationRouter, NotificationSubscriber } from './modules/notifications';
+import { feesRouter } from './modules/fees/fees.routes';
+import { FinanceNotificationSubscriber } from './modules/fees/subscribers/finance-notification.subscriber';
+import { razorpayRouter } from './routes/razorpay.routes';
 
 NotificationSubscriber.register();
+FinanceNotificationSubscriber.register();
 import { env } from './config/env';
 
 export const router = Router();
+router.use('/', razorpayRouter);
 
 // ======================================
 // PUBLIC SYSTEM PROBES
@@ -816,3 +821,8 @@ router.use('/users', authenticate, userManagementRouter);
 // Notification Management Module
 router.use('/v1/notifications', authenticate, notificationRouter);
 router.use('/notifications', authenticate, notificationRouter);
+
+// Finance & Fees Management Module (Phase 1 & Phase 2)
+router.use('/v1/fees', authenticate, resolveTenantMiddleware, feesRouter);
+router.use('/fees', authenticate, resolveTenantMiddleware, feesRouter);
+

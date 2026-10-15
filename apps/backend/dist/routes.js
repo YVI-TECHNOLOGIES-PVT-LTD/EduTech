@@ -37,9 +37,14 @@ const staff_routes_1 = require("./modules/staff-management/routes/staff.routes")
 const user_routes_1 = require("./modules/user-management/routes/user.routes");
 const chatbot_routes_1 = require("./modules/chatbot/routes/chatbot.routes");
 const notifications_1 = require("./modules/notifications");
+const fees_routes_1 = require("./modules/fees/fees.routes");
+const finance_notification_subscriber_1 = require("./modules/fees/subscribers/finance-notification.subscriber");
+const razorpay_routes_1 = require("./routes/razorpay.routes");
 notifications_1.NotificationSubscriber.register();
+finance_notification_subscriber_1.FinanceNotificationSubscriber.register();
 const env_1 = require("./config/env");
 exports.router = (0, express_1.Router)();
+exports.router.use('/', razorpay_routes_1.razorpayRouter);
 // ======================================
 // PUBLIC SYSTEM PROBES
 // ======================================
@@ -713,3 +718,6 @@ exports.router.use('/users', auth_middleware_1.authenticate, user_routes_1.userR
 // Notification Management Module
 exports.router.use('/v1/notifications', auth_middleware_1.authenticate, notifications_1.notificationRouter);
 exports.router.use('/notifications', auth_middleware_1.authenticate, notifications_1.notificationRouter);
+// Finance & Fees Management Module (Phase 1 & Phase 2)
+exports.router.use('/v1/fees', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, fees_routes_1.feesRouter);
+exports.router.use('/fees', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, fees_routes_1.feesRouter);

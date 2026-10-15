@@ -8,6 +8,7 @@ import { publicRateLimiter, authRateLimiter } from './middlewares/rate-limit.mid
 import { errorHandlerMiddleware } from './middlewares/error.middleware';
 import { healthRouter } from './routes/health.routes';
 import { router } from './routes';
+import { razorpayRouter } from './routes/razorpay.routes';
 import { env } from './config/env';
 
 export const app = express();
@@ -71,8 +72,15 @@ app.use(
   }),
 );
 
-// Body Parser
-app.use(express.json({ limit: '10mb' }));
+// Body Parser (with rawBody capture for cryptographic webhook signature verification)
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
 // 4. Rate Limiting
 app.use('/api/auth/login', authRateLimiter);
@@ -86,6 +94,7 @@ app.use('/health', healthRouter);
 
 // API Routes
 app.use('/api', router);
+app.use(razorpayRouter);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

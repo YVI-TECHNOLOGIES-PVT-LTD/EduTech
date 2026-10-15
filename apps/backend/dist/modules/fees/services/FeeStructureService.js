@@ -1,9 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FeeStructureService = void 0;
+exports.FeeStructureService = exports.FeeStructureManagerService = void 0;
 const supabase_1 = require("../../../config/supabase");
 const FeeStructureRepository_1 = require("../repositories/FeeStructureRepository");
 const FinanceExceptions_1 = require("../errors/FinanceExceptions");
+const FeeStructureManagerService_1 = require("./FeeStructureManagerService");
+Object.defineProperty(exports, "FeeStructureManagerService", { enumerable: true, get: function () { return FeeStructureManagerService_1.FeeStructureManagerService; } });
 class FeeStructureService {
     /**
      * Generates a preview of the fee structure for a given application ID.
