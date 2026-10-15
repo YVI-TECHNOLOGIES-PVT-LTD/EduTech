@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { checkPermission } from '../../rbac/rbac.middleware';
+import { checkPermission, getEffectiveRoles } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
 import { FinanceEngine } from './services/FinanceEngine';
@@ -7,6 +7,7 @@ import { ReportingService } from './services/ReportingService';
 import { SettingsService } from './services/SettingsService';
 import { LedgerPostingService } from './services/LedgerPostingService';
 import { FinanceController } from './controllers/FinanceController';
+import { ParentFinanceService } from './services/ParentFinanceService';
 
 export const feesRouter = Router();
 
@@ -124,6 +125,281 @@ feesRouter.get(
         success: false,
         error: error.code || 'INSTALLMENT_PLANS_ERROR',
         message: error.message || 'Failed to fetch installment plans',
+      });
+    }
+  },
+);
+
+// Alias: GET /installment-plans
+feesRouter.get(
+  '/installment-plans',
+  checkPermission(PERMISSIONS.FEES_STRUCTURE_VIEW),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const { academicYearId } = req.query;
+      const plans = await FeeStructureManagerService.getInstallmentPlans(
+        tenantOrgId,
+        academicYearId as string | undefined,
+      );
+
+      res.json({
+        success: true,
+        data: plans,
+      });
+    } catch (error: any) {
+      console.error('[GET /fees/installment-plans] Error:', error);
+      const status = error.statusCode || 500;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'INSTALLMENT_PLANS_ERROR',
+        message: error.message || 'Failed to fetch installment plans',
+      });
+    }
+  },
+);
+
+// GET /installment-plans/:id: Fetch single installment plan by ID
+feesRouter.get(
+  '/installment-plans/:id',
+  checkPermission(PERMISSIONS.FEES_STRUCTURE_VIEW),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const { id } = req.params;
+      const plan = await FeeStructureManagerService.getInstallmentPlanById(tenantOrgId, id);
+
+      res.json({
+        success: true,
+        data: plan,
+      });
+    } catch (error: any) {
+      console.error('[GET /fees/installment-plans/:id] Error:', error);
+      const status = error.statusCode || 500;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'INSTALLMENT_PLAN_FETCH_ERROR',
+        message: error.message || 'Failed to fetch installment plan',
+      });
+    }
+  },
+);
+
+// POST /installment-plans: Create installment plan with terms (supports any number of terms)
+feesRouter.post('/installment-plans', checkPermission(PERMISSIONS.FEES_SETUP), async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    const userId = req.context?.user?.id || 'system';
+
+    if (!tenantOrgId) {
+      return res.status(400).json({
+        success: false,
+        error: 'TENANT_NOT_FOUND',
+        message: 'Tenant organization could not be resolved from authenticated session.',
+      });
+    }
+
+    const plan = await FeeStructureManagerService.createInstallmentPlan(
+      tenantOrgId,
+      userId,
+      req.body,
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Installment plan created successfully as draft.',
+      data: plan,
+    });
+  } catch (error: any) {
+    console.error('[POST /fees/installment-plans] Error:', error);
+    const status = error.statusCode || 400;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'INSTALLMENT_PLAN_CREATE_ERROR',
+      message: error.message || 'Failed to create installment plan',
+    });
+  }
+});
+
+// PUT /installment-plans/:id: Update installment plan (terms immutability verified)
+feesRouter.put(
+  '/installment-plans/:id',
+  checkPermission(PERMISSIONS.FEES_SETUP),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      const userId = req.context?.user?.id || 'system';
+      const { id } = req.params;
+
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const plan = await FeeStructureManagerService.updateInstallmentPlan(
+        tenantOrgId,
+        userId,
+        id,
+        req.body,
+      );
+
+      res.json({
+        success: true,
+        message: 'Installment plan updated successfully.',
+        data: plan,
+      });
+    } catch (error: any) {
+      console.error('[PUT /fees/installment-plans/:id] Error:', error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'INSTALLMENT_PLAN_UPDATE_ERROR',
+        message: error.message || 'Failed to update installment plan',
+      });
+    }
+  },
+);
+
+// POST /installment-plans/:id/publish: Publish installment plan
+feesRouter.post(
+  '/installment-plans/:id/publish',
+  checkPermission(PERMISSIONS.FEES_SETUP),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      const userId = req.context?.user?.id || 'system';
+      const { id } = req.params;
+
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const plan = await FeeStructureManagerService.publishInstallmentPlan(tenantOrgId, userId, id);
+
+      res.json({
+        success: true,
+        message: 'Installment plan published successfully.',
+        data: plan,
+      });
+    } catch (error: any) {
+      console.error('[POST /fees/installment-plans/:id/publish] Error:', error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'INSTALLMENT_PLAN_PUBLISH_ERROR',
+        message: error.message || 'Failed to publish installment plan',
+      });
+    }
+  },
+);
+
+// POST /installment-plans/:id/deactivate: Deactivate installment plan
+feesRouter.post(
+  '/installment-plans/:id/deactivate',
+  checkPermission(PERMISSIONS.FEES_SETUP),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      const userId = req.context?.user?.id || 'system';
+      const { id } = req.params;
+
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const plan = await FeeStructureManagerService.deactivateInstallmentPlan(
+        tenantOrgId,
+        userId,
+        id,
+      );
+
+      res.json({
+        success: true,
+        message: 'Installment plan deactivated successfully.',
+        data: plan,
+      });
+    } catch (error: any) {
+      console.error('[POST /fees/installment-plans/:id/deactivate] Error:', error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'INSTALLMENT_PLAN_DEACTIVATE_ERROR',
+        message: error.message || 'Failed to deactivate installment plan',
+      });
+    }
+  },
+);
+
+// GET /structures/eligible-students: Retrieve enrolled students eligible for fee structure assignment
+feesRouter.get(
+  '/structures/eligible-students',
+  checkPermission(PERMISSIONS.FEES_VIEW),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const { academicYearId, gradeId, search, page, limit } = req.query;
+      const result = await FeeStructureManagerService.getEligibleEnrolledStudents(tenantOrgId, {
+        academicYearId: academicYearId as string | undefined,
+        gradeId: gradeId as string | undefined,
+        search: search as string | undefined,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      });
+
+      res.json({
+        success: true,
+        ...result,
+        data: result.items,
+      });
+    } catch (error: any) {
+      console.error('[GET /fees/structures/eligible-students] Error:', error);
+      const status = error.statusCode || 500;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'ELIGIBLE_STUDENTS_ERROR',
+        message: error.message || 'Failed to fetch eligible enrolled students',
       });
     }
   },
@@ -1032,45 +1308,75 @@ feesRouter.get('/ledger/students', checkPermission(PERMISSIONS.FEES_VIEW), async
 });
 
 // GET /ledger/students/:studentId: Student ledger summary, KPI totals, and enrollment details
-feesRouter.get(
-  '/ledger/students/:studentId',
-  checkPermission(PERMISSIONS.FEES_VIEW),
-  async (req, res) => {
-    try {
-      const tenantOrgId =
-        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
-      if (!tenantOrgId) {
-        return res.status(400).json({
-          success: false,
-          error: 'TENANT_NOT_FOUND',
-          message: 'Tenant organization could not be resolved from authenticated session.',
-        });
-      }
-
-      const { studentId } = req.params;
-      const { academicYearId } = req.query;
-
-      const summary = await StudentLedgerService.getStudentLedgerSummary(
-        tenantOrgId,
-        studentId,
-        academicYearId as string | undefined,
-      );
-
-      res.json({
-        success: true,
-        data: summary,
-      });
-    } catch (error: any) {
-      console.error(`[GET /fees/ledger/students/${req.params.studentId}] Error:`, error);
-      const status = error.statusCode || 500;
-      res.status(status).json({
+feesRouter.get('/ledger/students/:studentId', async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    if (!tenantOrgId) {
+      return res.status(400).json({
         success: false,
-        error: error.code || 'LEDGER_SUMMARY_ERROR',
-        message: error.message || 'Failed to fetch student ledger summary',
+        error: 'TENANT_NOT_FOUND',
+        message: 'Tenant organization could not be resolved from authenticated session.',
       });
     }
-  },
-);
+
+    const { studentId } = req.params;
+    const { academicYearId } = req.query;
+    const user = req.context?.user;
+    const roles = user ? getEffectiveRoles(user.roles || []) : [];
+    const permissions = user?.permissions || [];
+
+    const isStaffOrAdmin =
+      roles.includes('SUPERADMIN') ||
+      roles.includes('ADMIN') ||
+      roles.includes('ACCOUNTANT') ||
+      roles.includes('FINANCE_OFFICER') ||
+      permissions.includes(PERMISSIONS.FEES_VIEW);
+
+    if (!isStaffOrAdmin) {
+      if (roles.includes('PARENT') || roles.includes('STUDENT')) {
+        const hasAccess = await ParentFinanceService.verifyParentChildAccess(
+          tenantOrgId,
+          user?.id || '',
+          studentId,
+          user?.email,
+        );
+        if (!hasAccess) {
+          return res.status(403).json({
+            success: false,
+            error: 'FORBIDDEN',
+            message: 'You are not authorized to view financial records for this student.',
+          });
+        }
+      } else {
+        return res.status(403).json({
+          success: false,
+          error: 'FORBIDDEN',
+          message: 'Insufficient permissions to view student fee ledger.',
+        });
+      }
+    }
+
+    const summary = await StudentLedgerService.getStudentLedgerSummary(
+      tenantOrgId,
+      studentId,
+      academicYearId as string | undefined,
+    );
+
+    res.json({
+      success: true,
+      data: summary,
+    });
+  } catch (error: any) {
+    console.error(`[GET /fees/ledger/students/${req.params.studentId}] Error:`, error);
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'LEDGER_SUMMARY_ERROR',
+      message: error.message || 'Failed to fetch student ledger summary',
+    });
+  }
+});
 
 // GET /ledger/students/:studentId/assessments: Detailed fee assessments, structures, and billed charges
 feesRouter.get(
@@ -1298,6 +1604,207 @@ feesRouter.post(
     }
   },
 );
+
+// POST /ledger/assignments/bulk: Bulk assign a published fee structure to multiple enrolled students
+feesRouter.post(
+  '/ledger/assignments/bulk',
+  checkPermission(PERMISSIONS.FEES_ASSIGN),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
+      const result = await StudentLedgerService.bulkAssignFeeStructure(
+        tenantOrgId,
+        userId,
+        req.body,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: `Bulk assignment processed: ${result.succeeded} succeeded, ${result.failed} failed.`,
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('[POST /fees/ledger/assignments/bulk] Error:', error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'BULK_ASSIGNMENT_ERROR',
+        message: error.message || 'Failed to process bulk fee structure assignment',
+      });
+    }
+  },
+);
+
+// Alias: POST /assignments/bulk
+feesRouter.post('/assignments/bulk', checkPermission(PERMISSIONS.FEES_ASSIGN), async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    if (!tenantOrgId) {
+      return res.status(400).json({
+        success: false,
+        error: 'TENANT_NOT_FOUND',
+        message: 'Tenant organization could not be resolved from authenticated session.',
+      });
+    }
+
+    const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
+    const result = await StudentLedgerService.bulkAssignFeeStructure(tenantOrgId, userId, req.body);
+
+    res.status(200).json({
+      success: true,
+      message: `Bulk assignment processed: ${result.succeeded} succeeded, ${result.failed} failed.`,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('[POST /fees/assignments/bulk] Error:', error);
+    const status = error.statusCode || 400;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'BULK_ASSIGNMENT_ERROR',
+      message: error.message || 'Failed to process bulk fee structure assignment',
+    });
+  }
+});
+
+// Backward compatibility: POST /assign/:studentId
+feesRouter.post(
+  '/assign/:studentId',
+  checkPermission(PERMISSIONS.FEES_ASSIGN),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      if (!tenantOrgId) {
+        return res.status(400).json({
+          success: false,
+          error: 'TENANT_NOT_FOUND',
+          message: 'Tenant organization could not be resolved from authenticated session.',
+        });
+      }
+
+      const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
+      const assignment = await StudentLedgerService.assignFeeStructure(tenantOrgId, userId, {
+        studentId: req.params.studentId,
+        feeStructureId: req.body.fee_structure_id || req.body.feeStructureId,
+        installmentPlanId: req.body.installment_plan_id || req.body.installmentPlanId,
+        notes: req.body.notes,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Fee structure assigned successfully',
+        data: assignment,
+      });
+    } catch (error: any) {
+      console.error(`[POST /fees/assign/${req.params.studentId}] Error:`, error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'STRUCTURE_ASSIGNMENT_ERROR',
+        message: error.message || 'Failed to assign fee structure',
+      });
+    }
+  },
+);
+
+// GET /fees/my: Authenticated parent or student multi-child fee summary and dues
+feesRouter.get('/my', async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    const userId = req.context?.user?.id;
+    const userEmail = req.context?.user?.email;
+
+    if (!tenantOrgId || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'UNAUTHORIZED',
+        message: 'Valid authenticated session required to retrieve parent fee ledger.',
+      });
+    }
+
+    const result = await ParentFinanceService.getMyChildrenFees(tenantOrgId, userId, userEmail);
+
+    res.json({
+      success: true,
+      ...result,
+      data: result.children,
+    });
+  } catch (error: any) {
+    console.error('[GET /fees/my] Error:', error);
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'PARENT_FEES_ERROR',
+      message: error.message || 'Failed to fetch student fees for authenticated account',
+    });
+  }
+});
+
+// GET /fees/my/children/:studentId: Authenticated parent child-specific fee details with strict relationship check
+feesRouter.get('/my/children/:studentId', async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    const userId = req.context?.user?.id;
+    const userEmail = req.context?.user?.email;
+    const { studentId } = req.params;
+
+    if (!tenantOrgId || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'UNAUTHORIZED',
+        message: 'Valid authenticated session required.',
+      });
+    }
+
+    const hasAccess = await ParentFinanceService.verifyParentChildAccess(
+      tenantOrgId,
+      userId,
+      studentId,
+      userEmail,
+    );
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: 'You are not authorized to view financial records for this student.',
+      });
+    }
+
+    const details = await ParentFinanceService.getChildFeeDetails(
+      tenantOrgId,
+      userId,
+      studentId,
+      userEmail,
+    );
+
+    res.json({
+      success: true,
+      data: details,
+    });
+  } catch (error: any) {
+    console.error(`[GET /fees/my/children/${req.params.studentId}] Error:`, error);
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'CHILD_FEES_ERROR',
+      message: error.message || 'Failed to fetch child fee details',
+    });
+  }
+});
 
 // Backward compatibility: GET /ledger/student/:studentId
 feesRouter.get(

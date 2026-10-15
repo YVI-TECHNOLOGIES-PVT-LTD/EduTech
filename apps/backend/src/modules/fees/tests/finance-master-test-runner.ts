@@ -1,6 +1,7 @@
 import { runFinanceConfigurationTests } from './finance-configuration.spec';
 import { runFinanceStructureTests } from './finance-structures.spec';
 import { runFinanceLedgerTests } from './finance-ledger.spec';
+import { runFinanceParentAssignmentTests } from './finance-parent-assignment.spec';
 import { runFinancePaymentTests } from './finance-payments.spec';
 import { runFinanceGatewayTests } from './finance-gateway.spec';
 import { runFinanceScholarshipTests } from './finance-scholarships.spec';
@@ -19,6 +20,7 @@ export async function runAllFinanceTests() {
   await runFinanceConfigurationTests();
   await runFinanceStructureTests();
   await runFinanceLedgerTests();
+  await runFinanceParentAssignmentTests();
   await runFinancePaymentTests();
   await runFinanceGatewayTests();
   await runFinanceScholarshipTests();

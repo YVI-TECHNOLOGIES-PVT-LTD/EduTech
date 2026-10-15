@@ -67,6 +67,20 @@ export class SessionService {
     if (lower === 'hoi' || lower === 'headofinstitute' || lower === 'principal') {
       return 'HOI';
     }
+    if (lower === 'financemanager' || lower === 'financehead' || lower === 'financeadmin') {
+      return 'FINANCE_MANAGER';
+    }
+    if (lower === 'finance' || lower === 'financeofficer' || lower === 'bursar') {
+      return 'FINANCE_OFFICER';
+    }
+    if (
+      lower === 'accountant' ||
+      lower === 'cashier' ||
+      lower === 'accountsclerk' ||
+      lower === 'bookkeeper'
+    ) {
+      return 'ACCOUNTANT';
+    }
     if (lower === 'staff' || lower === 'faculty') {
       return 'STAFF';
     }
@@ -209,8 +223,32 @@ export class SessionService {
         permissions.add('fees.payment.collect');
         permissions.add('fees.receipt.generate');
         permissions.add('fees.payment.view');
-        permissions.add('fees.structure.view');
         permissions.add('admission.fees.initialize');
+      }
+
+      // Stage-1 Finance Persona Permissions
+      if (roles.some((r) => ['FINANCE_OFFICER', 'FINANCE', 'FINANCE_MANAGER'].includes(r))) {
+        permissions.add('fees.dashboard.view');
+        permissions.add('fees.view');
+        permissions.add('fees.structure.view');
+        permissions.add('fees.structure.manage');
+        permissions.add('fees.demand.view');
+        permissions.add('fees.demand.generate');
+        permissions.add('fees.payment.view');
+        permissions.add('fees.payment.collect');
+        permissions.add('fees.receipt.generate');
+        permissions.add('fees.waiver.approve');
+        permissions.add('fees.refund.process');
+      } else if (roles.includes('ACCOUNTANT')) {
+        // Operational Accountant: Ledger, demands, and payment processing
+        permissions.add('fees.dashboard.view');
+        permissions.add('fees.view');
+        permissions.add('fees.structure.view');
+        permissions.add('fees.demand.view');
+        permissions.add('fees.demand.generate');
+        permissions.add('fees.payment.view');
+        permissions.add('fees.payment.collect');
+        permissions.add('fees.receipt.generate');
       }
 
       const profile: UserProfile = {

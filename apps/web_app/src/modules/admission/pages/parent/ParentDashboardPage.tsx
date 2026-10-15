@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 
 import { ApplicationStatusCard } from '../../components/ApplicationStatusCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LandingResolver } from '@/services/LandingResolver';
 
 export const ParentDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -64,9 +65,10 @@ export const ParentDashboardPage: React.FC = () => {
 
   React.useEffect(() => {
     if (isStaff) {
-      navigate('/app/front-office/dashboard', { replace: true });
+      const destination = LandingResolver.resolveLandingRoute(user?.roles || [], [], user);
+      navigate(destination, { replace: true });
     }
-  }, [isStaff, navigate]);
+  }, [isStaff, navigate, user]);
 
   const { applications, isLoading, error, refetch } = useApplicationList(
     { limit: 50 },

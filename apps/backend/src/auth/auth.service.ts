@@ -172,6 +172,24 @@ export class AuthService {
       JWT_REFRESH_EXPIRES_IN_SECONDS,
     );
 
+    // Resolve authoritative user profile via SessionService
+    let resolvedRoles = roles;
+    let resolvedPermissions = permissions;
+    try {
+      const sessionProfile = await sessionService.validateSession(accessToken);
+      if (sessionProfile) {
+        resolvedRoles = sessionProfile.roles;
+        resolvedPermissions = sessionProfile.permissions;
+      }
+    } catch (e) {
+      logger.warn(
+        '[AuthService] sessionService validation failed during login response enrichment',
+        {
+          error: (e as Error)?.message || String(e),
+        },
+      );
+    }
+
     return {
       accessToken,
       refreshToken,
@@ -186,8 +204,8 @@ export class AuthService {
         last_name: user.last_name,
         full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
         phone: user.phone,
-        roles,
-        permissions,
+        roles: resolvedRoles,
+        permissions: resolvedPermissions,
         login_status: 'APPROVED',
       },
     };

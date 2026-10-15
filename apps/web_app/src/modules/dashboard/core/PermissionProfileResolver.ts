@@ -48,11 +48,12 @@ export class PermissionProfileResolver {
       profile === DASHBOARD_CONSTANTS.ROLES.PRINCIPAL
     ) {
       homeRoute = '/app/admin/dashboard';
+    } else if (profile === DASHBOARD_CONSTANTS.ROLES.FINANCE) {
+      homeRoute = '/app/finance/dashboard';
     } else if (
       profile === DASHBOARD_CONSTANTS.ROLES.ADMISSION_OFFICER ||
       profile === DASHBOARD_CONSTANTS.ROLES.COUNSELOR ||
-      profile === DASHBOARD_CONSTANTS.ROLES.RECEPTIONIST ||
-      profile === DASHBOARD_CONSTANTS.ROLES.FINANCE
+      profile === DASHBOARD_CONSTANTS.ROLES.RECEPTIONIST
     ) {
       homeRoute = '/app/front-office/dashboard';
     } else if (profile === DASHBOARD_CONSTANTS.ROLES.FACULTY) {

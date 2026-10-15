@@ -34,7 +34,11 @@ export const ProfileMenu: React.FC = () => {
   );
   const primaryRole = (normalizedRoles[0] || 'MEMBER').replace(/_/g, ' ').toUpperCase();
 
-  const isStaffOrAdmin = normalizedRoles.some((r) =>
+  const isFinance = normalizedRoles.some((r) =>
+    ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+  );
+
+  const isFrontOfficeDesk = normalizedRoles.some((r) =>
     [
       'FRONT_OFFICE',
       'FO',
@@ -44,8 +48,6 @@ export const ProfileMenu: React.FC = () => {
       'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
       'ADMIN',
       'SUPERADMIN',
       'SUPER_ADMIN',
@@ -133,7 +135,16 @@ export const ProfileMenu: React.FC = () => {
             {t('navigation.myApplications', 'My Applications')}
           </DropdownMenuItem>
         )}
-        {isStaffOrAdmin && (
+        {isFinance && (
+          <DropdownMenuItem
+            onClick={() => navigate('/app/finance/dashboard')}
+            className="text-xs font-semibold cursor-pointer rounded-xl"
+          >
+            <FileText className="w-4 h-4 mr-2 text-slate-400" />
+            {t('navigation.financeDashboard', 'Finance Dashboard')}
+          </DropdownMenuItem>
+        )}
+        {isFrontOfficeDesk && (
           <DropdownMenuItem
             onClick={() => navigate('/app/front-office/dashboard')}
             className="text-xs font-semibold cursor-pointer rounded-xl"

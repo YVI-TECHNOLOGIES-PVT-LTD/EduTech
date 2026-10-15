@@ -309,78 +309,150 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
                 url: '/app/front-office/fees?payment_status=paid',
                 icon: CreditCard,
               },
-              {
-                id: 'fo_fees_structures_sub',
-                title: 'Fee Structure Management',
-                url: '/app/finance/structures',
-                icon: Layers,
-              },
-              {
-                id: 'fo_fees_config_sub',
-                title: 'Finance Configuration',
-                url: '/app/finance/configuration',
-                icon: ShieldCheck,
-              },
-              {
-                id: 'fo_fees_scholarships_sub',
-                title: 'Scholarships & Concessions',
-                url: '/app/finance/scholarships',
-                icon: Award,
-              },
-              {
-                id: 'fo_fees_receivables_sub',
-                title: 'Receivables & Collections',
-                url: '/app/finance/receivables',
-                icon: Coins,
-              },
-              {
-                id: 'fo_fees_notifications_sub',
-                title: 'Finance Notifications',
-                url: '/app/finance/notifications',
-                icon: Bell,
-              },
-              {
-                id: 'fo_fees_reconciliation_sub',
-                title: 'Finance Reconciliation',
-                url: '/app/finance/reconciliation',
-                icon: Scale,
-              },
-              {
-                id: 'fo_fees_accounting_sub',
-                title: 'General Ledger & Accounting',
-                url: '/app/finance/accounting',
-                icon: BookOpen,
-              },
-              {
-                id: 'fo_fees_reports_sub',
-                title: 'Finance Reports & Intelligence',
-                url: '/app/finance/reports',
-                icon: FileText,
-              },
-              {
-                id: 'fo_fees_planning_sub',
-                title: 'Budgeting & Financial Planning',
-                url: '/app/finance/planning',
-                icon: TrendingUp,
-              },
-              {
-                id: 'fo_fees_audit_sub',
-                title: 'Finance Audit & Governance',
-                url: '/app/finance/audit',
-                icon: ShieldCheck,
-              },
-              {
-                id: 'fo_fees_operations_sub',
-                title: 'Finance Operations & Insights',
-                url: '/app/finance/operations',
-                icon: Compass,
-              },
             ],
           },
         ],
       },
       { id: 'fo_students', title: 'Students', url: '/app/people/students', icon: Users },
       { id: 'fo_settings', title: 'Settings', url: '/app/settings', icon: Settings },
+    ],
+  },
+];
+
+export const FINANCE_NAVIGATION: NavigationGroup[] = [
+  {
+    id: 'finance_main',
+    title: 'Finance & Accounts',
+    contextLabel: 'ERP FINANCE',
+    items: [
+      {
+        id: 'fin_dashboard',
+        title: 'Finance Dashboard',
+        url: '/app/finance/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        id: 'fin_structures_group',
+        title: 'Fee Management',
+        icon: Layers,
+        url: '/app/finance/structures',
+        items: [
+          {
+            id: 'fin_structures',
+            title: 'Fee Structure Management',
+            url: '/app/finance/structures',
+            icon: Layers,
+          },
+          {
+            id: 'fin_configuration',
+            title: 'Finance Configuration',
+            url: '/app/finance/configuration',
+            icon: ShieldCheck,
+          },
+          {
+            id: 'fin_assignments',
+            title: 'Student Fee Assignments',
+            url: '/app/finance/assignments',
+            icon: UserCheck,
+          },
+          {
+            id: 'fin_demands',
+            title: 'Demand Management',
+            url: '/app/finance/demands',
+            icon: FileText,
+          },
+        ],
+      },
+      {
+        id: 'fin_collections_group',
+        title: 'Billing & Collections',
+        icon: Receipt,
+        url: '/app/finance/ledger',
+        items: [
+          {
+            id: 'fin_ledger',
+            title: 'Student Fee Ledger',
+            url: '/app/finance/ledger',
+            icon: BookOpen,
+          },
+          {
+            id: 'fin_payments',
+            title: 'Payment Entry & Verification',
+            url: '/app/finance/payments',
+            icon: CreditCard,
+          },
+          {
+            id: 'fin_receipts',
+            title: 'Receipt Center',
+            url: '/app/finance/receipts',
+            icon: Receipt,
+          },
+          {
+            id: 'fin_scholarships',
+            title: 'Scholarships & Concessions',
+            url: '/app/finance/scholarships',
+            icon: Award,
+          },
+          {
+            id: 'fin_receivables',
+            title: 'Receivables & Collections',
+            url: '/app/finance/receivables',
+            icon: Coins,
+          },
+        ],
+      },
+      {
+        id: 'fin_accounting_group',
+        title: 'Accounting & Audit',
+        icon: Scale,
+        url: '/app/finance/accounting',
+        items: [
+          {
+            id: 'fin_accounting',
+            title: 'General Ledger & Accounting',
+            url: '/app/finance/accounting',
+            icon: BookOpen,
+          },
+          {
+            id: 'fin_reconciliation',
+            title: 'Payment Reconciliation',
+            url: '/app/finance/reconciliation',
+            icon: Scale,
+          },
+          {
+            id: 'fin_reports',
+            title: 'Finance Reports & Intelligence',
+            url: '/app/finance/reports',
+            icon: BarChart3,
+          },
+          {
+            id: 'fin_planning',
+            title: 'Budgeting & Financial Planning',
+            url: '/app/finance/planning',
+            icon: TrendingUp,
+          },
+          {
+            id: 'fin_audit',
+            title: 'Finance Audit & Compliance',
+            url: '/app/finance/audit',
+            icon: ShieldCheck,
+          },
+          {
+            id: 'fin_operations',
+            title: 'Operations & Insights',
+            url: '/app/finance/operations',
+            icon: Compass,
+          },
+        ],
+      },
+      {
+        id: 'fin_notifications',
+        title: 'Finance Notifications',
+        url: '/app/finance/notifications',
+        icon: Bell,
+      },
+      { id: 'fin_profile', title: 'My Profile', url: '/app/profile', icon: User },
+      { id: 'fin_settings', title: 'Settings', url: '/app/settings', icon: Settings },
     ],
   },
 ];
@@ -401,18 +473,84 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
       { id: 'adm_people', title: 'People Directory', url: '/app/people', icon: Users },
       { id: 'adm_students', title: 'Students', url: '/app/people/students', icon: GraduationCap },
       { id: 'adm_staff', title: 'Staff Directory', url: '/app/people/staff', icon: UserCheck },
-      { id: 'adm_finance', title: 'Finance Command Center', url: '/app/finance/dashboard', icon: Receipt },
-      { id: 'adm_finance_structures', title: 'Fee Structure Management', url: '/app/finance/structures', icon: Layers },
-      { id: 'adm_finance_config', title: 'Finance Configuration', url: '/app/finance/configuration', icon: ShieldCheck },
-      { id: 'adm_finance_scholarships', title: 'Scholarships & Concessions', url: '/app/finance/scholarships', icon: Award },
-      { id: 'adm_finance_receivables', title: 'Receivables & Collections', url: '/app/finance/receivables', icon: Coins },
-      { id: 'adm_finance_notifications', title: 'Finance Notifications', url: '/app/finance/notifications', icon: Bell },
-      { id: 'adm_finance_reconciliation', title: 'Finance Reconciliation', url: '/app/finance/reconciliation', icon: Scale },
-      { id: 'adm_finance_accounting', title: 'General Ledger & Accounting', url: '/app/finance/accounting', icon: BookOpen },
-      { id: 'adm_finance_reports', title: 'Finance Reports & Intelligence', url: '/app/finance/reports', icon: FileText },
-      { id: 'adm_finance_planning', title: 'Budgeting & Financial Planning', url: '/app/finance/planning', icon: TrendingUp },
-      { id: 'adm_finance_audit', title: 'Finance Audit & Compliance', url: '/app/finance/audit', icon: ShieldCheck },
-      { id: 'adm_finance_operations', title: 'Finance Operations & Insights', url: '/app/finance/operations', icon: Compass },
+      {
+        id: 'adm_finance',
+        title: 'Finance Command Center',
+        url: '/app/finance/dashboard',
+        icon: Receipt,
+      },
+      {
+        id: 'adm_finance_structures',
+        title: 'Fee Structure Management',
+        url: '/app/finance/structures',
+        icon: Layers,
+      },
+      {
+        id: 'adm_finance_assignments',
+        title: 'Student Fee Assignments',
+        url: '/app/finance/assignments',
+        icon: UserCheck,
+      },
+      {
+        id: 'adm_finance_config',
+        title: 'Finance Configuration',
+        url: '/app/finance/configuration',
+        icon: ShieldCheck,
+      },
+      {
+        id: 'adm_finance_scholarships',
+        title: 'Scholarships & Concessions',
+        url: '/app/finance/scholarships',
+        icon: Award,
+      },
+      {
+        id: 'adm_finance_receivables',
+        title: 'Receivables & Collections',
+        url: '/app/finance/receivables',
+        icon: Coins,
+      },
+      {
+        id: 'adm_finance_notifications',
+        title: 'Finance Notifications',
+        url: '/app/finance/notifications',
+        icon: Bell,
+      },
+      {
+        id: 'adm_finance_reconciliation',
+        title: 'Finance Reconciliation',
+        url: '/app/finance/reconciliation',
+        icon: Scale,
+      },
+      {
+        id: 'adm_finance_accounting',
+        title: 'General Ledger & Accounting',
+        url: '/app/finance/accounting',
+        icon: BookOpen,
+      },
+      {
+        id: 'adm_finance_reports',
+        title: 'Finance Reports & Intelligence',
+        url: '/app/finance/reports',
+        icon: FileText,
+      },
+      {
+        id: 'adm_finance_planning',
+        title: 'Budgeting & Financial Planning',
+        url: '/app/finance/planning',
+        icon: TrendingUp,
+      },
+      {
+        id: 'adm_finance_audit',
+        title: 'Finance Audit & Compliance',
+        url: '/app/finance/audit',
+        icon: ShieldCheck,
+      },
+      {
+        id: 'adm_finance_operations',
+        title: 'Finance Operations & Insights',
+        url: '/app/finance/operations',
+        icon: Compass,
+      },
       { id: 'adm_bulk', title: 'Bulk Operations', url: '/app/admin/bulk', icon: Settings },
       { id: 'adm_import', title: 'Import History', url: '/app/import/history', icon: FileText },
       { id: 'adm_settings', title: 'Settings', url: '/app/settings', icon: Settings },
@@ -445,6 +583,16 @@ export function getNavigationForUser(
   );
 
   if (
+    normalizedRoles.includes('FINANCE') ||
+    normalizedRoles.includes('FINANCE_OFFICER') ||
+    normalizedRoles.includes('ACCOUNTANT') ||
+    normalizedRoles.includes('FINANCE_MANAGER') ||
+    normalizedRoles.includes('BURSAR')
+  ) {
+    return FINANCE_NAVIGATION;
+  }
+
+  if (
     normalizedRoles.includes('FRONT_OFFICE') ||
     normalizedRoles.includes('FO') ||
     normalizedRoles.includes('RECEPTIONIST') ||
@@ -453,9 +601,7 @@ export function getNavigationForUser(
     normalizedRoles.includes('ADMISSIONS_OFFICER') ||
     normalizedRoles.includes('COUNSELLOR') ||
     normalizedRoles.includes('COUNSELOR') ||
-    normalizedRoles.includes('FRONT_OFFICE_STAFF') ||
-    normalizedRoles.includes('FINANCE') ||
-    normalizedRoles.includes('FINANCE_OFFICER')
+    normalizedRoles.includes('FRONT_OFFICE_STAFF')
   ) {
     return FRONT_OFFICE_NAVIGATION;
   }

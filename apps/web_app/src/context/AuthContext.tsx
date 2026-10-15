@@ -315,6 +315,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) {
         return true;
       }
+      if (
+        normalized.includes('FINANCE') ||
+        normalized.includes('FINANCE_OFFICER') ||
+        normalized.includes('ACCOUNTANT') ||
+        normalized.includes('FINANCE_MANAGER') ||
+        normalized.includes('BURSAR')
+      ) {
+        const financePermissions = [
+          'fees.dashboard.view',
+          'fees.view',
+          'fees.structure.view',
+          'fees.structure.manage',
+          'fees.demand.view',
+          'fees.demand.generate',
+          'fees.payment.view',
+          'fees.payment.collect',
+          'fees.receipt.generate',
+          'fees.waiver.approve',
+          'fees.refund.process',
+        ];
+        if (financePermissions.includes(code) || code.startsWith('fees.')) return true;
+      }
       if (normalized.includes('PARENT') || normalized.includes('GUARDIAN')) {
         const parentPermissions = [
           'admission.view_own',

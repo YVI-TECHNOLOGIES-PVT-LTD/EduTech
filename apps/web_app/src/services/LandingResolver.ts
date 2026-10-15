@@ -49,7 +49,21 @@ export const LandingResolver = {
       return destination;
     }
 
-    // 2. Front Office / Operations / Admissions Desk / Staff Roles
+    // 2. Finance / Accounting Persona Roles
+    const isFinance = normalizedRoles.some((r: string) =>
+      ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+    );
+
+    if (isFinance) {
+      const destination = '/app/finance/dashboard';
+      console.log('[LandingResolver] Finance resolved:', {
+        roles: normalizedRoles,
+        destination,
+      });
+      return destination;
+    }
+
+    // 3. Front Office / Operations / Admissions Desk / Staff Roles
     const isFrontOffice = normalizedRoles.some((r: string) =>
       [
         'FRONT_OFFICE',
@@ -60,8 +74,6 @@ export const LandingResolver = {
         'ADMISSIONS_OFFICER',
         'COUNSELLOR',
         'COUNSELOR',
-        'FINANCE',
-        'FINANCE_OFFICER',
       ].includes(r),
     );
 

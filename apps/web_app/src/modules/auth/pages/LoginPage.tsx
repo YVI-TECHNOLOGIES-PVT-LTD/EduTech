@@ -144,14 +144,41 @@ export const LoginPage: React.FC = () => {
           ? [rawUser.role]
           : [];
 
+      let initialPermissions: string[] =
+        Array.isArray(rawUser.permissions) && rawUser.permissions.length > 0
+          ? rawUser.permissions
+          : Array.isArray(res.permissions) && res.permissions.length > 0
+            ? res.permissions
+            : [];
+
+      const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+      if (
+        initialPermissions.length === 0 &&
+        normalizedRoles.some((r: string) =>
+          ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+        )
+      ) {
+        initialPermissions = [
+          'fees.dashboard.view',
+          'fees.view',
+          'fees.structure.view',
+          'fees.structure.manage',
+          'fees.demand.view',
+          'fees.demand.generate',
+          'fees.payment.view',
+          'fees.payment.collect',
+          'fees.receipt.generate',
+          'fees.waiver.approve',
+          'fees.refund.process',
+        ];
+      }
+
       const enrichedUser: EnrichedUser = {
         id: rawUser.id || rawUser.user_id || 'user-1',
         email: rawUser.email || data.email,
         school_id: rawUser.school_id || rawUser.organizationId || rawUser.tenantId || 'school-main',
         roles: rawRoles,
-        permissions: Array.isArray(rawUser.permissions)
-          ? rawUser.permissions
-          : res.permissions || [],
+        permissions: initialPermissions,
         full_name: rawUser.full_name || rawUser.firstName || rawUser.name || '',
         phone_number: rawUser.phone_number || rawUser.phone,
         login_status: rawUser.login_status || 'APPROVED',
@@ -185,7 +212,6 @@ export const LoginPage: React.FC = () => {
       }
 
       const targetDestination = LandingResolver.resolveLandingRoute(rawRoles, [], enrichedUser);
-      const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
       const dest =
         rawFrom && isRouteAllowedForUser(rawFrom, normalizedRoles) ? rawFrom : targetDestination;
 

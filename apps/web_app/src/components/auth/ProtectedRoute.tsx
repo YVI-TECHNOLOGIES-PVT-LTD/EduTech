@@ -277,6 +277,15 @@ export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) =>
     user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
   const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
 
+  // Check Finance roles first
+  const isFinance = normalizedRoles.some((r: string) =>
+    ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+  );
+
+  if (isFinance) {
+    return <Navigate to="/app/finance/dashboard" replace />;
+  }
+
   // If user holds staff/operations roles (and not solely parent), redirect to Front Office
   const isFrontOfficeStaff = normalizedRoles.some((r: string) =>
     [
@@ -288,8 +297,6 @@ export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) =>
       'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
     ].includes(r),
   );
 
@@ -368,6 +375,14 @@ export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => 
   }
 
   // Non-admin redirect to persona landing
+  const isFinance = normalizedRoles.some((r: string) =>
+    ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+  );
+
+  if (isFinance) {
+    return <Navigate to="/app/finance/dashboard" replace />;
+  }
+
   const isFrontOffice = normalizedRoles.some((r: string) =>
     [
       'FRONT_OFFICE',
@@ -378,8 +393,6 @@ export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => 
       'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
     ].includes(r),
   );
 

@@ -1,274 +1,853 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { apiClient } from '../../../lib/api-client';
 import {
-    Wallet,
-    Search,
-    User,
-    ReceiptText,
-    AlertCircle,
-    CheckCircle2,
-    ArrowRight,
-    DollarSign
+  Wallet,
+  Search,
+  User,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Layers,
+  ChevronRight,
+  RefreshCw,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert,
+  Calendar,
+  GraduationCap,
+  ListPlus,
+  FileText,
+  Check,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-export const StudentFeeAssignment = () => {
-    const [structures, setStructures] = useState<any[]>([]);
-    const [students, setStudents] = useState<any[]>([]);
-    const [studentId, setStudentId] = useState('');
-    const [selectedStructureIds, setSelectedStructureIds] = useState<string[]>([]);
-    const [totalAmount, setTotalAmount] = useState<number>(0);
-    const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+interface AcademicYearGradeOption {
+  academic_year_grade_id: string;
+  academic_year_id: string;
+  academic_year_name: string;
+  grade_id: string;
+  grade_name: string;
+  grade_code: string;
+  is_configured: boolean;
+  existing_structure: {
+    id: string;
+    name: string;
+    status: string;
+  } | null;
+}
 
-    useEffect(() => {
-        apiClient.get('/fees/structures').then(res => setStructures(res.data));
-        apiClient.get('/students').then(res => {
-            const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-            setStudents(Array.isArray(list) ? list : []);
-        }).catch(() => setStudents([]));
-    }, []);
+interface EnrolledStudentItem {
+  student_id: string;
+  admission_no: string;
+  first_name: string;
+  last_name: string | null;
+  full_name: string;
+  grade_id: string;
+  grade_name: string;
+  section_name: string | null;
+  academic_year_id: string;
+  academic_year_name: string;
+  enrollment_id: string;
+  is_assigned: boolean;
+  existing_assignment?: {
+    assignment_id: string;
+    fee_structure_id: string;
+    fee_structure_name: string;
+    installment_plan_id: string | null;
+    status: string;
+    assigned_at: string;
+  } | null;
+}
 
-    const selectedStudent = Array.isArray(students) ? students.find(s => s.id === studentId) : undefined;
+interface FeeStructureDetail {
+  id: string;
+  fee_structure_id: string;
+  name: string;
+  description: string | null;
+  status: 'draft' | 'published' | 'inactive';
+  total_amount: number;
+  components: Array<{
+    id?: string;
+    component_name: string;
+    component_code: string;
+    amount: number;
+    is_mandatory: boolean;
+  }>;
+  installment_plan?: {
+    id: string;
+    plan_name: string;
+    terms_count: number;
+    terms: Array<{
+      term_number: number;
+      term_name: string;
+      percentage: number;
+      due_date: string;
+    }>;
+  };
+}
 
-    const handleStructureToggle = (id: string, amount: number) => {
-        setSelectedStructureIds(prev => {
-            const isSelected = prev.includes(id);
-            if (isSelected) {
-                return prev.filter(sid => sid !== id);
-            } else {
-                return [...prev, id];
-            }
+export const StudentFeeAssignment: React.FC = () => {
+  // Configuration options
+  const [academicYearGrades, setAcademicYearGrades] = useState<AcademicYearGradeOption[]>([]);
+  const [academicYears, setAcademicYears] = useState<{ id: string; name: string }[]>([]);
+  const [selectedYearId, setSelectedYearId] = useState<string>('');
+  const [selectedGradeId, setSelectedGradeId] = useState<string>('');
+
+  // Published structure for selection
+  const [activeStructure, setActiveStructure] = useState<FeeStructureDetail | null>(null);
+  const [isLoadingStructure, setIsLoadingStructure] = useState<boolean>(false);
+
+  // Enrolled students
+  const [students, setStudents] = useState<EnrolledStudentItem[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filterMode, setFilterMode] = useState<'all' | 'unassigned' | 'assigned'>('unassigned');
+
+  // Selection states
+  const [assignmentMode, setAssignmentMode] = useState<'single' | 'bulk'>('single');
+  const [selectedSingleStudentId, setSelectedSingleStudentId] = useState<string>('');
+  const [selectedBulkStudentIds, setSelectedBulkStudentIds] = useState<string[]>([]);
+  const [assignmentNotes, setAssignmentNotes] = useState<string>('');
+
+  // Execution states
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [lastSuccessResult, setLastSuccessResult] = useState<any | null>(null);
+
+  // 1. Fetch academic year grades for filter dropdowns
+  const fetchAcademicYearGrades = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/fees/structures/academic-year-grades');
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setAcademicYearGrades(res.data.data);
+
+        // Derive distinct academic years
+        const yearsMap = new Map<string, string>();
+        res.data.data.forEach((g: AcademicYearGradeOption) => {
+          if (g.academic_year_id && g.academic_year_name) {
+            yearsMap.set(g.academic_year_id, g.academic_year_name);
+          }
         });
-    };
+        const years = Array.from(yearsMap.entries()).map(([id, name]) => ({ id, name }));
+        setAcademicYears(years);
 
-    // Calculate total whenever selection changes
-    useEffect(() => {
-        const total = structures
-            .filter(s => selectedStructureIds.includes(s.id))
-            .reduce((sum, s) => sum + Number(s.amount), 0);
-        setTotalAmount(total);
-    }, [selectedStructureIds, structures]);
-
-    const handleAssign = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!studentId || selectedStructureIds.length === 0) return;
-
-        setLoading(true);
-        try {
-            // Assign each selected structure
-            for (const structId of selectedStructureIds) {
-                const struct = structures.find(s => s.id === structId);
-                await apiClient.post(`/fees/assign/${studentId}`, {
-                    fee_structure_id: structId,
-                    assigned_amount: struct?.amount // Defaulting to full amount for now
-                });
-            }
-
-            alert("Fees Assigned Successfully");
-            setStudentId('');
-            setSelectedStructureIds([]);
-            setTotalAmount(0);
-            setSearchTerm('');
-        } catch (err: any) {
-            alert(err.response?.data?.error || "Failed to link fee structures");
-        } finally {
-            setLoading(false);
+        if (years.length > 0 && !selectedYearId) {
+          setSelectedYearId(years[0].id);
         }
-    };
+      }
+    } catch (err: any) {
+      console.warn('[StudentFeeAssignment] Error fetching academic year grades:', err);
+    }
+  }, [selectedYearId]);
 
-    const filteredStudents = (Array.isArray(students) ? students : []).filter(s =>
+  useEffect(() => {
+    fetchAcademicYearGrades();
+  }, [fetchAcademicYearGrades]);
+
+  // Filter available grades for the selected academic year
+  const availableGradesForYear = useMemo(() => {
+    if (!selectedYearId) return [];
+    return academicYearGrades.filter((g) => g.academic_year_id === selectedYearId);
+  }, [academicYearGrades, selectedYearId]);
+
+  // Set default grade when year changes
+  useEffect(() => {
+    if (availableGradesForYear.length > 0) {
+      const currentExists = availableGradesForYear.some((g) => g.grade_id === selectedGradeId);
+      if (!currentExists) {
+        setSelectedGradeId(availableGradesForYear[0].grade_id);
+      }
+    } else {
+      setSelectedGradeId('');
+    }
+  }, [availableGradesForYear, selectedGradeId]);
+
+  // 2. Fetch the published structure for the chosen grade & year
+  const fetchPublishedStructure = useCallback(async () => {
+    if (!selectedYearId || !selectedGradeId) {
+      setActiveStructure(null);
+      return;
+    }
+
+    setIsLoadingStructure(true);
+    try {
+      const res = await apiClient.get(
+        `/fees/structures?academicYearId=${selectedYearId}&gradeId=${selectedGradeId}&status=published`,
+      );
+
+      const items =
+        res.data?.items || res.data?.structures || (Array.isArray(res.data) ? res.data : []);
+      if (items.length > 0) {
+        const struct = items[0];
+        // Fetch detailed components and installment terms
+        const detailRes = await apiClient.get(
+          `/fees/structures/${struct.fee_structure_id || struct.id}`,
+        );
+        if (detailRes.data?.success && detailRes.data?.data) {
+          setActiveStructure(detailRes.data.data);
+        } else {
+          setActiveStructure(struct);
+        }
+      } else {
+        setActiveStructure(null);
+      }
+    } catch (err: any) {
+      console.warn('[StudentFeeAssignment] Error fetching structure:', err);
+      setActiveStructure(null);
+    } finally {
+      setIsLoadingStructure(false);
+    }
+  }, [selectedYearId, selectedGradeId]);
+
+  // 3. Fetch eligible enrolled students
+  const fetchStudents = useCallback(async () => {
+    if (!selectedYearId || !selectedGradeId) {
+      setStudents([]);
+      return;
+    }
+
+    setIsLoadingStudents(true);
+    try {
+      const res = await apiClient.get(
+        `/fees/structures/eligible-students?academicYearId=${selectedYearId}&gradeId=${selectedGradeId}&limit=100`,
+      );
+
+      const list = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      setStudents(list);
+    } catch (err: any) {
+      console.warn('[StudentFeeAssignment] Error fetching enrolled students:', err);
+      setStudents([]);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  }, [selectedYearId, selectedGradeId]);
+
+  useEffect(() => {
+    fetchPublishedStructure();
+    fetchStudents();
+    setSelectedSingleStudentId('');
+    setSelectedBulkStudentIds([]);
+    setLastSuccessResult(null);
+  }, [fetchPublishedStructure, fetchStudents]);
+
+  // Filter students based on search term & assignment status
+  const filteredStudents = useMemo(() => {
+    return students.filter((s) => {
+      const matchesSearch =
+        !searchTerm.trim() ||
         s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_code?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 5);
+        s.admission_no?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return (
-        <div className="max-w-6xl mx-auto p-8 space-y-10 animate-in fade-in duration-700">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
-                        <Wallet className="w-10 h-10 text-emerald-600" />
-                        Fee Assignment
-                    </h1>
-                    <p className="text-gray-500 mt-1 font-medium font-display uppercase tracking-widest text-[10px]">Financial Operations & Revenue Management</p>
-                </div>
-            </div>
+      const matchesStatus =
+        filterMode === 'all' ||
+        (filterMode === 'unassigned' && !s.is_assigned) ||
+        (filterMode === 'assigned' && s.is_assigned);
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                {/* Form Section */}
-                <div className="lg:col-span-3 space-y-6">
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 space-y-8">
-                        {/* Step 1: Select Student */}
-                        <div className="space-y-4">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                <User className="w-4 h-4 text-emerald-500" />
-                                1. IDENTIFY STUDENT
-                            </label>
+      return matchesSearch && matchesStatus;
+    });
+  }, [students, searchTerm, filterMode]);
 
-                            <div className="relative group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by name or student ID..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-emerald-600 outline-none transition-all font-bold text-gray-900 shadow-inner"
-                                />
+  // Unassigned students available for bulk selection
+  const unassignedStudents = useMemo(() => {
+    return students.filter((s) => !s.is_assigned);
+  }, [students]);
 
-                                {searchTerm && !studentId && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-10 overflow-hidden divide-y divide-gray-50 animate-in slide-in-from-top-2 duration-200">
-                                        {filteredStudents.map(s => (
-                                            <button
-                                                key={s.id}
-                                                onClick={() => { setStudentId(s.id); setSearchTerm(s.full_name); }}
-                                                className="w-full text-left p-4 hover:bg-emerald-50 flex items-center justify-between transition-colors group"
-                                            >
-                                                <div>
-                                                    <div className="font-bold text-gray-900">{s.full_name}</div>
-                                                    <div className="text-xs text-gray-400 font-bold">{s.student_code}</div>
-                                                </div>
-                                                <ArrowRight className="w-4 h-4 text-gray-200 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {selectedStudent && (
-                                <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl animate-in fade-in zoom-in-95">
-                                    <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center font-black">
-                                        {selectedStudent.full_name?.charAt(0)}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="text-sm font-black text-emerald-900">{selectedStudent.full_name}</div>
-                                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">{selectedStudent.student_code}</div>
-                                    </div>
-                                    <button onClick={() => { setStudentId(''); setSearchTerm(''); }} className="text-emerald-400 hover:text-emerald-600 transition-colors">
-                                        <AlertCircle className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Step 2: Select Fee Type */}
-                        <div className="space-y-4">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                <ReceiptText className="w-4 h-4 text-emerald-500" />
-                                2. SELECT FEE STRATEGIES (MULTIPLE)
-                            </label>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {structures.map(s => {
-                                    const isSelected = selectedStructureIds.includes(s.id);
-                                    return (
-                                        <button
-                                            key={s.id}
-                                            onClick={() => handleStructureToggle(s.id, s.amount)}
-                                            className={`p-5 rounded-2xl border text-left transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 shadow-lg shadow-emerald-100 text-white' : 'bg-gray-50 border-transparent hover:border-emerald-200 text-gray-900 hover:shadow-md'}`}
-                                        >
-                                            <div className={`flex justify-between items-start mb-1`}>
-                                                <div className={`text-xs font-black uppercase tracking-widest ${isSelected ? 'text-emerald-200' : 'text-gray-400'}`}>Fee Type</div>
-                                                {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
-                                            </div>
-                                            <div className="font-black text-lg truncate">{s.name}</div>
-                                            <div className={`mt-2 font-bold ${isSelected ? 'text-white' : 'text-emerald-600'}`}>Rs. {Number(s.amount).toLocaleString()}</div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Step 3: Confirm & Amount Override */}
-                        <div className="space-y-4 pt-4 border-t border-gray-50">
-                            <div className="flex justify-between items-center text-xs font-black text-gray-400 uppercase tracking-widest">
-                                <label className="flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-emerald-500" />
-                                    3. ADJUST & CONFIRM
-                                </label>
-                                <span>TOTAL ASSIGNED</span>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <div className="relative flex-1 group">
-                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
-                                    <input
-                                        type="number"
-                                        placeholder="0.00"
-                                        value={totalAmount}
-                                        onChange={(e) => setTotalAmount(parseFloat(e.target.value) || 0)}
-                                        className="w-full pl-12 pr-4 py-6 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-emerald-600 outline-none transition-all font-black text-3xl text-gray-900 shadow-inner tracking-tighter"
-                                        readOnly // Making it read-only for now when multiple selected to avoid confusion, or can be left editable
-                                    />
-                                </div>
-                            </div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">
-                                {selectedStructureIds.length > 1 ? 'Bulk assignment total calculated automatically.' : 'Override standard amount if scholarship or adjustment applies.'}
-                            </p>
-                        </div>
-
-                        <button
-                            onClick={handleAssign}
-                            disabled={loading || !studentId || selectedStructureIds.length === 0}
-                            className="w-full py-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-3xl font-black text-xl shadow-xl shadow-emerald-100 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 tracking-tight"
-                        >
-                            {loading ? 'PROCESSING...' : (
-                                <>
-                                    FINALIZE ASSIGNMENT ({selectedStructureIds.length})
-                                    <CheckCircle2 className="w-6 h-6" />
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Audit / Summary Panel */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-gray-900 rounded-3xl p-8 text-white shadow-2xl sticky top-8 space-y-8">
-                        <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
-                            <ReceiptText className="w-6 h-6 text-emerald-400" />
-                            Assignment Summary
-                        </h3>
-
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Target Scholar</div>
-                                <div className="text-lg font-bold">{selectedStudent?.full_name || 'No Student Selected'}</div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Plans Selected</div>
-                                <div className="text-lg font-bold">
-                                    {selectedStructureIds.length > 0 ? (
-                                        <ul className="list-disc pl-5 text-sm space-y-1">
-                                            {structures.filter(s => selectedStructureIds.includes(s.id)).map(s => (
-                                                <li key={s.id}>{s.name}</li>
-                                            ))}
-                                        </ul>
-                                    ) : 'No Structure Selected'}
-                                </div>
-                            </div>
-
-                            <div className="pt-6 border-t border-white/10 space-y-4">
-                                <div className="flex justify-between items-end">
-                                    <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Final Ledger Amount</div>
-                                    <div className="text-4xl font-black text-emerald-400 tracking-tighter italic">
-                                        Rs. {totalAmount.toLocaleString()}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
-                            <div className="flex items-start gap-4">
-                                <AlertCircle className="w-6 h-6 text-emerald-400 shrink-0" />
-                                <p className="text-xs text-white/60 leading-relaxed">
-                                    Finalizing this assignment will update the student's financial ledger by adding {selectedStructureIds.length} new fee entries.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  // Toggle single bulk student selection
+  const handleToggleBulkStudent = (sId: string) => {
+    setSelectedBulkStudentIds((prev) =>
+      prev.includes(sId) ? prev.filter((id) => id !== sId) : [...prev, sId],
     );
+  };
+
+  // Toggle all unassigned students in bulk mode
+  const handleToggleSelectAll = () => {
+    if (selectedBulkStudentIds.length === unassignedStudents.length) {
+      setSelectedBulkStudentIds([]);
+    } else {
+      setSelectedBulkStudentIds(unassignedStudents.map((s) => s.student_id));
+    }
+  };
+
+  // Handle Assignment submission
+  const handleExecuteAssignment = async () => {
+    if (!activeStructure) {
+      toast.error('No published fee structure is active for this grade.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (assignmentMode === 'single') {
+        if (!selectedSingleStudentId) {
+          toast.error('Please select an enrolled student to assign fees.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const res = await apiClient.post('/fees/ledger/assignments', {
+          studentId: selectedSingleStudentId,
+          feeStructureId: activeStructure.fee_structure_id || activeStructure.id,
+          installmentPlanId: activeStructure.installment_plan?.id,
+          notes: assignmentNotes.trim() || undefined,
+        });
+
+        if (res.data?.success) {
+          toast.success('Fee structure assigned and installment dues generated successfully!');
+          setLastSuccessResult(res.data.data);
+          setShowConfirmModal(false);
+          fetchStudents();
+          setSelectedSingleStudentId('');
+        }
+      } else {
+        if (selectedBulkStudentIds.length === 0) {
+          toast.error('Please select at least one student for bulk assignment.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const res = await apiClient.post('/fees/ledger/assignments/bulk', {
+          studentIds: selectedBulkStudentIds,
+          feeStructureId: activeStructure.fee_structure_id || activeStructure.id,
+          installmentPlanId: activeStructure.installment_plan?.id,
+          notes: assignmentNotes.trim() || undefined,
+        });
+
+        if (res.data?.success) {
+          const { succeeded, failed } = res.data.data;
+          toast.success(`Bulk assignment complete: ${succeeded} assigned, ${failed} failed.`);
+          setLastSuccessResult(res.data.data);
+          setShowConfirmModal(false);
+          fetchStudents();
+          setSelectedBulkStudentIds([]);
+        }
+      }
+    } catch (err: any) {
+      console.error('[StudentFeeAssignment] Assignment error:', err);
+      toast.error(err.response?.data?.message || 'Failed to assign fee structure.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 p-6 md:p-8 space-y-8 font-sans">
+      {/* ── HEADER ────────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <span>Finance</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="text-emerald-600 dark:text-emerald-400">Student Fee Assignment</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <Wallet className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+              Student Fee Assignment & Dues Schedule
+            </h1>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-3xl">
+            Assign official published fee structures to active student enrollments and atomically
+            generate installment charge obligations.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              fetchPublishedStructure();
+              fetchStudents();
+            }}
+            disabled={isLoadingStudents || isLoadingStructure}
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60 shadow-sm transition-all"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isLoadingStudents || isLoadingStructure ? 'animate-spin' : ''}`}
+            />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── ACADEMIC YEAR & GRADE SELECTOR ────────────────────────────── */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <Calendar className="w-4 h-4 text-emerald-600" />
+          <span>Step 1: Select Academic Context & Grade</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Academic Year
+            </label>
+            <select
+              value={selectedYearId}
+              onChange={(e) => setSelectedYearId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              {academicYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Applicable Grade
+            </label>
+            <select
+              value={selectedGradeId}
+              onChange={(e) => setSelectedGradeId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              {availableGradesForYear.map((g) => (
+                <option key={g.grade_id} value={g.grade_id}>
+                  {g.grade_name} ({g.grade_code})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ── STEP 2: PUBLISHED STRUCTURE CARD ──────────────────────────── */}
+      {isLoadingStructure ? (
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-3">
+          <RefreshCw className="w-5 h-5 text-emerald-600 animate-spin" />
+          <span className="text-xs font-bold text-slate-500">
+            Checking published fee structures for grade...
+          </span>
+        </div>
+      ) : !activeStructure ? (
+        <div className="p-6 rounded-3xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 flex items-start gap-4">
+          <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300">
+              No Published Fee Structure Found for this Grade
+            </h3>
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Before student fees can be assigned, a published fee structure must exist for this
+              academic year and grade. Please go to <strong>Fee Structure Management</strong> to
+              create and publish a fee schedule.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Active Fee Structure
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/50">
+                  Published & Ready
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-1">
+                {activeStructure.name}
+              </h2>
+              {activeStructure.description && (
+                <p className="text-xs text-slate-500 mt-0.5">{activeStructure.description}</p>
+              )}
+            </div>
+
+            <div className="text-right">
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                Total Annual Fee
+              </span>
+              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                ₹{Number(activeStructure.total_amount).toLocaleString('en-IN')}
+              </div>
+            </div>
+          </div>
+
+          {/* Components and Installment Terms preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Components list */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <ListPlus className="w-3.5 h-3.5" />
+                <span>Components Breakdown</span>
+              </h4>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                {(activeStructure.components || []).map((c, idx) => (
+                  <div key={idx} className="p-3 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {c.component_name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 ml-2 font-mono">
+                        ({c.component_code})
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      ₹{Number(c.amount).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Installment terms schedule */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  Installment Schedule ({activeStructure.installment_plan?.plan_name || 'Standard'})
+                </span>
+              </h4>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                {(activeStructure.installment_plan?.terms || []).map((t, idx) => {
+                  const termAmt = Number(activeStructure.total_amount) * (t.percentage / 100);
+                  return (
+                    <div key={idx} className="p-3 flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {t.term_name}
+                        </span>
+                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold ml-2">
+                          {t.percentage}%
+                        </span>
+                        <span className="text-[10px] text-slate-400 ml-2">
+                          Due: {new Date(t.due_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        ₹{termAmt.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: ENROLLED STUDENTS ASSIGNMENT WORKSPACE ─────────────── */}
+      {activeStructure && (
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Step 2: Assign Students
+              </span>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                Eligible Enrolled Students ({students.length} total)
+              </h3>
+            </div>
+
+            {/* Mode switcher: Single vs Bulk */}
+            <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+              <button
+                onClick={() => setAssignmentMode('single')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  assignmentMode === 'single'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Single Student</span>
+              </button>
+
+              <button
+                onClick={() => setAssignmentMode('bulk')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  assignmentMode === 'bulk'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Bulk Grade Selection ({unassignedStudents.length} eligible)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filter and Search */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search student by name or admission no..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setFilterMode('unassigned')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                  filterMode === 'unassigned'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                }`}
+              >
+                Unassigned Only ({unassignedStudents.length})
+              </button>
+              <button
+                onClick={() => setFilterMode('all')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                  filterMode === 'all'
+                    ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                }`}
+              >
+                All Students ({students.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Bulk select all toggle */}
+          {assignmentMode === 'bulk' && unassignedStudents.length > 0 && (
+            <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
+                <input
+                  type="checkbox"
+                  checked={
+                    unassignedStudents.length > 0 &&
+                    selectedBulkStudentIds.length === unassignedStudents.length
+                  }
+                  onChange={handleToggleSelectAll}
+                  className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                />
+                <span>
+                  Select all {unassignedStudents.length} unassigned students for bulk assignment
+                </span>
+              </div>
+              <span className="text-emerald-600 font-bold">
+                {selectedBulkStudentIds.length} of {unassignedStudents.length} selected
+              </span>
+            </div>
+          )}
+
+          {/* Students List Table */}
+          {isLoadingStudents ? (
+            <div className="p-8 text-center text-xs text-slate-400">
+              Loading enrolled students...
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400">
+              No students found matching current filters.
+            </div>
+          ) : (
+            <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50/70 dark:bg-slate-800/50 text-slate-500 font-bold border-b border-slate-100 dark:border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4 w-12 text-center">
+                      {assignmentMode === 'single' ? '#' : ''}
+                    </th>
+                    <th className="py-3 px-4">Student Name</th>
+                    <th className="py-3 px-4">Admission No</th>
+                    <th className="py-3 px-4">Section</th>
+                    <th className="py-3 px-4">Fee Status</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredStudents.map((s, idx) => {
+                    const isSelectedSingle = selectedSingleStudentId === s.student_id;
+                    const isSelectedBulk = selectedBulkStudentIds.includes(s.student_id);
+
+                    return (
+                      <tr
+                        key={s.student_id}
+                        className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors ${
+                          isSelectedSingle || isSelectedBulk
+                            ? 'bg-emerald-50/30 dark:bg-emerald-950/20'
+                            : ''
+                        }`}
+                      >
+                        <td className="py-3 px-4 text-center">
+                          {assignmentMode === 'bulk' ? (
+                            <input
+                              type="checkbox"
+                              disabled={s.is_assigned}
+                              checked={isSelectedBulk}
+                              onChange={() => handleToggleBulkStudent(s.student_id)}
+                              className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer disabled:opacity-40"
+                            />
+                          ) : (
+                            <span className="text-slate-400">{idx + 1}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                          {s.full_name}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-slate-500">{s.admission_no}</td>
+                        <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                          {s.section_name || 'Standard'}
+                        </td>
+                        <td className="py-3 px-4">
+                          {s.is_assigned ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/50">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {s.existing_assignment?.fee_structure_name || 'Assigned'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/50">
+                              <Clock className="w-3 h-3" />
+                              Unassigned
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {assignmentMode === 'single' && !s.is_assigned && (
+                            <button
+                              onClick={() => setSelectedSingleStudentId(s.student_id)}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                                isSelectedSingle
+                                  ? 'bg-emerald-600 text-white shadow-sm'
+                                  : 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              {isSelectedSingle ? 'Selected ✓' : 'Select'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Action Trigger Bar */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {assignmentMode === 'single'
+                  ? selectedSingleStudentId
+                    ? `Ready to assign 1 student to: "${activeStructure.name}"`
+                    : 'Select a student from the table above to proceed'
+                  : selectedBulkStudentIds.length > 0
+                    ? `Ready to bulk-assign ${selectedBulkStudentIds.length} students to: "${activeStructure.name}"`
+                    : 'Select one or more students to proceed with bulk assignment'}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Annual obligation of ₹{Number(activeStructure.total_amount).toLocaleString('en-IN')}{' '}
+                partitioned into dues
+              </div>
+            </div>
+
+            <button
+              disabled={
+                assignmentMode === 'single'
+                  ? !selectedSingleStudentId
+                  : selectedBulkStudentIds.length === 0
+              }
+              onClick={() => setShowConfirmModal(true)}
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <span>Preview & Confirm Assignment</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CONFIRMATION MODAL ─────────────────────────────────────────── */}
+      {showConfirmModal && activeStructure && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Confirm Student Fee Assignment
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {assignmentMode === 'single'
+                    ? 'Assigning 1 Student'
+                    : `Bulk Assigning ${selectedBulkStudentIds.length} Students`}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Structure:</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {activeStructure.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total Annual Charge:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  ₹{Number(activeStructure.total_amount).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Installments Generated:</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {activeStructure.installment_plan?.terms?.length || 1} Terms
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Optional Assignment Notes / Remarks
+              </label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Regular Academic Year Admission Batch A"
+                value={assignmentNotes}
+                onChange={(e) => setAssignmentNotes(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteAssignment}
+                disabled={isSubmitting}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              >
+                {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                <span>Execute Assignment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SUCCESS RECEIPT RESULT ────────────────────────────────────── */}
+      {lastSuccessResult && (
+        <div className="p-6 rounded-3xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 space-y-3">
+          <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300 text-sm">
+            <Check className="w-5 h-5 text-emerald-600" />
+            <span>Assignment Successfully Processed!</span>
+          </div>
+          <p className="text-xs text-emerald-700 dark:text-emerald-400">
+            {lastSuccessResult.total
+              ? `Bulk operation processed: ${lastSuccessResult.succeeded} succeeded, ${lastSuccessResult.failed} failed.`
+              : `Created ${lastSuccessResult.charges_count || 'all'} charges and ${lastSuccessResult.dues_count || 'all'} installment dues.`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 };
+
+export default StudentFeeAssignment;

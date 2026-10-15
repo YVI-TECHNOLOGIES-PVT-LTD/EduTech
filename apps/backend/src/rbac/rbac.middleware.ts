@@ -22,8 +22,10 @@ const ROLE_ALIASES: Record<string, string[]> = {
   PRINCIPAL: ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
   COUNSELLOR: ['COUNSELOR', 'COUNSELLOR'],
   COUNSELOR: ['COUNSELOR', 'COUNSELLOR'],
-  ACCOUNTANT: ['FINANCE_OFFICER', 'ACCOUNTANT'],
-  FINANCE_OFFICER: ['FINANCE_OFFICER', 'ACCOUNTANT'],
+  ACCOUNTANT: ['ACCOUNTANT'],
+  FINANCE: ['FINANCE', 'FINANCE_OFFICER'],
+  FINANCE_OFFICER: ['FINANCE_OFFICER', 'FINANCE'],
+  FINANCE_MANAGER: ['FINANCE_MANAGER', 'FINANCE_OFFICER', 'FINANCE'],
   DRIVER: ['BUS_DRIVER', 'DRIVER'],
   BUS_DRIVER: ['BUS_DRIVER', 'DRIVER'],
   EXAM_CELL: ['EXAM_CELL', 'EXAM_CELL_ADMIN'],
@@ -102,16 +104,35 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
       permissions.includes(requiredPermission) ||
       (requiredPermission === 'admission.view_own' &&
         (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) ||
+      // Dedicated Fees Domain Permission Evaluation
+      (requiredPermission === 'fees.structure.manage' &&
+        (permissions.includes('fees.structure.manage') ||
+          roles.includes('ADMIN') ||
+          roles.includes('FINANCE_OFFICER') ||
+          roles.includes('FINANCE_MANAGER'))) ||
+      (requiredPermission === 'fees.demand.generate' &&
+        (permissions.includes('fees.demand.generate') ||
+          roles.includes('ADMIN') ||
+          roles.includes('FINANCE_OFFICER') ||
+          roles.includes('FINANCE_MANAGER') ||
+          roles.includes('ACCOUNTANT'))) ||
       ((requiredPermission === 'fees.structure.view' ||
         requiredPermission === 'fees.view' ||
-        requiredPermission === 'fees.structure.manage' ||
-        requiredPermission === 'fees.demand.view') &&
-        (permissions.includes('fees.structure.view') ||
+        requiredPermission === 'fees.demand.view' ||
+        requiredPermission === 'fees.payment.view') &&
+        (permissions.includes(requiredPermission) ||
           permissions.includes('fees.view') ||
           permissions.includes('fees.structure.manage') ||
           roles.includes('ADMIN') ||
-          roles.includes('ACCOUNTANT') ||
           roles.includes('FINANCE_OFFICER') ||
+          roles.includes('FINANCE_MANAGER') ||
+          roles.includes('ACCOUNTANT'))) ||
+      (requiredPermission === 'fees.payment.collect' &&
+        (permissions.includes('fees.payment.collect') ||
+          roles.includes('ADMIN') ||
+          roles.includes('FINANCE_OFFICER') ||
+          roles.includes('FINANCE_MANAGER') ||
+          roles.includes('ACCOUNTANT') ||
           roles.includes('FRONT_OFFICE'))) ||
       ((requiredPermission === 'admission.leads.manage' ||
         requiredPermission === 'admission.enquiry.view' ||

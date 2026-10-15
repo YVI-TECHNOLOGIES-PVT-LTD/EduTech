@@ -161,7 +161,7 @@ export class StudentLedgerService {
   public static async getStudentLedgerSummary(
     orgId: string,
     studentId: string,
-    academicYearId?: string
+    academicYearId?: string,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     if (!studentId) throw new Error('Student ID is required');
@@ -208,7 +208,7 @@ export class StudentLedgerService {
     let enrollment = student.student_enrollments.find((e: any) => e.status === 'active');
     if (safeYearId && enrollment) {
       const matched = student.student_enrollments.find(
-        (e: any) => e.academic_year_grades.academic_year_id === safeYearId
+        (e: any) => e.academic_year_grades.academic_year_id === safeYearId,
       );
       if (matched) enrollment = matched;
     }
@@ -224,7 +224,7 @@ export class StudentLedgerService {
     if (assignment?.fee_structures?.fee_components) {
       for (const comp of assignment.fee_structures.fee_components) {
         assignedStructureAmount = this.roundMoney(
-          assignedStructureAmount + Number(comp.amount.toString())
+          assignedStructureAmount + Number(comp.amount.toString()),
         );
       }
     }
@@ -301,14 +301,12 @@ export class StudentLedgerService {
           for (const alloc of due.payment_allocations) {
             if (alloc.payment_transactions.status === 'success') {
               dueAllocated = this.roundMoney(
-                dueAllocated + Number(alloc.allocated_amount.toString())
+                dueAllocated + Number(alloc.allocated_amount.toString()),
               );
             }
           }
 
-          totalAllocatedPaymentAmount = this.roundMoney(
-            totalAllocatedPaymentAmount + dueAllocated
-          );
+          totalAllocatedPaymentAmount = this.roundMoney(totalAllocatedPaymentAmount + dueAllocated);
 
           const outstandingForDue = Math.max(0, this.roundMoney(dueAmt - dueAllocated));
           const dueDateStr = due.due_date.toISOString().split('T')[0];
@@ -334,7 +332,7 @@ export class StudentLedgerService {
       for (const tx of order.payment_transactions) {
         if (tx.status === 'success') {
           totalSuccessfulTransactionsAmount = this.roundMoney(
-            totalSuccessfulTransactionsAmount + Number(tx.amount.toString())
+            totalSuccessfulTransactionsAmount + Number(tx.amount.toString()),
           );
         }
       }
@@ -342,7 +340,7 @@ export class StudentLedgerService {
 
     const unallocatedPaymentsAmount = Math.max(
       0,
-      this.roundMoney(totalSuccessfulTransactionsAmount - totalAllocatedPaymentAmount)
+      this.roundMoney(totalSuccessfulTransactionsAmount - totalAllocatedPaymentAmount),
     );
 
     // Concession summary
@@ -351,7 +349,8 @@ export class StudentLedgerService {
     for (const conc of concessions) {
       if (conc.status === 'approved' || conc.status === 'applied') {
         approvedConcessionsCount++;
-        const pct = conc.approved_percentage || conc.applied_percentage || conc.concession_percentage;
+        const pct =
+          conc.approved_percentage || conc.applied_percentage || conc.concession_percentage;
         totalApprovedConcessionPct += Number(pct.toString());
       }
     }
@@ -367,17 +366,17 @@ export class StudentLedgerService {
     const reliabilityNotes: string[] = [];
     if (!hasAssessedCharges && assignment) {
       reliabilityNotes.push(
-        'Student has an assigned fee structure, but individual payable charges/demands have not yet been posted to the ledger.'
+        'Student has an assigned fee structure, but individual payable charges/demands have not yet been posted to the ledger.',
       );
     }
     if (!assignment) {
       reliabilityNotes.push(
-        'Student has not yet been assigned a fee structure for the current academic enrollment.'
+        'Student has not yet been assigned a fee structure for the current academic enrollment.',
       );
     }
     if (unallocatedPaymentsAmount > 0) {
       reliabilityNotes.push(
-        `There is INR ${unallocatedPaymentsAmount.toFixed(2)} in successful payments recorded that are not yet allocated to specific fee obligations.`
+        `There is INR ${unallocatedPaymentsAmount.toFixed(2)} in successful payments recorded that are not yet allocated to specific fee obligations.`,
       );
     }
 
@@ -483,9 +482,7 @@ export class StudentLedgerService {
         let paidOnDue = 0;
         for (const alloc of d.payment_allocations) {
           if (alloc.payment_transactions.status === 'success') {
-            paidOnDue = this.roundMoney(
-              paidOnDue + Number(alloc.allocated_amount.toString())
-            );
+            paidOnDue = this.roundMoney(paidOnDue + Number(alloc.allocated_amount.toString()));
           }
         }
         paidOnCharge = this.roundMoney(paidOnCharge + paidOnDue);
@@ -501,8 +498,8 @@ export class StudentLedgerService {
           outstanding_amount: balance,
           status: d.status,
           is_overdue:
-            d.due_date.toISOString().split('T')[0] <
-              new Date().toISOString().split('T')[0] && balance > 0,
+            d.due_date.toISOString().split('T')[0] < new Date().toISOString().split('T')[0] &&
+            balance > 0,
         };
       });
 
@@ -536,8 +533,8 @@ export class StudentLedgerService {
               total_amount: this.roundMoney(
                 assignment.fee_structures.fee_components.reduce(
                   (sum: number, comp: any) => sum + Number(comp.amount.toString()),
-                  0
-                )
+                  0,
+                ),
               ),
               components: assignment.fee_structures.fee_components.map((comp: any) => ({
                 component_id: comp.fee_component_id,
@@ -551,15 +548,13 @@ export class StudentLedgerService {
               ? {
                   plan_id: assignment.installment_plans.installment_plan_id,
                   plan_name: assignment.installment_plans.plan_name,
-                  terms: assignment.installment_plans.installment_plan_terms.map(
-                    (t: any) => ({
-                      term_id: t.installment_term_id,
-                      term_number: t.term_number,
-                      term_name: t.term_name,
-                      percentage: Number(t.percentage.toString()),
-                      due_date: t.due_date.toISOString().split('T')[0],
-                    })
-                  ),
+                  terms: assignment.installment_plans.installment_plan_terms.map((t: any) => ({
+                    term_id: t.installment_term_id,
+                    term_number: t.term_number,
+                    term_name: t.term_name,
+                    percentage: Number(t.percentage.toString()),
+                    due_date: t.due_date.toISOString().split('T')[0],
+                  })),
                 }
               : null,
           }
@@ -640,8 +635,7 @@ export class StudentLedgerService {
             due_id: a.student_charge_due_id,
             charge_description:
               a.student_charge_dues?.student_charges?.description || 'Fee Obligation',
-            term_name:
-              a.student_charge_dues?.installment_plan_terms?.term_name || 'Ad-hoc',
+            term_name: a.student_charge_dues?.installment_plan_terms?.term_name || 'Ad-hoc',
           };
         });
 
@@ -651,9 +645,7 @@ export class StudentLedgerService {
         }
 
         const unallocated =
-          tx.status === 'success'
-            ? Math.max(0, this.roundMoney(txAmount - allocatedAmount))
-            : 0;
+          tx.status === 'success' ? Math.max(0, this.roundMoney(txAmount - allocatedAmount)) : 0;
 
         transactions.push({
           payment_transaction_id: tx.payment_transaction_id,
@@ -921,9 +913,7 @@ export class StudentLedgerService {
     }
 
     // Sort descending by timestamp
-    events.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return events;
   }
@@ -1012,7 +1002,7 @@ export class StudentLedgerService {
       name: s.name,
       status: s.status,
       total_amount: this.roundMoney(
-        s.fee_components.reduce((sum: number, c: any) => sum + Number(c.amount.toString()), 0)
+        s.fee_components.reduce((sum: number, c: any) => sum + Number(c.amount.toString()), 0),
       ),
       components_count: s.fee_components.length,
       components: s.fee_components.map((c: any) => ({
@@ -1037,8 +1027,7 @@ export class StudentLedgerService {
       enrollment: {
         enrollment_id: activeEnrollment.enrollment_id,
         grade_name: activeEnrollment.academic_year_grades.grades.grade_name,
-        academic_year_name:
-          activeEnrollment.academic_year_grades.academic_years.academic_year_name,
+        academic_year_name: activeEnrollment.academic_year_grades.academic_years.academic_year_name,
       },
       structures: formattedStructures,
       installment_plans: formattedPlans,
@@ -1052,7 +1041,7 @@ export class StudentLedgerService {
   public static async assignFeeStructure(
     orgId: string,
     userId: string | null,
-    payload: AssignFeeStructurePayload
+    payload: AssignFeeStructurePayload,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
@@ -1122,7 +1111,7 @@ export class StudentLedgerService {
 
     if (!feeStructure) {
       const err: any = new Error(
-        'Fee structure not found or does not belong to the authorized tenant'
+        'Fee structure not found or does not belong to the authorized tenant',
       );
       err.statusCode = 404;
       throw err;
@@ -1130,7 +1119,7 @@ export class StudentLedgerService {
 
     if (feeStructure.status !== 'published') {
       const err: any = new Error(
-        `Cannot assign fee structure in '${feeStructure.status}' status. Only 'published' structures can be assigned.`
+        `Cannot assign fee structure in '${feeStructure.status}' status. Only 'published' structures can be assigned.`,
       );
       err.statusCode = 400;
       throw err;
@@ -1139,7 +1128,7 @@ export class StudentLedgerService {
     // 3. Verify Structure is applicable to the student's grade and academic year
     if (feeStructure.academic_year_grade_id !== enrollment.academic_year_grade_id) {
       const err: any = new Error(
-        'Fee structure is not configured for the student enrollment academic year and grade'
+        'Fee structure is not configured for the student enrollment academic year and grade',
       );
       err.statusCode = 400;
       throw err;
@@ -1147,107 +1136,333 @@ export class StudentLedgerService {
 
     // 4. Verify Installment Plan
     let installmentPlanId = toSafeUuid(payload.installmentPlanId);
+    let plan: any = null;
+
     if (!installmentPlanId) {
       // Find an existing published installment plan for this academic year
-      const defaultPlan = await prisma.installment_plans.findFirst({
+      plan = await prisma.installment_plans.findFirst({
         where: {
           org_id: safeOrgId,
           academic_year_id: enrollment.academic_year_grades.academic_year_id,
           status: 'published',
         },
+        include: {
+          installment_plan_terms: {
+            orderBy: { term_number: 'asc' },
+          },
+        },
         orderBy: { created_at: 'asc' },
       });
 
-      if (!defaultPlan) {
+      if (!plan) {
+        // Fallback: check draft plan if no published plan exists
+        plan = await prisma.installment_plans.findFirst({
+          where: {
+            org_id: safeOrgId,
+            academic_year_id: enrollment.academic_year_grades.academic_year_id,
+          },
+          include: {
+            installment_plan_terms: {
+              orderBy: { term_number: 'asc' },
+            },
+          },
+          orderBy: { created_at: 'asc' },
+        });
+      }
+
+      if (!plan) {
         const err: any = new Error(
-          'No published installment plan found for this academic year. Please provide a valid installmentPlanId.'
+          'No installment plan found for this academic year. Please configure an installment plan first.',
         );
         err.statusCode = 400;
         throw err;
       }
-      installmentPlanId = defaultPlan.installment_plan_id;
+      installmentPlanId = plan.installment_plan_id;
     } else {
-      const plan = await prisma.installment_plans.findFirst({
+      plan = await prisma.installment_plans.findFirst({
         where: {
           installment_plan_id: installmentPlanId,
           org_id: safeOrgId,
           academic_year_id: enrollment.academic_year_grades.academic_year_id,
         },
+        include: {
+          installment_plan_terms: {
+            orderBy: { term_number: 'asc' },
+          },
+        },
       });
 
       if (!plan) {
         const err: any = new Error(
-          'Installment plan not found or does not match the student academic year'
+          'Installment plan not found or does not match the student academic year',
         );
         err.statusCode = 404;
         throw err;
       }
     }
 
-    // 5. Prevent duplicate active assignment for this enrollment
-    if (enrollment.student_fee_assignments.length > 0) {
-      const err: any = new Error(
-        'An active fee structure is already assigned to this student enrollment'
-      );
-      err.statusCode = 409;
-      throw err;
+    // 5. Check existing assignment for this enrollment (Idempotency and duplicate prevention)
+    const existingAssignment = enrollment.student_fee_assignments?.find(
+      (a: any) => a.status === 'active',
+    );
+
+    if (existingAssignment) {
+      if (
+        existingAssignment.fee_structure_id === safeStructureId &&
+        existingAssignment.installment_plan_id === installmentPlanId
+      ) {
+        // Idempotent retry: check if charges and dues already exist
+        const existingCharges = await prisma.student_charges.findMany({
+          where: {
+            student_fee_assignment_id: existingAssignment.student_fee_assignment_id,
+          },
+          include: { student_charge_dues: true },
+        });
+
+        if (existingCharges.length > 0) {
+          const totalExistingDues = existingCharges.reduce(
+            (sum: number, c: any) => sum + c.student_charge_dues.length,
+            0,
+          );
+          const totalAmount = this.roundMoney(
+            existingCharges.reduce((sum: number, c: any) => sum + Number(c.amount.toString()), 0),
+          );
+
+          return {
+            student_fee_assignment_id: existingAssignment.student_fee_assignment_id,
+            enrollment_id: existingAssignment.enrollment_id,
+            fee_structure_id: existingAssignment.fee_structure_id,
+            fee_structure_name: feeStructure.name,
+            installment_plan_id: existingAssignment.installment_plan_id,
+            installment_plan_name: plan.plan_name,
+            assigned_at: existingAssignment.assigned_at,
+            status: existingAssignment.status,
+            total_structure_amount: totalAmount,
+            charges_count: existingCharges.length,
+            dues_count: totalExistingDues,
+            is_idempotent_replay: true,
+          };
+        }
+      } else {
+        const err: any = new Error(
+          'An active fee structure is already assigned to this student enrollment',
+        );
+        err.statusCode = 409;
+        throw err;
+      }
     }
 
-    // 6. Transactional Write to student_fee_assignments
-    const createdAssignment = await prisma.student_fee_assignments.create({
-      data: {
-        enrollment_id: enrollment.enrollment_id,
-        fee_structure_id: safeStructureId,
-        installment_plan_id: installmentPlanId,
-        status: 'active',
-        notes: payload.notes || null,
-        created_by: safeUserId,
-      },
-      include: {
-        fee_structures: {
-          include: { fee_components: true },
-        },
-        installment_plans: true,
-      },
-    });
-
-    const totalStructureAmount = this.roundMoney(
-      createdAssignment.fee_structures.fee_components.reduce(
-        (sum: number, c: any) => sum + Number(c.amount.toString()),
-        0
-      )
+    // 6. Transactional Write to student_fee_assignments, student_charges, and student_charge_dues
+    const terms = (plan.installment_plan_terms || []).sort(
+      (a: any, b: any) => a.term_number - b.term_number,
     );
+
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      // 6.1 Create student_fee_assignments
+      const createdAssignment = await tx.student_fee_assignments.create({
+        data: {
+          enrollment_id: enrollment.enrollment_id,
+          fee_structure_id: safeStructureId,
+          installment_plan_id: plan.installment_plan_id,
+          status: 'active',
+          notes: payload.notes || null,
+          created_by: safeUserId,
+          updated_by: safeUserId,
+        },
+        include: {
+          fee_structures: {
+            include: { fee_components: true },
+          },
+          installment_plans: true,
+        },
+      });
+
+      let totalChargesAmount = 0;
+      let totalCreatedDues = 0;
+      const createdChargesSummary = [];
+
+      // 6.2 For each fee component, create student_charges and partition into student_charge_dues
+      for (const comp of feeStructure.fee_components) {
+        const compAmount = this.roundMoney(Number(comp.amount.toString()));
+        totalChargesAmount = this.roundMoney(totalChargesAmount + compAmount);
+
+        const charge = await tx.student_charges.create({
+          data: {
+            student_id: safeStudentId,
+            student_fee_assignment_id: createdAssignment.student_fee_assignment_id,
+            fee_component_id: comp.fee_component_id,
+            source_type: 'academic',
+            description: `${comp.component_name} (${comp.component_code})`,
+            amount: compAmount,
+            currency_code: 'INR',
+            charge_date: new Date(),
+            status: 'active',
+            created_by: safeUserId,
+            updated_by: safeUserId,
+          },
+        });
+
+        // 6.3 Generate student_charge_dues based on installment plan terms
+        if (terms.length > 0) {
+          let allocatedForComp = 0;
+
+          for (let i = 0; i < terms.length; i++) {
+            const term = terms[i];
+            const isLast = i === terms.length - 1;
+            let dueAmount: number;
+
+            if (isLast) {
+              dueAmount = this.roundMoney(compAmount - allocatedForComp);
+            } else {
+              dueAmount = this.roundMoney(compAmount * (Number(term.percentage.toString()) / 100));
+              allocatedForComp = this.roundMoney(allocatedForComp + dueAmount);
+            }
+
+            await tx.student_charge_dues.create({
+              data: {
+                student_charge_id: charge.student_charge_id,
+                installment_term_id: term.installment_term_id,
+                amount_due: dueAmount,
+                due_date: new Date(term.due_date),
+                status: 'pending',
+                created_by: safeUserId,
+                updated_by: safeUserId,
+              },
+            });
+
+            totalCreatedDues++;
+          }
+        } else {
+          // Fallback if no terms: single full due 30 days out
+          const defaultDueDate = new Date();
+          defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+
+          await tx.student_charge_dues.create({
+            data: {
+              student_charge_id: charge.student_charge_id,
+              amount_due: compAmount,
+              due_date: defaultDueDate,
+              status: 'pending',
+              created_by: safeUserId,
+              updated_by: safeUserId,
+            },
+          });
+
+          totalCreatedDues++;
+        }
+
+        createdChargesSummary.push({
+          charge_id: charge.student_charge_id,
+          component_name: comp.component_name,
+          amount: compAmount,
+        });
+      }
+
+      return {
+        assignment: createdAssignment,
+        totalAmount: totalChargesAmount,
+        chargesCount: createdChargesSummary.length,
+        duesCount: totalCreatedDues,
+      };
+    });
 
     // Authoritative fee assessment notification event emission
     FinanceNotificationService.publishEvent({
       eventType: FinanceEventType.FEE_ASSESSMENT_CREATED,
       orgId: safeOrgId,
-      sourceEntityId: createdAssignment.student_fee_assignment_id,
+      sourceEntityId: transactionResult.assignment.student_fee_assignment_id,
       sourceWorkflow: 'student_fee_structure_assign',
       timestamp: new Date().toISOString(),
-      correlationId: `assign_${createdAssignment.student_fee_assignment_id}`,
-      idempotencyKey: `fee_assign_${createdAssignment.student_fee_assignment_id}`,
+      correlationId: `assign_${transactionResult.assignment.student_fee_assignment_id}`,
+      idempotencyKey: `fee_assign_${transactionResult.assignment.student_fee_assignment_id}`,
       studentId: safeStudentId,
       studentName: `${student.first_name} ${student.last_name || ''}`.trim(),
       admissionNo: student.admission_no,
-      amount: totalStructureAmount,
+      amount: transactionResult.totalAmount,
       gradeName: enrollment.academic_year_grades?.grades?.grade_name || undefined,
-      feeDescription: createdAssignment.fee_structures.name,
+      feeDescription: feeStructure.name,
       performedBy: safeUserId || undefined,
     }).catch((err) => {
       logger.error('[StudentLedgerService] Fee assessment created notification error:', err);
     });
 
     return {
-      student_fee_assignment_id: createdAssignment.student_fee_assignment_id,
-      enrollment_id: createdAssignment.enrollment_id,
-      fee_structure_id: createdAssignment.fee_structure_id,
-      fee_structure_name: createdAssignment.fee_structures.name,
-      installment_plan_id: createdAssignment.installment_plan_id,
-      installment_plan_name: createdAssignment.installment_plans.plan_name,
-      assigned_at: createdAssignment.assigned_at,
-      status: createdAssignment.status,
-      total_structure_amount: totalStructureAmount,
+      student_fee_assignment_id: transactionResult.assignment.student_fee_assignment_id,
+      enrollment_id: transactionResult.assignment.enrollment_id,
+      fee_structure_id: transactionResult.assignment.fee_structure_id,
+      fee_structure_name: feeStructure.name,
+      installment_plan_id: transactionResult.assignment.installment_plan_id,
+      installment_plan_name: plan.plan_name,
+      assigned_at: transactionResult.assignment.assigned_at,
+      status: transactionResult.assignment.status,
+      total_structure_amount: transactionResult.totalAmount,
+      charges_count: transactionResult.chargesCount,
+      dues_count: transactionResult.duesCount,
+    };
+  }
+
+  /**
+   * Bulk assign a published fee structure to multiple eligible students
+   */
+  public static async bulkAssignFeeStructure(
+    orgId: string,
+    userId: string,
+    payload: {
+      studentIds: string[];
+      feeStructureId: string;
+      installmentPlanId?: string;
+      notes?: string;
+    },
+  ) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    if (
+      !payload.studentIds ||
+      !Array.isArray(payload.studentIds) ||
+      payload.studentIds.length === 0
+    ) {
+      const err: any = new Error('At least one student ID is required for bulk assignment');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const results: Array<{
+      studentId: string;
+      success: boolean;
+      assignment?: any;
+      error?: string;
+    }> = [];
+
+    for (const sId of payload.studentIds) {
+      try {
+        const assignment = await this.assignFeeStructure(orgId, userId, {
+          studentId: sId,
+          feeStructureId: payload.feeStructureId,
+          installmentPlanId: payload.installmentPlanId,
+          notes: payload.notes,
+        });
+
+        results.push({
+          studentId: sId,
+          success: true,
+          assignment,
+        });
+      } catch (err: any) {
+        results.push({
+          studentId: sId,
+          success: false,
+          error: err.message || 'Failed to assign fee structure',
+        });
+      }
+    }
+
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    return {
+      total: payload.studentIds.length,
+      succeeded,
+      failed,
+      results,
     };
   }
 }

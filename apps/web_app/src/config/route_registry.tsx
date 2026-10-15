@@ -52,6 +52,8 @@ import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
 import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
 import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
 import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
+import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
+import { MyFees } from '../modules/fees/pages/MyFees';
 
 export interface RouteConfig {
   path: string;
@@ -220,6 +222,18 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     path: 'parent/fees',
     element: <ParentFeePaymentPage />,
     layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'fees/my',
+    element: <MyFees />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/my-fees',
+    element: <MyFees />,
+    layout: 'dashboard',
     guardType: 'parent',
   },
   {
@@ -572,6 +586,12 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <DemandManagement />,
     layout: 'dashboard',
     permissions: ['fees.demand.view', 'fees.demand.generate', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/assignments',
+    element: <StudentFeeAssignment />,
+    layout: 'dashboard',
+    permissions: ['fees.demand.generate', 'fees.view', 'admin.dashboard.view'],
   },
   {
     path: 'finance/payments',

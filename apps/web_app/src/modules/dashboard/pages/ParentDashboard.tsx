@@ -108,7 +108,10 @@ const ParentDashboardInner = () => {
 
         setChildren(childData.children || []);
         setAdmissions(childData.admissions || []);
-        setFeeData(feeDataRes || []);
+        const feeList = Array.isArray(feeDataRes)
+          ? feeDataRes
+          : feeDataRes?.children || feeDataRes?.data || [];
+        setFeeData(feeList);
       } catch (err) {
         if (requestGen === getCurrentSessionGeneration()) {
           console.error(err);
@@ -150,8 +153,9 @@ const ParentDashboardInner = () => {
   };
 
   const getFeeBalance = (studentId: string) => {
-    const record = feeData.find((f) => f.student?.id === studentId);
-    return record?.summary?.balance || 0;
+    const list = Array.isArray(feeData) ? feeData : (feeData as any)?.children || [];
+    const record = list.find((f: any) => f.student?.id === studentId || f.student_id === studentId);
+    return record?.summary?.outstanding_balance ?? record?.summary?.balance ?? 0;
   };
 
   // Tracker State Derivation

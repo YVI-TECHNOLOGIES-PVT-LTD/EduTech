@@ -30,6 +30,26 @@ export interface UpdateFeeStructureInput {
   components?: FeeComponentInput[];
 }
 
+export interface InstallmentTermInput {
+  term_number?: number;
+  term_name?: string;
+  percentage: number;
+  due_date: string;
+}
+
+export interface CreateInstallmentPlanInput {
+  plan_name: string;
+  academic_year_id: string;
+  description?: string | null;
+  terms: InstallmentTermInput[];
+}
+
+export interface UpdateInstallmentPlanInput {
+  plan_name?: string;
+  description?: string | null;
+  terms?: InstallmentTermInput[];
+}
+
 export class FeeStructureManagerService {
   /**
    * Decimal-safe rounding to 2 decimal places
@@ -599,7 +619,6 @@ export class FeeStructureManagerService {
           name: payload.name.trim(),
           description: payload.description ? payload.description.trim() : null,
           academic_year_grade_id: safeAyGradeId,
-          org_id: safeOrgId,
           status: 'draft',
           created_by: safeUserId,
           updated_by: safeUserId,
@@ -1040,5 +1059,546 @@ export class FeeStructureManagerService {
         due_date: t.due_date,
       })),
     }));
+  }
+
+  /**
+   * Fetch a single installment plan with terms
+   */
+  public static async getInstallmentPlanById(orgId: string, planId: string) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    const safePlanId = toSafeUuid(planId);
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+
+    if (!safePlanId) {
+      const err: any = new Error('Installment plan not found or invalid ID');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const plan = await prisma.installment_plans.findFirst({
+      where: {
+        installment_plan_id: safePlanId,
+        org_id: safeOrgId,
+      },
+      include: {
+        academic_years: true,
+        installment_plan_terms: {
+          orderBy: { term_number: 'asc' },
+        },
+      },
+    });
+
+    if (!plan) {
+      const err: any = new Error(
+        'Installment plan not found or does not belong to this organization',
+      );
+      err.statusCode = 404;
+      throw err;
+    }
+
+    return {
+      id: plan.installment_plan_id,
+      plan_name: plan.plan_name,
+      description: plan.description,
+      status: plan.status,
+      academic_year_id: plan.academic_year_id,
+      academic_year_name: plan.academic_years.academic_year_name,
+      terms_count: plan.installment_plan_terms.length,
+      terms: plan.installment_plan_terms.map((t: any) => ({
+        id: t.installment_term_id,
+        term_number: t.term_number,
+        term_name: t.term_name,
+        percentage: Number(t.percentage),
+        due_date: t.due_date,
+      })),
+    };
+  }
+
+  /**
+   * Create an installment plan with terms (supports any variable number of installments)
+   */
+  public static async createInstallmentPlan(
+    orgId: string,
+    userId: string,
+    payload: CreateInstallmentPlanInput,
+  ) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    if (!payload.plan_name || !payload.plan_name.trim()) {
+      const err: any = new Error('Installment plan name is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const safeYearId = toSafeUuid(payload.academic_year_id);
+    if (!safeYearId) {
+      const err: any = new Error('Valid academic year ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const academicYear = await prisma.academic_years.findFirst({
+      where: { academic_year_id: safeYearId, org_id: safeOrgId },
+    });
+    if (!academicYear) {
+      const err: any = new Error('Academic year not found or does not belong to this organization');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const normName = payload.plan_name.trim();
+    const existing = await prisma.installment_plans.findFirst({
+      where: { org_id: safeOrgId, academic_year_id: safeYearId, plan_name: normName },
+    });
+    if (existing) {
+      const err: any = new Error(
+        `An installment plan named "${normName}" already exists for this academic year`,
+      );
+      err.statusCode = 409;
+      throw err;
+    }
+
+    if (!payload.terms || !Array.isArray(payload.terms) || payload.terms.length === 0) {
+      const err: any = new Error('At least one installment term is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    let totalPct = 0;
+    const seenTermNumbers = new Set<number>();
+    const seenTermNames = new Set<string>();
+
+    for (let i = 0; i < payload.terms.length; i++) {
+      const t = payload.terms[i];
+      const termNum = Number(t.term_number) || i + 1;
+      const termName = t.term_name ? t.term_name.trim() : `Term ${termNum}`;
+      const pct = Number(t.percentage);
+      const dueDate = t.due_date ? new Date(t.due_date) : null;
+
+      if (isNaN(pct) || pct <= 0) {
+        const err: any = new Error(`Term ${termNum} percentage must be greater than 0%`);
+        err.statusCode = 400;
+        throw err;
+      }
+      if (!dueDate || isNaN(dueDate.getTime())) {
+        const err: any = new Error(`Term ${termNum} has an invalid due date`);
+        err.statusCode = 400;
+        throw err;
+      }
+      if (seenTermNumbers.has(termNum)) {
+        const err: any = new Error(`Duplicate term number ${termNum} is not allowed`);
+        err.statusCode = 400;
+        throw err;
+      }
+      if (seenTermNames.has(termName.toLowerCase())) {
+        const err: any = new Error(`Duplicate term name "${termName}" is not allowed`);
+        err.statusCode = 400;
+        throw err;
+      }
+
+      seenTermNumbers.add(termNum);
+      seenTermNames.add(termName.toLowerCase());
+      totalPct = this.roundMoney(totalPct + pct);
+    }
+
+    if (Math.abs(totalPct - 100) > 0.05) {
+      const err: any = new Error(
+        `Installment term percentages must total exactly 100.00%. Current sum: ${totalPct}%`,
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const safeUserId = toSafeUuid(userId);
+
+    const createdPlan = await prisma.$transaction(async (tx) => {
+      const plan = await tx.installment_plans.create({
+        data: {
+          org_id: safeOrgId,
+          academic_year_id: safeYearId,
+          plan_name: normName,
+          description: payload.description ? payload.description.trim() : null,
+          status: 'draft',
+          created_by: safeUserId,
+          updated_by: safeUserId,
+        },
+      });
+
+      for (let i = 0; i < payload.terms.length; i++) {
+        const t = payload.terms[i];
+        await tx.installment_plan_terms.create({
+          data: {
+            installment_plan_id: plan.installment_plan_id,
+            term_number: Number(t.term_number) || i + 1,
+            term_name: t.term_name ? t.term_name.trim() : `Term ${i + 1}`,
+            percentage: t.percentage,
+            due_date: new Date(t.due_date),
+            created_by: safeUserId,
+            updated_by: safeUserId,
+          },
+        });
+      }
+
+      return plan;
+    });
+
+    return this.getInstallmentPlanById(orgId, createdPlan.installment_plan_id);
+  }
+
+  /**
+   * Update an existing installment plan (respects immutability if published and assigned)
+   */
+  public static async updateInstallmentPlan(
+    orgId: string,
+    userId: string,
+    planId: string,
+    payload: UpdateInstallmentPlanInput,
+  ) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    const safePlanId = toSafeUuid(planId);
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+
+    if (!safePlanId) {
+      const err: any = new Error('Installment plan not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const existing = await prisma.installment_plans.findFirst({
+      where: { installment_plan_id: safePlanId, org_id: safeOrgId },
+      include: {
+        _count: {
+          select: { student_fee_assignments: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      const err: any = new Error(
+        'Installment plan not found or does not belong to this organization',
+      );
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const safeUserId = toSafeUuid(userId);
+
+    if (payload.terms && Array.isArray(payload.terms)) {
+      if (existing._count.student_fee_assignments > 0) {
+        const err: any = new Error(
+          'Cannot modify terms of an installment plan that has active student fee assignments',
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+
+      let totalPct = 0;
+      const seenTermNumbers = new Set<number>();
+      const seenTermNames = new Set<string>();
+
+      for (let i = 0; i < payload.terms.length; i++) {
+        const t = payload.terms[i];
+        const termNum = Number(t.term_number) || i + 1;
+        const termName = t.term_name ? t.term_name.trim() : `Term ${termNum}`;
+        const pct = Number(t.percentage);
+        const dueDate = t.due_date ? new Date(t.due_date) : null;
+
+        if (isNaN(pct) || pct <= 0) {
+          const err: any = new Error(`Term ${termNum} percentage must be greater than 0%`);
+          err.statusCode = 400;
+          throw err;
+        }
+        if (!dueDate || isNaN(dueDate.getTime())) {
+          const err: any = new Error(`Term ${termNum} has an invalid due date`);
+          err.statusCode = 400;
+          throw err;
+        }
+        if (seenTermNumbers.has(termNum)) {
+          const err: any = new Error(`Duplicate term number ${termNum} is not allowed`);
+          err.statusCode = 400;
+          throw err;
+        }
+        if (seenTermNames.has(termName.toLowerCase())) {
+          const err: any = new Error(`Duplicate term name "${termName}" is not allowed`);
+          err.statusCode = 400;
+          throw err;
+        }
+
+        seenTermNumbers.add(termNum);
+        seenTermNames.add(termName.toLowerCase());
+        totalPct = this.roundMoney(totalPct + pct);
+      }
+
+      if (Math.abs(totalPct - 100) > 0.05) {
+        const err: any = new Error(
+          `Installment term percentages must total exactly 100.00%. Current sum: ${totalPct}%`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const updateData: any = {
+        updated_at: new Date(),
+        updated_by: safeUserId,
+      };
+
+      if (payload.plan_name && payload.plan_name.trim()) {
+        updateData.plan_name = payload.plan_name.trim();
+      }
+      if (payload.description !== undefined) {
+        updateData.description = payload.description ? payload.description.trim() : null;
+      }
+
+      await tx.installment_plans.update({
+        where: { installment_plan_id: safePlanId },
+        data: updateData,
+      });
+
+      if (payload.terms && Array.isArray(payload.terms)) {
+        await tx.installment_plan_terms.deleteMany({
+          where: { installment_plan_id: safePlanId },
+        });
+
+        for (let i = 0; i < payload.terms.length; i++) {
+          const t = payload.terms[i];
+          await tx.installment_plan_terms.create({
+            data: {
+              installment_plan_id: safePlanId,
+              term_number: Number(t.term_number) || i + 1,
+              term_name: t.term_name ? t.term_name.trim() : `Term ${i + 1}`,
+              percentage: t.percentage,
+              due_date: new Date(t.due_date),
+              created_by: safeUserId,
+              updated_by: safeUserId,
+            },
+          });
+        }
+      }
+    });
+
+    return this.getInstallmentPlanById(orgId, safePlanId);
+  }
+
+  /**
+   * Publish an installment plan
+   */
+  public static async publishInstallmentPlan(orgId: string, userId: string, planId: string) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    const safePlanId = toSafeUuid(planId);
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+
+    if (!safePlanId) {
+      const err: any = new Error('Installment plan not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const plan = await prisma.installment_plans.findFirst({
+      where: { installment_plan_id: safePlanId, org_id: safeOrgId },
+      include: { installment_plan_terms: true },
+    });
+
+    if (!plan) {
+      const err: any = new Error(
+        'Installment plan not found or does not belong to this organization',
+      );
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (plan.status === 'published') {
+      const err: any = new Error('Installment plan is already published');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (!plan.installment_plan_terms || plan.installment_plan_terms.length === 0) {
+      const err: any = new Error('Cannot publish an installment plan with zero terms');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const totalPct = plan.installment_plan_terms.reduce((s, t) => s + Number(t.percentage), 0);
+    if (Math.abs(totalPct - 100) > 0.05) {
+      const err: any = new Error(
+        `Cannot publish plan. Term percentages sum to ${totalPct}%, but must total 100.00%`,
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const safeUserId = toSafeUuid(userId);
+
+    await prisma.installment_plans.update({
+      where: { installment_plan_id: safePlanId },
+      data: {
+        status: 'published',
+        updated_at: new Date(),
+        updated_by: safeUserId,
+      },
+    });
+
+    return this.getInstallmentPlanById(orgId, safePlanId);
+  }
+
+  /**
+   * Deactivate an installment plan
+   */
+  public static async deactivateInstallmentPlan(orgId: string, userId: string, planId: string) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    const safePlanId = toSafeUuid(planId);
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+
+    if (!safePlanId) {
+      const err: any = new Error('Installment plan not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const plan = await prisma.installment_plans.findFirst({
+      where: { installment_plan_id: safePlanId, org_id: safeOrgId },
+    });
+
+    if (!plan) {
+      const err: any = new Error(
+        'Installment plan not found or does not belong to this organization',
+      );
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const safeUserId = toSafeUuid(userId);
+
+    await prisma.installment_plans.update({
+      where: { installment_plan_id: safePlanId },
+      data: {
+        status: 'inactive',
+        updated_at: new Date(),
+        updated_by: safeUserId,
+      },
+    });
+
+    return this.getInstallmentPlanById(orgId, safePlanId);
+  }
+
+  /**
+   * Retrieve enrolled students eligible for fee structure assignment
+   */
+  public static async getEligibleEnrolledStudents(
+    orgId: string,
+    params: {
+      academicYearId?: string;
+      gradeId?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const safeYearId = toSafeUuid(params.academicYearId);
+    const safeGradeId = toSafeUuid(params.gradeId);
+    const search = params.search?.trim();
+
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(params.limit) || 50));
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      org_id: safeOrgId,
+      status: 'active',
+      student_enrollments: {
+        some: {
+          status: 'active',
+          academic_year_grades: {
+            academic_years: {
+              org_id: safeOrgId,
+              ...(safeYearId ? { academic_year_id: safeYearId } : {}),
+            },
+            ...(safeGradeId ? { grade_id: safeGradeId } : {}),
+          },
+        },
+      },
+      ...(search
+        ? {
+            OR: [
+              { first_name: { contains: search, mode: 'insensitive' } },
+              { last_name: { contains: search, mode: 'insensitive' } },
+              { admission_no: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, students] = await Promise.all([
+      prisma.students.count({ where }),
+      prisma.students.findMany({
+        where,
+        include: {
+          student_enrollments: {
+            where: {
+              status: 'active',
+              academic_year_grades: {
+                ...(safeYearId ? { academic_year_id: safeYearId } : {}),
+                ...(safeGradeId ? { grade_id: safeGradeId } : {}),
+              },
+            },
+            include: {
+              academic_year_grades: {
+                include: { academic_years: true, grades: true },
+              },
+              sections: true,
+              student_fee_assignments: {
+                where: { status: 'active' },
+                include: {
+                  fee_structures: true,
+                  installment_plans: true,
+                },
+              },
+            },
+            take: 1,
+          },
+        },
+        orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const items = students.map((s: any) => {
+      const enrollment = s.student_enrollments[0] || null;
+      const activeAssignment = enrollment?.student_fee_assignments?.[0] || null;
+
+      return {
+        student_id: s.student_id,
+        admission_no: s.admission_no,
+        first_name: s.first_name,
+        last_name: s.last_name,
+        full_name: `${s.first_name} ${s.last_name || ''}`.trim(),
+        gender: s.gender,
+        enrollment_id: enrollment?.enrollment_id || null,
+        academic_year_id: enrollment?.academic_year_grades?.academic_year_id || null,
+        academic_year_name:
+          enrollment?.academic_year_grades?.academic_years?.academic_year_name || null,
+        grade_id: enrollment?.academic_year_grades?.grade_id || null,
+        grade_name: enrollment?.academic_year_grades?.grades?.grade_name || null,
+        section_name: enrollment?.sections?.section_name || 'Unassigned',
+        is_assigned: Boolean(activeAssignment),
+        assigned_structure_id: activeAssignment?.fee_structure_id || null,
+        assigned_structure_name: activeAssignment?.fee_structures?.name || null,
+        assigned_plan_name: activeAssignment?.installment_plans?.plan_name || null,
+      };
+    });
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+      items,
+    };
   }
 }

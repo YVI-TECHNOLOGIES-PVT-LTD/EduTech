@@ -299,6 +299,43 @@ export function ParentFeePaymentPage() {
         gradeApplied={gradeApplied}
       />
 
+      {/* Enrolled Student Bridge Banner */}
+      {activeApplication?.status === 'enrolled' && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-foreground">
+                  Student Enrolled — School Term Fees Available
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300"
+                >
+                  Enrolled
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                This student is now actively enrolled. The statement below reflects the one-time
+                admission processing fee. For recurring academic tuition, installments, and fee
+                structures, please check the Parent Term Fees portal.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate('/app/fees/my')}
+            className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm"
+          >
+            <span>View School Term Fees</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      )}
+
       {/* Summary Cards */}
       {isFeeDataLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
