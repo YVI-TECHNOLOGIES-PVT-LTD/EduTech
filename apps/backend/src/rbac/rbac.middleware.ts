@@ -102,6 +102,17 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
       permissions.includes(requiredPermission) ||
       (requiredPermission === 'admission.view_own' &&
         (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) ||
+      ((requiredPermission === 'fees.structure.view' ||
+        requiredPermission === 'fees.view' ||
+        requiredPermission === 'fees.structure.manage' ||
+        requiredPermission === 'fees.demand.view') &&
+        (permissions.includes('fees.structure.view') ||
+          permissions.includes('fees.view') ||
+          permissions.includes('fees.structure.manage') ||
+          roles.includes('ADMIN') ||
+          roles.includes('ACCOUNTANT') ||
+          roles.includes('FINANCE_OFFICER') ||
+          roles.includes('FRONT_OFFICE'))) ||
       ((requiredPermission === 'admission.leads.manage' ||
         requiredPermission === 'admission.enquiry.view' ||
         requiredPermission === 'admission.recommend' ||

@@ -1,71 +1,95 @@
-import { supabase } from '../../../config/supabase';
+import prisma from '../../../lib/prismaClient';
 
 export interface FeeStructureAggregate {
-    structure: any;
-    components: any[];
-    installments: any[];
+  structure: any;
+  components: any[];
+  installments: any[];
 }
 
 export class FeeStructureRepository {
-    /**
-     * Resolves and returns the aggregate of matching active, latest version fee structure for a class and academic year.
-     */
-    public static async getStructureAggregate(params: {
-        classId: string;
-        academicYearId: string;
-        date: string;
-    }): Promise<FeeStructureAggregate | null> {
-        // 1. Get mapped structure IDs for this class
-        const { data: mappings, error: mapErr } = await supabase
-            .from('finance_fee_structure_classes')
-            .select('fee_structure_id')
-            .eq('class_id', params.classId);
+  /**
+   * Resolves and returns the aggregate of matching fee structure for a grade/class and academic year.
+   * Uses schema.prisma models: fee_structures, fee_components, installment_plans, installment_plan_terms.
+   */
+  public static async getStructureAggregate(params: {
+    classId: string;
+    academicYearId: string;
+    date: string;
+  }): Promise<FeeStructureAggregate | null> {
+    try {
+      // Find fee structure for the academic_year and grade/class
+      const structure = await prisma.fee_structures.findFirst({
+        where: {
+          academic_year_grades: {
+            academic_year_id: params.academicYearId,
+            OR: [{ grade_id: params.classId }, { academic_year_grade_id: params.classId }],
+          },
+        },
+        include: {
+          fee_components: {
+            orderBy: { display_order: 'asc' },
+          },
+          academic_year_grades: {
+            include: {
+              academic_years: true,
+              grades: true,
+            },
+          },
+        },
+      });
 
-        if (mapErr || !mappings || mappings.length === 0) {
-            return null;
-        }
+      if (!structure) {
+        return null;
+      }
 
-        const structureIds = mappings.map(m => m.fee_structure_id);
+      // Fetch installment plans for this academic year
+      const installmentPlans = await prisma.installment_plans.findMany({
+        where: {
+          academic_year_id: params.academicYearId,
+        },
+        include: {
+          installment_plan_terms: {
+            orderBy: { term_number: 'asc' },
+          },
+        },
+      });
 
-        // 2. Fetch matching active structures matching dates and academic year
-        const { data: structures, error: structErr } = await supabase
-            .from('finance_fee_structures')
-            .select('*')
-            .in('id', structureIds)
-            .eq('academic_year_id', params.academicYearId)
-            .eq('is_active', true)
-            .lte('effective_from', params.date)
-            .gte('effective_to', params.date)
-            .order('version', { ascending: false });
+      const installments = installmentPlans.flatMap((p) =>
+        p.installment_plan_terms.map((t) => ({
+          id: t.installment_term_id,
+          installment_plan_id: p.installment_plan_id,
+          plan_name: p.plan_name,
+          term_number: t.term_number,
+          term_name: t.term_name,
+          percentage: Number(t.percentage),
+          due_date: t.due_date,
+        })),
+      );
 
-        if (structErr || !structures || structures.length === 0) {
-            return null;
-        }
-
-        // Pick the structure with MAX(version)
-        const targetStructure = structures[0];
-
-        // 3. Fetch components
-        const { data: components, error: compErr } = await supabase
-            .from('finance_fee_structure_components')
-            .select('*')
-            .eq('fee_structure_id', targetStructure.id)
-            .order('display_order', { ascending: true });
-
-        if (compErr) throw compErr;
-
-        // 4. Fetch installments
-        const { data: installments, error: instErr } = await supabase
-            .from('finance_fee_installments')
-            .select('*')
-            .eq('fee_structure_id', targetStructure.id);
-
-        if (instErr) throw instErr;
-
-        return {
-            structure: targetStructure,
-            components: components || [],
-            installments: installments || []
-        };
+      return {
+        structure: {
+          id: structure.fee_structure_id,
+          fee_structure_id: structure.fee_structure_id,
+          name: structure.name,
+          description: structure.description,
+          status: structure.status,
+          academic_year_id: structure.academic_year_grades?.academic_year_id,
+          grade_id: structure.academic_year_grades?.grade_id,
+        },
+        components: structure.fee_components.map((c) => ({
+          id: c.fee_component_id,
+          fee_component_id: c.fee_component_id,
+          component_name: c.component_name,
+          component_code: c.component_code,
+          amount: Number(c.amount),
+          is_mandatory: c.is_mandatory,
+          display_order: c.display_order,
+        })),
+        installments,
+      };
+    } catch (error) {
+      console.error('[FeeStructureRepository.getStructureAggregate] Error:', error);
+      return null;
     }
+  }
 }

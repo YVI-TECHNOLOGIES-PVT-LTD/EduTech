@@ -108,7 +108,8 @@ export class FeeStructureManagerService {
       totalComponents,
       totalPublishedValue: this.roundMoney(totalPublishedValue),
       totalAvailableGrades: totalAyGrades,
-      configuredCoveragePercentage: totalAyGrades > 0 ? Math.round((totalStructures / totalAyGrades) * 100) : 0,
+      configuredCoveragePercentage:
+        totalAyGrades > 0 ? Math.round((totalStructures / totalAyGrades) * 100) : 0,
     };
   }
 
@@ -124,7 +125,7 @@ export class FeeStructureManagerService {
       search?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     if (!orgId) {
       throw new Error('Tenant organization ID is required');
@@ -196,11 +197,62 @@ export class FeeStructureManagerService {
       }),
     ]);
 
+    // Collect distinct academic year IDs from returned structures to fetch installment plans in batch
+    const academicYearIds = Array.from(
+      new Set(records.map((r: any) => r.academic_year_grades?.academic_year_id).filter(Boolean)),
+    ) as string[];
+
+    const installmentPlansByAy = new Map<string, any[]>();
+    if (academicYearIds.length > 0) {
+      const plans = await prisma.installment_plans.findMany({
+        where: {
+          org_id: safeOrgId,
+          academic_year_id: { in: academicYearIds },
+        },
+        include: {
+          installment_plan_terms: {
+            orderBy: { term_number: 'asc' },
+          },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      for (const p of plans) {
+        const existing = installmentPlansByAy.get(p.academic_year_id) || [];
+        existing.push(p);
+        installmentPlansByAy.set(p.academic_year_id, existing);
+      }
+    }
+
     const items = records.map((s: any) => {
       let totalAmount = 0;
       for (const comp of s.fee_components) {
         totalAmount += Number(comp.amount);
       }
+
+      const ayId = s.academic_year_grades?.academic_year_id;
+      const ayPlans = ayId ? installmentPlansByAy.get(ayId) || [] : [];
+      const formattedPlans = ayPlans.map((p: any) => ({
+        id: p.installment_plan_id,
+        installment_plan_id: p.installment_plan_id,
+        plan_name: p.plan_name,
+        description: p.description,
+        status: p.status,
+        academic_year_id: p.academic_year_id,
+        terms_count: p.installment_plan_terms.length,
+        terms: p.installment_plan_terms.map((t: any) => ({
+          id: t.installment_term_id,
+          installment_term_id: t.installment_term_id,
+          term_number: t.term_number,
+          term_name: t.term_name,
+          percentage: Number(t.percentage),
+          due_date: t.due_date,
+          calculated_amount: this.roundMoney((Number(t.percentage) / 100) * totalAmount),
+        })),
+      }));
+
+      const primaryPlan =
+        formattedPlans.find((p: any) => p.status === 'published') || formattedPlans[0] || null;
 
       return {
         id: s.fee_structure_id,
@@ -235,6 +287,7 @@ export class FeeStructureManagerService {
         assigned_students_count: s._count.student_fee_assignments,
         components: s.fee_components.map((c: any) => ({
           id: c.fee_component_id,
+          fee_component_id: c.fee_component_id,
           component_name: c.component_name,
           component_code: c.component_code,
           amount: Number(c.amount),
@@ -242,6 +295,8 @@ export class FeeStructureManagerService {
           display_order: c.display_order,
           description: c.description,
         })),
+        installment_plans: formattedPlans,
+        installment_plan: primaryPlan,
       };
     });
 
@@ -269,7 +324,9 @@ export class FeeStructureManagerService {
     const safeOrgId = toSafeUuid(orgId) || orgId;
 
     if (!safeStructId) {
-      const err: any = new Error(`Fee structure not found or does not belong to this organization: ${structureId}`);
+      const err: any = new Error(
+        `Fee structure not found or does not belong to this organization: ${structureId}`,
+      );
       err.statusCode = 404;
       err.code = 'NOT_FOUND';
       throw err;
@@ -303,7 +360,9 @@ export class FeeStructureManagerService {
     });
 
     if (!structure) {
-      const err: any = new Error(`Fee structure not found or does not belong to this organization: ${structureId}`);
+      const err: any = new Error(
+        `Fee structure not found or does not belong to this organization: ${structureId}`,
+      );
       err.statusCode = 404;
       err.code = 'NOT_FOUND';
       throw err;
@@ -322,15 +381,39 @@ export class FeeStructureManagerService {
         where: {
           org_id: safeOrgId,
           academic_year_id: academicYearId,
-          status: 'published',
         },
         include: {
           installment_plan_terms: {
             orderBy: { term_number: 'asc' },
           },
         },
+        orderBy: { created_at: 'desc' },
       });
     }
+
+    const formattedInstallmentPlans = installmentPlans.map((p) => ({
+      id: p.installment_plan_id,
+      installment_plan_id: p.installment_plan_id,
+      plan_name: p.plan_name,
+      description: p.description,
+      status: p.status,
+      academic_year_id: p.academic_year_id,
+      terms_count: p.installment_plan_terms.length,
+      terms: p.installment_plan_terms.map((t: any) => ({
+        id: t.installment_term_id,
+        installment_term_id: t.installment_term_id,
+        term_number: t.term_number,
+        term_name: t.term_name,
+        percentage: Number(t.percentage),
+        due_date: t.due_date,
+        calculated_amount: this.roundMoney((Number(t.percentage) / 100) * totalAmount),
+      })),
+    }));
+
+    const primaryPlan =
+      formattedInstallmentPlans.find((p) => p.status === 'published') ||
+      formattedInstallmentPlans[0] ||
+      null;
 
     return {
       id: structure.fee_structure_id,
@@ -364,6 +447,7 @@ export class FeeStructureManagerService {
       assigned_students_count: structure._count.student_fee_assignments,
       components: structure.fee_components.map((c: any) => ({
         id: c.fee_component_id,
+        fee_component_id: c.fee_component_id,
         component_name: c.component_name,
         component_code: c.component_code,
         amount: Number(c.amount),
@@ -371,19 +455,8 @@ export class FeeStructureManagerService {
         display_order: c.display_order,
         description: c.description,
       })),
-      installment_plans: installmentPlans.map((p) => ({
-        id: p.installment_plan_id,
-        plan_name: p.plan_name,
-        description: p.description,
-        terms_count: p.installment_plan_terms.length,
-        terms: p.installment_plan_terms.map((t: any) => ({
-          term_number: t.term_number,
-          term_name: t.term_name,
-          percentage: Number(t.percentage),
-          due_date: t.due_date,
-          calculated_amount: this.roundMoney((Number(t.percentage) / 100) * totalAmount),
-        })),
-      })),
+      installment_plans: formattedInstallmentPlans,
+      installment_plan: primaryPlan,
     };
   }
 
@@ -393,7 +466,7 @@ export class FeeStructureManagerService {
   public static async createStructure(
     orgId: string,
     userId: string,
-    payload: CreateFeeStructureInput
+    payload: CreateFeeStructureInput,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     if (!payload.name || !payload.name.trim()) {
@@ -419,7 +492,11 @@ export class FeeStructureManagerService {
       throw err;
     }
 
-    if (!payload.components || !Array.isArray(payload.components) || payload.components.length === 0) {
+    if (
+      !payload.components ||
+      !Array.isArray(payload.components) ||
+      payload.components.length === 0
+    ) {
       const err: any = new Error('At least one fee component is required');
       err.statusCode = 400;
       throw err;
@@ -444,7 +521,9 @@ export class FeeStructureManagerService {
 
       const numAmount = Number(c.amount);
       if (isNaN(numAmount) || numAmount <= 0) {
-        const err: any = new Error(`Component "${c.component_name}" amount must be a positive number greater than 0`);
+        const err: any = new Error(
+          `Component "${c.component_name}" amount must be a positive number greater than 0`,
+        );
         err.statusCode = 400;
         throw err;
       }
@@ -453,14 +532,18 @@ export class FeeStructureManagerService {
       const normName = c.component_name.trim().toLowerCase();
 
       if (componentCodes.has(normCode)) {
-        const err: any = new Error(`Duplicate component code: "${c.component_code}" is used more than once`);
+        const err: any = new Error(
+          `Duplicate component code: "${c.component_code}" is used more than once`,
+        );
         err.statusCode = 400;
         throw err;
       }
       componentCodes.add(normCode);
 
       if (componentNames.has(normName)) {
-        const err: any = new Error(`Duplicate component name: "${c.component_name}" is used more than once`);
+        const err: any = new Error(
+          `Duplicate component name: "${c.component_name}" is used more than once`,
+        );
         err.statusCode = 400;
         throw err;
       }
@@ -484,7 +567,9 @@ export class FeeStructureManagerService {
     });
 
     if (!ayGrade) {
-      const err: any = new Error('Academic year grade mapping not found or does not belong to this organization');
+      const err: any = new Error(
+        'Academic year grade mapping not found or does not belong to this organization',
+      );
       err.statusCode = 404;
       throw err;
     }
@@ -498,7 +583,7 @@ export class FeeStructureManagerService {
 
     if (existing) {
       const err: any = new Error(
-        `A fee structure (${existing.name}) already exists for ${ayGrade.grades?.grade_name || 'this grade'} in academic year ${ayGrade.academic_years?.academic_year_name || ''}. Only one fee structure is permitted per grade.`
+        `A fee structure (${existing.name}) already exists for ${ayGrade.grades?.grade_name || 'this grade'} in academic year ${ayGrade.academic_years?.academic_year_name || ''}. Only one fee structure is permitted per grade.`,
       );
       err.statusCode = 409;
       err.code = 'STRUCTURE_ALREADY_EXISTS_FOR_GRADE';
@@ -563,7 +648,7 @@ export class FeeStructureManagerService {
     orgId: string,
     userId: string,
     structureId: string,
-    payload: UpdateFeeStructureInput
+    payload: UpdateFeeStructureInput,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     if (!structureId) throw new Error('Fee Structure ID is required');
@@ -606,7 +691,7 @@ export class FeeStructureManagerService {
     const hasAssignments = existing._count.student_fee_assignments > 0;
     if (existing.status === 'published' && hasAssignments && payload.components) {
       const err: any = new Error(
-        'Financial Integrity Rule: Fee components cannot be modified on a published structure that has active student assignments. Deactivate the structure and configure a new one instead.'
+        'Financial Integrity Rule: Fee components cannot be modified on a published structure that has active student assignments. Deactivate the structure and configure a new one instead.',
       );
       err.statusCode = 409;
       err.code = 'PUBLISHED_STRUCTURE_IMMUTABLE';
@@ -639,7 +724,9 @@ export class FeeStructureManagerService {
 
         const numAmount = Number(c.amount);
         if (isNaN(numAmount) || numAmount <= 0) {
-          const err: any = new Error(`Component "${c.component_name}" amount must be a positive number greater than 0`);
+          const err: any = new Error(
+            `Component "${c.component_name}" amount must be a positive number greater than 0`,
+          );
           err.statusCode = 400;
           throw err;
         }
@@ -648,14 +735,18 @@ export class FeeStructureManagerService {
         const normName = c.component_name.trim().toLowerCase();
 
         if (componentCodes.has(normCode)) {
-          const err: any = new Error(`Duplicate component code: "${c.component_code}" is used more than once`);
+          const err: any = new Error(
+            `Duplicate component code: "${c.component_code}" is used more than once`,
+          );
           err.statusCode = 400;
           throw err;
         }
         componentCodes.add(normCode);
 
         if (componentNames.has(normName)) {
-          const err: any = new Error(`Duplicate component name: "${c.component_name}" is used more than once`);
+          const err: any = new Error(
+            `Duplicate component name: "${c.component_name}" is used more than once`,
+          );
           err.statusCode = 400;
           throw err;
         }
@@ -755,7 +846,9 @@ export class FeeStructureManagerService {
     }
 
     if (!structure.fee_components || structure.fee_components.length === 0) {
-      const err: any = new Error('Cannot publish a fee structure with no components. Add at least one component first.');
+      const err: any = new Error(
+        'Cannot publish a fee structure with no components. Add at least one component first.',
+      );
       err.statusCode = 400;
       throw err;
     }
@@ -766,7 +859,9 @@ export class FeeStructureManagerService {
     }
 
     if (total <= 0) {
-      const err: any = new Error('Cannot publish a fee structure with zero or negative total amount.');
+      const err: any = new Error(
+        'Cannot publish a fee structure with zero or negative total amount.',
+      );
       err.statusCode = 400;
       throw err;
     }
@@ -869,7 +964,7 @@ export class FeeStructureManagerService {
 
     const grades = await prisma.academic_year_grades.findMany({
       where,
-      include: ({
+      include: {
         academic_years: true,
         grades: true,
         fee_structures: {
@@ -879,11 +974,8 @@ export class FeeStructureManagerService {
             status: true,
           },
         },
-      }) as any,
-      orderBy: [
-        { academic_years: { start_date: 'desc' } },
-        { grades: { display_order: 'asc' } },
-      ],
+      } as any,
+      orderBy: [{ academic_years: { start_date: 'desc' } }, { grades: { display_order: 'asc' } }],
     });
 
     return (grades as any[]).map((g: any) => ({

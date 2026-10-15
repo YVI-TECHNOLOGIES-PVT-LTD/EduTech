@@ -26,6 +26,7 @@ model academic_year_grades {
   grades                                       grades                     @relation(fields: [grade_id], references: [grade_id], onDelete: Cascade, onUpdate: NoAction)
   users_academic_year_grades_updated_byTousers users?                     @relation("academic_year_grades_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
   assessment_configurations                    assessment_configurations?
+  fee_structures                               fee_structures?
   leads                                        leads[]
   sections                                     sections[]
   student_enrollments                          student_enrollments[]
@@ -55,6 +56,8 @@ model academic_years {
   users_academic_years_updated_byTousers users?                     @relation("academic_years_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
   admission_configurations               admission_configurations[]
   admissions_applications                admissions_applications[]
+  installment_plans                      installment_plans[]
+  scholarship_concessions                scholarship_concessions[]
 
   @@unique([org_id, academic_year_name])
   @@index([org_id], map: "ix_academic_years_org")
@@ -544,43 +547,47 @@ model leads {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model organizations {
-  org_id                                String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_code                              String                     @unique @db.VarChar(30)
-  org_name                              String                     @db.VarChar(200)
-  board_affiliation                     String?                    @db.VarChar(50)
+  org_id                                String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_code                              String                        @unique @db.VarChar(30)
+  org_name                              String                        @db.VarChar(200)
+  board_affiliation                     String?                       @db.VarChar(50)
   address                               String?
-  city                                  String?                    @db.VarChar(100)
-  state                                 String?                    @db.VarChar(100)
-  postal_code                           String?                    @db.VarChar(20)
-  country                               String                     @default("India") @db.VarChar(100)
-  phone                                 String                     @db.VarChar(20)
-  email                                 String                     @db.VarChar(200)
-  website                               String?                    @db.VarChar(200)
-  subscription_tier                     subscription_tier          @default(starter)
-  status                                user_status                @default(active)
-  created_at                            DateTime                   @default(now()) @db.Timestamptz(6)
-  updated_at                            DateTime                   @default(now()) @db.Timestamptz(6)
-  created_by                            String?                    @db.Uuid
-  updated_by                            String?                    @db.Uuid
+  city                                  String?                       @db.VarChar(100)
+  state                                 String?                       @db.VarChar(100)
+  postal_code                           String?                       @db.VarChar(20)
+  country                               String                        @default("India") @db.VarChar(100)
+  phone                                 String                        @db.VarChar(20)
+  email                                 String                        @db.VarChar(200)
+  website                               String?                       @db.VarChar(200)
+  subscription_tier                     subscription_tier             @default(starter)
+  status                                user_status                   @default(active)
+  created_at                            DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                            DateTime                      @default(now()) @db.Timestamptz(6)
+  created_by                            String?                       @db.Uuid
+  updated_by                            String?                       @db.Uuid
   academic_years                        academic_years[]
   admission_configurations              admission_configurations[]
   admissions_applications               admissions_applications[]
+  bank_statement_entries                bank_statement_entries[]
   chatbot_sessions                      chatbot_sessions[]
   departments                           departments[]
   designations                          designations[]
   document_chunks                       document_chunks[]
   document_types                        document_types[]
+  gateway_settlements                   gateway_settlements[]
   grades                                grades[]
+  installment_plans                     installment_plans[]
   lead_query_types                      lead_query_types[]
   leads                                 leads[]
   notifications                         notifications[]
-  users_organizations_created_byTousers users?                     @relation("organizations_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_created_by")
-  users_organizations_updated_byTousers users?                     @relation("organizations_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_updated_by")
+  users_organizations_created_byTousers users?                        @relation("organizations_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_created_by")
+  users_organizations_updated_byTousers users?                        @relation("organizations_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_organizations_updated_by")
   parents                               parents[]
+  payment_reconciliation_runs           payment_reconciliation_runs[]
   roles                                 roles[]
   staff                                 staff[]
   students                              students[]
-  users_users_org_idToorganizations     users[]                    @relation("users_org_idToorganizations")
+  users_users_org_idToorganizations     users[]                       @relation("users_org_idToorganizations")
 
   @@schema("public")
 }
@@ -673,24 +680,25 @@ model staff {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model student_enrollments {
-  enrollment_id                               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  student_id                                  String               @db.Uuid
-  academic_year_grade_id                      String               @db.Uuid
-  section_id                                  String?              @db.Uuid
-  roll_number                                 String?              @db.VarChar(20)
-  enrollment_date                             DateTime             @default(dbgenerated("CURRENT_DATE")) @db.Date
-  exit_date                                   DateTime?            @db.Date
-  status                                      enrollment_status    @default(active)
+  enrollment_id                               String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id                                  String                    @db.Uuid
+  academic_year_grade_id                      String                    @db.Uuid
+  section_id                                  String?                   @db.Uuid
+  roll_number                                 String?                   @db.VarChar(20)
+  enrollment_date                             DateTime                  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  exit_date                                   DateTime?                 @db.Date
+  status                                      enrollment_status         @default(active)
   remarks                                     String?
-  created_at                                  DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at                                  DateTime             @default(now()) @db.Timestamptz(6)
-  created_by                                  String?              @db.Uuid
-  updated_by                                  String?              @db.Uuid
-  academic_year_grades                        academic_year_grades @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onDelete: Cascade, onUpdate: NoAction)
-  users_student_enrollments_created_byTousers users?               @relation("student_enrollments_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  sections                                    sections?            @relation(fields: [section_id], references: [section_id], onUpdate: NoAction)
-  students                                    students             @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction)
-  users_student_enrollments_updated_byTousers users?               @relation("student_enrollments_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  created_at                                  DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                                  DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                                  String?                   @db.Uuid
+  updated_by                                  String?                   @db.Uuid
+  academic_year_grades                        academic_year_grades      @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onDelete: Cascade, onUpdate: NoAction)
+  users_student_enrollments_created_byTousers users?                    @relation("student_enrollments_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  sections                                    sections?                 @relation(fields: [section_id], references: [section_id], onUpdate: NoAction)
+  students                                    students                  @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction)
+  users_student_enrollments_updated_byTousers users?                    @relation("student_enrollments_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  student_fee_assignments                     student_fee_assignments[]
 
   @@unique([section_id, roll_number])
   @@unique([student_id, academic_year_grade_id])
@@ -723,29 +731,32 @@ model student_parents {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model students {
-  student_id                       String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_id                           String                  @db.Uuid
-  application_id                   String                  @unique @db.Uuid
-  user_id                          String?                 @db.Uuid
-  admission_no                     String                  @db.VarChar(30)
-  first_name                       String                  @db.VarChar(100)
-  last_name                        String?                 @db.VarChar(100)
-  dob                              DateTime?               @db.Date
+  student_id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                           String                    @db.Uuid
+  application_id                   String                    @unique @db.Uuid
+  user_id                          String?                   @db.Uuid
+  admission_no                     String                    @db.VarChar(30)
+  first_name                       String                    @db.VarChar(100)
+  last_name                        String?                   @db.VarChar(100)
+  dob                              DateTime?                 @db.Date
   gender                           gender_type?
-  admission_date                   DateTime?               @db.Date
-  status                           enrollment_status       @default(active)
-  created_at                       DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at                       DateTime                @default(now()) @db.Timestamptz(6)
-  created_by                       String?                 @db.Uuid
-  updated_by                       String?                 @db.Uuid
-  nationality                      String?                 @db.VarChar(100)
+  admission_date                   DateTime?                 @db.Date
+  status                           enrollment_status         @default(active)
+  created_at                       DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                       DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                       String?                   @db.Uuid
+  updated_by                       String?                   @db.Uuid
+  nationality                      String?                   @db.VarChar(100)
+  payment_orders                   payment_orders[]
+  scholarship_concessions          scholarship_concessions[]
+  student_charges                  student_charges[]
   student_enrollments              student_enrollments[]
   student_parents                  student_parents[]
-  admissions_applications          admissions_applications @relation(fields: [application_id], references: [application_id], onUpdate: NoAction)
-  users_students_created_byTousers users?                  @relation("students_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  organizations                    organizations           @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
-  users_students_updated_byTousers users?                  @relation("students_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
-  users_students_user_idTousers    users?                  @relation("students_user_idTousers", fields: [user_id], references: [user_id], onUpdate: NoAction)
+  admissions_applications          admissions_applications   @relation(fields: [application_id], references: [application_id], onUpdate: NoAction)
+  users_students_created_byTousers users?                    @relation("students_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                    organizations             @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_students_updated_byTousers users?                    @relation("students_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  users_students_user_idTousers    users?                    @relation("students_user_idTousers", fields: [user_id], references: [user_id], onUpdate: NoAction)
 
   @@unique([org_id, admission_no])
   @@index([admission_no], map: "ix_students_admission_number")
@@ -771,86 +782,132 @@ model user_roles {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
-  user_id                                                               String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_id                                                                String                      @db.Uuid
-  first_name                                                            String                      @db.VarChar(100)
-  last_name                                                             String?                     @db.VarChar(100)
-  email                                                                 String                      @db.VarChar(200)
-  phone                                                                 String                      @db.VarChar(20)
-  sso_subject                                                           String?                     @db.VarChar(200)
-  password_hash                                                         String?
-  status                                                                user_status                 @default(active)
-  last_login_at                                                         DateTime?                   @db.Timestamptz(6)
-  created_at                                                            DateTime                    @default(now()) @db.Timestamptz(6)
-  updated_at                                                            DateTime                    @default(now()) @db.Timestamptz(6)
-  created_by                                                            String?                     @db.Uuid
-  updated_by                                                            String?                     @db.Uuid
-  country_id                                                            String                      @db.Uuid
-  academic_year_grades_academic_year_grades_created_byTousers           academic_year_grades[]      @relation("academic_year_grades_created_byTousers")
-  academic_year_grades_academic_year_grades_updated_byTousers           academic_year_grades[]      @relation("academic_year_grades_updated_byTousers")
-  academic_years_academic_years_created_byTousers                       academic_years[]            @relation("academic_years_created_byTousers")
-  academic_years_academic_years_updated_byTousers                       academic_years[]            @relation("academic_years_updated_byTousers")
-  admission_configurations_admission_configurations_created_byTousers   admission_configurations[]  @relation("admission_configurations_created_byTousers")
-  admission_configurations_admission_configurations_updated_byTousers   admission_configurations[]  @relation("admission_configurations_updated_byTousers")
-  admission_decisions_admission_decisions_created_byTousers             admission_decisions[]       @relation("admission_decisions_created_byTousers")
-  admission_decisions_admission_decisions_decided_byTousers             admission_decisions[]       @relation("admission_decisions_decided_byTousers")
-  admission_decisions_admission_decisions_updated_byTousers             admission_decisions[]       @relation("admission_decisions_updated_byTousers")
-  admission_documents_admission_documents_created_byTousers             admission_documents[]       @relation("admission_documents_created_byTousers")
-  admission_documents_admission_documents_updated_byTousers             admission_documents[]       @relation("admission_documents_updated_byTousers")
-  admission_documents_admission_documents_verified_byTousers            admission_documents[]       @relation("admission_documents_verified_byTousers")
-  admission_fee_payments_admission_fee_payments_created_byTousers       admission_fee_payments[]    @relation("admission_fee_payments_created_byTousers")
-  admission_fee_payments_admission_fee_payments_updated_byTousers       admission_fee_payments[]    @relation("admission_fee_payments_updated_byTousers")
-  admissions_applications_admissions_applications_created_byTousers     admissions_applications[]   @relation("admissions_applications_created_byTousers")
-  admissions_applications_admissions_applications_updated_byTousers     admissions_applications[]   @relation("admissions_applications_updated_byTousers")
-  application_assessments_application_assessments_created_byTousers     application_assessments[]   @relation("application_assessments_created_byTousers")
-  application_assessments_application_assessments_updated_byTousers     application_assessments[]   @relation("application_assessments_updated_byTousers")
-  assessment_configurations_assessment_configurations_created_byTousers assessment_configurations[] @relation("assessment_configurations_created_byTousers")
-  assessment_configurations_assessment_configurations_updated_byTousers assessment_configurations[] @relation("assessment_configurations_updated_byTousers")
-  chatbot_sessions                                                      chatbot_sessions[]
-  departments_departments_created_byTousers                             departments[]               @relation("departments_created_byTousers")
-  departments_departments_updated_byTousers                             departments[]               @relation("departments_updated_byTousers")
-  designations_designations_created_byTousers                           designations[]              @relation("designations_created_byTousers")
-  designations_designations_updated_byTousers                           designations[]              @relation("designations_updated_byTousers")
-  document_types_document_types_created_byTousers                       document_types[]            @relation("document_types_created_byTousers")
-  document_types_document_types_updated_byTousers                       document_types[]            @relation("document_types_updated_byTousers")
-  grades_grades_created_byTousers                                       grades[]                    @relation("grades_created_byTousers")
-  grades_grades_updated_byTousers                                       grades[]                    @relation("grades_updated_byTousers")
-  lead_activities_lead_activities_created_byTousers                     lead_activities[]           @relation("lead_activities_created_byTousers")
-  lead_activities_lead_activities_updated_byTousers                     lead_activities[]           @relation("lead_activities_updated_byTousers")
-  lead_query_types_lead_query_types_created_byTousers                   lead_query_types[]          @relation("lead_query_types_created_byTousers")
-  lead_query_types_lead_query_types_updated_byTousers                   lead_query_types[]          @relation("lead_query_types_updated_byTousers")
-  lead_visits_lead_visits_created_byTousers                             lead_visits[]               @relation("lead_visits_created_byTousers")
-  lead_visits_lead_visits_updated_byTousers                             lead_visits[]               @relation("lead_visits_updated_byTousers")
-  leads_leads_created_byTousers                                         leads[]                     @relation("leads_created_byTousers")
-  leads_leads_updated_byTousers                                         leads[]                     @relation("leads_updated_byTousers")
-  notifications                                                         notifications[]
-  organizations_organizations_created_byTousers                         organizations[]             @relation("organizations_created_byTousers")
-  organizations_organizations_updated_byTousers                         organizations[]             @relation("organizations_updated_byTousers")
-  parents_parents_created_byTousers                                     parents[]                   @relation("parents_created_byTousers")
-  parents_parents_updated_byTousers                                     parents[]                   @relation("parents_updated_byTousers")
-  parents_parents_user_idTousers                                        parents?                    @relation("parents_user_idTousers")
-  roles_roles_created_byTousers                                         roles[]                     @relation("roles_created_byTousers")
-  roles_roles_updated_byTousers                                         roles[]                     @relation("roles_updated_byTousers")
-  sections_sections_created_byTousers                                   sections[]                  @relation("sections_created_byTousers")
-  sections_sections_updated_byTousers                                   sections[]                  @relation("sections_updated_byTousers")
-  staff_staff_created_byTousers                                         staff[]                     @relation("staff_created_byTousers")
-  staff_staff_updated_byTousers                                         staff[]                     @relation("staff_updated_byTousers")
-  staff_staff_user_idTousers                                            staff?                      @relation("staff_user_idTousers")
-  student_enrollments_student_enrollments_created_byTousers             student_enrollments[]       @relation("student_enrollments_created_byTousers")
-  student_enrollments_student_enrollments_updated_byTousers             student_enrollments[]       @relation("student_enrollments_updated_byTousers")
-  student_parents_student_parents_created_byTousers                     student_parents[]           @relation("student_parents_created_byTousers")
-  student_parents_student_parents_updated_byTousers                     student_parents[]           @relation("student_parents_updated_byTousers")
-  students_students_created_byTousers                                   students[]                  @relation("students_created_byTousers")
-  students_students_updated_byTousers                                   students[]                  @relation("students_updated_byTousers")
-  students_students_user_idTousers                                      students[]                  @relation("students_user_idTousers")
-  user_roles_user_roles_granted_byTousers                               user_roles[]                @relation("user_roles_granted_byTousers")
-  user_roles_user_roles_user_idTousers                                  user_roles[]                @relation("user_roles_user_idTousers")
-  countries                                                             countries                   @relation(fields: [country_id], references: [country_id], onUpdate: NoAction)
-  users_users_created_byTousers                                         users?                      @relation("users_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  other_users_users_created_byTousers                                   users[]                     @relation("users_created_byTousers")
-  organizations_users_org_idToorganizations                             organizations               @relation("users_org_idToorganizations", fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
-  users_users_updated_byTousers                                         users?                      @relation("users_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
-  other_users_users_updated_byTousers                                   users[]                     @relation("users_updated_byTousers")
+  user_id                                                                                           String                                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                                                                            String                                    @db.Uuid
+  first_name                                                                                        String                                    @db.VarChar(100)
+  last_name                                                                                         String?                                   @db.VarChar(100)
+  email                                                                                             String                                    @db.VarChar(200)
+  phone                                                                                             String                                    @db.VarChar(20)
+  sso_subject                                                                                       String?                                   @db.VarChar(200)
+  password_hash                                                                                     String?
+  status                                                                                            user_status                               @default(active)
+  last_login_at                                                                                     DateTime?                                 @db.Timestamptz(6)
+  created_at                                                                                        DateTime                                  @default(now()) @db.Timestamptz(6)
+  updated_at                                                                                        DateTime                                  @default(now()) @db.Timestamptz(6)
+  created_by                                                                                        String?                                   @db.Uuid
+  updated_by                                                                                        String?                                   @db.Uuid
+  country_id                                                                                        String                                    @db.Uuid
+  avatar_url                                                                                        String?                                   @db.VarChar(500)
+  academic_year_grades_academic_year_grades_created_byTousers                                       academic_year_grades[]                    @relation("academic_year_grades_created_byTousers")
+  academic_year_grades_academic_year_grades_updated_byTousers                                       academic_year_grades[]                    @relation("academic_year_grades_updated_byTousers")
+  academic_years_academic_years_created_byTousers                                                   academic_years[]                          @relation("academic_years_created_byTousers")
+  academic_years_academic_years_updated_byTousers                                                   academic_years[]                          @relation("academic_years_updated_byTousers")
+  admission_configurations_admission_configurations_created_byTousers                               admission_configurations[]                @relation("admission_configurations_created_byTousers")
+  admission_configurations_admission_configurations_updated_byTousers                               admission_configurations[]                @relation("admission_configurations_updated_byTousers")
+  admission_decisions_admission_decisions_created_byTousers                                         admission_decisions[]                     @relation("admission_decisions_created_byTousers")
+  admission_decisions_admission_decisions_decided_byTousers                                         admission_decisions[]                     @relation("admission_decisions_decided_byTousers")
+  admission_decisions_admission_decisions_updated_byTousers                                         admission_decisions[]                     @relation("admission_decisions_updated_byTousers")
+  admission_documents_admission_documents_created_byTousers                                         admission_documents[]                     @relation("admission_documents_created_byTousers")
+  admission_documents_admission_documents_updated_byTousers                                         admission_documents[]                     @relation("admission_documents_updated_byTousers")
+  admission_documents_admission_documents_verified_byTousers                                        admission_documents[]                     @relation("admission_documents_verified_byTousers")
+  admission_fee_payments_admission_fee_payments_created_byTousers                                   admission_fee_payments[]                  @relation("admission_fee_payments_created_byTousers")
+  admission_fee_payments_admission_fee_payments_updated_byTousers                                   admission_fee_payments[]                  @relation("admission_fee_payments_updated_byTousers")
+  admissions_applications_admissions_applications_created_byTousers                                 admissions_applications[]                 @relation("admissions_applications_created_byTousers")
+  admissions_applications_admissions_applications_updated_byTousers                                 admissions_applications[]                 @relation("admissions_applications_updated_byTousers")
+  application_assessments_application_assessments_created_byTousers                                 application_assessments[]                 @relation("application_assessments_created_byTousers")
+  application_assessments_application_assessments_updated_byTousers                                 application_assessments[]                 @relation("application_assessments_updated_byTousers")
+  assessment_configurations_assessment_configurations_created_byTousers                             assessment_configurations[]               @relation("assessment_configurations_created_byTousers")
+  assessment_configurations_assessment_configurations_updated_byTousers                             assessment_configurations[]               @relation("assessment_configurations_updated_byTousers")
+  bank_statement_entries_bank_statement_entries_created_byTousers                                   bank_statement_entries[]                  @relation("bank_statement_entries_created_byTousers")
+  bank_statement_entries_bank_statement_entries_updated_byTousers                                   bank_statement_entries[]                  @relation("bank_statement_entries_updated_byTousers")
+  chatbot_sessions                                                                                  chatbot_sessions[]
+  departments_departments_created_byTousers                                                         departments[]                             @relation("departments_created_byTousers")
+  departments_departments_updated_byTousers                                                         departments[]                             @relation("departments_updated_byTousers")
+  designations_designations_created_byTousers                                                       designations[]                            @relation("designations_created_byTousers")
+  designations_designations_updated_byTousers                                                       designations[]                            @relation("designations_updated_byTousers")
+  document_types_document_types_created_byTousers                                                   document_types[]                          @relation("document_types_created_byTousers")
+  document_types_document_types_updated_byTousers                                                   document_types[]                          @relation("document_types_updated_byTousers")
+  fee_components_fee_components_created_byTousers                                                   fee_components[]                          @relation("fee_components_created_byTousers")
+  fee_components_fee_components_updated_byTousers                                                   fee_components[]                          @relation("fee_components_updated_byTousers")
+  fee_structures_fee_structures_created_byTousers                                                   fee_structures[]                          @relation("fee_structures_created_byTousers")
+  fee_structures_fee_structures_updated_byTousers                                                   fee_structures[]                          @relation("fee_structures_updated_byTousers")
+  gateway_settlement_items_gateway_settlement_items_created_byTousers                               gateway_settlement_items[]                @relation("gateway_settlement_items_created_byTousers")
+  gateway_settlement_items_gateway_settlement_items_updated_byTousers                               gateway_settlement_items[]                @relation("gateway_settlement_items_updated_byTousers")
+  gateway_settlements_gateway_settlements_created_byTousers                                         gateway_settlements[]                     @relation("gateway_settlements_created_byTousers")
+  gateway_settlements_gateway_settlements_updated_byTousers                                         gateway_settlements[]                     @relation("gateway_settlements_updated_byTousers")
+  grades_grades_created_byTousers                                                                   grades[]                                  @relation("grades_created_byTousers")
+  grades_grades_updated_byTousers                                                                   grades[]                                  @relation("grades_updated_byTousers")
+  installment_plan_terms_installment_plan_terms_created_byTousers                                   installment_plan_terms[]                  @relation("installment_plan_terms_created_byTousers")
+  installment_plan_terms_installment_plan_terms_updated_byTousers                                   installment_plan_terms[]                  @relation("installment_plan_terms_updated_byTousers")
+  installment_plans_installment_plans_created_byTousers                                             installment_plans[]                       @relation("installment_plans_created_byTousers")
+  installment_plans_installment_plans_updated_byTousers                                             installment_plans[]                       @relation("installment_plans_updated_byTousers")
+  lead_activities_lead_activities_created_byTousers                                                 lead_activities[]                         @relation("lead_activities_created_byTousers")
+  lead_activities_lead_activities_updated_byTousers                                                 lead_activities[]                         @relation("lead_activities_updated_byTousers")
+  lead_query_types_lead_query_types_created_byTousers                                               lead_query_types[]                        @relation("lead_query_types_created_byTousers")
+  lead_query_types_lead_query_types_updated_byTousers                                               lead_query_types[]                        @relation("lead_query_types_updated_byTousers")
+  lead_visits_lead_visits_created_byTousers                                                         lead_visits[]                             @relation("lead_visits_created_byTousers")
+  lead_visits_lead_visits_updated_byTousers                                                         lead_visits[]                             @relation("lead_visits_updated_byTousers")
+  leads_leads_created_byTousers                                                                     leads[]                                   @relation("leads_created_byTousers")
+  leads_leads_updated_byTousers                                                                     leads[]                                   @relation("leads_updated_byTousers")
+  notifications                                                                                     notifications[]
+  organizations_organizations_created_byTousers                                                     organizations[]                           @relation("organizations_created_byTousers")
+  organizations_organizations_updated_byTousers                                                     organizations[]                           @relation("organizations_updated_byTousers")
+  parents_parents_created_byTousers                                                                 parents[]                                 @relation("parents_created_byTousers")
+  parents_parents_updated_byTousers                                                                 parents[]                                 @relation("parents_updated_byTousers")
+  parents_parents_user_idTousers                                                                    parents?                                  @relation("parents_user_idTousers")
+  payment_adjustments_payment_adjustments_created_byTousers                                         payment_adjustments[]                     @relation("payment_adjustments_created_byTousers")
+  payment_adjustments_payment_adjustments_updated_byTousers                                         payment_adjustments[]                     @relation("payment_adjustments_updated_byTousers")
+  payment_allocations_payment_allocations_created_byTousers                                         payment_allocations[]                     @relation("payment_allocations_created_byTousers")
+  payment_allocations_payment_allocations_updated_byTousers                                         payment_allocations[]                     @relation("payment_allocations_updated_byTousers")
+  payment_orders_payment_orders_created_byTousers                                                   payment_orders[]                          @relation("payment_orders_created_byTousers")
+  payment_orders_payment_orders_updated_byTousers                                                   payment_orders[]                          @relation("payment_orders_updated_byTousers")
+  payment_reconciliation_matches_payment_reconciliation_matches_created_byTousers                   payment_reconciliation_matches[]          @relation("payment_reconciliation_matches_created_byTousers")
+  payment_reconciliation_matches_payment_reconciliation_matches_resolved_byTousers                  payment_reconciliation_matches[]          @relation("payment_reconciliation_matches_resolved_byTousers")
+  payment_reconciliation_matches_payment_reconciliation_matches_updated_byTousers                   payment_reconciliation_matches[]          @relation("payment_reconciliation_matches_updated_byTousers")
+  payment_reconciliation_runs_payment_reconciliation_runs_created_byTousers                         payment_reconciliation_runs[]             @relation("payment_reconciliation_runs_created_byTousers")
+  payment_reconciliation_runs_payment_reconciliation_runs_updated_byTousers                         payment_reconciliation_runs[]             @relation("payment_reconciliation_runs_updated_byTousers")
+  payment_refunds_payment_refunds_created_byTousers                                                 payment_refunds[]                         @relation("payment_refunds_created_byTousers")
+  payment_refunds_payment_refunds_updated_byTousers                                                 payment_refunds[]                         @relation("payment_refunds_updated_byTousers")
+  payment_transactions_payment_transactions_created_byTousers                                       payment_transactions[]                    @relation("payment_transactions_created_byTousers")
+  payment_transactions_payment_transactions_updated_byTousers                                       payment_transactions[]                    @relation("payment_transactions_updated_byTousers")
+  payment_webhook_events_payment_webhook_events_created_byTousers                                   payment_webhook_events[]                  @relation("payment_webhook_events_created_byTousers")
+  payment_webhook_events_payment_webhook_events_updated_byTousers                                   payment_webhook_events[]                  @relation("payment_webhook_events_updated_byTousers")
+  roles_roles_created_byTousers                                                                     roles[]                                   @relation("roles_created_byTousers")
+  roles_roles_updated_byTousers                                                                     roles[]                                   @relation("roles_updated_byTousers")
+  scholarship_concession_approval_history_scholarship_concession_approval_history_action_byTousers  scholarship_concession_approval_history[] @relation("scholarship_concession_approval_history_action_byTousers")
+  scholarship_concession_approval_history_scholarship_concession_approval_history_created_byTousers scholarship_concession_approval_history[] @relation("scholarship_concession_approval_history_created_byTousers")
+  scholarship_concession_approval_history_scholarship_concession_approval_history_updated_byTousers scholarship_concession_approval_history[] @relation("scholarship_concession_approval_history_updated_byTousers")
+  scholarship_concessions_scholarship_concessions_applied_byTousers                                 scholarship_concessions[]                 @relation("scholarship_concessions_applied_byTousers")
+  scholarship_concessions_scholarship_concessions_approved_byTousers                                scholarship_concessions[]                 @relation("scholarship_concessions_approved_byTousers")
+  scholarship_concessions_scholarship_concessions_created_byTousers                                 scholarship_concessions[]                 @relation("scholarship_concessions_created_byTousers")
+  scholarship_concessions_scholarship_concessions_recommended_byTousers                             scholarship_concessions[]                 @relation("scholarship_concessions_recommended_byTousers")
+  scholarship_concessions_scholarship_concessions_updated_byTousers                                 scholarship_concessions[]                 @relation("scholarship_concessions_updated_byTousers")
+  sections_sections_created_byTousers                                                               sections[]                                @relation("sections_created_byTousers")
+  sections_sections_updated_byTousers                                                               sections[]                                @relation("sections_updated_byTousers")
+  staff_staff_created_byTousers                                                                     staff[]                                   @relation("staff_created_byTousers")
+  staff_staff_updated_byTousers                                                                     staff[]                                   @relation("staff_updated_byTousers")
+  staff_staff_user_idTousers                                                                        staff?                                    @relation("staff_user_idTousers")
+  student_charge_dues_student_charge_dues_created_byTousers                                         student_charge_dues[]                     @relation("student_charge_dues_created_byTousers")
+  student_charge_dues_student_charge_dues_updated_byTousers                                         student_charge_dues[]                     @relation("student_charge_dues_updated_byTousers")
+  student_charges_student_charges_created_byTousers                                                 student_charges[]                         @relation("student_charges_created_byTousers")
+  student_charges_student_charges_updated_byTousers                                                 student_charges[]                         @relation("student_charges_updated_byTousers")
+  student_enrollments_student_enrollments_created_byTousers                                         student_enrollments[]                     @relation("student_enrollments_created_byTousers")
+  student_enrollments_student_enrollments_updated_byTousers                                         student_enrollments[]                     @relation("student_enrollments_updated_byTousers")
+  student_fee_assignments_student_fee_assignments_created_byTousers                                 student_fee_assignments[]                 @relation("student_fee_assignments_created_byTousers")
+  student_fee_assignments_student_fee_assignments_updated_byTousers                                 student_fee_assignments[]                 @relation("student_fee_assignments_updated_byTousers")
+  student_parents_student_parents_created_byTousers                                                 student_parents[]                         @relation("student_parents_created_byTousers")
+  student_parents_student_parents_updated_byTousers                                                 student_parents[]                         @relation("student_parents_updated_byTousers")
+  students_students_created_byTousers                                                               students[]                                @relation("students_created_byTousers")
+  students_students_updated_byTousers                                                               students[]                                @relation("students_updated_byTousers")
+  students_students_user_idTousers                                                                  students[]                                @relation("students_user_idTousers")
+  user_roles_user_roles_granted_byTousers                                                           user_roles[]                              @relation("user_roles_granted_byTousers")
+  user_roles_user_roles_user_idTousers                                                              user_roles[]                              @relation("user_roles_user_idTousers")
+  countries                                                                                         countries                                 @relation(fields: [country_id], references: [country_id], onUpdate: NoAction)
+  users_users_created_byTousers                                                                     users?                                    @relation("users_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  other_users_users_created_byTousers                                                               users[]                                   @relation("users_created_byTousers")
+  organizations_users_org_idToorganizations                                                         organizations                             @relation("users_org_idToorganizations", fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_users_updated_byTousers                                                                     users?                                    @relation("users_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  other_users_users_updated_byTousers                                                               users[]                                   @relation("users_updated_byTousers")
 
   @@unique([org_id, email])
   @@index([org_id], map: "ix_users_org")
@@ -935,6 +992,604 @@ model countries {
   @@schema("public")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bank_statement_entries {
+  bank_statement_entry_id                        String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                         String                           @db.Uuid
+  bank_account_reference                         String                           @db.VarChar(100)
+  external_entry_id                              String?                          @db.VarChar(150)
+  deduplication_key                              String                           @db.VarChar(200)
+  transaction_reference                          String?                          @db.VarChar(150)
+  transaction_date                               DateTime                         @db.Timestamptz(6)
+  value_date                                     DateTime?                        @db.Date
+  description                                    String?
+  entry_type                                     bank_statement_entry_type
+  amount                                         Decimal                          @db.Decimal(14, 2)
+  currency_code                                  String                           @default("INR") @db.Char(3)
+  import_source                                  String                           @default("manual_upload") @db.VarChar(50)
+  import_batch_reference                         String?                          @db.VarChar(150)
+  raw_statement_data                             Json?
+  imported_at                                    DateTime                         @default(now()) @db.Timestamptz(6)
+  notes                                          String?
+  created_at                                     DateTime                         @default(now()) @db.Timestamptz(6)
+  created_by                                     String?                          @db.Uuid
+  updated_at                                     DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_by                                     String?                          @db.Uuid
+  users_bank_statement_entries_created_byTousers users?                           @relation("bank_statement_entries_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                                  organizations                    @relation(fields: [org_id], references: [org_id], onUpdate: NoAction)
+  users_bank_statement_entries_updated_byTousers users?                           @relation("bank_statement_entries_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  payment_reconciliation_matches                 payment_reconciliation_matches[]
+
+  @@unique([org_id, bank_account_reference, deduplication_key], map: "uq_bank_statement_entry_dedup")
+  @@index([org_id, transaction_date], map: "idx_bank_statement_entries_org_date")
+  @@index([org_id, transaction_reference], map: "idx_bank_statement_entries_reference")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fee_components {
+  fee_component_id                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fee_structure_id                       String            @db.Uuid
+  component_name                         String            @db.VarChar(150)
+  component_code                         String            @db.VarChar(50)
+  description                            String?
+  amount                                 Decimal           @db.Decimal(12, 2)
+  is_mandatory                           Boolean           @default(true)
+  display_order                          Int               @default(1)
+  created_at                             DateTime          @default(now()) @db.Timestamptz(6)
+  created_by                             String?           @db.Uuid
+  updated_at                             DateTime          @default(now()) @db.Timestamptz(6)
+  updated_by                             String?           @db.Uuid
+  users_fee_components_created_byTousers users?            @relation("fee_components_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  fee_structures                         fee_structures    @relation(fields: [fee_structure_id], references: [fee_structure_id], onDelete: Cascade, onUpdate: NoAction)
+  users_fee_components_updated_byTousers users?            @relation("fee_components_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  student_charges                        student_charges[]
+
+  @@unique([fee_structure_id, component_code], map: "uq_fee_components_structure_code")
+  @@unique([fee_structure_id, component_name], map: "uq_fee_components_structure_name")
+  @@index([fee_structure_id], map: "idx_fee_components_fee_structure_id")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fee_structures {
+  fee_structure_id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academic_year_grade_id                 String                    @unique(map: "uq_fee_structures_academic_year_grade") @db.Uuid
+  name                                   String                    @db.VarChar(150)
+  description                            String?
+  status                                 fee_structure_status      @default(draft)
+  created_at                             DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                             String?                   @db.Uuid
+  updated_at                             DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_by                             String?                   @db.Uuid
+  fee_components                         fee_components[]
+  academic_year_grades                   academic_year_grades      @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onUpdate: NoAction)
+  users_fee_structures_created_byTousers users?                    @relation("fee_structures_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  users_fee_structures_updated_byTousers users?                    @relation("fee_structures_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  student_fee_assignments                student_fee_assignments[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model gateway_settlement_items {
+  gateway_settlement_item_id                       String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gateway_settlement_id                            String               @db.Uuid
+  payment_transaction_id                           String               @db.Uuid
+  provider_payment_reference                       String?              @db.VarChar(150)
+  gross_amount                                     Decimal              @db.Decimal(14, 2)
+  fee_amount                                       Decimal              @default(0) @db.Decimal(14, 2)
+  tax_amount                                       Decimal              @default(0) @db.Decimal(14, 2)
+  other_adjustment_amount                          Decimal              @default(0) @db.Decimal(14, 2)
+  net_amount                                       Decimal?             @db.Decimal(14, 2)
+  provider_item_payload                            Json?
+  notes                                            String?
+  created_at                                       DateTime             @default(now()) @db.Timestamptz(6)
+  created_by                                       String?              @db.Uuid
+  updated_at                                       DateTime             @default(now()) @db.Timestamptz(6)
+  updated_by                                       String?              @db.Uuid
+  users_gateway_settlement_items_created_byTousers users?               @relation("gateway_settlement_items_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  gateway_settlements                              gateway_settlements  @relation(fields: [gateway_settlement_id], references: [gateway_settlement_id], onUpdate: NoAction)
+  payment_transactions                             payment_transactions @relation(fields: [payment_transaction_id], references: [payment_transaction_id], onUpdate: NoAction)
+  users_gateway_settlement_items_updated_byTousers users?               @relation("gateway_settlement_items_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@unique([gateway_settlement_id, payment_transaction_id], map: "uq_gateway_settlement_item_transaction")
+  @@index([payment_transaction_id], map: "idx_gateway_settlement_items_transaction")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model gateway_settlements {
+  gateway_settlement_id                       String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                      String                           @db.Uuid
+  provider_name                               String                           @db.VarChar(100)
+  provider_settlement_id                      String                           @db.VarChar(150)
+  settlement_reference                        String?                          @db.VarChar(150)
+  settlement_date                             DateTime?                        @db.Date
+  currency_code                               String                           @default("INR") @db.Char(3)
+  gross_amount                                Decimal                          @db.Decimal(14, 2)
+  fee_amount                                  Decimal                          @default(0) @db.Decimal(14, 2)
+  tax_amount                                  Decimal                          @default(0) @db.Decimal(14, 2)
+  other_adjustment_amount                     Decimal                          @default(0) @db.Decimal(14, 2)
+  net_settlement_amount                       Decimal                          @db.Decimal(14, 2)
+  status                                      gateway_settlement_status        @default(reported)
+  reported_at                                 DateTime                         @default(now()) @db.Timestamptz(6)
+  settled_at                                  DateTime?                        @db.Timestamptz(6)
+  provider_payload                            Json?
+  notes                                       String?
+  created_at                                  DateTime                         @default(now()) @db.Timestamptz(6)
+  created_by                                  String?                          @db.Uuid
+  updated_at                                  DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_by                                  String?                          @db.Uuid
+  gateway_settlement_items                    gateway_settlement_items[]
+  users_gateway_settlements_created_byTousers users?                           @relation("gateway_settlements_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                               organizations                    @relation(fields: [org_id], references: [org_id], onUpdate: NoAction)
+  users_gateway_settlements_updated_byTousers users?                           @relation("gateway_settlements_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  payment_reconciliation_matches              payment_reconciliation_matches[]
+
+  @@unique([org_id, provider_name, provider_settlement_id], map: "uq_gateway_settlements_provider_id")
+  @@index([org_id, settlement_date], map: "idx_gateway_settlements_date")
+  @@index([org_id, status], map: "idx_gateway_settlements_org_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model installment_plan_terms {
+  installment_term_id                            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  installment_plan_id                            String                    @db.Uuid
+  term_number                                    Int
+  term_name                                      String                    @db.VarChar(100)
+  percentage                                     Decimal                   @db.Decimal(5, 2)
+  due_date                                       DateTime                  @db.Date
+  created_at                                     DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                                     String?                   @db.Uuid
+  updated_at                                     DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_by                                     String?                   @db.Uuid
+  users_installment_plan_terms_created_byTousers users?                    @relation("installment_plan_terms_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  installment_plans                              installment_plans         @relation(fields: [installment_plan_id], references: [installment_plan_id], onDelete: Cascade, onUpdate: NoAction)
+  users_installment_plan_terms_updated_byTousers users?                    @relation("installment_plan_terms_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  scholarship_concessions                        scholarship_concessions[]
+  student_charge_dues                            student_charge_dues[]
+
+  @@unique([installment_plan_id, term_name], map: "uq_installment_terms_plan_name")
+  @@unique([installment_plan_id, term_number], map: "uq_installment_terms_plan_number")
+  @@index([installment_plan_id], map: "idx_installment_plan_terms_plan_id")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model installment_plans {
+  installment_plan_id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                    String                    @db.Uuid
+  academic_year_id                          String                    @db.Uuid
+  plan_name                                 String                    @db.VarChar(150)
+  description                               String?
+  status                                    installment_plan_status   @default(draft)
+  created_at                                DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                                String?                   @db.Uuid
+  updated_at                                DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_by                                String?                   @db.Uuid
+  installment_plan_terms                    installment_plan_terms[]
+  academic_years                            academic_years            @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade, onUpdate: NoAction)
+  users_installment_plans_created_byTousers users?                    @relation("installment_plans_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                             organizations             @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_installment_plans_updated_byTousers users?                    @relation("installment_plans_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  student_fee_assignments                   student_fee_assignments[]
+
+  @@unique([org_id, academic_year_id, plan_name], map: "uq_installment_plans_org_academic_year_name")
+  @@index([academic_year_id], map: "idx_installment_plans_academic_year_id")
+  @@index([org_id], map: "idx_installment_plans_org_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_adjustments {
+  payment_adjustment_id                       String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payment_allocation_id                       String                  @db.Uuid
+  adjustment_type                             payment_adjustment_type
+  amount                                      Decimal                 @db.Decimal(12, 2)
+  reason                                      String
+  adjusted_at                                 DateTime                @default(now()) @db.Timestamptz(6)
+  created_at                                  DateTime                @default(now()) @db.Timestamptz(6)
+  created_by                                  String?                 @db.Uuid
+  updated_at                                  DateTime                @default(now()) @db.Timestamptz(6)
+  updated_by                                  String?                 @db.Uuid
+  users_payment_adjustments_created_byTousers users?                  @relation("payment_adjustments_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  payment_allocations                         payment_allocations     @relation(fields: [payment_allocation_id], references: [payment_allocation_id], onUpdate: NoAction)
+  users_payment_adjustments_updated_byTousers users?                  @relation("payment_adjustments_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([adjusted_at], map: "idx_payment_adjustments_adjusted_at")
+  @@index([payment_allocation_id], map: "idx_payment_adjustments_allocation")
+  @@index([adjustment_type], map: "idx_payment_adjustments_type")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_allocations {
+  payment_allocation_id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payment_transaction_id                      String                @db.Uuid
+  student_charge_due_id                       String                @db.Uuid
+  allocated_amount                            Decimal               @db.Decimal(12, 2)
+  allocated_at                                DateTime              @default(now()) @db.Timestamptz(6)
+  notes                                       String?
+  created_at                                  DateTime              @default(now()) @db.Timestamptz(6)
+  created_by                                  String?               @db.Uuid
+  updated_at                                  DateTime              @default(now()) @db.Timestamptz(6)
+  updated_by                                  String?               @db.Uuid
+  payment_adjustments                         payment_adjustments[]
+  users_payment_allocations_created_byTousers users?                @relation("payment_allocations_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  payment_transactions                        payment_transactions  @relation(fields: [payment_transaction_id], references: [payment_transaction_id], onUpdate: NoAction)
+  student_charge_dues                         student_charge_dues   @relation(fields: [student_charge_due_id], references: [student_charge_due_id], onUpdate: NoAction)
+  users_payment_allocations_updated_byTousers users?                @relation("payment_allocations_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([allocated_at], map: "idx_payment_allocations_allocated_at")
+  @@index([student_charge_due_id], map: "idx_payment_allocations_due")
+  @@index([payment_transaction_id], map: "idx_payment_allocations_transaction")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_orders {
+  payment_order_id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id                             String                   @db.Uuid
+  student_charge_due_id                  String                   @db.Uuid
+  amount                                 Decimal                  @db.Decimal(12, 2)
+  currency_code                          String                   @default("INR") @db.Char(3)
+  status                                 payment_order_status     @default(created)
+  order_reference                        String                   @unique(map: "uq_payment_orders_reference") @db.VarChar(100)
+  description                            String?                  @db.VarChar(255)
+  expires_at                             DateTime?                @db.Timestamptz(6)
+  created_at                             DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by                             String?                  @db.Uuid
+  updated_at                             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_by                             String?                  @db.Uuid
+  users_payment_orders_created_byTousers users?                   @relation("payment_orders_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  student_charge_dues                    student_charge_dues      @relation(fields: [student_charge_due_id], references: [student_charge_due_id], onUpdate: NoAction)
+  students                               students                 @relation(fields: [student_id], references: [student_id], onUpdate: NoAction)
+  users_payment_orders_updated_byTousers users?                   @relation("payment_orders_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  payment_transactions                   payment_transactions[]
+  payment_webhook_events                 payment_webhook_events[]
+
+  @@index([created_at], map: "idx_payment_orders_created_at")
+  @@index([student_charge_due_id], map: "idx_payment_orders_due_id")
+  @@index([status], map: "idx_payment_orders_status")
+  @@index([student_id], map: "idx_payment_orders_student_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_reconciliation_matches {
+  payment_reconciliation_match_id                         String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payment_reconciliation_run_id                           String                      @db.Uuid
+  gateway_settlement_id                                   String?                     @db.Uuid
+  bank_statement_entry_id                                 String?                     @db.Uuid
+  status                                                  reconciliation_match_status
+  matched_amount                                          Decimal                     @default(0) @db.Decimal(14, 2)
+  notes                                                   String?
+  resolved_at                                             DateTime?                   @db.Timestamptz(6)
+  resolved_by                                             String?                     @db.Uuid
+  created_at                                              DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                                              String?                     @db.Uuid
+  updated_at                                              DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_by                                              String?                     @db.Uuid
+  payment_reconciliation_runs                             payment_reconciliation_runs @relation(fields: [payment_reconciliation_run_id], references: [payment_reconciliation_run_id], onUpdate: NoAction, map: "payment_reconciliation_matche_payment_reconciliation_run_i_fkey")
+  bank_statement_entries                                  bank_statement_entries?     @relation(fields: [bank_statement_entry_id], references: [bank_statement_entry_id], onDelete: Restrict, onUpdate: NoAction)
+  users_payment_reconciliation_matches_created_byTousers  users?                      @relation("payment_reconciliation_matches_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  gateway_settlements                                     gateway_settlements?        @relation(fields: [gateway_settlement_id], references: [gateway_settlement_id], onDelete: Restrict, onUpdate: NoAction)
+  users_payment_reconciliation_matches_resolved_byTousers users?                      @relation("payment_reconciliation_matches_resolved_byTousers", fields: [resolved_by], references: [user_id], onUpdate: NoAction)
+  users_payment_reconciliation_matches_updated_byTousers  users?                      @relation("payment_reconciliation_matches_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([payment_reconciliation_run_id], map: "idx_payment_reconciliation_matches_run")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_reconciliation_runs {
+  payment_reconciliation_run_id                       String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                              String                           @db.Uuid
+  run_reference                                       String                           @db.VarChar(100)
+  period_start                                        DateTime?                        @db.Date
+  period_end                                          DateTime?                        @db.Date
+  status                                              reconciliation_run_status        @default(draft)
+  started_at                                          DateTime?                        @db.Timestamptz(6)
+  completed_at                                        DateTime?                        @db.Timestamptz(6)
+  notes                                               String?
+  created_at                                          DateTime                         @default(now()) @db.Timestamptz(6)
+  created_by                                          String?                          @db.Uuid
+  updated_at                                          DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_by                                          String?                          @db.Uuid
+  payment_reconciliation_matches                      payment_reconciliation_matches[]
+  users_payment_reconciliation_runs_created_byTousers users?                           @relation("payment_reconciliation_runs_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                                       organizations                    @relation(fields: [org_id], references: [org_id], onUpdate: NoAction)
+  users_payment_reconciliation_runs_updated_byTousers users?                           @relation("payment_reconciliation_runs_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@unique([org_id, run_reference], map: "uq_payment_reconciliation_runs_reference")
+  @@index([org_id, status], map: "idx_payment_reconciliation_runs_org_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_refunds {
+  payment_refund_id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payment_transaction_id                  String                @db.Uuid
+  refund_reference                        String                @unique(map: "uq_payment_refunds_reference") @db.VarChar(100)
+  amount                                  Decimal               @db.Decimal(12, 2)
+  currency_code                           String                @default("INR") @db.Char(3)
+  status                                  payment_refund_status @default(requested)
+  reason                                  String
+  gateway_refund_id                       String?               @db.VarChar(150)
+  gateway_response                        Json?
+  requested_at                            DateTime              @default(now()) @db.Timestamptz(6)
+  processed_at                            DateTime?             @db.Timestamptz(6)
+  failure_code                            String?               @db.VarChar(100)
+  failure_message                         String?
+  created_at                              DateTime              @default(now()) @db.Timestamptz(6)
+  created_by                              String?               @db.Uuid
+  updated_at                              DateTime              @default(now()) @db.Timestamptz(6)
+  updated_by                              String?               @db.Uuid
+  users_payment_refunds_created_byTousers users?                @relation("payment_refunds_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  payment_transactions                    payment_transactions  @relation(fields: [payment_transaction_id], references: [payment_transaction_id], onUpdate: NoAction)
+  users_payment_refunds_updated_byTousers users?                @relation("payment_refunds_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([gateway_refund_id], map: "idx_payment_refunds_gateway_refund_id")
+  @@index([requested_at], map: "idx_payment_refunds_requested_at")
+  @@index([status], map: "idx_payment_refunds_status")
+  @@index([payment_transaction_id], map: "idx_payment_refunds_transaction_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_transactions {
+  payment_transaction_id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payment_order_id                             String                     @db.Uuid
+  payment_method                               payment_method
+  status                                       payment_transaction_status @default(initiated)
+  gateway_name                                 String?                    @db.VarChar(100)
+  gateway_transaction_id                       String?                    @db.VarChar(150)
+  gateway_order_id                             String?                    @db.VarChar(150)
+  amount                                       Decimal                    @db.Decimal(12, 2)
+  currency_code                                String                     @default("INR") @db.Char(3)
+  transaction_date                             DateTime?                  @db.Timestamptz(6)
+  failure_code                                 String?                    @db.VarChar(100)
+  failure_message                              String?
+  gateway_response                             Json?
+  created_at                                   DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                                   String?                    @db.Uuid
+  updated_at                                   DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by                                   String?                    @db.Uuid
+  gateway_settlement_items                     gateway_settlement_items[]
+  payment_allocations                          payment_allocations[]
+  payment_refunds                              payment_refunds[]
+  users_payment_transactions_created_byTousers users?                     @relation("payment_transactions_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  payment_orders                               payment_orders             @relation(fields: [payment_order_id], references: [payment_order_id], onUpdate: NoAction)
+  users_payment_transactions_updated_byTousers users?                     @relation("payment_transactions_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  payment_webhook_events                       payment_webhook_events[]
+
+  @@index([gateway_order_id], map: "idx_payment_transactions_gateway_order_id")
+  @@index([gateway_transaction_id], map: "idx_payment_transactions_gateway_transaction_id")
+  @@index([payment_order_id], map: "idx_payment_transactions_order_id")
+  @@index([status], map: "idx_payment_transactions_status")
+  @@index([transaction_date], map: "idx_payment_transactions_transaction_date")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_webhook_events {
+  payment_webhook_event_id                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_name                                  String                 @db.VarChar(100)
+  provider_event_id                              String                 @db.VarChar(150)
+  event_type                                     String                 @db.VarChar(100)
+  payment_order_id                               String?                @db.Uuid
+  payment_transaction_id                         String?                @db.Uuid
+  payload                                        Json
+  status                                         payment_webhook_status @default(received)
+  received_at                                    DateTime               @default(now()) @db.Timestamptz(6)
+  processed_at                                   DateTime?              @db.Timestamptz(6)
+  processing_error                               String?
+  created_at                                     DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                                     String?                @db.Uuid
+  updated_at                                     DateTime               @default(now()) @db.Timestamptz(6)
+  updated_by                                     String?                @db.Uuid
+  users_payment_webhook_events_created_byTousers users?                 @relation("payment_webhook_events_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  payment_orders                                 payment_orders?        @relation(fields: [payment_order_id], references: [payment_order_id], onUpdate: NoAction)
+  payment_transactions                           payment_transactions?  @relation(fields: [payment_transaction_id], references: [payment_transaction_id], onUpdate: NoAction)
+  users_payment_webhook_events_updated_byTousers users?                 @relation("payment_webhook_events_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@unique([provider_name, provider_event_id], map: "uq_payment_webhook_provider_event")
+  @@index([payment_order_id], map: "idx_payment_webhook_events_order_id")
+  @@index([received_at], map: "idx_payment_webhook_events_received_at")
+  @@index([status], map: "idx_payment_webhook_events_status")
+  @@index([payment_transaction_id], map: "idx_payment_webhook_events_transaction_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model scholarship_concession_approval_history {
+  scholarship_concession_approval_id                              String                                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scholarship_concession_id                                       String                                 @db.Uuid
+  action                                                          scholarship_concession_approval_action
+  approved_percentage                                             Decimal?                               @db.Decimal(5, 2)
+  remarks                                                         String?
+  action_at                                                       DateTime                               @default(now()) @db.Timestamptz(6)
+  action_by                                                       String                                 @db.Uuid
+  created_at                                                      DateTime                               @default(now()) @db.Timestamptz(6)
+  created_by                                                      String?                                @db.Uuid
+  updated_at                                                      DateTime                               @default(now()) @db.Timestamptz(6)
+  updated_by                                                      String?                                @db.Uuid
+  scholarship_concessions                                         scholarship_concessions                @relation(fields: [scholarship_concession_id], references: [scholarship_concession_id], onUpdate: NoAction, map: "scholarship_concession_approval__scholarship_concession_id_fkey")
+  users_scholarship_concession_approval_history_action_byTousers  users                                  @relation("scholarship_concession_approval_history_action_byTousers", fields: [action_by], references: [user_id], onUpdate: NoAction)
+  users_scholarship_concession_approval_history_created_byTousers users?                                 @relation("scholarship_concession_approval_history_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  users_scholarship_concession_approval_history_updated_byTousers users?                                 @relation("scholarship_concession_approval_history_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([action_at], map: "idx_scholarship_concession_approval_history_action_at")
+  @@index([action_by], map: "idx_scholarship_concession_approval_history_action_by")
+  @@index([scholarship_concession_id], map: "idx_scholarship_concession_approval_history_concession_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model scholarship_concessions {
+  scholarship_concession_id                           String                                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id                                          String                                    @db.Uuid
+  academic_year_id                                    String                                    @db.Uuid
+  scholarship_type                                    scholarship_type?
+  concession_name                                     String                                    @db.VarChar(150)
+  concession_percentage                               Decimal                                   @db.Decimal(5, 2)
+  scope                                               scholarship_concession_scope
+  installment_term_id                                 String?                                   @db.Uuid
+  status                                              scholarship_concession_status             @default(recommended)
+  recommendation_reason                               String
+  recommended_by                                      String                                    @db.Uuid
+  recommended_at                                      DateTime                                  @default(now()) @db.Timestamptz(6)
+  approved_percentage                                 Decimal?                                  @db.Decimal(5, 2)
+  approved_by                                         String?                                   @db.Uuid
+  approved_at                                         DateTime?                                 @db.Timestamptz(6)
+  applied_percentage                                  Decimal?                                  @db.Decimal(5, 2)
+  applied_by                                          String?                                   @db.Uuid
+  applied_at                                          DateTime?                                 @db.Timestamptz(6)
+  notes                                               String?
+  created_at                                          DateTime                                  @default(now()) @db.Timestamptz(6)
+  created_by                                          String?                                   @db.Uuid
+  updated_at                                          DateTime                                  @default(now()) @db.Timestamptz(6)
+  updated_by                                          String?                                   @db.Uuid
+  scholarship_concession_approval_history             scholarship_concession_approval_history[]
+  academic_years                                      academic_years                            @relation(fields: [academic_year_id], references: [academic_year_id], onUpdate: NoAction)
+  users_scholarship_concessions_applied_byTousers     users?                                    @relation("scholarship_concessions_applied_byTousers", fields: [applied_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction)
+  users_scholarship_concessions_approved_byTousers    users?                                    @relation("scholarship_concessions_approved_byTousers", fields: [approved_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction)
+  users_scholarship_concessions_created_byTousers     users?                                    @relation("scholarship_concessions_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  installment_plan_terms                              installment_plan_terms?                   @relation(fields: [installment_term_id], references: [installment_term_id], onDelete: Restrict, onUpdate: NoAction)
+  users_scholarship_concessions_recommended_byTousers users                                     @relation("scholarship_concessions_recommended_byTousers", fields: [recommended_by], references: [user_id], onUpdate: NoAction)
+  students                                            students                                  @relation(fields: [student_id], references: [student_id], onUpdate: NoAction)
+  users_scholarship_concessions_updated_byTousers     users?                                    @relation("scholarship_concessions_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([academic_year_id], map: "idx_scholarship_concessions_academic_year_id")
+  @@index([installment_term_id], map: "idx_scholarship_concessions_installment_term_id")
+  @@index([status], map: "idx_scholarship_concessions_status")
+  @@index([student_id, academic_year_id], map: "idx_scholarship_concessions_student_academic_year")
+  @@index([student_id], map: "idx_scholarship_concessions_student_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model student_charge_dues {
+  student_charge_due_id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_charge_id                           String                    @db.Uuid
+  installment_term_id                         String?                   @db.Uuid
+  amount_due                                  Decimal                   @db.Decimal(12, 2)
+  due_date                                    DateTime                  @db.Date
+  status                                      student_charge_due_status @default(pending)
+  created_at                                  DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                                  String?                   @db.Uuid
+  updated_at                                  DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_by                                  String?                   @db.Uuid
+  payment_allocations                         payment_allocations[]
+  payment_orders                              payment_orders[]
+  users_student_charge_dues_created_byTousers users?                    @relation("student_charge_dues_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  installment_plan_terms                      installment_plan_terms?   @relation(fields: [installment_term_id], references: [installment_term_id], onDelete: Restrict, onUpdate: NoAction)
+  student_charges                             student_charges           @relation(fields: [student_charge_id], references: [student_charge_id], onUpdate: NoAction)
+  users_student_charge_dues_updated_byTousers users?                    @relation("student_charge_dues_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([student_charge_id], map: "idx_student_charge_dues_charge_id")
+  @@index([due_date], map: "idx_student_charge_dues_due_date")
+  @@index([installment_term_id], map: "idx_student_charge_dues_installment_term_id")
+  @@index([status], map: "idx_student_charge_dues_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model student_charges {
+  student_charge_id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id                              String                   @db.Uuid
+  student_fee_assignment_id               String?                  @db.Uuid
+  fee_component_id                        String?                  @db.Uuid
+  source_type                             financial_charge_source
+  source_id                               String?                  @db.Uuid
+  description                             String                   @db.VarChar(255)
+  amount                                  Decimal                  @db.Decimal(12, 2)
+  currency_code                           String                   @default("INR") @db.Char(3)
+  charge_date                             DateTime                 @default(dbgenerated("CURRENT_DATE")) @db.Date
+  status                                  student_charge_status    @default(active)
+  created_at                              DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by                              String?                  @db.Uuid
+  updated_at                              DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_by                              String?                  @db.Uuid
+  student_charge_dues                     student_charge_dues[]
+  users_student_charges_created_byTousers users?                   @relation("student_charges_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  fee_components                          fee_components?          @relation(fields: [fee_component_id], references: [fee_component_id], onDelete: Restrict, onUpdate: NoAction)
+  student_fee_assignments                 student_fee_assignments? @relation(fields: [student_fee_assignment_id], references: [student_fee_assignment_id], onDelete: Restrict, onUpdate: NoAction)
+  students                                students                 @relation(fields: [student_id], references: [student_id], onUpdate: NoAction)
+  users_student_charges_updated_byTousers users?                   @relation("student_charges_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([student_fee_assignment_id], map: "idx_student_charges_assignment_id")
+  @@index([charge_date], map: "idx_student_charges_charge_date")
+  @@index([fee_component_id], map: "idx_student_charges_fee_component_id")
+  @@index([source_type, source_id], map: "idx_student_charges_source")
+  @@index([status], map: "idx_student_charges_status")
+  @@index([student_id], map: "idx_student_charges_student_id")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model student_fee_assignments {
+  student_fee_assignment_id                       String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment_id                                   String                        @db.Uuid
+  fee_structure_id                                String                        @db.Uuid
+  installment_plan_id                             String                        @db.Uuid
+  assigned_at                                     DateTime                      @default(now()) @db.Timestamptz(6)
+  status                                          student_fee_assignment_status @default(active)
+  notes                                           String?
+  created_at                                      DateTime                      @default(now()) @db.Timestamptz(6)
+  created_by                                      String?                       @db.Uuid
+  updated_at                                      DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_by                                      String?                       @db.Uuid
+  student_charges                                 student_charges[]
+  users_student_fee_assignments_created_byTousers users?                        @relation("student_fee_assignments_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  student_enrollments                             student_enrollments           @relation(fields: [enrollment_id], references: [enrollment_id], onUpdate: NoAction)
+  fee_structures                                  fee_structures                @relation(fields: [fee_structure_id], references: [fee_structure_id], onUpdate: NoAction)
+  installment_plans                               installment_plans             @relation(fields: [installment_plan_id], references: [installment_plan_id], onUpdate: NoAction)
+  users_student_fee_assignments_updated_byTousers users?                        @relation("student_fee_assignments_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+
+  @@index([enrollment_id], map: "idx_student_fee_assignments_enrollment_id")
+  @@index([fee_structure_id], map: "idx_student_fee_assignments_fee_structure_id")
+  @@index([status], map: "idx_student_fee_assignments_status")
+  @@schema("public")
+}
+
 enum academic_year_status {
   planning
   open
@@ -1016,6 +1671,7 @@ enum assessment_result {
   fail
   recommended
   not_recommended
+  conditional_pass
 
   @@schema("public")
 }
@@ -1141,6 +1797,8 @@ enum lead_activity_type {
   counselling
   application_submitted
   note
+  campus_visit
+  application_started
 
   @@schema("public")
 }
@@ -1317,6 +1975,176 @@ enum notification_priority {
   NORMAL
   HIGH
   URGENT
+
+  @@schema("public")
+}
+
+enum bank_statement_entry_type {
+  credit
+  debit
+
+  @@schema("public")
+}
+
+enum fee_structure_status {
+  draft
+  published
+  inactive
+
+  @@schema("public")
+}
+
+enum financial_charge_source {
+  academic
+  transport
+  hostel
+  activity
+  other
+
+  @@schema("public")
+}
+
+enum gateway_settlement_status {
+  reported
+  pending
+  settled
+  failed
+  reversed
+
+  @@schema("public")
+}
+
+enum installment_plan_status {
+  draft
+  published
+  inactive
+
+  @@schema("public")
+}
+
+enum payment_adjustment_type {
+  reversal
+
+  @@schema("public")
+}
+
+enum payment_method {
+  upi
+  card
+  net_banking
+  wallet
+  bank_transfer
+  cash
+  other
+
+  @@schema("public")
+}
+
+enum payment_order_status {
+  created
+  pending
+  paid
+  failed
+  cancelled
+  expired
+
+  @@schema("public")
+}
+
+enum payment_refund_status {
+  requested
+  processing
+  success
+  failed
+  cancelled
+
+  @@schema("public")
+}
+
+enum payment_transaction_status {
+  initiated
+  pending
+  success
+  failed
+  cancelled
+
+  @@schema("public")
+}
+
+enum payment_webhook_status {
+  received
+  processed
+  failed
+  ignored
+
+  @@schema("public")
+}
+
+enum reconciliation_match_status {
+  matched
+  mismatched
+  unmatched_settlement
+  unmatched_bank_entry
+  ignored
+
+  @@schema("public")
+}
+
+enum reconciliation_run_status {
+  draft
+  in_progress
+  completed
+  completed_with_exceptions
+  cancelled
+
+  @@schema("public")
+}
+
+enum scholarship_concession_approval_action {
+  approved
+  rejected
+
+  @@schema("public")
+}
+
+enum scholarship_concession_scope {
+  academic_year
+  installment
+
+  @@schema("public")
+}
+
+enum scholarship_concession_status {
+  recommended
+  approved
+  rejected
+  applied
+
+  @@schema("public")
+}
+
+enum student_charge_due_status {
+  pending
+  partially_paid
+  paid
+  overdue
+  waived
+  cancelled
+
+  @@schema("public")
+}
+
+enum student_charge_status {
+  active
+  cancelled
+  waived
+
+  @@schema("public")
+}
+
+enum student_fee_assignment_status {
+  active
+  cancelled
 
   @@schema("public")
 }

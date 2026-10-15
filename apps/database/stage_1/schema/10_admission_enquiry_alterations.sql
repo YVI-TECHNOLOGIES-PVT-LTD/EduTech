@@ -213,3 +213,6 @@ ADD VALUE IF NOT EXISTS 'campus_visit';
 
 ALTER TYPE lead_activity_type
 ADD VALUE IF NOT EXISTS 'application_started';
+
+ALTER TYPE assessment_result
+ADD VALUE IF NOT EXISTS 'conditional_pass';
