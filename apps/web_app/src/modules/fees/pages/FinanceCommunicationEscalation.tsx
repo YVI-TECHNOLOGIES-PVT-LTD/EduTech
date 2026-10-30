@@ -37,10 +37,16 @@ export const FinanceCommunicationEscalation: React.FC = () => {
     try {
       setLoading(true);
       const res: any = await apiClient.get('/fees/communication/helpdesk/escalation/rules');
-      setRules(res.data || []);
+      const r = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setRules(r);
     } catch (err) {
       console.error('Failed to load rules:', err);
       toast.error('Failed to fetch escalation rules');
+      setRules([]);
     } finally {
       setLoading(false);
     }
@@ -49,9 +55,15 @@ export const FinanceCommunicationEscalation: React.FC = () => {
   const fetchCategories = async () => {
     try {
       const res: any = await apiClient.get('/fees/communication/helpdesk/categories');
-      setCategories(res.data || []);
+      const cats = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setCategories(cats);
     } catch (err) {
       console.error('Failed to load categories', err);
+      setCategories([]);
     }
   };
 
@@ -65,8 +77,9 @@ export const FinanceCommunicationEscalation: React.FC = () => {
       setEvaluating(true);
       setEvalResult(null);
       const res: any = await apiClient.post('/fees/communication/helpdesk/escalation/evaluate');
-      setEvalResult(res.data);
-      toast.success(`Evaluation complete: ${res.data?.escalatedCount || 0} tickets escalated`);
+      const evalData = res.data?.data || res.data;
+      setEvalResult(evalData);
+      toast.success(`Evaluation complete: ${evalData?.escalatedCount || 0} tickets escalated`);
     } catch (err: any) {
       console.error('Evaluation failed:', err);
       toast.error(err.message || 'Escalation evaluation failed');
@@ -176,7 +189,7 @@ export const FinanceCommunicationEscalation: React.FC = () => {
       {/* Rules Grid */}
       {loading ? (
         <div className="text-center py-16 text-slate-500">Loading escalation rules...</div>
-      ) : rules.length === 0 ? (
+      ) : !Array.isArray(rules) || rules.length === 0 ? (
         <div className={`${GLASS_CARD} p-12 text-center`}>
           <ShieldAlert className="w-12 h-12 text-slate-400 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
@@ -269,11 +282,12 @@ export const FinanceCommunicationEscalation: React.FC = () => {
                     className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
                   >
                     <option value="">All Categories</option>
-                    {categories.map((c) => (
-                      <option key={c.category_id} value={c.category_id}>
-                        {c.category_name}
-                      </option>
-                    ))}
+                    {Array.isArray(categories) &&
+                      categories.map((c) => (
+                        <option key={c.category_id} value={c.category_id}>
+                          {c.category_name}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div>

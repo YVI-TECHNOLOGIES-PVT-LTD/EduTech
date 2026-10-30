@@ -45,9 +45,15 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
   const fetchCategories = async () => {
     try {
       const res: any = await apiClient.get('/fees/communication/helpdesk/categories');
-      setCategories(res.data || []);
+      const cats = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setCategories(cats);
     } catch (err) {
       console.error('Failed to load categories', err);
+      setCategories([]);
     }
   };
 
@@ -56,10 +62,20 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       setLoading(true);
       const query = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
       const res: any = await apiClient.get(`/fees/communication/helpdesk/tickets${query}`);
-      setTickets(res.tickets || res.data?.tickets || []);
+      const tix = Array.isArray(res.data?.tickets)
+        ? res.data.tickets
+        : Array.isArray(res.data?.data?.tickets)
+          ? res.data.data.tickets
+          : Array.isArray(res.data?.data)
+            ? res.data.data
+            : Array.isArray(res.data)
+              ? res.data
+              : [];
+      setTickets(tix);
     } catch (err) {
       console.error('Failed to fetch tickets:', err);
       toast.error('Failed to load helpdesk tickets');
+      setTickets([]);
     } finally {
       setLoading(false);
     }
@@ -80,7 +96,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       const res: any = await apiClient.get(
         `/fees/communication/helpdesk/tickets/${ticket.ticket_id}`,
       );
-      setTicketDetails(res.data);
+      setTicketDetails(res.data?.data || res.data || null);
     } catch (err) {
       toast.error('Failed to load ticket details');
     } finally {
@@ -108,7 +124,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       const res: any = await apiClient.get(
         `/fees/communication/helpdesk/tickets/${selectedTicket.ticket_id}`,
       );
-      setTicketDetails(res.data);
+      setTicketDetails(res.data?.data || res.data || null);
       fetchTickets();
     } catch (err: any) {
       toast.error(err.message || 'Failed to send reply');
@@ -126,7 +142,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       toast.success(`Ticket status updated to ${newStatus}`);
       if (selectedTicket && selectedTicket.ticket_id === ticketId) {
         const res: any = await apiClient.get(`/fees/communication/helpdesk/tickets/${ticketId}`);
-        setTicketDetails(res.data);
+        setTicketDetails(res.data?.data || res.data || null);
       }
       fetchTickets();
     } catch (err: any) {
@@ -225,7 +241,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
         <div className="lg:col-span-1 space-y-3">
           {loading ? (
             <div className="text-center py-12 text-slate-500">Loading tickets...</div>
-          ) : tickets.length === 0 ? (
+          ) : !Array.isArray(tickets) || tickets.length === 0 ? (
             <div className={`${GLASS_CARD} p-8 text-center`}>
               <HelpCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -440,11 +456,12 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                     className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
                   >
                     <option value="">Select Category</option>
-                    {categories.map((c) => (
-                      <option key={c.category_id} value={c.category_id}>
-                        {c.category_name}
-                      </option>
-                    ))}
+                    {Array.isArray(categories) &&
+                      categories.map((c) => (
+                        <option key={c.category_id} value={c.category_id}>
+                          {c.category_name}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div>

@@ -46,16 +46,20 @@ export const FinanceCommunicationFeeds: React.FC = () => {
       setLoading(true);
       const query = filterType !== 'all' ? `?feed_type=${filterType}` : '';
       const res: any = await apiClient.get(`/fees/communication/posts${query}`);
-      if (res && res.posts) {
-        setPosts(res.posts);
-      } else if (res && res.data && res.data.posts) {
-        setPosts(res.data.posts);
-      } else {
-        setPosts([]);
-      }
+      const list = Array.isArray(res.data?.posts)
+        ? res.data.posts
+        : Array.isArray(res.data?.data?.posts)
+          ? res.data.data.posts
+          : Array.isArray(res.data?.data)
+            ? res.data.data
+            : Array.isArray(res.data)
+              ? res.data
+              : [];
+      setPosts(list);
     } catch (err: any) {
       console.error('Failed to fetch posts:', err);
       toast.error('Failed to load feed announcements');
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -124,9 +128,15 @@ export const FinanceCommunicationFeeds: React.FC = () => {
       const res: any = await apiClient.get(
         `/fees/communication/posts/${post.feed_post_id}/comments`,
       );
-      setComments(res.data || []);
+      const list = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setComments(list);
     } catch (err) {
       toast.error('Failed to load comments');
+      setComments([]);
     }
   };
 
@@ -145,7 +155,12 @@ export const FinanceCommunicationFeeds: React.FC = () => {
       const res: any = await apiClient.get(
         `/fees/communication/posts/${selectedPost.feed_post_id}/comments`,
       );
-      setComments(res.data || []);
+      const list = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setComments(list);
     } catch (err: any) {
       toast.error('Failed to add comment');
     } finally {
@@ -206,7 +221,7 @@ export const FinanceCommunicationFeeds: React.FC = () => {
       {/* Posts List */}
       {loading ? (
         <div className="text-center py-16 text-slate-500">Loading announcements...</div>
-      ) : posts.length === 0 ? (
+      ) : !Array.isArray(posts) || posts.length === 0 ? (
         <div className={`${GLASS_CARD} p-12 text-center`}>
           <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
@@ -404,7 +419,7 @@ export const FinanceCommunicationFeeds: React.FC = () => {
               </button>
             </div>
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-              {comments.length === 0 ? (
+              {!Array.isArray(comments) || comments.length === 0 ? (
                 <div className="text-xs text-slate-500 py-4 text-center">No comments yet.</div>
               ) : (
                 comments.map((c) => (
