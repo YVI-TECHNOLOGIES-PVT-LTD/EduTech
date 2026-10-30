@@ -134,10 +134,14 @@ export class FeedService {
     orgId: string,
     userContext: {
       userId: string;
-      roles: string[];
+      roles?: string[];
       isStaff: boolean;
-      isParent: boolean;
-      isStudent: boolean;
+      isParent?: boolean;
+      isStudent?: boolean;
+      isManagement?: boolean;
+      isTeacher?: boolean;
+      isFinance?: boolean;
+      isFrontOffice?: boolean;
     },
     query: ListPostsQuery = {},
   ) {
@@ -157,7 +161,21 @@ export class FeedService {
 
     // Role-based visibility scoping
     if (userContext.isStaff) {
-      // Staff can see all posts in the org
+      if ((userContext as any).isManagement) {
+        // Management: institutional oversight of all posts across tenant
+      } else {
+        // Staff boundary: Organization-wide announcements, staff community, or authored posts
+        where.AND = [
+          {
+            OR: [
+              { audience_scope: 'organization' },
+              { audience_scope: 'staff_only' },
+              { audience_scope: 'all_parents' },
+              { author_user_id: userContext.userId },
+            ],
+          },
+        ];
+      }
     } else if (userContext.isParent) {
       // Find students linked to this parent
       const linkedParents = await prisma.parents.findMany({

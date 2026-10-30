@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../../lib/api-client';
+import { useAuth } from '../../../context/AuthContext';
 import {
   MessageSquare,
   Plus,
@@ -22,6 +23,40 @@ const GLASS_CARD =
   'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm transition-all';
 
 export const FinanceCommunicationFeeds: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles = (user?.roles || []).map((r: string) =>
+    String(r)
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_'),
+  );
+  const isManagement = rawRoles.some((r) =>
+    [
+      'ADMIN',
+      'ADMINISTRATOR',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+    ].includes(r),
+  );
+  const isTeacher = rawRoles.some((r) => ['TEACHER', 'FACULTY'].includes(r));
+  const isFinance = rawRoles.some((r) =>
+    ['FINANCE', 'FINANCE_OFFICER', 'FINANCE_MANAGER', 'ACCOUNTANT', 'BURSAR'].includes(r),
+  );
+  const isFrontOffice = rawRoles.some((r) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+    ].includes(r),
+  );
+
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filterType, setFilterType] = useState<string>('all');
@@ -34,8 +69,10 @@ export const FinanceCommunicationFeeds: React.FC = () => {
   // New post form state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [feedType, setFeedType] = useState('parent');
-  const [audienceScope, setAudienceScope] = useState('organization');
+  const [feedType, setFeedType] = useState(isTeacher ? 'classroom' : 'parent');
+  const [audienceScope, setAudienceScope] = useState(
+    isTeacher ? 'selected_academic_groups' : 'organization',
+  );
   const [status, setStatus] = useState('published');
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [reactionsEnabled, setReactionsEnabled] = useState(true);
@@ -173,11 +210,31 @@ export const FinanceCommunicationFeeds: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Announcements & Feeds
             </h1>
+            {isManagement && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200">
+                School-Wide Publisher
+              </span>
+            )}
+            {isTeacher && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200">
+                Classroom & Academic
+              </span>
+            )}
+            {isFinance && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200">
+                Finance & Fee Updates
+              </span>
+            )}
+            {isFrontOffice && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200">
+                Front Office Notices
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Publish school announcements, finance alerts, and engagement updates to parents and

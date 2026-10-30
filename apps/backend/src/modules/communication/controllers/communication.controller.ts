@@ -31,32 +31,60 @@ export class CommunicationController {
     return userId;
   }
 
-  private static extractUserContext(req: Request) {
+  public static extractUserContext(req: Request) {
     const userId = (req as any).context?.user?.id || '';
     const roles: string[] = ((req as any).context?.user?.roles || []).map((r: string) =>
-      r.toUpperCase(),
+      r.toUpperCase().replace(/[\s-]+/g, '_'),
     );
-    const isParent = roles.includes('PARENT');
+    const isParent =
+      roles.includes('PARENT') || roles.includes('GUARDIAN') || roles.includes('ENROLLED_PARENT');
     const isStudent = roles.includes('STUDENT');
-    const isStaff =
-      (!isParent && !isStudent) ||
-      roles.some((r: string) =>
-        [
-          'STAFF',
-          'TEACHER',
-          'ADMIN',
-          'ORG_ADMIN',
-          'FINANCE',
-          'FINANCE_OFFICER',
-          'FINANCE_MANAGER',
-          'SUPERADMIN',
-          'ACCOUNTANT',
-          'PRINCIPAL',
-          'HEAD_OF_INSTITUTE',
-        ].includes(r),
-      );
 
-    return { userId, roles, isStaff, isParent, isStudent };
+    // 1. Management: Administrator, Super Admin, Principal
+    const isManagement = roles.some((r: string) =>
+      [
+        'ADMIN',
+        'ADMINISTRATOR',
+        'SUPERADMIN',
+        'SUPER_ADMIN',
+        'ORG_ADMIN',
+        'HOI',
+        'PRINCIPAL',
+        'HEAD_OF_INSTITUTE',
+      ].includes(r),
+    );
+
+    // 2. Staff Roles: Teacher, Finance, Front Office
+    const isTeacher = roles.some((r: string) => ['TEACHER', 'FACULTY'].includes(r));
+    const isFinance = roles.some((r: string) =>
+      ['FINANCE', 'FINANCE_OFFICER', 'FINANCE_MANAGER', 'ACCOUNTANT', 'BURSAR'].includes(r),
+    );
+    const isFrontOffice = roles.some((r: string) =>
+      [
+        'FRONT_OFFICE',
+        'FO',
+        'RECEPTIONIST',
+        'ADMISSION_OFFICER',
+        'ADMISSIONS_OFFICER',
+        'COUNSELLOR',
+        'COUNSELOR',
+      ].includes(r),
+    );
+
+    const isStaff =
+      isManagement || isTeacher || isFinance || isFrontOffice || (!isParent && !isStudent);
+
+    return {
+      userId,
+      roles,
+      isStaff,
+      isManagement,
+      isTeacher,
+      isFinance,
+      isFrontOffice,
+      isParent,
+      isStudent,
+    };
   }
 
   // ==========================================

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../../lib/api-client';
+import { useAuth } from '../../../context/AuthContext';
 import {
   HelpCircle,
   Plus,
@@ -14,6 +15,7 @@ import {
   Filter,
   ChevronRight,
   ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,6 +23,40 @@ const GLASS_CARD =
   'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm transition-all';
 
 export const FinanceCommunicationHelpdesk: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles = (user?.roles || []).map((r: string) =>
+    String(r)
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_'),
+  );
+  const isManagement = rawRoles.some((r) =>
+    [
+      'ADMIN',
+      'ADMINISTRATOR',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+    ].includes(r),
+  );
+  const isTeacher = rawRoles.some((r) => ['TEACHER', 'FACULTY'].includes(r));
+  const isFinance = rawRoles.some((r) =>
+    ['FINANCE', 'FINANCE_OFFICER', 'FINANCE_MANAGER', 'ACCOUNTANT', 'BURSAR'].includes(r),
+  );
+  const isFrontOffice = rawRoles.some((r) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+    ].includes(r),
+  );
+
   const [tickets, setTickets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -179,16 +215,55 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (categories.length > 0 && !newCategoryId) {
+      if (isFinance) {
+        const feeCat = categories.find((c) => c.category_name.toLowerCase().includes('fee'));
+        if (feeCat) setNewCategoryId(feeCat.category_id);
+      } else if (isTeacher) {
+        const acadCat = categories.find((c) => c.category_name.toLowerCase().includes('academic'));
+        if (acadCat) setNewCategoryId(acadCat.category_id);
+      } else if (isFrontOffice) {
+        const admCat = categories.find(
+          (c) =>
+            c.category_name.toLowerCase().includes('admission') ||
+            c.category_name.toLowerCase().includes('other'),
+        );
+        if (admCat) setNewCategoryId(admCat.category_id);
+      }
+    }
+  }, [categories, isFinance, isTeacher, isFrontOffice, newCategoryId]);
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <HelpCircle className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Helpdesk & Support Tickets
             </h1>
+            {isManagement && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200">
+                Management Oversight
+              </span>
+            )}
+            {isTeacher && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200">
+                Teacher / Class Support
+              </span>
+            )}
+            {isFinance && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200">
+                Finance & Fee Desk
+              </span>
+            )}
+            {isFrontOffice && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200">
+                Front Office & Admissions
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Resolve student and parent inquiries, track resolution SLAs, and post internal notes.

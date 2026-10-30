@@ -148,16 +148,23 @@ export class HelpdeskService {
   }
 
   /**
-   * List tickets with strict role-based scoping.
-   * Parents: only see tickets where they are requester OR student is their child.
-   * Staff/Admin: can see all organization tickets.
+   * List tickets with unified role-based scoping:
+   * - Management (Administrator, Super Admin, Principal): full oversight across tenant.
+   * - Teachers: class/section/academic-related tickets or assigned tickets.
+   * - Finance: fees and billing inquiries or assigned tickets.
+   * - Front Office: general parent inquiries, staff_on_behalf tickets, or assigned tickets.
+   * - Parents: strictly limited to own tickets or linked children.
    */
   public static async listTickets(
     orgId: string,
     userContext: {
       userId: string;
       isStaff: boolean;
-      isParent: boolean;
+      isParent?: boolean;
+      isManagement?: boolean;
+      isTeacher?: boolean;
+      isFinance?: boolean;
+      isFrontOffice?: boolean;
     },
     query: {
       status?: concern_status;
@@ -179,7 +186,7 @@ export class HelpdeskService {
     };
 
     if (!userContext.isStaff) {
-      // Parent: Check requester or linked student
+      // 1. Parent Experience: strictly scoped to own tickets or authorized linked students
       const linkedParents = await prisma.parents.findMany({
         where: { user_id: userContext.userId, org_id: orgId },
         select: {
@@ -199,6 +206,80 @@ export class HelpdeskService {
       where.OR = [
         { requester_user_id: userContext.userId },
         { student_id: { in: Array.from(studentIds) } },
+      ];
+    } else if (userContext.isManagement) {
+      // 2. Management (Administrator, Super Admin, Principal):
+      // Full institutional oversight across the school organization.
+    } else if (userContext.isTeacher) {
+      // 3. Teachers:
+      // Scope to class/section/academic tickets + tickets assigned to/created by them
+      const teacherStaff = await prisma.staff.findFirst({
+        where: { user_id: userContext.userId, org_id: orgId },
+        include: {
+          sections: {
+            include: {
+              student_enrollments: {
+                where: { status: 'active' },
+                select: { student_id: true },
+              },
+            },
+          },
+        },
+      });
+
+      const sectionStudentIds: string[] = [];
+      if (teacherStaff?.sections) {
+        for (const sec of teacherStaff.sections) {
+          for (const enr of sec.student_enrollments) {
+            sectionStudentIds.push(enr.student_id);
+          }
+        }
+      }
+
+      const teacherOrConditions: any[] = [
+        { assigned_to_user_id: userContext.userId },
+        { requester_user_id: userContext.userId },
+        { helpdesk_categories: { category_name: { in: ['Academics', 'Attendance'] } } },
+      ];
+      if (sectionStudentIds.length > 0) {
+        teacherOrConditions.push({ student_id: { in: sectionStudentIds } });
+      }
+      where.OR = teacherOrConditions;
+    } else if (userContext.isFinance) {
+      // 4. Finance:
+      // Scope to fees & payments inquiries + tickets assigned to/created by them
+      where.OR = [
+        { assigned_to_user_id: userContext.userId },
+        { requester_user_id: userContext.userId },
+        { helpdesk_categories: { category_name: { in: ['Fees & Payments', 'Fees'] } } },
+      ];
+    } else if (userContext.isFrontOffice) {
+      // 5. Front Office:
+      // Scope to general inquiries, admissions, documents, tickets raised on behalf of parents
+      where.OR = [
+        { assigned_to_user_id: userContext.userId },
+        { requester_user_id: userContext.userId },
+        { ticket_type: 'staff_on_behalf' },
+        {
+          helpdesk_categories: {
+            category_name: {
+              in: [
+                'Admissions',
+                'Documents',
+                'Technical Support',
+                'Facilities & Safety',
+                'Staff & Administration',
+                'Other',
+              ],
+            },
+          },
+        },
+      ];
+    } else {
+      // Fallback staff boundary: assigned or created
+      where.OR = [
+        { assigned_to_user_id: userContext.userId },
+        { requester_user_id: userContext.userId },
       ];
     }
 
@@ -243,6 +324,10 @@ export class HelpdeskService {
     userContext: {
       userId: string;
       isStaff: boolean;
+      isManagement?: boolean;
+      isTeacher?: boolean;
+      isFinance?: boolean;
+      isFrontOffice?: boolean;
     },
   ) {
     const ticket = await prisma.helpdesk_tickets.findFirst({
@@ -260,7 +345,7 @@ export class HelpdeskService {
       throw new Error('Ticket not found');
     }
 
-    // Verify parent authorization
+    // Role-based authorization verification
     if (!userContext.isStaff) {
       const isRequester = ticket.requester_user_id === userContext.userId;
       let isAuthorizedGuardian = false;
@@ -276,6 +361,38 @@ export class HelpdeskService {
       }
 
       if (!isRequester && !isAuthorizedGuardian) {
+        throw new Error('Unauthorized to access this ticket');
+      }
+    } else if (userContext.isManagement) {
+      // Management: authorized for all organization tickets
+    } else {
+      // Staff authorization boundary check
+      const isAssigned = ticket.assigned_to_user_id === userContext.userId;
+      const isRequester = ticket.requester_user_id === userContext.userId;
+      const categoryName = ticket.helpdesk_categories?.category_name || '';
+
+      let isRoleAuthorized = false;
+      if (userContext.isTeacher) {
+        if (['Academics', 'Attendance'].includes(categoryName)) isRoleAuthorized = true;
+      } else if (userContext.isFinance) {
+        if (['Fees & Payments', 'Fees'].includes(categoryName)) isRoleAuthorized = true;
+      } else if (userContext.isFrontOffice) {
+        if (
+          ticket.ticket_type === 'staff_on_behalf' ||
+          [
+            'Admissions',
+            'Documents',
+            'Technical Support',
+            'Facilities & Safety',
+            'Staff & Administration',
+            'Other',
+          ].includes(categoryName)
+        ) {
+          isRoleAuthorized = true;
+        }
+      }
+
+      if (!isAssigned && !isRequester && !isRoleAuthorized) {
         throw new Error('Unauthorized to access this ticket');
       }
     }

@@ -687,6 +687,21 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     permissions: ['fees.view', 'admin.dashboard.view'],
   },
   {
+    path: 'communication/feeds',
+    element: <FinanceCommunicationFeeds />,
+    layout: 'dashboard',
+  },
+  {
+    path: 'communication/helpdesk',
+    element: <FinanceCommunicationHelpdesk />,
+    layout: 'dashboard',
+  },
+  {
+    path: 'communication/escalation',
+    element: <FinanceCommunicationEscalation />,
+    layout: 'dashboard',
+  },
+  {
     path: 'finance/checkout',
     element: <RazorpayCheckoutDemo />,
     layout: 'dashboard',

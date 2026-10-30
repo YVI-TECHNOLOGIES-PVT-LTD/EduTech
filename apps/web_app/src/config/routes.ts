@@ -74,4 +74,9 @@ export const ROUTES = {
     COMMUNICATION_HELPDESK: '/app/finance/communication/helpdesk',
     COMMUNICATION_ESCALATION: '/app/finance/communication/escalation',
   },
+  COMMUNICATION: {
+    FEEDS: '/app/communication/feeds',
+    HELPDESK: '/app/communication/helpdesk',
+    ESCALATION: '/app/communication/escalation',
+  },
 };
