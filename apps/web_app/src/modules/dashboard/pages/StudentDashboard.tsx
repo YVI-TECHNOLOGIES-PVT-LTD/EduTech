@@ -23,6 +23,7 @@ import {
   FileText,
   Wifi,
   Sparkles,
+  HelpCircle,
 } from 'lucide-react';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
 import { CountUp } from '../../../components/react-bits/CountUp';
@@ -201,6 +202,18 @@ function StudentDashboardInner() {
       label: 'Leave Logs',
       href: '/app/attendance/my',
       color: 'bg-rose-500/10 text-rose-500 border border-rose-500/20',
+    },
+    {
+      icon: Bell,
+      label: 'Feeds & Notices',
+      href: '/app/communication/feeds',
+      color: 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20',
+    },
+    {
+      icon: HelpCircle,
+      label: 'Helpdesk Support',
+      href: '/app/communication/helpdesk',
+      color: 'bg-teal-500/10 text-teal-500 border border-teal-500/20',
     },
   ];
 

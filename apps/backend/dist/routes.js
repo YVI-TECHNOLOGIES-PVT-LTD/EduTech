@@ -37,6 +37,8 @@ const staff_routes_1 = require("./modules/staff-management/routes/staff.routes")
 const user_routes_1 = require("./modules/user-management/routes/user.routes");
 const chatbot_routes_1 = require("./modules/chatbot/routes/chatbot.routes");
 const notifications_1 = require("./modules/notifications");
+const communication_routes_1 = require("./modules/communication/communication.routes");
+const communication_controller_1 = require("./modules/communication/controllers/communication.controller");
 const fees_routes_1 = require("./modules/fees/fees.routes");
 const finance_notification_subscriber_1 = require("./modules/fees/subscribers/finance-notification.subscriber");
 const razorpay_routes_1 = require("./routes/razorpay.routes");
@@ -721,3 +723,11 @@ exports.router.use('/notifications', auth_middleware_1.authenticate, notificatio
 // Finance & Fees Management Module (Phase 1 & Phase 2)
 exports.router.use('/v1/fees', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, fees_routes_1.feesRouter);
 exports.router.use('/fees', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, fees_routes_1.feesRouter);
+// Communication Module (Feeds & Engagement, Helpdesk, Escalation)
+exports.router.use('/v1/communication', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, communication_routes_1.communicationRouter);
+exports.router.use('/communication', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, communication_routes_1.communicationRouter);
+exports.router.use('/v1/fees/communication', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, communication_routes_1.communicationRouter);
+exports.router.use('/fees/communication', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, communication_routes_1.communicationRouter);
+// Parent Linked Students endpoint for portal and helpdesk
+exports.router.get('/parent/students', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, communication_controller_1.CommunicationController.getChildrenForParent);
+exports.router.get('/v1/parent/students', auth_middleware_1.authenticate, tenant_middleware_1.resolveTenantMiddleware, communication_controller_1.CommunicationController.getChildrenForParent);

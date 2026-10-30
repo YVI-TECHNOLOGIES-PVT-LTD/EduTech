@@ -51,4 +51,20 @@ export const ENDPOINTS = {
     MARK_READ: (id: string) => `/v1/notifications/${id}/read`,
     MARK_ALL_READ: '/v1/notifications/mark-all-read',
   },
+  COMMUNICATION: {
+    FEEDS: '/communication/feeds',
+    FEED_BY_ID: (id: string) => `/communication/feeds/${id}`,
+    REACT: (id: string) => `/communication/feeds/${id}/react`,
+    REACTIONS_CATALOG: (id: string) => `/communication/reactions/catalog`,
+    COMMENTS: (id: string) => `/communication/feeds/${id}/comments`,
+    DELETE_COMMENT: (id: string) => `/communication/comments/${id}`,
+  },
+  HELPDESK: {
+    CATEGORIES: '/communication/helpdesk/categories',
+    TICKETS: '/communication/helpdesk/tickets',
+    TICKET_BY_ID: (id: string) => `/communication/helpdesk/tickets/${id}`,
+    CREATE_TICKET: '/communication/helpdesk/tickets',
+    UPDATE_STATUS: (id: string) => `/communication/helpdesk/tickets/${id}/status`,
+    MESSAGES: (id: string) => `/communication/helpdesk/tickets/${id}/messages`,
+  },
 } as const;

@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ShieldAlert,
   ShieldCheck,
+  Paperclip,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,6 +57,14 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       'COUNSELOR',
     ].includes(r),
   );
+  const isStaff =
+    isManagement ||
+    isTeacher ||
+    isFinance ||
+    isFrontOffice ||
+    rawRoles.some((r) => ['STAFF', 'EMPLOYEE'].includes(r));
+  const isParent = rawRoles.some((r) => ['PARENT', 'GUARDIAN'].includes(r));
+  const isStudent = rawRoles.some((r) => ['STUDENT'].includes(r));
 
   const [tickets, setTickets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -64,6 +73,8 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [ticketDetails, setTicketDetails] = useState<any | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
+  const [parentChildren, setParentChildren] = useState<any[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
 
   // Message reply state
   const [replyText, setReplyText] = useState('');
@@ -80,7 +91,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const res: any = await apiClient.get('/fees/communication/helpdesk/categories');
+      const res: any = await apiClient.get('/communication/helpdesk/categories');
       const cats = Array.isArray(res.data?.data)
         ? res.data.data
         : Array.isArray(res.data)
@@ -97,7 +108,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
     try {
       setLoading(true);
       const query = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-      const res: any = await apiClient.get(`/fees/communication/helpdesk/tickets${query}`);
+      const res: any = await apiClient.get(`/communication/helpdesk/tickets${query}`);
       const tix = Array.isArray(res.data?.tickets)
         ? res.data.tickets
         : Array.isArray(res.data?.data?.tickets)
@@ -122,6 +133,29 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (isParent) {
+      const loadChildren = async () => {
+        try {
+          const res: any = await apiClient
+            .get('/communication/helpdesk/children')
+            .catch(() => apiClient.get('/parent/students'));
+          const list = res.data?.data || res.data?.students || res.data || [];
+          if (Array.isArray(list)) {
+            setParentChildren(list);
+            if (list.length > 0 && !selectedStudentId) {
+              const firstId = list[0].student_id || list[0].id || '';
+              setSelectedStudentId(firstId);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load linked children:', e);
+        }
+      };
+      loadChildren();
+    }
+  }, [isParent]);
+
+  useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
 
@@ -129,9 +163,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
     setSelectedTicket(ticket);
     try {
       setLoadingDetails(true);
-      const res: any = await apiClient.get(
-        `/fees/communication/helpdesk/tickets/${ticket.ticket_id}`,
-      );
+      const res: any = await apiClient.get(`/communication/helpdesk/tickets/${ticket.ticket_id}`);
       setTicketDetails(res.data?.data || res.data || null);
     } catch (err) {
       toast.error('Failed to load ticket details');
@@ -146,19 +178,16 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
 
     try {
       setSubmittingReply(true);
-      await apiClient.post(
-        `/fees/communication/helpdesk/tickets/${selectedTicket.ticket_id}/messages`,
-        {
-          content: replyText.trim(),
-          message_type: messageType,
-        },
-      );
+      await apiClient.post(`/communication/helpdesk/tickets/${selectedTicket.ticket_id}/messages`, {
+        content: replyText.trim(),
+        message_type: messageType,
+      });
 
       toast.success(messageType === 'internal_note' ? 'Internal note added' : 'Reply sent');
       setReplyText('');
       // Refresh ticket details
       const res: any = await apiClient.get(
-        `/fees/communication/helpdesk/tickets/${selectedTicket.ticket_id}`,
+        `/communication/helpdesk/tickets/${selectedTicket.ticket_id}`,
       );
       setTicketDetails(res.data?.data || res.data || null);
       fetchTickets();
@@ -171,13 +200,13 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
 
   const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
     try {
-      await apiClient.patch(`/fees/communication/helpdesk/tickets/${ticketId}/status`, {
+      await apiClient.patch(`/communication/helpdesk/tickets/${ticketId}/status`, {
         status: newStatus,
         note: `Status updated to ${newStatus}`,
       });
       toast.success(`Ticket status updated to ${newStatus}`);
       if (selectedTicket && selectedTicket.ticket_id === ticketId) {
-        const res: any = await apiClient.get(`/fees/communication/helpdesk/tickets/${ticketId}`);
+        const res: any = await apiClient.get(`/communication/helpdesk/tickets/${ticketId}`);
         setTicketDetails(res.data?.data || res.data || null);
       }
       fetchTickets();
@@ -195,13 +224,18 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
 
     try {
       setSubmittingTicket(true);
-      await apiClient.post('/fees/communication/helpdesk/tickets', {
+      const payload: any = {
         title: newTitle.trim(),
         description: newDescription.trim(),
         category_id: newCategoryId,
         priority: newPriority,
-        ticket_type: 'staff_on_behalf',
-      });
+        ticket_type: isParent ? 'parent_submitted' : 'staff_on_behalf',
+      };
+      if (isParent && selectedStudentId) {
+        payload.student_id = selectedStudentId;
+      }
+
+      await apiClient.post('/communication/helpdesk/tickets', payload);
 
       toast.success('Ticket created successfully');
       setShowCreateModal(false);
@@ -264,9 +298,19 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                 Front Office & Admissions
               </span>
             )}
+            {isParent && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200">
+                Parent Helpdesk
+              </span>
+            )}
+            {isStudent && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200">
+                Student Support Desk
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Resolve student and parent inquiries, track resolution SLAs, and post internal notes.
+            Track inquiries, communicate with support staff, and review resolution history.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -349,7 +393,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                   </span>
                 </div>
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-1">
-                  {t.title}
+                  {t.title || t.description || 'Support Request'}
                 </h4>
                 <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                   <span>{t.helpdesk_categories?.category_name || 'General'}</span>
@@ -368,13 +412,17 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-slate-400">
-                      {ticketDetails?.ticket_number || selectedTicket.ticket_number}
+                      {ticketDetails?.ticket_number ||
+                        ticketDetails?.ticketNumber ||
+                        selectedTicket.ticket_number ||
+                        selectedTicket.ticketNumber ||
+                        `TICK-${selectedTicket.ticket_id.slice(0, 8).toUpperCase()}`}
                     </span>
                     <span
                       className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                        ticketDetails?.status === 'resolved'
+                        (ticketDetails?.status || selectedTicket.status) === 'resolved'
                           ? 'bg-emerald-50 text-emerald-700'
-                          : ticketDetails?.status === 'escalated'
+                          : (ticketDetails?.status || selectedTicket.status) === 'escalated'
                             ? 'bg-rose-50 text-rose-700'
                             : 'bg-indigo-50 text-indigo-700'
                       }`}
@@ -383,24 +431,36 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                     </span>
                   </div>
                   <h2 className="text-lg font-bold text-slate-900 dark:text-white mt-1">
-                    {ticketDetails?.title || selectedTicket.title}
+                    {ticketDetails?.title ||
+                      selectedTicket.title ||
+                      selectedTicket.description ||
+                      'Support Request'}
                   </h2>
                 </div>
 
                 {/* Status action buttons */}
                 <div className="flex items-center gap-1.5">
-                  <select
-                    value={ticketDetails?.status || selectedTicket.status}
-                    onChange={(e) => handleUpdateStatus(selectedTicket.ticket_id, e.target.value)}
-                    className="text-xs px-2.5 py-1.5 border rounded-lg dark:bg-slate-800 dark:border-white/10 dark:text-white font-medium"
-                  >
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="waiting_for_parent">Waiting for Parent</option>
-                    <option value="escalated">Escalated</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                  </select>
+                  {isStaff ? (
+                    <select
+                      value={ticketDetails?.status || selectedTicket.status}
+                      onChange={(e) => handleUpdateStatus(selectedTicket.ticket_id, e.target.value)}
+                      className="text-xs px-2.5 py-1.5 border rounded-lg dark:bg-slate-800 dark:border-white/10 dark:text-white font-medium"
+                    >
+                      <option value="open">Open</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="waiting_for_parent">Waiting for Parent</option>
+                      <option value="escalated">Escalated</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  ) : (ticketDetails?.status || selectedTicket.status) === 'resolved' ? (
+                    <button
+                      onClick={() => handleUpdateStatus(selectedTicket.ticket_id, 'closed')}
+                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg font-medium transition-all"
+                    >
+                      Confirm Resolution & Close
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -408,65 +468,180 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
               <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                 {loadingDetails ? (
                   <div className="text-center py-8 text-slate-400 text-sm">Loading thread...</div>
-                ) : ticketDetails?.helpdesk_messages?.length === 0 ? (
-                  <div className="text-xs text-slate-400 text-center py-4">
-                    No messages in ticket.
-                  </div>
                 ) : (
-                  ticketDetails?.helpdesk_messages?.map((m: any) => {
-                    const isInternal = m.message_type === 'internal_note';
-                    return (
-                      <div
-                        key={m.message_id}
-                        className={`p-3.5 rounded-xl text-xs space-y-1.5 ${
-                          isInternal
-                            ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/5'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                          <span className="font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                            {isInternal && <Lock className="w-3 h-3 text-amber-600" />}
-                            {isInternal ? 'Internal Staff Note' : 'Public Reply'}
-                          </span>
-                          <span>{new Date(m.created_at).toLocaleString()}</span>
+                  (() => {
+                    const messageList =
+                      ticketDetails?.helpdesk_messages ||
+                      ticketDetails?.messages ||
+                      ticketDetails?.ticket?.helpdesk_messages ||
+                      ticketDetails?.ticket?.messages ||
+                      [];
+                    if (messageList.length === 0) {
+                      return (
+                        <div className="text-xs text-slate-400 text-center py-4">
+                          No messages in ticket.
                         </div>
-                        <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
-                          {m.content || m.body}
-                        </p>
-                      </div>
-                    );
-                  })
+                      );
+                    }
+                    return messageList.map((m: any) => {
+                      const isInternal = m.message_type === 'internal_note';
+                      return (
+                        <div
+                          key={m.message_id}
+                          className={`p-3.5 rounded-xl text-xs space-y-1.5 ${
+                            isInternal
+                              ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50'
+                              : 'bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[11px] text-slate-500">
+                            <span className="font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                              {isInternal && <Lock className="w-3 h-3 text-amber-600" />}
+                              {isInternal ? 'Internal Staff Note' : 'Public Reply'}
+                            </span>
+                            <span>{new Date(m.created_at).toLocaleString()}</span>
+                          </div>
+                          <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                            {m.content || m.body}
+                          </p>
+                        </div>
+                      );
+                    });
+                  })()
                 )}
               </div>
+
+              {/* Attachments */}
+              {(() => {
+                const attachmentList =
+                  ticketDetails?.helpdesk_attachments ||
+                  ticketDetails?.attachments ||
+                  ticketDetails?.ticket?.helpdesk_attachments ||
+                  [];
+                if (attachmentList.length === 0) return null;
+                return (
+                  <div className="pt-3 border-t border-slate-100 dark:border-white/5 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                      Attachments ({attachmentList.length})
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {attachmentList.map((att: any) => (
+                        <a
+                          key={att.attachment_id || att.id}
+                          href={att.file_url || att.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:border-indigo-400 transition-all text-slate-700 dark:text-slate-300"
+                        >
+                          <Paperclip className="w-3.5 h-3.5 text-indigo-500" />
+                          <span className="font-medium truncate max-w-[150px]">
+                            {att.file_name}
+                          </span>
+                          {att.file_size_bytes && (
+                            <span className="text-[10px] text-slate-400">
+                              ({Math.round(Number(att.file_size_bytes) / 1024)} KB)
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Status History Transitions */}
+              {(() => {
+                const historyList = ticketDetails?.history || ticketDetails?.ticket?.history || [];
+                if (historyList.length === 0) return null;
+                return (
+                  <div className="pt-3 border-t border-slate-100 dark:border-white/5 space-y-2">
+                    <h4 className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-indigo-500" />
+                      Status & Audit Transitions
+                    </h4>
+                    <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                      {historyList.map((h: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-[11px] p-2 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-white/5"
+                        >
+                          <span className="text-slate-700 dark:text-slate-300">
+                            {h.from_status ? (
+                              <span>
+                                <span className="capitalize">
+                                  {h.from_status.replace(/_/g, ' ')}
+                                </span>{' '}
+                                &rarr;{' '}
+                                <span className="capitalize font-semibold">
+                                  {h.to_status.replace(/_/g, ' ')}
+                                </span>
+                              </span>
+                            ) : (
+                              <span>
+                                Created as{' '}
+                                <span className="capitalize font-semibold">
+                                  {h.to_status.replace(/_/g, ' ')}
+                                </span>
+                              </span>
+                            )}
+                            {h.notes ? ` • ${h.notes}` : ''}
+                          </span>
+                          <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                            {new Date(h.changed_at).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Resolution & Feedback Notice */}
+              {(ticketDetails?.status === 'resolved' || ticketDetails?.status === 'closed') && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 rounded-xl text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Resolution Record</span>
+                  </div>
+                  <p className="text-emerald-700 dark:text-emerald-400 text-[11px]">
+                    Inquiry resolved on{' '}
+                    {new Date(
+                      ticketDetails.resolved_at || ticketDetails.updated_at,
+                    ).toLocaleString()}
+                    . All resolution notes and audit history are permanently preserved.
+                  </p>
+                </div>
+              )}
 
               {/* Reply Form */}
               <form
                 onSubmit={handleAddReply}
                 className="pt-4 border-t border-slate-100 dark:border-white/5 space-y-3"
               >
-                <div className="flex items-center gap-4 text-xs">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="msg_type"
-                      checked={messageType === 'public_reply'}
-                      onChange={() => setMessageType('public_reply')}
-                    />
-                    <span>Public Reply (Visible to requester)</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="msg_type"
-                      checked={messageType === 'internal_note'}
-                      onChange={() => setMessageType('internal_note')}
-                    />
-                    <span className="text-amber-700 dark:text-amber-400 font-medium">
-                      Internal Note (Staff Only)
-                    </span>
-                  </label>
-                </div>
+                {isStaff && (
+                  <div className="flex items-center gap-4 text-xs">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="msg_type"
+                        checked={messageType === 'public_reply'}
+                        onChange={() => setMessageType('public_reply')}
+                      />
+                      <span>Public Reply (Visible to requester)</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="msg_type"
+                        checked={messageType === 'internal_note'}
+                        onChange={() => setMessageType('internal_note')}
+                      />
+                      <span className="text-amber-700 dark:text-amber-400 font-medium">
+                        Internal Note (Staff Only)
+                      </span>
+                    </label>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <textarea
                     rows={2}
@@ -519,6 +694,33 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                   className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
                 />
               </div>
+              {isParent && parentChildren.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Relates to Student
+                  </label>
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
+                  >
+                    <option value="">General (No specific student)</option>
+                    {parentChildren.map((child: any) => {
+                      const id = child.student_id || child.id;
+                      const name =
+                        child.full_name ||
+                        `${child.first_name || ''} ${child.last_name || ''}`.trim() ||
+                        'Student';
+                      const adm = child.admission_no || child.student_code || '';
+                      return (
+                        <option key={id} value={id}>
+                          {name} {adm ? `(${adm})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">

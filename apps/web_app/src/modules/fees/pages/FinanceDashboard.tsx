@@ -17,6 +17,8 @@ import {
   BarChart2,
   Receipt,
   PlusCircle,
+  MessageSquare,
+  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -58,6 +60,7 @@ export const FinanceDashboard = () => {
   const [trend, setTrend] = useState<any[]>([]);
   const [modes, setModes] = useState<any[]>([]);
   const [byClass, setByClass] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
 
   useEffect(() => {
     fetchAll();
@@ -66,16 +69,27 @@ export const FinanceDashboard = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [kpiRes, trendRes, modeRes, classRes] = await Promise.all([
+      const [kpiRes, trendRes, modeRes, classRes, feedsRes] = await Promise.all([
         apiClient.get('/fees/dashboard/kpis'),
         apiClient.get('/fees/dashboard/collection-trend'),
         apiClient.get('/fees/dashboard/payment-modes'),
         apiClient.get('/fees/dashboard/outstanding-by-class'),
+        apiClient.get('/communication/feeds').catch(() => ({ data: [] })),
       ]);
       setKpis(kpiRes.data || {});
       setTrend(trendRes.data || []);
       setModes(modeRes.data || []);
       setByClass((classRes.data || []).slice(0, 8));
+      const postList = Array.isArray(feedsRes.data?.posts)
+        ? feedsRes.data.posts
+        : Array.isArray(feedsRes.data?.data?.posts)
+          ? feedsRes.data.data.posts
+          : Array.isArray(feedsRes.data?.data)
+            ? feedsRes.data.data
+            : Array.isArray(feedsRes.data)
+              ? feedsRes.data
+              : [];
+      setPosts(postList);
     } catch {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -395,6 +409,95 @@ export const FinanceDashboard = () => {
           </ResponsiveContainer>
         </div>
       )}
+      {/* ── All Announcements & Posts ── */}
+      <div className={`${GLASS} p-6 space-y-4`}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                School Announcements & Communications
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                School announcements, academic updates, parent circulars, classroom notes, and
+                communication feeds
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/app/communication/feeds')}
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            <span>View All Feeds</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {posts.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 text-sm">
+            No published posts or announcements found.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+            {posts.slice(0, 6).map((post: any) => {
+              const id = post.feed_post_id || post.feedPostId;
+              const type = post.feed_type || post.feedType || 'general';
+              const scope = post.audience_scope || post.audienceScope || 'organization';
+              const authorName =
+                post.author?.name ||
+                `${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() ||
+                'Staff';
+              const dateStr =
+                post.published_at || post.publishedAt || post.created_at || post.createdAt;
+              const displayDate = dateStr
+                ? new Date(dateStr).toLocaleDateString('en-IN', {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : '';
+
+              return (
+                <div
+                  key={id}
+                  onClick={() => navigate('/app/communication/feeds')}
+                  className="p-4 rounded-xl border border-border/70 hover:border-indigo-400/50 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                        {type} • {scope}
+                      </span>
+                      {displayDate && (
+                        <span className="text-[11px] text-slate-400">{displayDate}</span>
+                      )}
+                    </div>
+                    {post.title && (
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                        {post.title}
+                      </h3>
+                    )}
+                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+                      {post.content}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>By {authorName}</span>
+                    <span className="flex items-center gap-2">
+                      <span>
+                        {post.reactionCount ?? post.reactionSummary?.length ?? 0} reactions
+                      </span>
+                      <span>•</span>
+                      <span>{post.commentCount ?? 0} comments</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

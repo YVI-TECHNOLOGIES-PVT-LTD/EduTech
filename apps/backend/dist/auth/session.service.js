@@ -46,6 +46,18 @@ class SessionService {
         if (lower === 'hoi' || lower === 'headofinstitute' || lower === 'principal') {
             return 'HOI';
         }
+        if (lower === 'financemanager' || lower === 'financehead' || lower === 'financeadmin') {
+            return 'FINANCE_MANAGER';
+        }
+        if (lower === 'finance' || lower === 'financeofficer' || lower === 'bursar') {
+            return 'FINANCE_OFFICER';
+        }
+        if (lower === 'accountant' ||
+            lower === 'cashier' ||
+            lower === 'accountsclerk' ||
+            lower === 'bookkeeper') {
+            return 'ACCOUNTANT';
+        }
         if (lower === 'staff' || lower === 'faculty') {
             return 'STAFF';
         }
@@ -100,13 +112,33 @@ class SessionService {
                     }
                 }
             }
-            // 5. Fallback to parent record check (Verifies user is a registered Parent)
-            if (roles.length === 0) {
-                const parentRecord = await prismaClient_1.default.parents.findUnique({
+            // 5. Parent record & enrollment check
+            let hasEnrolledStudent = false;
+            let parentRecord = null;
+            try {
+                parentRecord = await prismaClient_1.default.parents.findFirst({
                     where: { user_id: user.user_id },
+                    include: {
+                        student_parents: {
+                            include: {
+                                students: {
+                                    select: { student_id: true, status: true },
+                                },
+                            },
+                        },
+                    },
                 });
-                if (parentRecord) {
+            }
+            catch (e) {
+                logger_1.logger.warn(`[SessionService] Error loading parent record for user ${user.user_id}`);
+            }
+            if (parentRecord) {
+                if (!roles.includes('PARENT')) {
                     roles.push('PARENT');
+                }
+                hasEnrolledStudent = (parentRecord.student_parents || []).some((sp) => sp.students && sp.students.status === 'active');
+                if (hasEnrolledStudent && !roles.includes('ENROLLED_PARENT')) {
+                    roles.push('ENROLLED_PARENT');
                 }
             }
             // 6. FAIL-CLOSED RULE: If user has no valid active role, reject session!
@@ -123,6 +155,16 @@ class SessionService {
                 permissions.add('admission.application.create');
                 permissions.add('admission.application.update');
                 permissions.add('admission.application.view');
+                permissions.add('DASHBOARD_VIEW_PARENT');
+                permissions.add('fees.my.view');
+                permissions.add('fees.view');
+                if (hasEnrolledStudent || roles.includes('ENROLLED_PARENT')) {
+                    permissions.add('fees.payment.view');
+                    permissions.add('fees.payment.collect');
+                    permissions.add('fees.receipt.generate');
+                    permissions.add('communication.view');
+                    permissions.add('helpdesk.view');
+                }
             }
             if (roles.some((r) => [
                 'SUPERADMIN',
@@ -171,8 +213,32 @@ class SessionService {
                 permissions.add('fees.payment.collect');
                 permissions.add('fees.receipt.generate');
                 permissions.add('fees.payment.view');
-                permissions.add('fees.structure.view');
                 permissions.add('admission.fees.initialize');
+            }
+            // Stage-1 Finance Persona Permissions
+            if (roles.some((r) => ['FINANCE_OFFICER', 'FINANCE', 'FINANCE_MANAGER'].includes(r))) {
+                permissions.add('fees.dashboard.view');
+                permissions.add('fees.view');
+                permissions.add('fees.structure.view');
+                permissions.add('fees.structure.manage');
+                permissions.add('fees.demand.view');
+                permissions.add('fees.demand.generate');
+                permissions.add('fees.payment.view');
+                permissions.add('fees.payment.collect');
+                permissions.add('fees.receipt.generate');
+                permissions.add('fees.waiver.approve');
+                permissions.add('fees.refund.process');
+            }
+            else if (roles.includes('ACCOUNTANT')) {
+                // Operational Accountant: Ledger, demands, and payment processing
+                permissions.add('fees.dashboard.view');
+                permissions.add('fees.view');
+                permissions.add('fees.structure.view');
+                permissions.add('fees.demand.view');
+                permissions.add('fees.demand.generate');
+                permissions.add('fees.payment.view');
+                permissions.add('fees.payment.collect');
+                permissions.add('fees.receipt.generate');
             }
             const profile = {
                 id: user.user_id,
@@ -188,6 +254,8 @@ class SessionService {
                 roles,
                 permissions: Array.from(permissions),
                 login_status: 'APPROVED',
+                hasEnrolledStudent,
+                isPostAdmission: hasEnrolledStudent || roles.includes('ENROLLED_PARENT'),
             };
             sessionCache.set(token, {
                 profile,

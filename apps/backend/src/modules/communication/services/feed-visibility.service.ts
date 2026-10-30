@@ -257,15 +257,8 @@ export class FeedVisibilityService {
     }
 
     if (userContext.isStaff) {
-      // Non-teacher staff (Finance, Front Office, etc.)
-      const staffOrConditions: any[] = [
-        { audience_scope: 'organization' },
-        { audience_scope: 'staff_only' },
-        { audience_scope: 'all_parents' },
-        { author_user_id: userContext.userId },
-      ];
-
-      where.AND = (where.AND || []).concat([{ OR: staffOrConditions }]);
+      // Institutional staff (Finance, Front Office, etc.) can view all published posts
+      // across the organization (school announcements, academic, classroom, parent, student, and staff posts)
       return where;
     }
 
@@ -310,7 +303,6 @@ export class FeedVisibilityService {
       if (parentScope.studentIds.length > 0) {
         parentOrConditions.push({
           feed_type: { not: 'staff_community' },
-          audience_scope: 'selected_students',
           feed_post_student_targets: {
             some: { student_id: { in: parentScope.studentIds } },
           },
@@ -367,7 +359,6 @@ export class FeedVisibilityService {
       if (studentScope.studentId) {
         studentOrConditions.push({
           feed_type: { not: 'staff_community' },
-          audience_scope: 'selected_students',
           feed_post_student_targets: {
             some: { student_id: studentScope.studentId },
           },
@@ -471,7 +462,30 @@ export class FeedVisibilityService {
     }
 
     // Selected academic groups scope
-    if (post.audience_scope === 'selected_academic_groups') {
+    if (
+      post.audience_scope === 'selected_academic_groups' ||
+      post.audience_scope === 'selected_students'
+    ) {
+      const postStudentTargets = (post.feed_post_student_targets || []).map(
+        (t: any) => t.student_id,
+      );
+
+      if (postStudentTargets.length > 0) {
+        if (userContext.isParent) {
+          const parentScope = await this.getParentAcademicScope(prismaClient, orgId, userId);
+          if (postStudentTargets.some((id: string) => parentScope.studentIds.includes(id))) {
+            return true;
+          }
+        }
+
+        if (userContext.isStudent) {
+          const studentScope = await this.getStudentAcademicScope(prismaClient, orgId, userId);
+          if (studentScope.studentId && postStudentTargets.includes(studentScope.studentId)) {
+            return true;
+          }
+        }
+      }
+
       const postGradeTargets = (post.feed_post_academic_year_grade_targets || []).map(
         (t: any) => t.academic_year_grade_id,
       );

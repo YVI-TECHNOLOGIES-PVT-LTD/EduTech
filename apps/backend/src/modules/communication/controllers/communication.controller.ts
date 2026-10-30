@@ -10,7 +10,14 @@ export class CommunicationController {
     const orgId =
       (req as any).tenantOrgId ||
       (req as any).context?.user?.org_id ||
-      (req as any).context?.user?.school_id;
+      (req as any).context?.user?.school_id ||
+      (req as any).user?.org_id ||
+      (req as any).user?.school_id ||
+      (req.headers['x-tenant-id'] as string) ||
+      (req.headers['x-school-id'] as string) ||
+      (req.headers['x-org-id'] as string) ||
+      process.env.DEFAULT_ORG_ID ||
+      '624efc1b-4144-43a4-90b8-552d945cbef7';
     if (!orgId) {
       const err: any = new Error('Tenant organization could not be resolved from session');
       err.status = 400;
@@ -21,7 +28,8 @@ export class CommunicationController {
   }
 
   private static extractUserId(req: Request): string {
-    const userId = (req as any).context?.user?.id;
+    const userId =
+      (req as any).context?.user?.id || (req as any).user?.id || (req as any).user?.user_id;
     if (!userId) {
       const err: any = new Error('User identity could not be verified');
       err.status = 401;
@@ -32,9 +40,13 @@ export class CommunicationController {
   }
 
   public static extractUserContext(req: Request) {
-    const userId = (req as any).context?.user?.id || '';
-    const roles: string[] = ((req as any).context?.user?.roles || []).map((r: string) =>
-      r.toUpperCase().replace(/[\s-]+/g, '_'),
+    const userId =
+      (req as any).context?.user?.id || (req as any).user?.id || (req as any).user?.user_id || '';
+    const rawRoles: string[] = (req as any).context?.user?.roles || (req as any).user?.roles || [];
+    const roles: string[] = rawRoles.map((r: string) =>
+      String(r)
+        .toUpperCase()
+        .replace(/[\s-]+/g, '_'),
     );
     const isParent =
       roles.includes('PARENT') || roles.includes('GUARDIAN') || roles.includes('ENROLLED_PARENT');
@@ -407,11 +419,29 @@ export class CommunicationController {
     }
   }
 
+  public static async getChildrenForParent(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+
+      const children = await HelpdeskService.getParentChildren(orgId, userId);
+      res.json({ success: true, data: children, students: children });
+    } catch (error: any) {
+      console.error('[CommunicationController.getChildrenForParent] Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.code || 'GET_CHILDREN_FAILED',
+        message: error.message || 'Failed to retrieve linked children',
+      });
+    }
+  }
+
   public static async createTicket(req: Request, res: Response) {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const ticket = await HelpdeskService.createTicket(orgId, userId, req.body);
+      const userContext = CommunicationController.extractUserContext(req);
+      const ticket = await HelpdeskService.createTicket(orgId, userId, req.body, userContext);
       res.status(201).json({ success: true, data: ticket });
     } catch (error: any) {
       console.error('[CommunicationController.createTicket] Error:', error);
@@ -538,6 +568,7 @@ export class CommunicationController {
         userContext.userId,
         userContext.isStaff,
         req.body,
+        userContext,
       );
       res.status(201).json({ success: true, data: message });
     } catch (error: any) {

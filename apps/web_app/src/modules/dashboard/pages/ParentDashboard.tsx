@@ -325,6 +325,36 @@ const ParentDashboardInner = () => {
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
               </Link>
+
+              <Link
+                to="/app/communication/feeds"
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
+                    School Feeds & Announcements
+                  </span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+
+              <Link
+                to="/app/communication/helpdesk"
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                    <HelpCircle className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
+                    Parent Support & Helpdesk
+                  </span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
           </div>
 
@@ -334,9 +364,12 @@ const ParentDashboardInner = () => {
             <p className="text-white/80 text-xs mb-4">
               Need help regarding admissions, document processing, or fees? Contact school desk.
             </p>
-            <button className="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-sm transition-all">
+            <Link
+              to="/app/communication/helpdesk"
+              className="inline-block bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-sm transition-all"
+            >
               Submit Inquiry
-            </button>
+            </Link>
           </div>
         </div>
       }

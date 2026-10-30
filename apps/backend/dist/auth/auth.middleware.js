@@ -22,9 +22,11 @@ const authenticate = async (req, res, next) => {
                 school_id: userProfile.school_id || userProfile.org_id,
                 roles: userProfile.roles,
                 permissions: userProfile.permissions,
-                login_status: userProfile.login_status
+                login_status: userProfile.login_status,
+                hasEnrolledStudent: userProfile.hasEnrolledStudent,
+                isPostAdmission: userProfile.isPostAdmission,
             },
-            token
+            token,
         };
         next();
     }
@@ -51,9 +53,11 @@ const authenticateOptional = async (req, res, next) => {
                     school_id: userProfile.school_id || userProfile.org_id,
                     roles: userProfile.roles,
                     permissions: userProfile.permissions,
-                    login_status: userProfile.login_status
+                    login_status: userProfile.login_status,
+                    hasEnrolledStudent: userProfile.hasEnrolledStudent,
+                    isPostAdmission: userProfile.isPostAdmission,
                 },
-                token
+                token,
             };
         }
         next();
@@ -69,7 +73,7 @@ const checkLoginApproval = (req, res, next) => {
     if (!user)
         return next();
     // Admins and Faculty are always approved bypass (Staff)
-    if (user.roles.some(r => ['ADMIN', 'FACULTY', 'HEAD_OF_INSTITUTE'].includes(r)))
+    if (user.roles.some((r) => ['ADMIN', 'FACULTY', 'HEAD_OF_INSTITUTE'].includes(r)))
         return next();
     if (user.login_status !== 'APPROVED') {
         const allowedPaths = [
@@ -84,7 +88,7 @@ const checkLoginApproval = (req, res, next) => {
             '/v1/admission/enquiries',
             '/v1/admission/assessment',
         ];
-        const isAllowed = allowedPaths.some(path => req.path === path || req.path.startsWith(path + '/'));
+        const isAllowed = allowedPaths.some((path) => req.path === path || req.path.startsWith(path + '/'));
         // Legacy and CRM application detail views for pending-login parents
         if (req.path.match(/^\/admissions\/[0-9a-f-]{36}$/)) {
             return next();
@@ -95,7 +99,7 @@ const checkLoginApproval = (req, res, next) => {
         if (!isAllowed) {
             return res.status(403).json({
                 error: 'Account login pending approval',
-                login_status: user.login_status
+                login_status: user.login_status,
             });
         }
     }

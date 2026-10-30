@@ -22,8 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DemandService = void 0;
+const prismaClient_1 = __importDefault(require("../../../lib/prismaClient"));
 const supabase_1 = require("../../../config/supabase");
 const DocumentNumberService_1 = require("./DocumentNumberService");
 const LedgerPostingService_1 = require("./LedgerPostingService");
@@ -35,24 +39,43 @@ class DemandService {
     static async generateDemand(params) {
         const { application_id, student_id, fee_structure_id, due_date, performedBy } = params;
         let resolvedStructureId = fee_structure_id;
-        // Check if the provided fee_structure_id exists in finance_fee_structures; if not, map via LegacyStructureAdapter
-        const { data: isFinance } = await supabase_1.supabase
-            .from('finance_fee_structures')
-            .select('id')
-            .eq('id', fee_structure_id)
-            .maybeSingle();
-        if (!isFinance) {
-            const { LegacyStructureAdapter } = await Promise.resolve().then(() => __importStar(require('./LegacyStructureAdapter')));
-            resolvedStructureId = await LegacyStructureAdapter.mapLegacyToFinanceStructure(fee_structure_id);
+        let components = [];
+        // 1. First check if fee_structure_id exists in schema.prisma fee_structures
+        const prismaStruct = await prismaClient_1.default.fee_structures.findUnique({
+            where: { fee_structure_id },
+            include: { fee_components: { orderBy: { display_order: 'asc' } } },
+        });
+        if (prismaStruct && prismaStruct.fee_components.length > 0) {
+            components = prismaStruct.fee_components.map((c) => ({
+                id: c.fee_component_id,
+                name: c.component_name,
+                code: c.component_code,
+                amount: Number(c.amount),
+            }));
         }
-        // 1. Fetch template components to snapshot
-        const { data: components, error: compErr } = await supabase_1.supabase
-            .from('finance_fee_structure_components')
-            .select('*')
-            .eq('fee_structure_id', resolvedStructureId)
-            .order('display_order', { ascending: true });
-        if (compErr || !components || components.length === 0) {
-            throw new Error(`No components found under this Fee Structure template: ${resolvedStructureId}`);
+        else {
+            // Fallback for legacy adapters
+            const { data: isFinance } = await supabase_1.supabase
+                .from('finance_fee_structures')
+                .select('id')
+                .eq('id', fee_structure_id)
+                .maybeSingle();
+            if (!isFinance) {
+                const { LegacyStructureAdapter } = await Promise.resolve().then(() => __importStar(require('./LegacyStructureAdapter')));
+                resolvedStructureId =
+                    await LegacyStructureAdapter.mapLegacyToFinanceStructure(fee_structure_id);
+            }
+            const { data: legacyComponents } = await supabase_1.supabase
+                .from('finance_fee_structure_components')
+                .select('*')
+                .eq('fee_structure_id', resolvedStructureId)
+                .order('display_order', { ascending: true });
+            if (legacyComponents && legacyComponents.length > 0) {
+                components = legacyComponents;
+            }
+        }
+        if (!components || components.length === 0) {
+            throw new Error(`No components found under this Fee Structure template: ${fee_structure_id}`);
         }
         // Sum up total amount
         const totalAmount = components.reduce((sum, c) => sum + Number(c.amount), 0);
@@ -70,7 +93,7 @@ class DemandService {
             amount: totalAmount,
             balance_amount: totalAmount,
             due_date,
-            status: 'PENDING'
+            status: 'PENDING',
         })
             .select()
             .single();
@@ -78,11 +101,11 @@ class DemandService {
             throw new Error(`Failed to create fee demand: ${demErr?.message}`);
         }
         // 4. Copy components into historical snapshot demand items
-        const itemsToInsert = components.map(c => ({
+        const itemsToInsert = components.map((c) => ({
             demand_id: demand.id,
             name: c.name,
             category: c.category,
-            amount: c.amount
+            amount: c.amount,
         }));
         const { error: itemsErr } = await supabase_1.supabase.from('fee_demand_items').insert(itemsToInsert);
         if (itemsErr)
@@ -95,7 +118,7 @@ class DemandService {
             debit: totalAmount,
             credit: 0,
             reference_type: 'FEE_DEMAND',
-            reference_id: demand.id
+            reference_id: demand.id,
         });
         // 6. Log Finance Audit Log
         await supabase_1.supabase.from('finance_audit_logs').insert({
@@ -103,7 +126,7 @@ class DemandService {
             entity_type: 'fee_demands',
             entity_id: demand.id,
             performed_by: performedBy,
-            details: { demand_no, amount: totalAmount }
+            details: { demand_no, amount: totalAmount },
         });
         // 7. Emit Domain Event
         await EventPublisher_1.EventPublisher.publish('FeeDemandCreated', {
@@ -111,7 +134,7 @@ class DemandService {
             demand_no,
             application_id,
             student_id,
-            amount: totalAmount
+            amount: totalAmount,
         });
         return demand;
     }

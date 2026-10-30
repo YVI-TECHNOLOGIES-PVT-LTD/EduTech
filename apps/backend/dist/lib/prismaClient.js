@@ -128,7 +128,10 @@ function attachIncludes(modelName, item, include) {
         }
         else if (rel === 'academic_year_grades') {
             clone.academic_year_grades = {
-                academic_years: { org_id: item.org_id || '00000000-0000-0000-0000-000000000001', academic_year_name: 'Academic Year 2026' },
+                academic_years: {
+                    org_id: item.org_id || '00000000-0000-0000-0000-000000000001',
+                    academic_year_name: 'Academic Year 2026',
+                },
                 grades: { grade_name: 'Grade 10', grade_code: 'G10' },
             };
         }
@@ -286,9 +289,27 @@ function wrapWithFallbackProxy(target) {
                         };
                     }
                     const val = obj[prop];
-                    if (!prop.startsWith('$') && !prop.startsWith('_') && typeof val === 'object' && val !== null) {
+                    if (!prop.startsWith('$') &&
+                        !prop.startsWith('_') &&
+                        typeof val === 'object' &&
+                        val !== null) {
                         return new Proxy(val, {
                             get(modelObj, methodProp) {
+                                if (FINANCIAL_PERSISTENCE_MODELS.has(prop) &&
+                                    typeof methodProp === 'string' &&
+                                    [
+                                        'create',
+                                        'createMany',
+                                        'update',
+                                        'updateMany',
+                                        'delete',
+                                        'deleteMany',
+                                        'upsert',
+                                    ].includes(methodProp)) {
+                                    return async () => {
+                                        throw new Error(`[Persistence Error] Direct write on unmapped Prisma delegate '${prop}.${methodProp}' is prohibited. Financial records must be persisted durably through their dedicated repository.`);
+                                    };
+                                }
                                 const methodVal = modelObj[methodProp];
                                 if (typeof methodVal === 'function') {
                                     return async function (...args) {
@@ -314,7 +335,11 @@ function wrapWithFallbackProxy(target) {
                     }
                     return val;
                 }
-                if (!prop.startsWith('$') && !prop.startsWith('_') && prop !== 'then' && prop !== 'catch' && prop !== 'finally') {
+                if (!prop.startsWith('$') &&
+                    !prop.startsWith('_') &&
+                    prop !== 'then' &&
+                    prop !== 'catch' &&
+                    prop !== 'finally') {
                     if (!unmappedDelegates.has(prop)) {
                         if (FINANCIAL_PERSISTENCE_MODELS.has(prop)) {
                             unmappedDelegates.set(prop, createStrictFinancialDelegate(prop));

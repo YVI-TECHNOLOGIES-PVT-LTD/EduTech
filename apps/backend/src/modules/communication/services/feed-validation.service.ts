@@ -68,10 +68,10 @@ export class FeedValidationService {
         err.code = 'FORBIDDEN_FEED_TYPE';
         throw err;
       }
-    } else if (userContext.isFinance || userContext.isFrontOffice) {
+    } else if (userContext.isFrontOffice) {
       if (feedType !== 'parent') {
         const err: any = new Error(
-          `${userContext.isFinance ? 'Finance' : 'Front office'} staff can only create parent-related announcements`,
+          'Front office staff can only create parent-related announcements',
         );
         err.status = 403;
         err.code = 'FORBIDDEN_FEED_TYPE';
@@ -98,10 +98,12 @@ export class FeedValidationService {
 
     if (
       (feedType === 'parent' || feedType === 'student') &&
-      !['organization', 'all_parents', 'selected_academic_groups'].includes(audienceScope)
+      !['organization', 'all_parents', 'selected_academic_groups', 'selected_students'].includes(
+        audienceScope,
+      )
     ) {
       const err: any = new Error(
-        `${feedType} feed type must use organization, all_parents, or selected_academic_groups audience scope`,
+        `${feedType} feed type must use organization, all_parents, selected_academic_groups, or selected_students audience scope`,
       );
       err.status = 400;
       err.code = 'INVALID_AUDIENCE_COMBINATION';
@@ -110,13 +112,16 @@ export class FeedValidationService {
 
     const rawGradeIds = dto.academicYearGradeIds || dto.academic_year_grade_ids || [];
     const rawSectionIds = dto.sectionIds || dto.section_ids || [];
+    const rawStudentIds =
+      dto.studentIds || dto.student_ids || dto.studentTargets?.map((t) => t.studentId) || [];
     const gradeIds = Array.from(new Set(rawGradeIds.filter(Boolean)));
     const sectionIds = Array.from(new Set(rawSectionIds.filter(Boolean)));
+    const studentIds = Array.from(new Set(rawStudentIds.filter(Boolean)));
 
-    if (audienceScope !== 'selected_academic_groups') {
-      if (gradeIds.length > 0 || sectionIds.length > 0) {
+    if (audienceScope !== 'selected_academic_groups' && audienceScope !== 'selected_students') {
+      if (gradeIds.length > 0 || sectionIds.length > 0 || studentIds.length > 0) {
         const err: any = new Error(
-          'Academic targets can only be assigned to posts using selected_academic_groups audience scope',
+          'Academic and student targets can only be assigned to posts using targeted audience scopes',
         );
         err.status = 400;
         err.code = 'INVALID_TARGETS';
@@ -136,6 +141,7 @@ export class FeedValidationService {
       reactionsEnabled,
       gradeIds,
       sectionIds,
+      studentIds,
     };
   }
 
@@ -144,6 +150,7 @@ export class FeedValidationService {
     orgId: string,
     gradeIds: string[],
     sectionIds: string[],
+    studentIds: string[] = [],
   ) {
     if (gradeIds.length > 0) {
       const validGrades = await prismaClient.academic_year_grades.findMany({
@@ -176,6 +183,25 @@ export class FeedValidationService {
       if (validSections.length !== sectionIds.length) {
         const err: any = new Error(
           'One or more section targets do not exist or belong to another organization',
+        );
+        err.status = 400;
+        err.code = 'TARGET_NOT_FOUND';
+        throw err;
+      }
+    }
+
+    if (studentIds.length > 0) {
+      const validStudents = await prismaClient.students.findMany({
+        where: {
+          student_id: { in: studentIds },
+          org_id: orgId,
+        },
+        select: { student_id: true },
+      });
+
+      if (validStudents.length !== studentIds.length) {
+        const err: any = new Error(
+          'One or more student targets do not exist or belong to another organization',
         );
         err.status = 400;
         err.code = 'TARGET_NOT_FOUND';

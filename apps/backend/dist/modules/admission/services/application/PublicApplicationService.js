@@ -10,6 +10,7 @@ const client_1 = require("@prisma/client");
 const ValidationError_1 = require("../../errors/ValidationError");
 const BusinessRuleError_1 = require("../../errors/BusinessRuleError");
 const country_resolver_1 = require("../../../../utils/country-resolver");
+const lead_identity_resolver_service_1 = require("../../../lead-management/services/lead.identity-resolver.service");
 class PublicApplicationService {
     constructor(enquiryService, counselorAssignmentService, applicationService, applicationRepository, auditService) {
         this.enquiryService = enquiryService;
@@ -279,62 +280,89 @@ class PublicApplicationService {
                     },
                 });
             }
-            // c. Create Lead record with unique lead_number check
-            const year = new Date().getFullYear();
-            const leadCount = await tx.leads.count();
-            let leadSeq = leadCount + 1;
-            let leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
-            while (await tx.leads.findUnique({ where: { lead_number: leadNumber } })) {
-                leadSeq++;
-                leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
-            }
+            // c. Resolve Lead deterministically using centralized LeadIdentityResolver
             const parsedDob = canonical.date_of_birth ? new Date(canonical.date_of_birth) : undefined;
             const validDob = parsedDob && !isNaN(parsedDob.getTime()) ? parsedDob : undefined;
-            const lead = await tx.leads.create({
-                data: {
-                    org_id: finalOrgId,
-                    parent_id: parentRecord.parent_id,
-                    lead_number: leadNumber,
-                    academic_year_grade_id: targetAyg.academic_year_grade_id,
-                    student_first_name: rawStudentFirst || 'Applicant',
-                    student_last_name: rawStudentLast || undefined,
-                    dob: validDob,
-                    gender: canonical.gender,
-                    curriculum_preference: canonical.curriculum_preference,
-                    scholarship_interest: Boolean(canonical.scholarship_interest),
-                    contact_name: targetParentName || 'Parent User',
-                    contact_relationship: canonical.contact_relationship || 'father',
-                    contact_phone: phone,
-                    contact_email: targetEmail,
-                    source: client_1.lead_source.website,
-                    stage: client_1.lead_stage.application_submitted,
-                    remarks: canonical.remarks,
-                    created_by: user.user_id,
-                },
+            const resolution = await lead_identity_resolver_service_1.LeadIdentityResolver.resolveLead({
+                parentId: parentRecord.parent_id,
+                orgId: finalOrgId,
+                userId: user.user_id,
+                parentName: targetParentName || 'Parent User',
+                parentPhone: phone,
+                parentEmail: targetEmail,
+                contactRelationship: canonical.contact_relationship || 'father',
+            }, {
+                firstName: rawStudentFirst || 'Applicant',
+                lastName: rawStudentLast || undefined,
+                dateOfBirth: validDob,
+                gender: canonical.gender,
+                academicYearGradeId: targetAyg.academic_year_grade_id,
+                curriculumPreference: canonical.curriculum_preference,
+                scholarshipInterest: Boolean(canonical.scholarship_interest),
+                remarks: canonical.remarks,
+            }, {
+                performedBy: user.user_id,
+                tx,
             });
-            console.log(`[PUBLIC-APPLY] lead created: ${lead.lead_id} (${lead.lead_number})`);
-            // d. Create Admissions Application record with unique application_number check
-            const appCount = await tx.admissions_applications.count();
-            let appSeq = appCount + 1;
-            let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-            while (await tx.admissions_applications.findUnique({
-                where: { application_number: applicationNumber },
-            })) {
-                appSeq++;
-                applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+            if (resolution.resolutionType === 'AMBIGUOUS') {
+                throw new ValidationError_1.ValidationError(resolution.reason ||
+                    'Multiple existing children match this name under your account. Please provide the Date of Birth or select the child directly.');
             }
-            const application = await tx.admissions_applications.create({
-                data: {
-                    lead_id: lead.lead_id,
+            const lead = resolution.lead;
+            if (!lead) {
+                throw new ValidationError_1.ValidationError('Failed to resolve or create a valid Lead record for this child');
+            }
+            console.log(`[PUBLIC-APPLY] lead resolved (${resolution.resolutionType}): ${lead.lead_id} (${lead.lead_number})`);
+            // d. Authoritative Lead -> Application 1:1 check
+            // If an application already exists for this resolved Lead, return it idempotently
+            let application = await tx.admissions_applications.findFirst({
+                where: {
                     org_id: finalOrgId,
-                    academic_year_id: finalAcademicYearId,
-                    application_number: applicationNumber,
-                    application_date: new Date(),
-                    status: client_1.application_status.submitted,
-                    created_by: user.user_id,
+                    lead_id: lead.lead_id,
                 },
             });
-            console.log(`[PUBLIC-APPLY] application created: ${application.application_id} (${application.application_number})`);
+            if (!application) {
+                // Create Admissions Application record with unique application_number check
+                const year = new Date().getFullYear();
+                const appCount = await tx.admissions_applications.count();
+                let appSeq = appCount + 1;
+                let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+                while (await tx.admissions_applications.findUnique({
+                    where: { application_number: applicationNumber },
+                })) {
+                    appSeq++;
+                    applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+                }
+                try {
+                    application = await tx.admissions_applications.create({
+                        data: {
+                            lead_id: lead.lead_id,
+                            org_id: finalOrgId,
+                            academic_year_id: finalAcademicYearId,
+                            application_number: applicationNumber,
+                            application_date: new Date(),
+                            status: client_1.application_status.submitted,
+                            created_by: user.user_id,
+                        },
+                    });
+                }
+                catch (createErr) {
+                    if (createErr.code === 'P2002') {
+                        application = await tx.admissions_applications.findFirst({
+                            where: {
+                                org_id: finalOrgId,
+                                lead_id: lead.lead_id,
+                            },
+                        });
+                        if (!application)
+                            throw createErr;
+                    }
+                    else {
+                        throw createErr;
+                    }
+                }
+            }
+            console.log(`[PUBLIC-APPLY] application ready: ${application.application_id} (${application.application_number})`);
             console.log('[PUBLIC-APPLY] transaction committed');
             return {
                 applicationId: application.application_id,

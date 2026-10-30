@@ -20,6 +20,9 @@ export interface CreateAnnouncementDto {
   academic_year_grade_ids?: string[];
   sectionIds?: string[];
   section_ids?: string[];
+  studentIds?: string[];
+  student_ids?: string[];
+  studentTargets?: Array<{ studentId: string }>;
   allowedReactionTypeIds?: string[];
   allowed_reaction_type_ids?: string[];
 }
@@ -35,6 +38,9 @@ export interface UpdateAnnouncementDto {
   academic_year_grade_ids?: string[];
   sectionIds?: string[];
   section_ids?: string[];
+  studentIds?: string[];
+  student_ids?: string[];
+  studentTargets?: Array<{ studentId: string }>;
 }
 
 export interface ListFeedsQuery {

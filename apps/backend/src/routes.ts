@@ -36,6 +36,7 @@ import { userRouter as userManagementRouter } from './modules/user-management/ro
 import { chatbotRouter } from './modules/chatbot/routes/chatbot.routes';
 import { notificationRouter, NotificationSubscriber } from './modules/notifications';
 import { communicationRouter } from './modules/communication/communication.routes';
+import { CommunicationController } from './modules/communication/controllers/communication.controller';
 import { feesRouter } from './modules/fees/fees.routes';
 import { FinanceNotificationSubscriber } from './modules/fees/subscribers/finance-notification.subscriber';
 import { razorpayRouter } from './routes/razorpay.routes';
@@ -831,3 +832,18 @@ router.use('/fees', authenticate, resolveTenantMiddleware, feesRouter);
 router.use('/v1/communication', authenticate, resolveTenantMiddleware, communicationRouter);
 router.use('/communication', authenticate, resolveTenantMiddleware, communicationRouter);
 router.use('/v1/fees/communication', authenticate, resolveTenantMiddleware, communicationRouter);
+router.use('/fees/communication', authenticate, resolveTenantMiddleware, communicationRouter);
+
+// Parent Linked Students endpoint for portal and helpdesk
+router.get(
+  '/parent/students',
+  authenticate,
+  resolveTenantMiddleware,
+  CommunicationController.getChildrenForParent,
+);
+router.get(
+  '/v1/parent/students',
+  authenticate,
+  resolveTenantMiddleware,
+  CommunicationController.getChildrenForParent,
+);

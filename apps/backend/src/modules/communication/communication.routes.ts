@@ -12,7 +12,9 @@ communicationRouter.post('/feeds', CommunicationController.createPost);
 communicationRouter.get('/feeds', CommunicationController.listPosts);
 communicationRouter.get('/feeds/:id', CommunicationController.getPostById);
 communicationRouter.patch('/feeds/:id', CommunicationController.updateDraft);
+communicationRouter.patch('/feeds/:id/publish', CommunicationController.publishPost);
 communicationRouter.post('/feeds/:id/publish', CommunicationController.publishPost);
+communicationRouter.delete('/feeds/:id', CommunicationController.removePost);
 communicationRouter.post('/feeds/:id/remove', CommunicationController.removePost);
 
 // Legacy /posts aliases for backwards compatibility
@@ -36,10 +38,21 @@ communicationRouter.delete('/comments/:id', CommunicationController.deleteCommen
 // Reactions
 communicationRouter.get('/reactions/catalog', CommunicationController.getReactionCatalogue);
 communicationRouter.get('/feeds/:id/reactions', CommunicationController.getReactionCatalogue);
+communicationRouter.get(
+  '/feeds/:id/reactions/catalog',
+  CommunicationController.getReactionCatalogue,
+);
 communicationRouter.put('/feeds/:id/reaction', CommunicationController.reactToPost);
 communicationRouter.delete('/feeds/:id/reaction', CommunicationController.removeReaction);
+communicationRouter.post('/feeds/:id/react', CommunicationController.reactToPost);
+communicationRouter.put('/feeds/:id/react', CommunicationController.reactToPost);
+communicationRouter.delete('/feeds/:id/react', CommunicationController.removeReaction);
 
 communicationRouter.get('/posts/:id/reactions', CommunicationController.getReactionCatalogue);
+communicationRouter.get(
+  '/posts/:id/reactions/catalog',
+  CommunicationController.getReactionCatalogue,
+);
 communicationRouter.post('/posts/:id/react', CommunicationController.reactToPost);
 communicationRouter.put('/posts/:id/react', CommunicationController.reactToPost);
 communicationRouter.put('/posts/:id/reaction', CommunicationController.reactToPost);
@@ -50,15 +63,21 @@ communicationRouter.delete('/posts/:id/reaction', CommunicationController.remove
 // 2. HELPDESK & ESCALATION ROUTES
 // ==========================================
 
-// Helpdesk Categories
+// Helpdesk Categories & Parent Children
 communicationRouter.get('/helpdesk/categories', CommunicationController.listCategories);
 communicationRouter.post('/helpdesk/categories', CommunicationController.createCategory);
+communicationRouter.get('/helpdesk/children', CommunicationController.getChildrenForParent);
+communicationRouter.get('/parent/students', CommunicationController.getChildrenForParent);
 
 // Helpdesk Tickets
 communicationRouter.post('/helpdesk/tickets', CommunicationController.createTicket);
 communicationRouter.get('/helpdesk/tickets', CommunicationController.listTickets);
 communicationRouter.get('/helpdesk/tickets/:id', CommunicationController.getTicketById);
 communicationRouter.patch(
+  '/helpdesk/tickets/:id/status',
+  CommunicationController.updateTicketStatus,
+);
+communicationRouter.post(
   '/helpdesk/tickets/:id/status',
   CommunicationController.updateTicketStatus,
 );

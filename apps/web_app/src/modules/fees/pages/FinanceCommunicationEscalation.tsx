@@ -36,7 +36,7 @@ export const FinanceCommunicationEscalation: React.FC = () => {
   const fetchRules = useCallback(async () => {
     try {
       setLoading(true);
-      const res: any = await apiClient.get('/fees/communication/helpdesk/escalation/rules');
+      const res: any = await apiClient.get('/communication/helpdesk/escalation/rules');
       const r = Array.isArray(res.data?.data)
         ? res.data.data
         : Array.isArray(res.data)
@@ -54,7 +54,7 @@ export const FinanceCommunicationEscalation: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const res: any = await apiClient.get('/fees/communication/helpdesk/categories');
+      const res: any = await apiClient.get('/communication/helpdesk/categories');
       const cats = Array.isArray(res.data?.data)
         ? res.data.data
         : Array.isArray(res.data)
@@ -76,7 +76,7 @@ export const FinanceCommunicationEscalation: React.FC = () => {
     try {
       setEvaluating(true);
       setEvalResult(null);
-      const res: any = await apiClient.post('/fees/communication/helpdesk/escalation/evaluate');
+      const res: any = await apiClient.post('/communication/helpdesk/escalation/evaluate');
       const evalData = res.data?.data || res.data;
       setEvalResult(evalData);
       toast.success(`Evaluation complete: ${evalData?.escalatedCount || 0} tickets escalated`);
@@ -97,7 +97,7 @@ export const FinanceCommunicationEscalation: React.FC = () => {
 
     try {
       setSubmittingRule(true);
-      await apiClient.post('/fees/communication/helpdesk/escalation/rules', {
+      await apiClient.post('/communication/helpdesk/escalation/rules', {
         rule_name: ruleName.trim(),
         category_id: categoryId || undefined,
         priority: priority || undefined,

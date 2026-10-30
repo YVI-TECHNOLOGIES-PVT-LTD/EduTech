@@ -187,6 +187,7 @@ export class FeedService {
         orgId,
         normalized.gradeIds,
         normalized.sectionIds,
+        normalized.studentIds,
       );
 
       // Validate teacher academic scope
@@ -200,7 +201,7 @@ export class FeedService {
         );
       }
 
-      // Insert post
+      // Insert post initially as draft so triggers validate targets upon publication
       const post = await tx.feed_posts.create({
         data: {
           org_id: orgId,
@@ -209,10 +210,10 @@ export class FeedService {
           audience_scope: normalized.audienceScope,
           title: normalized.title,
           content: normalized.content,
-          status: initialStatus,
+          status: 'draft',
           comments_enabled: normalized.commentsEnabled,
           reactions_enabled: normalized.reactionsEnabled,
-          published_at: publishedAt,
+          published_at: null,
         },
       });
 
@@ -237,6 +238,30 @@ export class FeedService {
             created_by_user_id: authorUserId,
           })),
           skipDuplicates: true,
+        });
+      }
+
+      // Insert student targets
+      if (normalized.studentIds && normalized.studentIds.length > 0) {
+        await tx.feed_post_student_targets.createMany({
+          data: normalized.studentIds.map((studentId) => ({
+            org_id: orgId,
+            feed_post_id: post.feed_post_id,
+            student_id: studentId,
+            created_by_user_id: authorUserId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      // If requested status was published, transition to published now that targets exist
+      if (initialStatus === 'published') {
+        await tx.feed_posts.update({
+          where: { feed_post_id: post.feed_post_id },
+          data: {
+            status: 'published',
+            published_at: publishedAt,
+          },
         });
       }
 
@@ -418,7 +443,8 @@ export class FeedService {
 
       const targetCount =
         (existing?.feed_post_academic_year_grade_targets?.length || 0) +
-        (existing?.feed_post_section_targets?.length || 0);
+        (existing?.feed_post_section_targets?.length || 0) +
+        (existing?.feed_post_student_targets?.length || 0);
 
       FeedValidationService.validatePublish(existing, userId, userContext, targetCount);
 

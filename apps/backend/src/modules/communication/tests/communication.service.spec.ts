@@ -820,6 +820,399 @@ export async function runCommunicationTests() {
     assert.strictEqual(thrown, true, 'Cross-tenant post lookup must throw 404 POST_NOT_FOUND');
   });
 
+  // =========================================================================
+  // PHASE 18: PARENT & STUDENT FEEDS AND HELPDESK VERIFICATION
+  // =========================================================================
+
+  const samuelStudentId = '02546327-1046-43db-80fb-2305b8df8c6c';
+  const samuelUserId = 'ac90c53a-1ec1-4cf4-90d0-ca5ec7b66b1b';
+  const samuelParentUserId = 'd48c3a18-4300-4bd4-93c4-9f5bd48ca2b4';
+
+  const kiaanStudentId = '0514e2ad-4a90-464c-b8b1-c9b555c450bb';
+  const kiaanUserId = '2abc75be-8564-4d9d-b38a-b6c2e686c4e6';
+  const kiaanParentUserId = 'd0beed4c-c037-43d9-b08d-b7144084eb2d';
+
+  let targetedPostId: string;
+
+  await test('34. Student & Parent Feeds: selected_students targeted announcement visibility and isolation', async () => {
+    // 1. Management creates and publishes targeted post for Samuel
+    const post = await FeedService.createPost(
+      greenwoodOrgId,
+      adminUserId,
+      { userId: adminUserId, isStaff: true, isManagement: true },
+      {
+        feedType: 'student',
+        audienceScope: 'selected_students',
+        title: 'Special Honor Certificate for Samuel',
+        content: 'Samuel has been selected for the National Science Olympiad.',
+        status: 'published',
+        commentsEnabled: true,
+        reactionsEnabled: true,
+        studentTargets: [{ studentId: samuelStudentId }],
+      },
+    );
+    assert(post?.feed_post_id, 'Targeted post created');
+    targetedPostId = post.feed_post_id;
+
+    // 2. Samuel (student) views list
+    const samuelFeed = await FeedService.listPosts(
+      greenwoodOrgId,
+      { userId: samuelUserId, isStaff: false, isStudent: true, isParent: false },
+      { limit: 20 },
+    );
+    const samuelFound = samuelFeed.posts.some((p: any) => p.feed_post_id === targetedPostId);
+    assert.strictEqual(samuelFound, true, 'Samuel must see announcement targeted to him');
+
+    // 3. Samuel's Parent views list
+    const parentFeed = await FeedService.listPosts(
+      greenwoodOrgId,
+      { userId: samuelParentUserId, isStaff: false, isParent: true, isStudent: false },
+      { limit: 20 },
+    );
+    const parentFound = parentFeed.posts.some((p: any) => p.feed_post_id === targetedPostId);
+    assert.strictEqual(
+      parentFound,
+      true,
+      "Samuel's parent must see announcement targeted to Samuel",
+    );
+
+    // 4. Kiaan (unrelated student) views list
+    const kiaanFeed = await FeedService.listPosts(
+      greenwoodOrgId,
+      { userId: kiaanUserId, isStaff: false, isStudent: true, isParent: false },
+      { limit: 20 },
+    );
+    const kiaanFound = kiaanFeed.posts.some((p: any) => p.feed_post_id === targetedPostId);
+    assert.strictEqual(
+      kiaanFound,
+      false,
+      'Unrelated student must NOT see announcement targeted to Samuel',
+    );
+
+    // 5. Kiaan's Parent views list
+    const kiaanParentFeed = await FeedService.listPosts(
+      greenwoodOrgId,
+      { userId: kiaanParentUserId, isStaff: false, isParent: true, isStudent: false },
+      { limit: 20 },
+    );
+    const kiaanParentFound = kiaanParentFeed.posts.some(
+      (p: any) => p.feed_post_id === targetedPostId,
+    );
+    assert.strictEqual(
+      kiaanParentFound,
+      false,
+      "Kiaan's parent must NOT see announcement targeted to Samuel",
+    );
+
+    // 6. Direct lookup isolation
+    const samuelDirect = await FeedService.getPostById(
+      greenwoodOrgId,
+      targetedPostId,
+      samuelUserId,
+      { userId: samuelUserId, isStaff: false, isStudent: true },
+    );
+    assert(samuelDirect, 'Samuel can directly fetch targeted post');
+
+    let kiaanDirectFailed = false;
+    try {
+      await FeedService.getPostById(greenwoodOrgId, targetedPostId, kiaanUserId, {
+        userId: kiaanUserId,
+        isStaff: false,
+        isStudent: true,
+      });
+    } catch (err: any) {
+      kiaanDirectFailed = true;
+      assert.strictEqual(err.code, 'FORBIDDEN');
+    }
+    assert.strictEqual(kiaanDirectFailed, true, 'Unrelated student direct lookup must fail');
+  });
+
+  await test('35. Student & Parent Feeds: Comments and reactions on targeted announcement', async () => {
+    // 1. Samuel reacts to the post
+    const catalog = await FeedService.getReactionCatalogue(
+      greenwoodOrgId,
+      targetedPostId,
+      samuelUserId,
+      { userId: samuelUserId, isStaff: false, isStudent: true },
+    );
+    assert(catalog.length > 0, 'Reaction catalog available');
+    const reactionTypeId = catalog[0].reaction_type_id;
+
+    const reactionRes = await FeedService.reactToPost(
+      greenwoodOrgId,
+      targetedPostId,
+      samuelUserId,
+      { userId: samuelUserId, isStaff: false, isStudent: true },
+      reactionTypeId,
+    );
+    assert.strictEqual(reactionRes.user_id, samuelUserId);
+
+    // 2. Samuel's parent adds a comment
+    const comment = await FeedService.addComment(
+      greenwoodOrgId,
+      targetedPostId,
+      samuelParentUserId,
+      { userId: samuelParentUserId, isStaff: false, isParent: true },
+      'Thank you school administration! So proud of Samuel.',
+    );
+    assert.strictEqual(comment.content, 'Thank you school administration! So proud of Samuel.');
+
+    // 3. Samuel views comments
+    const commentsList = await FeedService.listComments(
+      greenwoodOrgId,
+      targetedPostId,
+      samuelUserId,
+      { userId: samuelUserId, isStaff: false, isStudent: true },
+    );
+    assert(commentsList.length >= 1, 'Samuel sees parent comment');
+
+    // 4. Clean up test post
+    await prisma.feed_posts.delete({ where: { feed_post_id: targetedPostId } });
+  });
+
+  // Active Category for Helpdesk tests
+  const activeCategory = await prisma.helpdesk_categories.findFirst({
+    where: { org_id: greenwoodOrgId, is_active: true },
+  });
+  const categoryId = activeCategory!.category_id;
+  let testParentTicketId: string;
+  let testStudentTicketId: string;
+
+  await test('36. Helpdesk: Parent ticket creation with verified child succeeds', async () => {
+    const ticket = await HelpdeskService.createTicket(
+      greenwoodOrgId,
+      samuelParentUserId,
+      {
+        category_id: categoryId,
+        initial_description:
+          'Inquiry regarding Samuel science laboratory schedule and lab coat requirements.',
+        student_id: samuelStudentId,
+        priority: 'normal',
+      },
+      { isStaff: false, isParent: true },
+    );
+
+    assert(ticket?.ticket_id, 'Ticket created');
+    assert.strictEqual(ticket.ticket_type, 'parent_submitted');
+    assert.strictEqual(ticket.student_id, samuelStudentId);
+    assert.strictEqual(ticket.requester_user_id, samuelParentUserId);
+    assert.strictEqual(ticket.status, 'open');
+    testParentTicketId = ticket.ticket_id;
+  });
+
+  await test('37. Helpdesk: Parent ticket creation with unrelated child is rejected (403)', async () => {
+    let thrown = false;
+    try {
+      await HelpdeskService.createTicket(
+        greenwoodOrgId,
+        samuelParentUserId,
+        {
+          category_id: categoryId,
+          initial_description: 'Attempting to create ticket for unrelated student Kiaan.',
+          student_id: kiaanStudentId,
+          priority: 'normal',
+        },
+        { isStaff: false, isParent: true },
+      );
+    } catch (err: any) {
+      thrown = true;
+      assert.strictEqual(err.code, 'FORBIDDEN_STUDENT');
+    }
+    assert.strictEqual(thrown, true, 'Creating ticket for unrelated student must be rejected');
+  });
+
+  await test('38. Helpdesk: Student creates support ticket with automatic student mapping', async () => {
+    const ticket = await HelpdeskService.createTicket(
+      greenwoodOrgId,
+      samuelUserId,
+      {
+        category_id: categoryId,
+        initial_description: 'Request for library card renewal for upcoming olympiad books.',
+        priority: 'low',
+      },
+      { isStaff: false, isStudent: true },
+    );
+
+    assert(ticket?.ticket_id, 'Student ticket created');
+    assert.strictEqual(ticket.student_id, samuelStudentId);
+    assert.strictEqual(ticket.requester_user_id, samuelUserId);
+    assert.strictEqual(ticket.status, 'open');
+    testStudentTicketId = ticket.ticket_id;
+  });
+
+  await test('39. Helpdesk: Ticket access isolation for Parent and Student', async () => {
+    // 1. Samuel's parent can access Samuel's ticket
+    const parentView = await HelpdeskService.getTicketById(greenwoodOrgId, testParentTicketId, {
+      userId: samuelParentUserId,
+      isStaff: false,
+      isParent: true,
+    });
+    assert(parentView?.ticket, "Parent can view child's ticket");
+
+    // 2. Samuel (student) can access Samuel's ticket
+    const studentView = await HelpdeskService.getTicketById(greenwoodOrgId, testParentTicketId, {
+      userId: samuelUserId,
+      isStaff: false,
+      isStudent: true,
+    });
+    assert(studentView?.ticket, 'Student can view ticket associated with them');
+
+    // 3. Unrelated parent (Kiaan's parent) is denied
+    let kiaanParentDenied = false;
+    try {
+      await HelpdeskService.getTicketById(greenwoodOrgId, testParentTicketId, {
+        userId: kiaanParentUserId,
+        isStaff: false,
+        isParent: true,
+      });
+    } catch (err: any) {
+      kiaanParentDenied = true;
+      assert.strictEqual(err.code, 'FORBIDDEN');
+    }
+    assert.strictEqual(kiaanParentDenied, true, 'Unrelated parent must be denied (403)');
+
+    // 4. Unrelated student (Kiaan) is denied
+    let kiaanStudentDenied = false;
+    try {
+      await HelpdeskService.getTicketById(greenwoodOrgId, testParentTicketId, {
+        userId: kiaanUserId,
+        isStaff: false,
+        isStudent: true,
+      });
+    } catch (err: any) {
+      kiaanStudentDenied = true;
+      assert.strictEqual(err.code, 'FORBIDDEN');
+    }
+    assert.strictEqual(kiaanStudentDenied, true, 'Unrelated student must be denied (403)');
+  });
+
+  await test('40. Helpdesk: Message reply, status history visibility, and attachment serialization', async () => {
+    // 1. Parent adds reply with attachment (file_size_bytes as number)
+    const reply = await HelpdeskService.addMessage(
+      greenwoodOrgId,
+      testParentTicketId,
+      samuelParentUserId,
+      false, // isStaff = false
+      {
+        message_type: 'public_reply',
+        content: 'Attaching the purchase receipt for the science kit.',
+        attachments: [
+          {
+            file_name: 'receipt.pdf',
+            file_path: '/uploads/receipt.pdf',
+            mime_type: 'application/pdf',
+            file_size_bytes: 20480,
+          },
+        ],
+      },
+      { isStaff: false, isParent: true },
+    );
+    assert(reply?.message_id, 'Reply message created');
+    assert.strictEqual(typeof reply.helpdesk_attachments[0].file_size_bytes, 'number');
+
+    // 2. Staff updates status to waiting_for_parent
+    await HelpdeskService.updateTicketStatus(
+      greenwoodOrgId,
+      testParentTicketId,
+      adminUserId,
+      'waiting_for_parent',
+      'Please confirm the lab kit batch number.',
+    );
+
+    // 3. Parent fetches ticket: verifies status change is present in history
+    const detail = await HelpdeskService.getTicketById(greenwoodOrgId, testParentTicketId, {
+      userId: samuelParentUserId,
+      isStaff: false,
+      isParent: true,
+    });
+    assert.strictEqual(detail.ticket.status, 'waiting_for_parent');
+    assert(detail.history.length > 0, 'Parent must see status change history');
+    assert.strictEqual(detail.history[0].action_type, 'status_changed');
+
+    // 4. Parent replies: ticket status automatically updates back to in_progress
+    await HelpdeskService.addMessage(
+      greenwoodOrgId,
+      testParentTicketId,
+      samuelParentUserId,
+      false,
+      {
+        message_type: 'public_reply',
+        content: 'The lab kit batch number is BATCH-2026-X.',
+      },
+      { isStaff: false, isParent: true },
+    );
+
+    const recheck = await HelpdeskService.getTicketById(greenwoodOrgId, testParentTicketId, {
+      userId: samuelParentUserId,
+      isStaff: false,
+      isParent: true,
+    });
+    assert.strictEqual(
+      recheck.ticket.status,
+      'in_progress',
+      'Parent reply moves ticket to in_progress',
+    );
+  });
+
+  await test('41. Helpdesk: Non-staff cannot post internal notes', async () => {
+    let thrown = false;
+    try {
+      await HelpdeskService.addMessage(
+        greenwoodOrgId,
+        testParentTicketId,
+        samuelParentUserId,
+        false, // non-staff
+        {
+          message_type: 'internal_note',
+          content: 'Secret staff remark attempt by parent',
+        },
+        { isStaff: false, isParent: true },
+      );
+    } catch (err: any) {
+      thrown = true;
+      assert.strictEqual(err.code, 'FORBIDDEN');
+    }
+    assert.strictEqual(thrown, true, 'Non-staff posting internal note must be rejected (403)');
+  });
+
+  await test('42. Helpdesk: Ticket list isolation for Parent and Student', async () => {
+    // 1. Samuel lists tickets: must include his student ticket
+    const studentList = await HelpdeskService.listTickets(greenwoodOrgId, {
+      userId: samuelUserId,
+      isStaff: false,
+      isStudent: true,
+    });
+    const hasStudentTicket = studentList.tickets.some(
+      (t: any) => t.ticket_id === testStudentTicketId,
+    );
+    assert.strictEqual(hasStudentTicket, true, 'Student must see tickets associated with them');
+
+    // 2. Samuel's parent lists tickets: must include parent's ticket
+    const parentList = await HelpdeskService.listTickets(greenwoodOrgId, {
+      userId: samuelParentUserId,
+      isStaff: false,
+      isParent: true,
+    });
+    const hasParentTicket = parentList.tickets.some((t: any) => t.ticket_id === testParentTicketId);
+    assert.strictEqual(hasParentTicket, true, 'Parent must see tickets associated with child');
+
+    // 3. Close created test tickets (history is immutable by design)
+    await HelpdeskService.updateTicketStatus(
+      greenwoodOrgId,
+      testParentTicketId,
+      adminUserId,
+      'closed',
+      'Test lifecycle complete',
+    );
+    await HelpdeskService.updateTicketStatus(
+      greenwoodOrgId,
+      testStudentTicketId,
+      adminUserId,
+      'closed',
+      'Test lifecycle complete',
+    );
+  });
+
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   if (failed > 0) {
     throw new Error(`${failed} communication tests failed`);
