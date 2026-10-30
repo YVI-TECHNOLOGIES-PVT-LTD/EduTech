@@ -48,9 +48,18 @@ export default function ParentLayout() {
           }}
         />
         <Tabs.Screen
+          name="fees"
+          options={{
+            title: 'Fees',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="applications/index"
           options={{
-            title: 'Applications',
+            title: 'Admissions',
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'document-text' : 'document-text-outline'}
@@ -91,7 +100,6 @@ export default function ParentLayout() {
         />
 
         {/* Hidden Non-Tab Screens */}
-        <Tabs.Screen name="fees" options={{ href: null }} />
         <Tabs.Screen name="applications/wizard" options={{ href: null }} />
         <Tabs.Screen name="applications/[id]" options={{ href: null }} />
         <Tabs.Screen name="applications/[id]/assessment" options={{ href: null }} />

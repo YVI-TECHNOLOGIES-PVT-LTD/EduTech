@@ -9,7 +9,7 @@ import { ApiError } from '../../../api/client';
 export function isParentUser(user: LoginResponse['user']): boolean {
   if (!user) return false;
   const roles = user.roles || (user.role ? [String(user.role)] : []);
-  return roles.some((r) => r.toUpperCase() === 'PARENT');
+  return roles.some((r) => ['PARENT', 'ENROLLED_PARENT', 'GUARDIAN'].includes(r.toUpperCase()));
 }
 
 export function useLogin() {

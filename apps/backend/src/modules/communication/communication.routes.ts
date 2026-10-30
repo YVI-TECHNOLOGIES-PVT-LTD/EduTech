@@ -4,25 +4,47 @@ import { CommunicationController } from './controllers/communication.controller'
 export const communicationRouter = Router();
 
 // ==========================================
-// 1. FEEDS & ENGAGEMENT ROUTES
+// 1. FEEDS & ANNOUNCEMENTS ROUTES (C2)
 // ==========================================
 
-// Reaction Catalog & User Reactions
-communicationRouter.get('/reactions/catalog', CommunicationController.getReactionCatalogue);
-communicationRouter.post('/posts/:id/react', CommunicationController.reactToPost);
-communicationRouter.delete('/posts/:id/react', CommunicationController.removeReaction);
+// Feeds & Posts CRUD
+communicationRouter.post('/feeds', CommunicationController.createPost);
+communicationRouter.get('/feeds', CommunicationController.listPosts);
+communicationRouter.get('/feeds/:id', CommunicationController.getPostById);
+communicationRouter.patch('/feeds/:id', CommunicationController.updateDraft);
+communicationRouter.post('/feeds/:id/publish', CommunicationController.publishPost);
+communicationRouter.post('/feeds/:id/remove', CommunicationController.removePost);
 
-// Comments
-communicationRouter.post('/posts/:id/comments', CommunicationController.addComment);
-communicationRouter.get('/posts/:id/comments', CommunicationController.listComments);
-communicationRouter.delete('/comments/:commentId', CommunicationController.deleteComment);
-
-// Feed Posts
+// Legacy /posts aliases for backwards compatibility
 communicationRouter.post('/posts', CommunicationController.createPost);
 communicationRouter.get('/posts', CommunicationController.listPosts);
 communicationRouter.get('/posts/:id', CommunicationController.getPostById);
+communicationRouter.patch('/posts/:id', CommunicationController.updateDraft);
 communicationRouter.patch('/posts/:id/publish', CommunicationController.publishPost);
+communicationRouter.post('/posts/:id/publish', CommunicationController.publishPost);
 communicationRouter.delete('/posts/:id', CommunicationController.removePost);
+communicationRouter.post('/posts/:id/remove', CommunicationController.removePost);
+
+// Comments
+communicationRouter.post('/feeds/:id/comments', CommunicationController.addComment);
+communicationRouter.get('/feeds/:id/comments', CommunicationController.listComments);
+communicationRouter.post('/posts/:id/comments', CommunicationController.addComment);
+communicationRouter.get('/posts/:id/comments', CommunicationController.listComments);
+communicationRouter.delete('/comments/:commentId', CommunicationController.deleteComment);
+communicationRouter.delete('/comments/:id', CommunicationController.deleteComment);
+
+// Reactions
+communicationRouter.get('/reactions/catalog', CommunicationController.getReactionCatalogue);
+communicationRouter.get('/feeds/:id/reactions', CommunicationController.getReactionCatalogue);
+communicationRouter.put('/feeds/:id/reaction', CommunicationController.reactToPost);
+communicationRouter.delete('/feeds/:id/reaction', CommunicationController.removeReaction);
+
+communicationRouter.get('/posts/:id/reactions', CommunicationController.getReactionCatalogue);
+communicationRouter.post('/posts/:id/react', CommunicationController.reactToPost);
+communicationRouter.put('/posts/:id/react', CommunicationController.reactToPost);
+communicationRouter.put('/posts/:id/reaction', CommunicationController.reactToPost);
+communicationRouter.delete('/posts/:id/react', CommunicationController.removeReaction);
+communicationRouter.delete('/posts/:id/reaction', CommunicationController.removeReaction);
 
 // ==========================================
 // 2. HELPDESK & ESCALATION ROUTES

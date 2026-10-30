@@ -85,6 +85,12 @@ export default function ParentDashboardScreen() {
     (enrolledChildren.length > 0 ? enrolledChildren[0] : null);
 
   const parentName = user?.full_name || user?.fullName || 'Parent';
+  const isPostAdmission = Boolean(
+    user?.hasEnrolledStudent ||
+    user?.isPostAdmission ||
+    (user?.roles || []).includes('ENROLLED_PARENT') ||
+    enrolledChildren.length > 0,
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
@@ -99,7 +105,7 @@ export default function ParentDashboardScreen() {
               EduTrack ERP
             </Text>
             <Text className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              Parent Portal
+              {isPostAdmission ? 'Enrolled Parent Portal' : 'Parent Portal'}
             </Text>
           </View>
         </View>
@@ -138,11 +144,11 @@ export default function ParentDashboardScreen() {
         <View className="mb-6 bg-indigo-600 dark:bg-indigo-900/60 rounded-3xl p-6 shadow-lg shadow-indigo-600/20">
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-xs font-bold uppercase tracking-wider text-indigo-200">
-              Parent Self-Service Hub
+              {isPostAdmission ? 'Enrolled Parent Portal' : 'Parent Self-Service Hub'}
             </Text>
             <View className="bg-white/20 px-2.5 py-0.5 rounded-full">
               <Text className="text-[10px] font-extrabold text-white uppercase tracking-wider">
-                Active Session
+                {isPostAdmission ? 'Enrolled Student Active' : 'Active Session'}
               </Text>
             </View>
           </View>
@@ -150,8 +156,9 @@ export default function ParentDashboardScreen() {
             Welcome back, {parentName}!
           </Text>
           <Text className="text-xs text-indigo-100 mt-1 leading-relaxed">
-            Monitor enrolled student fee ledgers, track admission milestones, and access school
-            services.
+            {isPostAdmission
+              ? 'Monitor enrolled student fee ledgers, academic progress, and institutional services.'
+              : "Monitor your child's enrollment progress, submit required documents, and track evaluation milestones."}
           </Text>
         </View>
 
@@ -321,77 +328,203 @@ export default function ParentDashboardScreen() {
         {/* 7. Quick Action Cards */}
         <View className="mb-4">
           <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-            Quick Shortcuts & Portals
+            {isPostAdmission ? 'Enrolled Services & Portals' : 'Quick Shortcuts & Portals'}
           </Text>
 
           <View className="space-y-3">
-            {/* New Application Wizard */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/(parent)/applications/wizard' as any)}
-              className="bg-indigo-50/60 dark:bg-indigo-950/40 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800 shadow-sm flex-row items-center justify-between mb-3"
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-indigo-600 items-center justify-center mr-3">
-                  <Ionicons name="add-circle" size={22} color="#ffffff" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-black text-indigo-950 dark:text-indigo-200">
-                    New Admission Application
-                  </Text>
-                  <Text className="text-xs text-indigo-700 dark:text-indigo-400 mt-0.5">
-                    Start a new 8-step admission form for another child
-                  </Text>
-                </View>
-              </View>
-              <Feather name="chevron-right" size={18} color="#6366f1" />
-            </TouchableOpacity>
+            {isPostAdmission ? (
+              <>
+                {/* 1. Post-Admission: Fee Ledger & Online Payments */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(parent)/fees' as any)}
+                  className="bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-800 shadow-sm flex-row items-center justify-between mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-11 h-11 rounded-xl bg-emerald-600 items-center justify-center mr-3 shadow-sm">
+                      <Ionicons name="wallet" size={22} color="#ffffff" />
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between mr-2">
+                        <Text className="text-sm font-black text-emerald-950 dark:text-emerald-200">
+                          Fee Ledger & Payments
+                        </Text>
+                        {activeEnrolledChild?.summary?.outstanding_balance !== undefined && (
+                          <View
+                            className={`px-2 py-0.5 rounded-full ${
+                              Number(activeEnrolledChild.summary.outstanding_balance) > 0
+                                ? 'bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700'
+                                : 'bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700'
+                            }`}
+                          >
+                            <Text
+                              className={`text-[10px] font-black ${
+                                Number(activeEnrolledChild.summary.outstanding_balance) > 0
+                                  ? 'text-rose-700 dark:text-rose-300'
+                                  : 'text-emerald-700 dark:text-emerald-300'
+                              }`}
+                            >
+                              {Number(activeEnrolledChild.summary.outstanding_balance) > 0
+                                ? `Due: ₹${Number(activeEnrolledChild.summary.outstanding_balance).toLocaleString('en-IN')}`
+                                : 'All Dues Paid'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                        Pay tuition dues, download official receipts & view installments
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#059669" />
+                </TouchableOpacity>
 
-            {/* All Applications */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/(parent)/applications' as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 items-center justify-center mr-3 border border-indigo-100 dark:border-indigo-900">
-                  <Ionicons name="folder-open" size={20} color="#4f46e5" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    My Applications
-                  </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
-                    View all registered student admissions ({applications.length})
-                  </Text>
-                </View>
-              </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
-            </TouchableOpacity>
+                {/* 2. Post-Admission: Enrolled Child Profile */}
+                {activeEnrolledChild && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/(parent)/fees' as any)}
+                    className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                  >
+                    <View className="flex-row items-center flex-1">
+                      <View className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 items-center justify-center mr-3 border border-blue-100 dark:border-blue-900">
+                        <Ionicons name="school" size={20} color="#3b82f6" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                          {activeEnrolledChild.full_name ||
+                            `${activeEnrolledChild.first_name} ${activeEnrolledChild.last_name || ''}`}
+                        </Text>
+                        <Text className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {activeEnrolledChild.grade_name || 'Class Grade'}
+                          {activeEnrolledChild.section_name
+                            ? ` • Section ${activeEnrolledChild.section_name}`
+                            : ''}{' '}
+                          • Adm: {activeEnrolledChild.admission_no}
+                        </Text>
+                      </View>
+                    </View>
+                    <Feather name="chevron-right" size={18} color="#94a3b8" />
+                  </TouchableOpacity>
+                )}
 
-            {/* Notifications */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/(parent)/notifications' as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 items-center justify-center mr-3 border border-emerald-100 dark:border-emerald-900">
-                  <Ionicons name="notifications" size={20} color="#10b981" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    Notifications & Alerts
-                  </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
-                    {unreadCount > 0
-                      ? `${unreadCount} unread update(s)`
-                      : 'No unread notifications'}
-                  </Text>
-                </View>
-              </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
-            </TouchableOpacity>
+                {/* 3. Post-Admission: School Notices & Alerts */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(parent)/notifications' as any)}
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 items-center justify-center mr-3 border border-amber-100 dark:border-amber-900">
+                      <Ionicons name="notifications" size={20} color="#f59e0b" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        School Notices & Alerts
+                      </Text>
+                      <Text className="text-xs text-slate-400 mt-0.5">
+                        {unreadCount > 0
+                          ? `${unreadCount} unread update(s)`
+                          : 'No unread notifications'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#94a3b8" />
+                </TouchableOpacity>
+
+                {/* 4. Post-Admission: Admissions Desk & Sibling Registration */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(parent)/applications' as any)}
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center mr-3 border border-slate-200 dark:border-slate-700">
+                      <Ionicons name="document-text" size={20} color="#64748b" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        Admissions Desk & Siblings
+                      </Text>
+                      <Text className="text-xs text-slate-400 mt-0.5">
+                        Apply for another child or review past admissions
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* Pre-Admission: New Application Wizard */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(parent)/applications/wizard' as any)}
+                  className="bg-indigo-50/60 dark:bg-indigo-950/40 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800 shadow-sm flex-row items-center justify-between mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-11 h-11 rounded-xl bg-indigo-600 items-center justify-center mr-3">
+                      <Ionicons name="add-circle" size={22} color="#ffffff" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-black text-indigo-950 dark:text-indigo-200">
+                        New Admission Application
+                      </Text>
+                      <Text className="text-xs text-indigo-700 dark:text-indigo-400 mt-0.5">
+                        Start a new 8-step admission form for another child
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#6366f1" />
+                </TouchableOpacity>
+
+                {/* Pre-Admission: All Applications */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(parent)/applications' as any)}
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 items-center justify-center mr-3 border border-indigo-100 dark:border-indigo-900">
+                      <Ionicons name="folder-open" size={20} color="#4f46e5" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        My Applications
+                      </Text>
+                      <Text className="text-xs text-slate-400 mt-0.5">
+                        View all registered student admissions ({applications.length})
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#94a3b8" />
+                </TouchableOpacity>
+
+                {/* Pre-Admission: Notifications */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(parent)/notifications' as any)}
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 items-center justify-center mr-3 border border-emerald-100 dark:border-emerald-900">
+                      <Ionicons name="notifications" size={20} color="#10b981" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        Notifications & Alerts
+                      </Text>
+                      <Text className="text-xs text-slate-400 mt-0.5">
+                        {unreadCount > 0
+                          ? `${unreadCount} unread update(s)`
+                          : 'No unread notifications'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </ScrollView>

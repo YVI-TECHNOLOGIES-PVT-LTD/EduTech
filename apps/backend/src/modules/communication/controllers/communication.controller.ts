@@ -95,7 +95,8 @@ export class CommunicationController {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const post = await FeedService.createPost(orgId, userId, req.body);
+      const userContext = CommunicationController.extractUserContext(req);
+      const post = await FeedService.createPost(orgId, userId, userContext, req.body);
       res.status(201).json({ success: true, data: post });
     } catch (error: any) {
       console.error('[CommunicationController.createPost] Error:', error);
@@ -107,20 +108,51 @@ export class CommunicationController {
     }
   }
 
+  public static async updateDraft(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const post = await FeedService.updateDraft(orgId, postId, userId, userContext, req.body);
+      res.json({ success: true, data: post });
+    } catch (error: any) {
+      console.error('[CommunicationController.updateDraft] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'UPDATE_DRAFT_FAILED',
+        message: error.message || 'Failed to update draft',
+      });
+    }
+  }
+
   public static async listPosts(req: Request, res: Response) {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userContext = CommunicationController.extractUserContext(req);
-      const { feed_type, status, page, limit } = req.query;
+      const {
+        feedType,
+        feed_type,
+        status,
+        page,
+        limit,
+        academicYearId,
+        academic_year_id,
+        audienceScope,
+        audience_scope,
+      } = req.query;
 
       const result = await FeedService.listPosts(orgId, userContext, {
-        feed_type: feed_type as any,
+        feedType: (feedType || feed_type) as any,
+        feed_type: (feedType || feed_type) as any,
+        audienceScope: (audienceScope || audience_scope) as any,
+        academicYearId: (academicYearId || academic_year_id) as any,
         status: status as any,
         page: page ? parseInt(page as string, 10) : undefined,
         limit: limit ? parseInt(limit as string, 10) : undefined,
       });
 
-      res.json({ success: true, ...result });
+      res.json(result);
     } catch (error: any) {
       console.error('[CommunicationController.listPosts] Error:', error);
       res.status(error.status || 500).json({
@@ -134,8 +166,10 @@ export class CommunicationController {
   public static async getPostById(req: Request, res: Response) {
     try {
       const orgId = CommunicationController.extractOrgId(req);
-      const { id } = req.params;
-      const post = await FeedService.getPostById(orgId, id);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const post = await FeedService.getPostById(orgId, postId, userId, userContext);
       res.json({ success: true, data: post });
     } catch (error: any) {
       console.error('[CommunicationController.getPostById] Error:', error);
@@ -151,8 +185,9 @@ export class CommunicationController {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const { id } = req.params;
-      const post = await FeedService.publishPost(orgId, id, userId);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const post = await FeedService.publishPost(orgId, postId, userId, userContext);
       res.json({ success: true, data: post });
     } catch (error: any) {
       console.error('[CommunicationController.publishPost] Error:', error);
@@ -168,8 +203,9 @@ export class CommunicationController {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const { id } = req.params;
-      const post = await FeedService.removePost(orgId, id, userId);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const post = await FeedService.removePost(orgId, postId, userId, userContext);
       res.json({ success: true, data: post, message: 'Post removed successfully' });
     } catch (error: any) {
       console.error('[CommunicationController.removePost] Error:', error);
@@ -185,10 +221,11 @@ export class CommunicationController {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const { id } = req.params;
-      const { comment } = req.body;
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const content = req.body.content || req.body.comment;
 
-      if (!comment || !comment.trim()) {
+      if (!content || !content.trim()) {
         return res.status(400).json({
           success: false,
           error: 'INVALID_COMMENT',
@@ -196,7 +233,7 @@ export class CommunicationController {
         });
       }
 
-      const created = await FeedService.addComment(orgId, id, userId, comment);
+      const created = await FeedService.addComment(orgId, postId, userId, userContext, content);
       res.status(201).json({ success: true, data: created });
     } catch (error: any) {
       console.error('[CommunicationController.addComment] Error:', error);
@@ -210,8 +247,11 @@ export class CommunicationController {
 
   public static async listComments(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const comments = await FeedService.listComments(id);
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const comments = await FeedService.listComments(orgId, postId, userId, userContext);
       res.json({ success: true, data: comments });
     } catch (error: any) {
       console.error('[CommunicationController.listComments] Error:', error);
@@ -225,10 +265,18 @@ export class CommunicationController {
 
   public static async deleteComment(req: Request, res: Response) {
     try {
+      const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const { commentId } = req.params;
-      const { moderation_reason } = req.body || {};
-      const deleted = await FeedService.deleteComment(commentId, userId, moderation_reason);
+      const userContext = CommunicationController.extractUserContext(req);
+      const commentId = req.params.commentId || req.params.id;
+      const moderationReason = req.body?.moderation_reason || req.body?.moderationReason;
+      const deleted = await FeedService.deleteComment(
+        orgId,
+        commentId,
+        userId,
+        userContext,
+        moderationReason,
+      );
       res.json({ success: true, data: deleted, message: 'Comment soft deleted successfully' });
     } catch (error: any) {
       console.error('[CommunicationController.deleteComment] Error:', error);
@@ -240,15 +288,19 @@ export class CommunicationController {
     }
   }
 
-  public static async getReactionCatalogue(_req: Request, res: Response) {
+  public static async getReactionCatalogue(req: Request, res: Response) {
     try {
-      const catalog = await FeedService.getReactionCatalogue();
+      const orgId = (req as any).tenantOrgId || (req as any).context?.user?.org_id;
+      const userId = (req as any).context?.user?.id;
+      const userContext = userId ? CommunicationController.extractUserContext(req) : undefined;
+      const postId = req.params.id || req.params.feedPostId;
+      const catalog = await FeedService.getReactionCatalogue(orgId, postId, userId, userContext);
       res.json({ success: true, data: catalog });
     } catch (error: any) {
       console.error('[CommunicationController.getReactionCatalogue] Error:', error);
-      res.status(500).json({
+      res.status(error.status || 500).json({
         success: false,
-        error: 'CATALOG_FETCH_FAILED',
+        error: error.code || 'CATALOG_FETCH_FAILED',
         message: error.message || 'Failed to fetch reaction catalogue',
       });
     }
@@ -258,18 +310,25 @@ export class CommunicationController {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const { id } = req.params;
-      const { reaction_type_id } = req.body;
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const reactionTypeId = req.body.reactionTypeId || req.body.reaction_type_id;
 
-      if (!reaction_type_id) {
+      if (!reactionTypeId) {
         return res.status(400).json({
           success: false,
           error: 'MISSING_REACTION_TYPE',
-          message: 'reaction_type_id is required',
+          message: 'reactionTypeId is required',
         });
       }
 
-      const reaction = await FeedService.reactToPost(orgId, id, userId, reaction_type_id);
+      const reaction = await FeedService.reactToPost(
+        orgId,
+        postId,
+        userId,
+        userContext,
+        reactionTypeId,
+      );
       res.json({ success: true, data: reaction });
     } catch (error: any) {
       console.error('[CommunicationController.reactToPost] Error:', error);
@@ -283,9 +342,10 @@ export class CommunicationController {
 
   public static async removeReaction(req: Request, res: Response) {
     try {
+      const orgId = CommunicationController.extractOrgId(req);
       const userId = CommunicationController.extractUserId(req);
-      const { id } = req.params;
-      await FeedService.removeReaction(id, userId);
+      const postId = req.params.id || req.params.feedPostId;
+      await FeedService.removeReaction(orgId, postId, userId);
       res.json({ success: true, message: 'Reaction removed successfully' });
     } catch (error: any) {
       console.error('[CommunicationController.removeReaction] Error:', error);

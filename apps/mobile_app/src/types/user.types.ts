@@ -21,4 +21,6 @@ export interface UserProfile {
   org_id?: string;
   tenantId?: string;
   schoolId?: string;
+  hasEnrolledStudent?: boolean;
+  isPostAdmission?: boolean;
 }
