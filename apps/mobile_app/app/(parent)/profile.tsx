@@ -25,6 +25,12 @@ export default function ParentProfileScreen() {
     (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '') ||
     'Parent Guardian';
 
+  const isPostAdmission = Boolean(
+    user?.hasEnrolledStudent ||
+    user?.isPostAdmission ||
+    (user?.roles || []).includes('ENROLLED_PARENT'),
+  );
+
   const initials =
     displayName
       .split(/\s+/)
@@ -40,7 +46,9 @@ export default function ParentProfileScreen() {
         <Text className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
           Parent Account
         </Text>
-        <Text className="text-xs font-semibold text-slate-400">Account details & security</Text>
+        <Text className="text-xs font-semibold text-slate-400">
+          {isPostAdmission ? 'Enrolled parent details & settings' : 'Account details & security'}
+        </Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -57,7 +65,9 @@ export default function ParentProfileScreen() {
           </Text>
           <View className="mt-3 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800">
             <Text className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              Verified Parent Account
+              {isPostAdmission
+                ? 'Enrolled Student Active • Parent Portal'
+                : 'Verified Parent Account'}
             </Text>
           </View>
         </View>

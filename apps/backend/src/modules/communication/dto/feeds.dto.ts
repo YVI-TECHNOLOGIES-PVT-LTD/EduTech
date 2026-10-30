@@ -96,6 +96,7 @@ export interface FeedPostResponseDto {
   reactions_enabled: boolean;
   academicYearGradeTargets: Array<{ academicYearGradeId: string; gradeName?: string }>;
   sectionTargets: Array<{ sectionId: string; sectionName?: string }>;
+  studentTargets: Array<{ studentId: string }>;
   reactionSummary: ReactionSummaryItem[];
   currentUserReaction: string | null;
   commentCount: number;

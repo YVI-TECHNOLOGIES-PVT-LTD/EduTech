@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -91,6 +91,15 @@ export default function ParentDashboardScreen() {
     (user?.roles || []).includes('ENROLLED_PARENT') ||
     enrolledChildren.length > 0,
   );
+
+  useEffect(() => {
+    if (enrolledChildren.length > 0 && (!user?.hasEnrolledStudent || !user?.isPostAdmission)) {
+      useAuthStore.getState().updateUser({
+        hasEnrolledStudent: true,
+        isPostAdmission: true,
+      });
+    }
+  }, [enrolledChildren.length, user?.hasEnrolledStudent, user?.isPostAdmission]);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">

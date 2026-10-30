@@ -39,6 +39,10 @@ export class FeedService {
       sectionName: t.sections?.section_name,
     }));
 
+    const studentTargets = (post.feed_post_student_targets || []).map((t: any) => ({
+      studentId: t.student_id,
+    }));
+
     return {
       feedPostId: post.feed_post_id,
       feed_post_id: post.feed_post_id,
@@ -66,6 +70,7 @@ export class FeedService {
       reactions_enabled: post.reactions_enabled,
       academicYearGradeTargets: gradeTargets,
       sectionTargets: sectionTargets,
+      studentTargets: studentTargets,
       reactionSummary,
       currentUserReaction,
       commentCount,
@@ -250,6 +255,7 @@ export class FeedService {
           feed_post_section_targets: {
             include: { sections: true },
           },
+          feed_post_student_targets: true,
         },
       });
 
@@ -383,6 +389,7 @@ export class FeedService {
           feed_post_section_targets: {
             include: { sections: true },
           },
+          feed_post_student_targets: true,
         },
       });
 
@@ -405,6 +412,7 @@ export class FeedService {
         include: {
           feed_post_academic_year_grade_targets: true,
           feed_post_section_targets: true,
+          feed_post_student_targets: true,
         },
       });
 
@@ -432,6 +440,7 @@ export class FeedService {
           feed_post_section_targets: {
             include: { sections: true },
           },
+          feed_post_student_targets: true,
         },
       });
 
@@ -473,6 +482,7 @@ export class FeedService {
         feed_post_section_targets: {
           include: { sections: true },
         },
+        feed_post_student_targets: true,
       },
     });
 
@@ -524,6 +534,7 @@ export class FeedService {
           feed_post_section_targets: {
             include: { sections: true },
           },
+          feed_post_student_targets: true,
         },
       }),
     ]);
@@ -576,6 +587,7 @@ export class FeedService {
         feed_post_section_targets: {
           include: { sections: true },
         },
+        feed_post_student_targets: true,
       },
     });
 
@@ -649,6 +661,7 @@ export class FeedService {
       include: {
         feed_post_academic_year_grade_targets: true,
         feed_post_section_targets: true,
+        feed_post_student_targets: true,
       },
     });
 
@@ -730,6 +743,7 @@ export class FeedService {
       include: {
         feed_post_academic_year_grade_targets: true,
         feed_post_section_targets: true,
+        feed_post_student_targets: true,
       },
     });
 
@@ -864,6 +878,7 @@ export class FeedService {
         include: {
           feed_post_academic_year_grade_targets: true,
           feed_post_section_targets: true,
+          feed_post_student_targets: true,
         },
       });
 
@@ -956,6 +971,7 @@ export class FeedService {
       include: {
         feed_post_academic_year_grade_targets: true,
         feed_post_section_targets: true,
+        feed_post_student_targets: true,
       },
     });
 
