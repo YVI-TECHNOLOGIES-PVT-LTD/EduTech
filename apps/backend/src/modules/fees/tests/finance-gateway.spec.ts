@@ -41,29 +41,23 @@ export async function runFinanceGatewayTests() {
   // 1. Order Creation & Parameter Validation Tests
   // -------------------------------------------------------------------------
   await test('createOrder rejects zero and negative amounts', async () => {
-    await assert.rejects(
-      async () => {
-        await RazorpayGatewayService.createOrder({
-          amount: 0,
-          orderReference: 'ORD-TEST-000',
-          studentId: '00000000-0000-0000-0000-000000000001',
-          dueId: '00000000-0000-0000-0000-000000000002',
-        });
-      },
-      /Order amount must be greater than zero/
-    );
+    await assert.rejects(async () => {
+      await RazorpayGatewayService.createOrder({
+        amount: 0,
+        orderReference: 'ORD-TEST-000',
+        studentId: '00000000-0000-0000-0000-000000000001',
+        dueId: '00000000-0000-0000-0000-000000000002',
+      });
+    }, /Order amount must be greater than zero/);
 
-    await assert.rejects(
-      async () => {
-        await RazorpayGatewayService.createOrder({
-          amount: -50,
-          orderReference: 'ORD-TEST-NEG',
-          studentId: '00000000-0000-0000-0000-000000000001',
-          dueId: '00000000-0000-0000-0000-000000000002',
-        });
-      },
-      /Order amount must be greater than zero/
-    );
+    await assert.rejects(async () => {
+      await RazorpayGatewayService.createOrder({
+        amount: -50,
+        orderReference: 'ORD-TEST-NEG',
+        studentId: '00000000-0000-0000-0000-000000000001',
+        dueId: '00000000-0000-0000-0000-000000000002',
+      });
+    }, /Order amount must be greater than zero/);
   });
 
   await test('createOrder rejects simulation in production when credentials missing', async () => {
@@ -81,7 +75,7 @@ export async function runFinanceGatewayTests() {
           dueId: '00000000-0000-0000-0000-000000000002',
         });
       },
-      (err: any) => err.statusCode === 503 && /credentials are not configured/.test(err.message)
+      (err: any) => err.statusCode === 503 && /credentials are not configured/.test(err.message),
     );
 
     // Restore env
@@ -150,7 +144,10 @@ export async function runFinanceGatewayTests() {
     try {
       (axios as any).post = async () => {
         const error: any = new Error('Gateway Unauthorized');
-        error.response = { status: 401, data: { error: { description: 'Invalid API key or secret' } } };
+        error.response = {
+          status: 401,
+          data: { error: { description: 'Invalid API key or secret' } },
+        };
         throw error;
       };
 
@@ -163,7 +160,8 @@ export async function runFinanceGatewayTests() {
             dueId: '00000000-0000-0000-0000-000000000002',
           });
         },
-        (err: any) => err.statusCode === 502 && /Failed to create payment order with gateway/.test(err.message)
+        (err: any) =>
+          err.statusCode === 502 && /Failed to create payment order with gateway/.test(err.message),
       );
     } finally {
       axios.post = origPost;
@@ -218,7 +216,7 @@ export async function runFinanceGatewayTests() {
         razorpayPaymentId: 'pay_123',
         razorpaySignature: 'sig_123',
       }),
-      false
+      false,
     );
 
     assert.strictEqual(
@@ -227,7 +225,7 @@ export async function runFinanceGatewayTests() {
         razorpayPaymentId: '',
         razorpaySignature: 'sig_123',
       }),
-      false
+      false,
     );
 
     assert.strictEqual(
@@ -236,7 +234,7 @@ export async function runFinanceGatewayTests() {
         razorpayPaymentId: 'pay_123',
         razorpaySignature: '',
       }),
-      false
+      false,
     );
   });
 
@@ -267,7 +265,7 @@ export async function runFinanceGatewayTests() {
       const result = await RazorpayGatewayService.fetchAndVerifyPayment(
         'pay_verified_123',
         'order_verified_456',
-        500
+        500,
       );
 
       assert.strictEqual(result.verified, true);
@@ -302,7 +300,7 @@ export async function runFinanceGatewayTests() {
       const result = await RazorpayGatewayService.fetchAndVerifyPayment(
         'pay_failed_123',
         'order_123',
-        500
+        500,
       );
 
       assert.strictEqual(result.verified, false);
@@ -332,7 +330,7 @@ export async function runFinanceGatewayTests() {
       const result = await RazorpayGatewayService.fetchAndVerifyPayment(
         'pay_mismatch_123',
         'order_EXPECTED_111',
-        500
+        500,
       );
 
       assert.strictEqual(result.verified, false);
@@ -361,7 +359,7 @@ export async function runFinanceGatewayTests() {
       const result = await RazorpayGatewayService.fetchAndVerifyPayment(
         'pay_amount_mismatch_123',
         'order_123',
-        500
+        500,
       );
 
       assert.strictEqual(result.verified, false);
@@ -410,7 +408,8 @@ export async function runFinanceGatewayTests() {
       async () => {
         await RazorpayGatewayService.processWebhook(rawBody, 'invalid_sig', { id: 'evt_123' });
       },
-      (err: any) => err.statusCode === 400 && /Invalid Razorpay webhook signature/.test(err.message)
+      (err: any) =>
+        err.statusCode === 400 && /Invalid Razorpay webhook signature/.test(err.message),
     );
   });
 
@@ -467,7 +466,7 @@ export async function runFinanceGatewayTests() {
   let orgWithDues: any = null;
   try {
     const dueRecord = await prisma.student_charge_dues.findFirst({
-      where: { status: { notIn: ['cancelled', 'waived'] } },
+      where: { status: { notIn: ['cancelled', 'waived', 'paid'] } },
       include: {
         student_charges: {
           include: {
@@ -529,7 +528,7 @@ export async function runFinanceGatewayTests() {
 
         const balanceBefore = await StudentLedgerService.getStudentLedgerSummary(
           orgWithDues.org_id,
-          student.student_id
+          student.student_id,
         );
 
         const orderRes = await PaymentCollectionService.createOnlinePaymentOrder(
@@ -540,7 +539,7 @@ export async function runFinanceGatewayTests() {
             studentChargeDueId: targetDue.student_charge_due_id,
             amount: testAmount,
             paymentMethod: 'upi',
-          }
+          },
         );
 
         assert.strictEqual(orderRes.success, true);
@@ -554,18 +553,18 @@ export async function runFinanceGatewayTests() {
         // INVARIANT 1: Created/pending payment intent MUST NOT reduce student balance!
         const balanceAfter = await StudentLedgerService.getStudentLedgerSummary(
           orgWithDues.org_id,
-          student.student_id
+          student.student_id,
         );
 
         assert.strictEqual(
           balanceAfter.summary.outstanding_balance,
           balanceBefore.summary.outstanding_balance,
-          'Pending payment intent must leave outstanding balance completely unchanged'
+          'Pending payment intent must leave outstanding balance completely unchanged',
         );
         assert.strictEqual(
           balanceAfter.summary.total_paid_amount,
           balanceBefore.summary.total_paid_amount,
-          'Pending payment intent must not increase total paid amount'
+          'Pending payment intent must not increase total paid amount',
         );
       } finally {
         axios.post = origPost;
@@ -578,32 +577,29 @@ export async function runFinanceGatewayTests() {
 
       const balanceBefore = await StudentLedgerService.getStudentLedgerSummary(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
       // Attempt verification with invalid signature
-      await assert.rejects(
-        async () => {
-          await PaymentCollectionService.verifyOnlinePayment(orgWithDues.org_id, null, {
-            paymentOrderId: createdPaymentOrderId,
-            razorpayOrderId: mockRzpOrderId,
-            razorpayPaymentId: mockRzpPaymentId,
-            razorpaySignature: 'tampered_invalid_signature_hex_1234567890abcdef',
-          });
-        },
-        /Invalid gateway signature/
-      );
+      await assert.rejects(async () => {
+        await PaymentCollectionService.verifyOnlinePayment(orgWithDues.org_id, null, {
+          paymentOrderId: createdPaymentOrderId,
+          razorpayOrderId: mockRzpOrderId,
+          razorpayPaymentId: mockRzpPaymentId,
+          razorpaySignature: 'tampered_invalid_signature_hex_1234567890abcdef',
+        });
+      }, /Invalid gateway signature/);
 
       // INVARIANT 2: Rejected verification leaves balance unchanged
       const balanceAfter = await StudentLedgerService.getStudentLedgerSummary(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
       assert.strictEqual(
         balanceAfter.summary.outstanding_balance,
         balanceBefore.summary.outstanding_balance,
-        'Failed signature verification must leave balance unchanged'
+        'Failed signature verification must leave balance unchanged',
       );
     });
 
@@ -618,7 +614,7 @@ export async function runFinanceGatewayTests() {
             razorpaySignature: 'any_signature',
           });
         },
-        (err: any) => err.statusCode === 404
+        (err: any) => err.statusCode === 404,
       );
     });
 
@@ -657,7 +653,7 @@ export async function runFinanceGatewayTests() {
 
         const balanceBefore = await StudentLedgerService.getStudentLedgerSummary(
           orgWithDues.org_id,
-          student.student_id
+          student.student_id,
         );
 
         const verifyRes = await PaymentCollectionService.verifyOnlinePayment(
@@ -668,7 +664,7 @@ export async function runFinanceGatewayTests() {
             razorpayOrderId: mockRzpOrderId,
             razorpayPaymentId: mockRzpPaymentId,
             razorpaySignature: validSig,
-          }
+          },
         );
 
         assert.strictEqual(verifyRes.success, true);
@@ -679,16 +675,16 @@ export async function runFinanceGatewayTests() {
         // INVARIANT 3: Verified payment must accurately reduce outstanding balance
         const balanceAfter = await StudentLedgerService.getStudentLedgerSummary(
           orgWithDues.org_id,
-          student.student_id
+          student.student_id,
         );
 
         assert.strictEqual(
           balanceAfter.summary.total_paid_amount,
-          StudentLedgerService.roundMoney(balanceBefore.summary.total_paid_amount + testAmount)
+          StudentLedgerService.roundMoney(balanceBefore.summary.total_paid_amount + testAmount),
         );
         assert.strictEqual(
           balanceAfter.summary.outstanding_balance,
-          StudentLedgerService.roundMoney(balanceBefore.summary.outstanding_balance - testAmount)
+          StudentLedgerService.roundMoney(balanceBefore.summary.outstanding_balance - testAmount),
         );
       } finally {
         axios.get = origGet;
@@ -698,7 +694,7 @@ export async function runFinanceGatewayTests() {
     await test('Repeated verifyOnlinePayment is idempotent and returns existing receipt without double-allocation', async () => {
       const balanceBefore = await StudentLedgerService.getStudentLedgerSummary(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
       const validSig = crypto
@@ -714,7 +710,7 @@ export async function runFinanceGatewayTests() {
           razorpayOrderId: mockRzpOrderId,
           razorpayPaymentId: mockRzpPaymentId,
           razorpaySignature: validSig,
-        }
+        },
       );
 
       assert.strictEqual(repeatRes.success, true);
@@ -725,13 +721,13 @@ export async function runFinanceGatewayTests() {
       // INVARIANT 4: No double-allocation on repeated call
       const balanceAfter = await StudentLedgerService.getStudentLedgerSummary(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
       assert.strictEqual(
         balanceAfter.summary.outstanding_balance,
         balanceBefore.summary.outstanding_balance,
-        'Repeated verification must not deduct balance twice'
+        'Repeated verification must not deduct balance twice',
       );
     });
 
@@ -764,7 +760,7 @@ export async function runFinanceGatewayTests() {
       const webhookRes = await RazorpayGatewayService.processWebhook(
         rawBody,
         signature,
-        failPayload
+        failPayload,
       );
 
       assert.strictEqual(webhookRes.success, true);
@@ -773,34 +769,34 @@ export async function runFinanceGatewayTests() {
 
       // INVARIANT 5: Transaction status remains 'success'
       const tx = await PaymentRepository.findTransactionByGatewayRef(mockRzpOrderId);
-      assert.strictEqual(tx?.status, 'success', 'Confirmed transaction must never be downgraded by late webhook');
+      assert.strictEqual(
+        tx?.status,
+        'success',
+        'Confirmed transaction must never be downgraded by late webhook',
+      );
     });
   } else {
-    console.log('  [Notice] Live DB does not contain students with active charges/dues; gateway order creation and signature verification tests passed.');
+    console.log(
+      '  [Notice] Live DB does not contain students with active charges/dues; gateway order creation and signature verification tests passed.',
+    );
   }
 
   // -------------------------------------------------------------------------
   // 6. Finance Phase 6.1: Persistence Hardening & Concurrency Tests
   // -------------------------------------------------------------------------
   await test('Missing Prisma delegate direct writes are strictly prohibited with Persistence Error', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).payment_orders.create({
-          data: { amount: 100 },
-        });
-      },
-      /\[Persistence Error\] Direct write on unmapped Prisma delegate 'payment_orders.create' is prohibited/
-    );
+    await assert.rejects(async () => {
+      await (prisma as any).payment_orders.create({
+        data: { amount: 100 },
+      });
+    }, /\[Persistence Error\] Direct write on unmapped Prisma delegate 'payment_orders.create' is prohibited/);
 
-    await assert.rejects(
-      async () => {
-        await (prisma as any).payment_transactions.update({
-          where: { payment_transaction_id: '00000000-0000-0000-0000-000000000001' },
-          data: { status: 'success' },
-        });
-      },
-      /\[Persistence Error\] Direct write on unmapped Prisma delegate 'payment_transactions.update' is prohibited/
-    );
+    await assert.rejects(async () => {
+      await (prisma as any).payment_transactions.update({
+        where: { payment_transaction_id: '00000000-0000-0000-0000-000000000001' },
+        data: { status: 'success' },
+      });
+    }, /\[Persistence Error\] Direct write on unmapped Prisma delegate 'payment_transactions.update' is prohibited/);
   });
 
   await test('PaymentRepository persists payment order and transaction durably to PostgreSQL and reloads them', async () => {
@@ -897,7 +893,10 @@ export async function runFinanceGatewayTests() {
           status: 'received',
         });
       },
-      (err: any) => err.code === '23505' || err.code === 'P2010' || String(err.message).includes('uq_payment_webhook_provider_event')
+      (err: any) =>
+        err.code === '23505' ||
+        err.code === 'P2010' ||
+        String(err.message).includes('uq_payment_webhook_provider_event'),
     );
 
     // Calling processWebhook with duplicate returns status 'duplicate' safely without throwing
@@ -955,7 +954,9 @@ export async function runFinanceGatewayTests() {
       targetStudentId = existingDue[0].student_id;
       targetDueId = existingDue[0].student_charge_due_id;
     } else {
-      const student = await prisma.students.findFirst({ select: { student_id: true, org_id: true } });
+      const student = await prisma.students.findFirst({
+        select: { student_id: true, org_id: true },
+      });
       if (!student) return;
       targetStudentId = student.student_id;
       const chargeRows: any = await prisma.$queryRaw`
@@ -973,26 +974,23 @@ export async function runFinanceGatewayTests() {
 
     const testRef = `ORD-FAIL-${Date.now()}`;
 
-    await assert.rejects(
-      async () => {
-        await prisma.$transaction(async (tx: any) => {
-          // 1. Create order
-          await PaymentRepository.createPaymentOrder(
-            {
-              studentId: targetStudentId,
-              studentChargeDueId: targetDueId,
-              amount: 50.0,
-              orderReference: testRef,
-            },
-            tx
-          );
+    await assert.rejects(async () => {
+      await prisma.$transaction(async (tx: any) => {
+        // 1. Create order
+        await PaymentRepository.createPaymentOrder(
+          {
+            studentId: targetStudentId,
+            studentChargeDueId: targetDueId,
+            amount: 50.0,
+            orderReference: testRef,
+          },
+          tx,
+        );
 
-          // 2. Force an error to trigger rollback
-          throw new Error('Simulated database transient failure');
-        });
-      },
-      /Simulated database transient failure/
-    );
+        // 2. Force an error to trigger rollback
+        throw new Error('Simulated database transient failure');
+      });
+    }, /Simulated database transient failure/);
 
     // Verify order was not committed
     const foundRows: any = await prisma.$queryRaw`

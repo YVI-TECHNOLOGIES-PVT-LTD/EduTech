@@ -4,6 +4,7 @@ import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
 
 import prisma from '../../lib/prismaClient';
+import { ParentOverviewService } from './services/parent-overview.service';
 
 export const dashboardRouter = Router();
 
@@ -393,61 +394,26 @@ dashboardRouter.get(
   '/parent/overview',
   checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
   async (req: Request, res: Response) => {
-    const userId = req.context!.user.id;
-    // 1. Fetch children summary (Enrolled Students)
-    const { data: children } = await supabase
-      .from('student_parents')
-      .select(
-        `
-                 student_id,
-                 student:student_id (
-                     full_name, student_code, status,
-                     attendance:student_attendance_summary(attendance_percentage),
-                     exam_stats:student_exam_summary(percentage),
-                     faculty_assignments:student_faculty_assignments (
-                         faculty:faculty_id (id, full_name, email)
-                     )
-                 )
-             `,
-      )
-      .eq('parent_user_id', userId);
+    try {
+      const user = req.context?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized: No session context' });
+      }
 
-    // 2. Fetch Active CRM Applications (In-progress)
-    const { data: crmApps } = await supabase
-      .from('admission_applications')
-      .select(
-        `
-                id,
-                status,
-                created_at,
-                updated_at,
-                lead:lead_id (
-                    enquiry:enquiry_id (
-                        student_name,
-                        grade_applied_for,
-                        parent_email
-                    )
-                )
-            `,
-      )
-      .eq('created_by', userId)
-      .eq('is_current', true)
-      .is('deleted_at', null)
-      .not('status', 'in', '("ENROLLED","REJECTED","WITHDRAWN")');
+      const orgId = user.org_id || user.school_id;
+      if (!orgId) {
+        return res.status(403).json({
+          error: 'UNAUTHORIZED_TENANT',
+          message: 'User is not assigned to an organization',
+        });
+      }
 
-    const admissions = (crmApps ?? []).map((app: any) => ({
-      id: app.id,
-      status: (app.status ?? 'DRAFT').toLowerCase(),
-      student_name: app.lead?.enquiry?.student_name ?? 'Applicant',
-      grade_applied_for: app.lead?.enquiry?.grade_applied_for ?? '',
-      parent_email: app.lead?.enquiry?.parent_email ?? '',
-      created_at: app.created_at,
-      updated_at: app.updated_at,
-    }));
+      const overview = await ParentOverviewService.getParentOverview(orgId, user.id, user.email);
 
-    res.json({
-      children: children || [],
-      admissions,
-    });
+      return res.json(overview);
+    } catch (err: any) {
+      console.error('[DashboardRouter] Error fetching parent overview:', err);
+      return res.status(500).json({ error: err.message || 'Internal server error' });
+    }
   },
 );

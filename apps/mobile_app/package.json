@@ -1,7 +1,7 @@
 {
   "name": "@edutrack/mobile",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "build": "tsc --noEmit",
     "start": "expo start",

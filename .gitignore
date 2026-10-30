@@ -23,8 +23,10 @@ apps/backend/.env
 # Logs
 *.log
 
-# IDE
+# IDE & OS
 .eslintcache
+.DS_Store
+**/.DS_Store
 EduTech/
 dist/
 apps/web_app/dist/

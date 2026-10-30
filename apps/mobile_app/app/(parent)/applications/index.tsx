@@ -10,11 +10,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useMyApplications } from '../../src/features/admission';
-import { ApplicationStatusCard } from '../../src/components/admission/ApplicationStatusCard';
-import { AdmissionApplication } from '../../src/types/admission.types';
-import { useTheme } from '../../src/theme';
-import { Button } from '../../src/components/ui/atoms/Button';
+import { useMyApplications } from '../../../src/features/admission';
+import { ApplicationStatusCard } from '../../../src/components/admission/ApplicationStatusCard';
+import { AdmissionApplication } from '../../../src/types/admission.types';
+import { useTheme } from '../../../src/theme';
+import { Button } from '../../../src/components/ui/atoms/Button';
 
 export default function ParentApplicationsScreen() {
   const router = useRouter();

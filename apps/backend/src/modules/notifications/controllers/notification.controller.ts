@@ -6,12 +6,9 @@ import { logger } from '../../../utils/logger';
 export class NotificationController {
   private static getAuthContext(req: Request): { orgId: string; userId: string } | null {
     const user = req.context?.user || (req as any).user;
+    // Authoritative tenant scope strictly from verified session claims
     const orgId =
-      user?.org_id ||
-      user?.school_id ||
-      (req as any).organizationId ||
-      (req as any).orgId ||
-      (req.headers['x-tenant-id'] as string);
+      user?.org_id || user?.school_id || (req as any).organizationId || (req as any).orgId;
     const userId = user?.id || user?.user_id;
 
     if (!orgId || !userId) {

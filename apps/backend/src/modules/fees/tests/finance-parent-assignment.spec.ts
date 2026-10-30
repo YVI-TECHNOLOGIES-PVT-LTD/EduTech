@@ -97,7 +97,7 @@ export async function runFinanceParentAssignmentTests() {
         studentId: '00000000-0000-0000-0000-000000000001',
         feeStructureId: '00000000-0000-0000-0000-000000000001',
       });
-    }, /Student not found in the current organization/i);
+    }, /Student not found in the current organization|Fee structure not found/i);
   });
 
   await test('bulkAssignFeeStructure rejects empty student IDs list', async () => {

@@ -15,6 +15,7 @@ export const feesRouter = Router();
 // 1. STRUCTURES (Fee Structure Management Phase 3)
 import prisma from '../../lib/prismaClient';
 import { FeeStructureManagerService, toSafeUuid } from './services/FeeStructureManagerService';
+import { StudentLedgerService } from './services/StudentLedgerService';
 
 // GET /structures/summary: Summary metrics for dashboard/header
 feesRouter.get(
@@ -728,91 +729,198 @@ feesRouter.get(
   FinanceController.getFeePreview,
 );
 
-// GET /demands: List billing demands
+// GET /demands: List billing demands (backed by schema.prisma student_fee_assignments)
 feesRouter.get('/demands', checkPermission(PERMISSIONS.FEES_DEMAND_VIEW), async (req, res) => {
   try {
-    const { status, studentId, applicationId } = req.query;
-    let query = supabase
-      .from('fee_demands')
-      .select(
-        `
-                    *,
-                    student:student_id(full_name, student_code),
-                    application:application_id(
-                        id,
-                        lead:lead_id(
-                            enquiry:enquiry_id(student_name, grade_applied_for)
-                        )
-                    ),
-                    items:fee_demand_items(*)
-                `,
-      )
-      .order('due_date', { ascending: false });
+    const { status, studentId } = req.query;
+    const tenantOrgId =
+      (req as any).tenantOrgId ||
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id ||
+      (req.query.org_id as string) ||
+      (req.query.school_id as string) ||
+      (req.headers['x-org-id'] as string) ||
+      (req.headers['x-tenant-id'] as string) ||
+      (req.headers['x-school-id'] as string);
 
-    if (status) query = query.eq('status', status);
-    if (studentId) query = query.eq('student_id', studentId);
-    if (applicationId) query = query.eq('application_id', applicationId);
+    const safeOrgId = toSafeUuid(tenantOrgId);
+    const safeStudentId = toSafeUuid(studentId as string);
 
-    const { data, error } = await query;
-    if (error) throw error;
+    const whereClause: any = {};
+    if (safeOrgId) {
+      whereClause.student_enrollments = {
+        students: {
+          org_id: safeOrgId,
+          ...(safeStudentId ? { student_id: safeStudentId } : {}),
+        },
+      };
+    } else if (safeStudentId) {
+      whereClause.student_enrollments = {
+        student_id: safeStudentId,
+      };
+    }
 
-    // Map data to match the expected frontend contract
-    const mapped = (data || []).map((d: any) => {
-      const enquiry = d.application?.lead?.enquiry;
+    const assignments = await prisma.student_fee_assignments.findMany({
+      where: whereClause,
+      include: {
+        student_enrollments: {
+          include: {
+            students: true,
+            academic_year_grades: {
+              include: {
+                grades: true,
+                academic_years: true,
+              },
+            },
+          },
+        },
+        fee_structures: {
+          include: {
+            fee_components: true,
+          },
+        },
+        installment_plans: {
+          include: {
+            installment_plan_terms: true,
+          },
+        },
+        student_charges: {
+          include: {
+            student_charge_dues: true,
+          },
+        },
+      },
+      orderBy: { assigned_at: 'desc' },
+      take: 200,
+    });
+
+    const mapped = assignments.map((sfa) => {
+      const student = sfa.student_enrollments?.students;
+      const ayg = sfa.student_enrollments?.academic_year_grades;
+
+      let totalAmount = 0;
+      let balanceAmount = 0;
+      let hasOverdue = false;
+      let earliestDueDate: Date | null = null;
+
+      for (const sc of sfa.student_charges) {
+        totalAmount += Number(sc.amount);
+        for (const due of sc.student_charge_dues) {
+          if (due.status !== 'paid' && due.status !== 'waived') {
+            balanceAmount += Number(due.amount_due);
+            if (due.due_date && new Date(due.due_date) < new Date()) {
+              hasOverdue = true;
+            }
+          }
+          if (due.due_date && (!earliestDueDate || new Date(due.due_date) < earliestDueDate)) {
+            earliestDueDate = new Date(due.due_date);
+          }
+        }
+      }
+
+      let derivedStatus = 'PENDING';
+      if (sfa.status === 'cancelled') {
+        derivedStatus = 'CANCELLED';
+      } else if (balanceAmount <= 0 && totalAmount > 0) {
+        derivedStatus = 'PAID';
+      } else if (hasOverdue) {
+        derivedStatus = 'OVERDUE';
+      } else if (balanceAmount < totalAmount) {
+        derivedStatus = 'PARTIAL';
+      }
+
       return {
-        ...d,
-        application: d.application
+        id: sfa.student_fee_assignment_id,
+        demand_id: sfa.student_fee_assignment_id,
+        demand_no: `DEM-${sfa.student_fee_assignment_id.slice(0, 8).toUpperCase()}`,
+        student_id: student?.student_id,
+        student: student
           ? {
-              id: d.application.id,
-              applicant_name: enquiry?.student_name || 'Applicant',
-              class_applied: enquiry?.grade_applied_for || '',
+              id: student.student_id,
+              full_name: `${student.first_name} ${student.last_name || ''}`.trim(),
+              student_code: student.admission_no,
+              admission_no: student.admission_no,
             }
           : null,
+        application: null,
+        fee_structure_id: sfa.fee_structure_id,
+        fee_structure: sfa.fee_structures
+          ? {
+              id: sfa.fee_structures.fee_structure_id,
+              name: sfa.fee_structures.name,
+              academic_year: ayg?.academic_years
+                ? { year_label: ayg.academic_years.academic_year_name }
+                : undefined,
+            }
+          : null,
+        amount: totalAmount,
+        balance_amount: balanceAmount,
+        due_date: earliestDueDate
+          ? earliestDueDate.toISOString().split('T')[0]
+          : sfa.assigned_at.toISOString().split('T')[0],
+        status: derivedStatus,
+        items: sfa.student_charges.map((sc) => ({
+          id: sc.student_charge_id,
+          name: sc.description,
+          amount: Number(sc.amount),
+        })),
+        created_at: sfa.assigned_at,
       };
     });
 
-    res.json(mapped);
+    const filtered = status
+      ? mapped.filter((m) => m.status.toUpperCase() === String(status).toUpperCase())
+      : mapped;
+
+    res.json(filtered);
   } catch (error: any) {
-    console.error('[DEBUG GET /demands error]:', error);
+    console.error('[GET /fees/demands error]:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// POST /demands/generate: Allocate billing structure demand (Supports bulk generation)
+// POST /demands/generate: Allocate billing structure demand (Supports single and bulk)
 feesRouter.post(
   '/demands/generate',
   checkPermission(PERMISSIONS.FEES_DEMAND_GENERATE),
   async (req, res) => {
     try {
-      const userId = req.context!.user.id;
-      const { application_id, student_id, student_ids, fee_structure_id, due_date } = req.body;
+      const tenantOrgId =
+        (req as any).tenantOrgId ||
+        req.context?.user?.org_id ||
+        req.context?.user?.school_id ||
+        (req.headers['x-org-id'] as string) ||
+        (req.headers['x-tenant-id'] as string);
+      const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
+      const { student_id, student_ids, fee_structure_id, due_date } = req.body;
+
+      if (!fee_structure_id) {
+        return res.status(400).json({ error: 'fee_structure_id is required' });
+      }
 
       // Support bulk generation by class student list
       if (student_ids && Array.isArray(student_ids) && student_ids.length > 0) {
-        const results = [];
-        for (const sId of student_ids) {
-          const demand = await FinanceEngine.initializeDemand({
-            student_id: sId,
-            fee_structure_id,
-            due_date,
-            performedBy: userId,
-          });
-          results.push(demand);
-        }
-        return res.status(201).json(results);
+        const bulkRes = await StudentLedgerService.bulkAssignFeeStructure(tenantOrgId, userId, {
+          studentIds: student_ids,
+          feeStructureId: fee_structure_id,
+        });
+        return res.status(201).json(bulkRes);
       }
 
-      const demand = await FinanceEngine.initializeDemand({
-        application_id,
-        student_id,
-        fee_structure_id,
-        due_date,
-        performedBy: userId,
+      if (!student_id) {
+        return res.status(400).json({ error: 'student_id is required' });
+      }
+
+      const assignment = await StudentLedgerService.assignFeeStructure(tenantOrgId, userId, {
+        studentId: student_id,
+        feeStructureId: fee_structure_id,
       });
-      res.status(201).json(demand);
+
+      res.status(201).json(assignment);
     } catch (error: any) {
       console.error('POST /fees/demands/generate error:', error);
-      res.status(500).json({ error: error.message });
+      const status = error.statusCode || 500;
+      res.status(status).json({ error: error.message });
     }
   },
 );
@@ -901,44 +1009,99 @@ feesRouter.post(
 );
 
 // POST /payments/create-order: Create online payment order (UPI, Card, Net Banking, Wallet via Razorpay)
-feesRouter.post(
-  '/payments/create-order',
-  checkPermission(PERMISSIONS.PAYMENT_RECORD),
-  async (req, res) => {
-    try {
-      const tenantOrgId =
-        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
-      if (!tenantOrgId) {
-        return res.status(400).json({
+feesRouter.post('/payments/create-order', async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    if (!tenantOrgId) {
+      return res.status(400).json({
+        success: false,
+        error: 'TENANT_NOT_FOUND',
+        message: 'Tenant organization could not be resolved from authenticated session.',
+      });
+    }
+
+    const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || null;
+    const userRoles = req.context?.user?.roles || [];
+    const userPermissions = req.context?.user?.permissions || [];
+    const isStaff =
+      userRoles.includes('ADMIN') ||
+      userRoles.includes('FINANCE_OFFICER') ||
+      userRoles.includes('FINANCE_MANAGER') ||
+      userRoles.includes('ACCOUNTANT') ||
+      userRoles.includes('SUPERADMIN') ||
+      userPermissions.includes('fees.payment.collect');
+
+    if (!isStaff) {
+      const isParentRole =
+        userRoles.includes('PARENT') || userPermissions.includes('DASHBOARD_VIEW_PARENT');
+      if (!isParentRole || !userId) {
+        return res.status(403).json({
           success: false,
-          error: 'TENANT_NOT_FOUND',
-          message: 'Tenant organization could not be resolved from authenticated session.',
+          error: 'FORBIDDEN',
+          message: 'Forbidden: Insufficient permissions to create payment orders',
         });
       }
 
-      const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || null;
-      const result = await PaymentCollectionService.createOnlinePaymentOrder(
+      const studentId = req.body?.studentId || req.body?.student_id;
+      if (!studentId) {
+        return res.status(400).json({
+          success: false,
+          error: 'STUDENT_REQUIRED',
+          message: 'Valid student ID is required for payment order creation.',
+        });
+      }
+
+      const isAuthorized = await ParentFinanceService.verifyParentChildAccess(
+        tenantOrgId,
+        userId,
+        studentId,
+        req.context?.user?.email,
+      );
+
+      if (!isAuthorized) {
+        return res.status(403).json({
+          success: false,
+          error: 'FORBIDDEN',
+          message: 'Forbidden: You are not authorized to create payment orders for this student.',
+        });
+      }
+
+      const parentOrderResult = await ParentFinanceService.createParentPaymentOrder(
         tenantOrgId,
         userId,
         req.body,
+        req.context?.user?.email,
       );
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Payment order created successfully',
-        data: result,
-      });
-    } catch (error: any) {
-      console.error('[POST /fees/payments/create-order] Error:', error);
-      const status = error.statusCode || 400;
-      res.status(status).json({
-        success: false,
-        error: error.code || 'CREATE_ORDER_ERROR',
-        message: error.message || 'Failed to create payment order',
+        data: parentOrderResult,
       });
     }
-  },
-);
+
+    const result = await PaymentCollectionService.createOnlinePaymentOrder(
+      tenantOrgId,
+      userId,
+      req.body,
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Payment order created successfully',
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('[POST /fees/payments/create-order] Error:', error);
+    const status = error.statusCode || 400;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'CREATE_ORDER_ERROR',
+      message: error.message || 'Failed to create payment order',
+    });
+  }
+});
 
 // POST /payments/verify: Cryptographically verify online payment signature and allocate
 feesRouter.post(
@@ -1065,39 +1228,73 @@ feesRouter.get(
 );
 
 // GET /payments/receipts/:transactionId: Official receipt document for a transaction
-feesRouter.get(
-  '/payments/receipts/:transactionId',
-  checkPermission(PERMISSIONS.FEES_VIEW),
-  async (req, res) => {
-    try {
-      const tenantOrgId =
-        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
-      if (!tenantOrgId) {
-        return res.status(400).json({
+feesRouter.get('/payments/receipts/:transactionId', async (req, res) => {
+  try {
+    const tenantOrgId =
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+    if (!tenantOrgId) {
+      return res.status(400).json({
+        success: false,
+        error: 'TENANT_NOT_FOUND',
+        message: 'Tenant organization could not be resolved from authenticated session.',
+      });
+    }
+
+    const userId = req.context?.user?.id;
+    const userRoles = req.context?.user?.roles || [];
+    const userPermissions = req.context?.user?.permissions || [];
+    const isStaff =
+      userRoles.includes('ADMIN') ||
+      userRoles.includes('FINANCE_OFFICER') ||
+      userRoles.includes('FINANCE_MANAGER') ||
+      userRoles.includes('ACCOUNTANT') ||
+      userRoles.includes('SUPERADMIN') ||
+      userPermissions.includes('fees.view');
+
+    const { transactionId } = req.params;
+    const receipt = await PaymentCollectionService.getReceiptDetails(tenantOrgId, transactionId);
+
+    if (!isStaff) {
+      const isParentRole =
+        userRoles.includes('PARENT') || userPermissions.includes('DASHBOARD_VIEW_PARENT');
+      if (!isParentRole || !userId) {
+        return res.status(403).json({
           success: false,
-          error: 'TENANT_NOT_FOUND',
-          message: 'Tenant organization could not be resolved from authenticated session.',
+          error: 'FORBIDDEN',
+          message: 'Forbidden: Insufficient permissions to view fee receipts',
         });
       }
 
-      const { transactionId } = req.params;
-      const receipt = await PaymentCollectionService.getReceiptDetails(tenantOrgId, transactionId);
+      const isAuthorized = await ParentFinanceService.verifyParentChildAccess(
+        tenantOrgId,
+        userId,
+        receipt.student_id,
+        req.context?.user?.email,
+      );
 
-      res.json({
-        success: true,
-        data: receipt,
-      });
-    } catch (error: any) {
-      console.error(`[GET /fees/payments/receipts/${req.params.transactionId}] Error:`, error);
-      const status = error.statusCode || 500;
-      res.status(status).json({
-        success: false,
-        error: error.code || 'RECEIPT_FETCH_ERROR',
-        message: error.message || 'Failed to fetch receipt details',
-      });
+      if (!isAuthorized) {
+        return res.status(403).json({
+          success: false,
+          error: 'FORBIDDEN',
+          message: 'Forbidden: You are not authorized to view receipts for this student.',
+        });
+      }
     }
-  },
-);
+
+    res.json({
+      success: true,
+      data: receipt,
+    });
+  } catch (error: any) {
+    console.error(`[GET /fees/payments/receipts/${req.params.transactionId}] Error:`, error);
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      error: error.code || 'RECEIPT_FETCH_ERROR',
+      message: error.message || 'Failed to fetch receipt details',
+    });
+  }
+});
 
 // Backward compatibility: POST /payments
 feesRouter.post('/payments', checkPermission(PERMISSIONS.PAYMENT_RECORD), async (req, res) => {
@@ -1176,54 +1373,25 @@ feesRouter.post('/payments', checkPermission(PERMISSIONS.PAYMENT_RECORD), async 
 feesRouter.get('/receipts/:id', checkPermission(PERMISSIONS.FEES_VIEW), async (req, res) => {
   try {
     const tenantOrgId =
-      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      (req as any).tenantOrgId ||
+      req.context?.user?.org_id ||
+      (req.context?.user as any)?.orgId ||
+      req.context?.user?.school_id;
     const { id } = req.params;
 
-    // Attempt to resolve via PaymentCollectionService if tenantOrgId is available
-    if (tenantOrgId) {
-      try {
-        const receipt = await PaymentCollectionService.getReceiptDetails(tenantOrgId, id);
-        if (receipt) return res.json(receipt);
-      } catch {
-        // Fallback to supabase fee_receipts
-      }
+    const receipt = await PaymentCollectionService.getReceiptDetails(tenantOrgId, id);
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        error: 'RECEIPT_NOT_FOUND',
+        message: 'Receipt not found',
+      });
     }
 
-    const receipt = await supabase
-      .from('fee_receipts')
-      .select(
-        `
-                    *,
-                    payment_transaction:payment_transaction_id(
-                        *,
-                        student:student_id(full_name, student_code),
-                        application:application_id(
-                            id,
-                            lead:lead_id(
-                                enquiry:enquiry_id(student_name, grade_applied_for)
-                            )
-                        )
-                    )
-                `,
-      )
-      .eq('id', id)
-      .single();
-
-    if (receipt.error) throw receipt.error;
-
-    const data = receipt.data as any;
-    if (data && data.payment_transaction?.application) {
-      const enquiry = data.payment_transaction.application.lead?.enquiry;
-      data.payment_transaction.application = {
-        id: data.payment_transaction.application.id,
-        applicant_name: enquiry?.student_name || 'Applicant',
-        class_applied: enquiry?.grade_applied_for || '',
-      };
-    }
-
-    res.json(data);
+    res.json(receipt);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error(`[GET /fees/receipts/${req.params.id}] Error:`, error);
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1232,34 +1400,37 @@ feesRouter.post(
   checkPermission(PERMISSIONS.FEES_RECEIPT_GENERATE),
   async (req, res) => {
     try {
-      const userId = req.context!.user.id;
+      const tenantOrgId =
+        (req as any).tenantOrgId ||
+        req.context?.user?.org_id ||
+        (req.context?.user as any)?.orgId ||
+        req.context?.user?.school_id;
       const { id } = req.params;
 
-      const { data: orig, error: origErr } = await supabase
-        .from('fee_receipts')
-        .select('payment_transaction_id, print_count')
-        .eq('id', id)
-        .single();
+      const receipt = await PaymentCollectionService.getReceiptDetails(tenantOrgId, id);
+      if (!receipt) {
+        return res.status(404).json({
+          success: false,
+          error: 'RECEIPT_NOT_FOUND',
+          message: 'Receipt not found for reprint',
+        });
+      }
 
-      if (origErr || !orig) throw new Error('Original receipt not found');
-
-      // Increment original reprint counter
-      await supabase
-        .from('fee_receipts')
-        .update({ print_count: (orig.print_count || 0) + 1 })
-        .eq('id', id);
-
-      // Create Duplicate Reprint entry
-      const reprint = await FinanceEngine.generateReceipt({
-        payment_transaction_id: orig.payment_transaction_id,
+      const reprintedReceipt = {
+        ...receipt,
         receipt_type: 'REPRINT',
-        generatedBy: userId,
-      });
+        print_count: (receipt.print_count || 1) + 1,
+        reprinted_at: new Date().toISOString(),
+      };
 
-      res.status(201).json(reprint);
+      res.status(200).json({
+        success: true,
+        receipt: reprintedReceipt,
+        data: reprintedReceipt,
+      });
     } catch (error: any) {
-      console.error('POST /receipts/reprint error:', error);
-      res.status(500).json({ error: error.message });
+      console.error('POST /receipts/:id/reprint error:', error);
+      res.status(error.statusCode || 500).json({ error: error.message });
     }
   },
 );
@@ -1267,7 +1438,6 @@ feesRouter.post(
 // ======================================
 // 5. LEDGER & BALANCES (Phase 4: Student Fee Ledger)
 // ======================================
-import { StudentLedgerService } from './services/StudentLedgerService';
 
 // GET /ledger/students: Search eligible students for ledger management
 feesRouter.get('/ledger/students', checkPermission(PERMISSIONS.FEES_VIEW), async (req, res) => {
@@ -1719,10 +1889,10 @@ feesRouter.post(
 );
 
 // GET /fees/my: Authenticated parent or student multi-child fee summary and dues
-feesRouter.get('/my', async (req, res) => {
+feesRouter.get('/my', checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT), async (req, res) => {
   try {
     const tenantOrgId =
-      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
+      req.context?.user?.org_id || req.context?.user?.school_id || (req as any).tenantOrgId;
     const userId = req.context?.user?.id;
     const userEmail = req.context?.user?.email;
 
@@ -1753,58 +1923,191 @@ feesRouter.get('/my', async (req, res) => {
 });
 
 // GET /fees/my/children/:studentId: Authenticated parent child-specific fee details with strict relationship check
-feesRouter.get('/my/children/:studentId', async (req, res) => {
-  try {
-    const tenantOrgId =
-      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
-    const userId = req.context?.user?.id;
-    const userEmail = req.context?.user?.email;
-    const { studentId } = req.params;
+feesRouter.get(
+  '/my/children/:studentId',
+  checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        req.context?.user?.org_id || req.context?.user?.school_id || (req as any).tenantOrgId;
+      const userId = req.context?.user?.id;
+      const userEmail = req.context?.user?.email;
+      const { studentId } = req.params;
 
-    if (!tenantOrgId || !userId) {
-      return res.status(401).json({
+      if (!tenantOrgId || !userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'UNAUTHORIZED',
+          message: 'Valid authenticated session required.',
+        });
+      }
+
+      const hasAccess = await ParentFinanceService.verifyParentChildAccess(
+        tenantOrgId,
+        userId,
+        studentId,
+        userEmail,
+      );
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          error: 'FORBIDDEN',
+          message: 'You are not authorized to view financial records for this student.',
+        });
+      }
+
+      const details = await ParentFinanceService.getChildFeeDetails(
+        tenantOrgId,
+        userId,
+        studentId,
+        userEmail,
+      );
+
+      res.json({
+        success: true,
+        data: details,
+      });
+    } catch (error: any) {
+      console.error(`[GET /fees/my/children/${req.params.studentId}] Error:`, error);
+      const status = error.statusCode || 500;
+      res.status(status).json({
         success: false,
-        error: 'UNAUTHORIZED',
-        message: 'Valid authenticated session required.',
+        error: error.code || 'CHILD_FEES_ERROR',
+        message: error.message || 'Failed to fetch child fee details',
       });
     }
+  },
+);
 
-    const hasAccess = await ParentFinanceService.verifyParentChildAccess(
-      tenantOrgId,
-      userId,
-      studentId,
-      userEmail,
-    );
+// POST /fees/my/payments/create-order: Authenticated parent initiates online payment for a child
+feesRouter.post(
+  '/my/payments/create-order',
+  checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        req.context?.user?.org_id || req.context?.user?.school_id || (req as any).tenantOrgId;
+      const userId = req.context?.user?.id;
+      const userEmail = req.context?.user?.email;
 
-    if (!hasAccess) {
-      return res.status(403).json({
+      if (!tenantOrgId || !userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'UNAUTHORIZED',
+          message: 'Valid authenticated session required to initiate parent fee payment.',
+        });
+      }
+
+      const result = await ParentFinanceService.createParentPaymentOrder(
+        tenantOrgId,
+        userId,
+        req.body,
+        userEmail,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Payment order created successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('[POST /fees/my/payments/create-order] Error:', error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
         success: false,
-        error: 'FORBIDDEN',
-        message: 'You are not authorized to view financial records for this student.',
+        error: error.code || 'CREATE_PAYMENT_ORDER_ERROR',
+        message: error.message || 'Failed to create payment order',
       });
     }
+  },
+);
 
-    const details = await ParentFinanceService.getChildFeeDetails(
-      tenantOrgId,
-      userId,
-      studentId,
-      userEmail,
-    );
+// POST /fees/my/payments/verify: Authenticated parent verifies and reconciles gateway payment
+feesRouter.post(
+  '/my/payments/verify',
+  checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        req.context?.user?.org_id || req.context?.user?.school_id || (req as any).tenantOrgId;
+      const userId = req.context?.user?.id;
+      const userEmail = req.context?.user?.email;
 
-    res.json({
-      success: true,
-      data: details,
-    });
-  } catch (error: any) {
-    console.error(`[GET /fees/my/children/${req.params.studentId}] Error:`, error);
-    const status = error.statusCode || 500;
-    res.status(status).json({
-      success: false,
-      error: error.code || 'CHILD_FEES_ERROR',
-      message: error.message || 'Failed to fetch child fee details',
-    });
-  }
-});
+      if (!tenantOrgId || !userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'UNAUTHORIZED',
+          message: 'Valid authenticated session required to verify parent payment.',
+        });
+      }
+
+      const result = await ParentFinanceService.verifyParentPayment(
+        tenantOrgId,
+        userId,
+        req.body,
+        userEmail,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Payment verified and allocated to student ledger successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('[POST /fees/my/payments/verify] Error:', error);
+      const status = error.statusCode || 400;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'PAYMENT_VERIFICATION_ERROR',
+        message: error.message || 'Failed to verify payment',
+      });
+    }
+  },
+);
+
+// GET /fees/my/receipts/:transactionId: Official receipt document for an authenticated parent's child
+feesRouter.get(
+  '/my/receipts/:transactionId',
+  checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
+  async (req, res) => {
+    try {
+      const tenantOrgId =
+        req.context?.user?.org_id || req.context?.user?.school_id || (req as any).tenantOrgId;
+      const userId = req.context?.user?.id;
+      const userEmail = req.context?.user?.email;
+      const { transactionId } = req.params;
+
+      if (!tenantOrgId || !userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'UNAUTHORIZED',
+          message: 'Valid authenticated session required to retrieve receipt.',
+        });
+      }
+
+      const receipt = await ParentFinanceService.getParentReceiptDetails(
+        tenantOrgId,
+        userId,
+        transactionId,
+        userEmail,
+      );
+
+      res.json({
+        success: true,
+        data: receipt,
+      });
+    } catch (error: any) {
+      console.error(`[GET /fees/my/receipts/${req.params.transactionId}] Error:`, error);
+      const status = error.statusCode || 500;
+      res.status(status).json({
+        success: false,
+        error: error.code || 'RECEIPT_FETCH_ERROR',
+        message: error.message || 'Failed to fetch receipt details',
+      });
+    }
+  },
+);
 
 // Backward compatibility: GET /ledger/student/:studentId
 feesRouter.get(
@@ -1932,16 +2235,31 @@ feesRouter.get('/dashboard/kpis', checkPermission(PERMISSIONS.FEES_VIEW), async 
 
     const monthCollection = monthTx?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
-    // 3. Outstanding Balance (Sum of all ledger running balances)
-    // Or sum of all fee_demands balance_amount which is much more performant!
-    const { data: pendingDemands } = await supabase
-      .from('fee_demands')
-      .select('balance_amount, amount')
-      .in('status', ['PENDING', 'PARTIAL']);
-
-    const totalOutstanding =
-      pendingDemands?.reduce((sum, d) => sum + Number(d.balance_amount), 0) || 0;
-    const pendingCount = pendingDemands?.length || 0;
+    // 3. Outstanding Balance from student_outstanding_view
+    let totalOutstanding = 0;
+    let pendingCount = 0;
+    try {
+      const safeOrgId = toSafeUuid(tenantOrgId);
+      const outstandingAgg: any = safeOrgId
+        ? await prisma.$queryRaw`
+            SELECT
+              COALESCE(SUM(outstanding_amount), 0)::float as total_outstanding,
+              COUNT(DISTINCT student_charge_due_id)::int as pending_count
+            FROM student_outstanding_view
+            WHERE org_id = ${safeOrgId}::uuid
+          `
+        : await prisma.$queryRaw`
+            SELECT
+              COALESCE(SUM(outstanding_amount), 0)::float as total_outstanding,
+              COUNT(DISTINCT student_charge_due_id)::int as pending_count
+            FROM student_outstanding_view
+          `;
+      totalOutstanding = outstandingAgg[0]?.total_outstanding || 0;
+      pendingCount = outstandingAgg[0]?.pending_count || 0;
+    } catch {
+      totalOutstanding = 0;
+      pendingCount = 0;
+    }
 
     // 4. Active & Total Fee Structures count from fee_structures table via Prisma
     let activeStructures = 0;
@@ -1994,39 +2312,6 @@ feesRouter.get('/dashboard/kpis', checkPermission(PERMISSIONS.FEES_VIEW), async 
   }
 });
 
-// Backward compatibility helper `/my` (Parents Dashboard)
-feesRouter.get('/my', checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT), async (req, res) => {
-  try {
-    const userId = req.context!.user.id;
-    const { data: links } = await supabase
-      .from('student_parents')
-      .select('student_id')
-      .eq('parent_user_id', userId);
-    if (!links || links.length === 0) return res.json([]);
-
-    const results = [];
-    for (const link of links) {
-      const sid = link.student_id;
-      const { data: student } = await supabase
-        .from('students')
-        .select('full_name, student_code')
-        .eq('id', sid)
-        .single();
-      const balance = await FinanceEngine.calculateBalance({ student_id: sid });
-      const history = await FinanceEngine.getLedgerHistory({ student_id: sid });
-
-      results.push({
-        student,
-        balance,
-        history,
-      });
-    }
-    res.json(results);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ======================================
 // PHASE 2: NEW ENDPOINTS
 // ======================================
@@ -2037,42 +2322,146 @@ feesRouter.get('/my', checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT), async 
 feesRouter.get('/demands/:id', checkPermission(PERMISSIONS.FEES_DEMAND_VIEW), async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, error } = await supabase
-      .from('fee_demands')
-      .select(
-        `
-                    *,
-                    student:student_id(id, full_name, student_code),
-                    application:application_id(
-                        id,
-                        lead:lead_id(
-                            enquiry:enquiry_id(student_name, grade_applied_for)
-                        )
-                    ),
-                    fee_structure:fee_structure_id(id, name, version, academic_year:academic_years(year_label)),
-                    items:fee_demand_items(*),
-                    transactions:payment_transactions(
-                        id, amount, payment_mode, transaction_reference, status, created_at, cashier_id
-                    )
-                `,
-      )
-      .eq('id', id)
-      .single();
+    const safeId = toSafeUuid(id);
+    if (!safeId) return res.status(404).json({ error: 'Demand not found' });
 
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Demand not found' });
+    const sfa = await prisma.student_fee_assignments.findUnique({
+      where: { student_fee_assignment_id: safeId },
+      include: {
+        student_enrollments: {
+          include: {
+            students: true,
+            academic_year_grades: {
+              include: {
+                grades: true,
+                academic_years: true,
+              },
+            },
+          },
+        },
+        fee_structures: {
+          include: {
+            fee_components: true,
+          },
+        },
+        installment_plans: {
+          include: {
+            installment_plan_terms: true,
+          },
+        },
+        student_charges: {
+          include: {
+            student_charge_dues: true,
+          },
+        },
+      },
+    });
 
-    const resData = data as any;
-    if (resData.application) {
-      const enquiry = resData.application.lead?.enquiry;
-      resData.application = {
-        id: resData.application.id,
-        applicant_name: enquiry?.student_name || 'Applicant',
-        class_applied: enquiry?.grade_applied_for || '',
-      };
+    if (!sfa) return res.status(404).json({ error: 'Demand not found' });
+
+    const student = sfa.student_enrollments?.students;
+    const ayg = sfa.student_enrollments?.academic_year_grades;
+
+    let totalAmount = 0;
+    let balanceAmount = 0;
+    let hasOverdue = false;
+    let earliestDueDate: Date | null = null;
+
+    for (const sc of sfa.student_charges) {
+      totalAmount += Number(sc.amount);
+      for (const due of sc.student_charge_dues) {
+        if (due.status !== 'paid' && due.status !== 'waived') {
+          balanceAmount += Number(due.amount_due);
+          if (due.due_date && new Date(due.due_date) < new Date()) {
+            hasOverdue = true;
+          }
+        }
+        if (due.due_date && (!earliestDueDate || new Date(due.due_date) < earliestDueDate)) {
+          earliestDueDate = new Date(due.due_date);
+        }
+      }
     }
 
-    res.json(resData);
+    let derivedStatus = 'PENDING';
+    if (sfa.status === 'cancelled') {
+      derivedStatus = 'CANCELLED';
+    } else if (balanceAmount <= 0 && totalAmount > 0) {
+      derivedStatus = 'PAID';
+    } else if (hasOverdue) {
+      derivedStatus = 'OVERDUE';
+    } else if (balanceAmount < totalAmount) {
+      derivedStatus = 'PARTIAL';
+    }
+
+    // Get any payment transactions related to this student
+    const studentId = student?.student_id;
+    let transactions: any[] = [];
+    if (studentId) {
+      transactions = await prisma.payment_transactions.findMany({
+        where: {
+          payment_orders: {
+            student_id: studentId,
+          },
+        },
+        select: {
+          payment_transaction_id: true,
+          amount: true,
+          payment_method: true,
+          status: true,
+          created_at: true,
+          created_by: true,
+        },
+        orderBy: { created_at: 'desc' },
+        take: 10,
+      });
+    }
+
+    res.json({
+      id: sfa.student_fee_assignment_id,
+      demand_id: sfa.student_fee_assignment_id,
+      demand_no: `DEM-${sfa.student_fee_assignment_id.slice(0, 8).toUpperCase()}`,
+      student_id: student?.student_id,
+      student: student
+        ? {
+            id: student.student_id,
+            full_name: `${student.first_name} ${student.last_name || ''}`.trim(),
+            student_code: student.admission_no,
+            admission_no: student.admission_no,
+          }
+        : null,
+      application: null,
+      fee_structure_id: sfa.fee_structure_id,
+      fee_structure: sfa.fee_structures
+        ? {
+            id: sfa.fee_structures.fee_structure_id,
+            name: sfa.fee_structures.name,
+            academic_year: ayg?.academic_years
+              ? { year_label: ayg.academic_years.academic_year_name }
+              : undefined,
+          }
+        : null,
+      amount: totalAmount,
+      balance_amount: balanceAmount,
+      due_date: earliestDueDate
+        ? earliestDueDate.toISOString().split('T')[0]
+        : sfa.assigned_at.toISOString().split('T')[0],
+      status: derivedStatus,
+      items: sfa.student_charges.map((sc) => ({
+        id: sc.student_charge_id,
+        name: sc.description,
+        amount: Number(sc.amount),
+      })),
+      transactions: transactions.map((t) => ({
+        id: t.payment_transaction_id,
+        amount: Number(t.amount),
+        payment_mode: t.payment_method,
+        transaction_reference: t.payment_transaction_id,
+        status: t.status,
+        created_at: t.created_at,
+        cashier_id: t.created_by,
+      })),
+      created_at: sfa.assigned_at,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -2086,77 +2475,61 @@ feesRouter.post(
   checkPermission(PERMISSIONS.FEES_DEMAND_GENERATE),
   async (req, res) => {
     try {
-      const userId = req.context!.user.id;
-      const schoolId = req.context!.user.school_id;
+      const tenantOrgId =
+        (req as any).tenantOrgId ||
+        req.context?.user?.org_id ||
+        req.context?.user?.school_id ||
+        (req.headers['x-org-id'] as string) ||
+        (req.headers['x-tenant-id'] as string);
+      const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
       const { mode, class_id, section_id, student_ids, fee_structure_id, due_date } = req.body;
-      // mode: 'class' | 'section' | 'custom'
 
-      if (!fee_structure_id || !due_date) {
-        return res.status(400).json({ error: 'fee_structure_id and due_date are required' });
+      if (!fee_structure_id) {
+        return res.status(400).json({ error: 'fee_structure_id is required' });
       }
 
       let targetStudentIds: string[] = [];
 
-      if (mode === 'class' && class_id) {
-        const { data: sections } = await supabase
-          .from('sections')
-          .select('id')
-          .eq('class_id', class_id);
-        const sectionIds = sections?.map((s) => s.id) || [];
-        const { data: enrollments } = await supabase
-          .from('student_sections')
-          .select('student_id')
-          .in('section_id', sectionIds);
-        targetStudentIds = enrollments?.map((e) => e.student_id) || [];
-      } else if (mode === 'section' && section_id) {
-        const { data: enrollments } = await supabase
-          .from('student_sections')
-          .select('student_id')
-          .eq('section_id', section_id);
-        targetStudentIds = enrollments?.map((e) => e.student_id) || [];
-      } else if (mode === 'custom' && student_ids?.length > 0) {
+      if (mode === 'section' && section_id) {
+        const enrollments = await prisma.student_enrollments.findMany({
+          where: { section_id: String(section_id), status: 'active' },
+          select: { student_id: true },
+        });
+        targetStudentIds = enrollments.map((e) => e.student_id);
+      } else if (mode === 'class' && class_id) {
+        const safeClassId = String(class_id);
+        const enrollments = await prisma.student_enrollments.findMany({
+          where: {
+            OR: [
+              { academic_year_grade_id: safeClassId },
+              { academic_year_grades: { grade_id: safeClassId } },
+            ],
+            status: 'active',
+          },
+          select: { student_id: true },
+        });
+        targetStudentIds = enrollments.map((e) => e.student_id);
+      } else if (mode === 'custom' && Array.isArray(student_ids) && student_ids.length > 0) {
         targetStudentIds = student_ids;
       } else {
         return res.status(400).json({ error: 'Invalid bulk generation parameters' });
       }
 
       if (targetStudentIds.length === 0) {
-        return res.status(400).json({ error: 'No students found for selection' });
+        return res.status(400).json({ error: 'No active enrolled students found for selection' });
       }
 
-      // Check for existing demands to avoid duplicates
-      const { data: existing } = await supabase
-        .from('fee_demands')
-        .select('student_id')
-        .eq('fee_structure_id', fee_structure_id)
-        .in('student_id', targetStudentIds)
-        .not('status', 'eq', 'CANCELLED');
-
-      const alreadyBilled = new Set(existing?.map((e) => e.student_id) || []);
-      const toGenerate = targetStudentIds.filter((id) => !alreadyBilled.has(id));
-
-      const results = [];
-      const errors = [];
-      for (const sid of toGenerate) {
-        try {
-          const demand = await FinanceEngine.initializeDemand({
-            student_id: sid,
-            fee_structure_id,
-            due_date,
-            performedBy: userId,
-          });
-          results.push(demand);
-        } catch (err: any) {
-          errors.push({ student_id: sid, error: err.message });
-        }
-      }
+      const bulkRes = await StudentLedgerService.bulkAssignFeeStructure(tenantOrgId, userId, {
+        studentIds: targetStudentIds,
+        feeStructureId: fee_structure_id,
+      });
 
       res.status(201).json({
-        generated: results.length,
-        skipped: alreadyBilled.size,
-        errors: errors.length,
-        details: results,
-        errorDetails: errors,
+        generated: bulkRes.succeeded,
+        skipped: bulkRes.failed,
+        errors: bulkRes.failed,
+        details: bulkRes.results,
+        errorDetails: bulkRes.results.filter((r) => !r.success),
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2173,39 +2546,46 @@ feesRouter.patch(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.context!.user.id;
+      const safeId = toSafeUuid(id);
+      const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
       const { reason } = req.body;
 
-      const { data: demand } = await supabase
-        .from('fee_demands')
-        .select('status, balance_amount')
-        .eq('id', id)
-        .single();
+      if (!safeId) return res.status(404).json({ error: 'Demand not found' });
 
-      if (!demand) return res.status(404).json({ error: 'Demand not found' });
-      if (demand.status === 'PAID')
-        return res.status(422).json({ error: 'Cannot cancel a fully paid demand' });
-
-      const { error } = await supabase
-        .from('fee_demands')
-        .update({
-          status: 'CANCELLED',
-          cancel_reason: reason || 'Cancelled by finance officer',
-          cancelled_by: userId,
-          cancelled_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Log audit
-      await supabase.from('finance_audit_logs').insert({
-        action: 'DEMAND_CANCELLED',
-        entity_type: 'fee_demands',
-        entity_id: id,
-        performed_by: userId,
-        details: { reason },
+      const assignment = await prisma.student_fee_assignments.findUnique({
+        where: { student_fee_assignment_id: safeId },
+        include: {
+          student_charges: {
+            include: {
+              student_charge_dues: true,
+            },
+          },
+        },
       });
+
+      if (!assignment) return res.status(404).json({ error: 'Demand not found' });
+
+      const hasPaid = assignment.student_charges.some((sc) =>
+        sc.student_charge_dues.some((d) => d.status === 'paid'),
+      );
+      if (hasPaid) {
+        return res.status(422).json({ error: 'Cannot cancel a demand that has recorded payments' });
+      }
+
+      await prisma.$transaction([
+        prisma.student_fee_assignments.update({
+          where: { student_fee_assignment_id: safeId },
+          data: {
+            status: 'cancelled',
+            notes: reason ? `Cancelled: ${reason}` : 'Cancelled by finance officer',
+            updated_by: toSafeUuid(userId),
+          },
+        }),
+        prisma.student_charges.updateMany({
+          where: { student_fee_assignment_id: safeId },
+          data: { status: 'cancelled' },
+        }),
+      ]);
 
       res.json({ success: true, message: 'Demand cancelled successfully' });
     } catch (error: any) {
@@ -2215,59 +2595,59 @@ feesRouter.patch(
 );
 
 // ──────────────────────────────────────
-// WAIVERS — Apply waiver (posts WAIVER credit to ledger)
+// WAIVERS — Apply waiver
 // ──────────────────────────────────────
 feesRouter.post('/waivers', checkPermission(PERMISSIONS.FEES_WAIVER_APPROVE), async (req, res) => {
   try {
-    const userId = req.context!.user.id;
-    const schoolId = req.context!.user.school_id;
-    const { demand_id, student_id, application_id, amount, reason } = req.body;
+    const userId = req.context?.user?.id || (req.context?.user as any)?.user_id || 'system';
+    const { demand_id, amount, reason } = req.body;
 
-    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid waiver amount' });
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Invalid waiver amount' });
+    }
 
-    // Update demand balance
-    const { data: demand, error: dErr } = await supabase
-      .from('fee_demands')
-      .select('balance_amount')
-      .eq('id', demand_id)
-      .single();
+    const waiverAmount = Number(amount);
+    const safeDemandId = toSafeUuid(demand_id);
 
-    if (dErr || !demand) return res.status(404).json({ error: 'Demand not found' });
+    if (!safeDemandId) {
+      return res.status(400).json({ error: 'Valid demand_id is required' });
+    }
 
-    const newBalance = Math.max(0, Number(demand.balance_amount) - Number(amount));
-    await supabase
-      .from('fee_demands')
-      .update({
-        balance_amount: newBalance,
-        status: newBalance === 0 ? 'PAID' : 'PARTIAL',
-      })
-      .eq('id', demand_id);
-
-    // Post WAIVER credit to ledger
-    await LedgerPostingService.postEntry({
-      student_id: student_id || null,
-      application_id: application_id || null,
-      school_id: schoolId,
-      transaction_type: 'WAIVER',
-      debit: 0,
-      credit: Number(amount),
-      reference_type: 'WAIVER',
-      reference_id: demand_id,
-      description: reason || 'Fee waiver approved',
-      performed_by: userId,
+    const assignment = await prisma.student_fee_assignments.findUnique({
+      where: { student_fee_assignment_id: safeDemandId },
+      include: {
+        student_charges: {
+          include: {
+            student_charge_dues: {
+              where: { status: { in: ['pending', 'overdue', 'partially_paid'] } },
+              orderBy: { due_date: 'asc' },
+            },
+          },
+        },
+      },
     });
 
-    // Audit log
-    await supabase.from('finance_audit_logs').insert({
-      action: 'WAIVER_APPLIED',
-      entity_type: 'fee_demands',
-      entity_id: demand_id,
-      performed_by: userId,
-      school_id: schoolId,
-      details: { amount, reason },
+    if (!assignment) return res.status(404).json({ error: 'Demand not found' });
+
+    let remainingWaiver = waiverAmount;
+    await prisma.$transaction(async (tx) => {
+      for (const sc of assignment.student_charges) {
+        if (remainingWaiver <= 0) break;
+        for (const due of sc.student_charge_dues) {
+          if (remainingWaiver <= 0) break;
+          const dueAmt = Number(due.amount_due);
+          if (dueAmt <= remainingWaiver) {
+            await tx.student_charge_dues.update({
+              where: { student_charge_due_id: due.student_charge_due_id },
+              data: { status: 'waived' },
+            });
+            remainingWaiver -= dueAmt;
+          }
+        }
+      }
     });
 
-    res.json({ success: true, message: `Waiver of ₹${amount} applied`, new_balance: newBalance });
+    res.json({ success: true, message: `Waiver of ₹${amount} applied successfully` });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -2326,58 +2706,42 @@ feesRouter.post('/refunds', checkPermission(PERMISSIONS.FEES_REFUND_PROCESS), as
 // ──────────────────────────────────────
 feesRouter.get('/receipts', checkPermission(PERMISSIONS.FEES_VIEW), async (req, res) => {
   try {
-    const { from, to, receipt_type, payment_mode, limit = 100, offset = 0 } = req.query;
+    const tenantOrgId =
+      (req as any).tenantOrgId ||
+      req.context?.user?.org_id ||
+      (req.context?.user as any)?.orgId ||
+      req.context?.user?.school_id;
 
-    let query = supabase
-      .from('fee_receipts')
-      .select(
-        `
-                    *,
-                    transaction:payment_transaction_id(
-                        amount, payment_mode, transaction_reference, created_at, student_id, application_id,
-                        cashier:users!cashier_id(email),
-                        student:student_id(full_name, student_code),
-                        application:application_id(
-                            id,
-                            lead:lead_id(
-                                enquiry:enquiry_id(student_name, grade_applied_for)
-                            )
-                        )
-                    )
-                `,
-      )
-      .order('created_at', { ascending: false })
-      .range(Number(offset), Number(offset) + Number(limit) - 1);
+    const {
+      from,
+      to,
+      receipt_type,
+      payment_mode,
+      search,
+      limit = 100,
+      offset = 0,
+      page,
+    } = req.query;
 
-    if (receipt_type) query = query.eq('receipt_type', receipt_type);
-    if (from) query = query.gte('created_at', `${from}T00:00:00.000Z`);
-    if (to) query = query.lte('created_at', `${to}T23:59:59.999Z`);
-
-    const { data, error, count } = await query;
-    if (error) throw error;
-
-    // Filter by payment_mode post-fetch (nested field)
-    const filtered = payment_mode
-      ? (data || []).filter((r: any) => r.transaction?.payment_mode === payment_mode)
-      : data || [];
-
-    // Map data to match the expected frontend contract
-    const mapped = (filtered || []).map((r: any) => {
-      if (r.transaction?.application) {
-        const enquiry = r.transaction.application.lead?.enquiry;
-        r.transaction.application = {
-          id: r.transaction.application.id,
-          applicant_name: enquiry?.student_name || 'Applicant',
-          class_applied: enquiry?.grade_applied_for || '',
-        };
-      }
-      return r;
+    const result = await PaymentCollectionService.listReceipts(tenantOrgId, {
+      from: from as string | undefined,
+      to: to as string | undefined,
+      receipt_type: receipt_type as string | undefined,
+      payment_mode: payment_mode as string | undefined,
+      search: search as string | undefined,
+      limit: limit ? Number(limit) : 100,
+      offset: offset ? Number(offset) : undefined,
+      page: page ? Number(page) : undefined,
     });
 
-    res.json({ data: mapped, total: count || mapped.length });
+    res.json({
+      success: true,
+      data: result.data,
+      total: result.total,
+    });
   } catch (error: any) {
-    console.error('[DEBUG GET /receipts error]:', error);
-    res.status(500).json({ error: error.message });
+    console.error('[GET /receipts error]:', error);
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 

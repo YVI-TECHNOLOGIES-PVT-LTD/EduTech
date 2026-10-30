@@ -15,6 +15,7 @@ export const ROUTES = {
     DETAIL: (id: string) => `/(parent)/applications/${id}`,
     STATUS: (id: string) => `/(parent)/applications/status?id=${id}`,
     FEES: (id: string) => `/(parent)/applications/fees?id=${id}`,
+    ENROLLED_FEES: '/(parent)/fees',
     DOCUMENTS: '/(parent)/documents',
     NOTIFICATIONS: '/(parent)/notifications',
   },

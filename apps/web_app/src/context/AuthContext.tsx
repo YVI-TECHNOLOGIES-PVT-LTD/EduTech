@@ -240,15 +240,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserProfile(currentSession.access_token);
         }
       } else {
+        const hasNativeToken = Boolean(localStorage.getItem('edutrack_access_token'));
+        if (event === 'INITIAL_SESSION' && hasNativeToken) {
+          // Native JWT mode: do not reset client state on Supabase empty INITIAL_SESSION!
+          return;
+        }
+
         // If transitioning to signed out from an authenticated session
-        if (profileFetchTracker.current) {
+        if (profileFetchTracker.current && event === 'SIGNED_OUT') {
           await resetAuthenticatedClientState('session_expired_or_signed_out');
           profileFetchTracker.current = null;
           currentAuthBoundaryRef.current = null;
         }
         setSession(null);
-        setBoundaryState('signed_out');
-        dispatch(setInitializing(false));
+        if (!hasNativeToken) {
+          setBoundaryState('signed_out');
+          dispatch(setInitializing(false));
+        }
       }
     });
 

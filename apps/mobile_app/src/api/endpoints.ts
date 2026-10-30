@@ -36,6 +36,11 @@ export const ENDPOINTS = {
     SUMMARY: (appId: string) => `/v1/applications/${appId}/fee`,
     PAYMENT: (appId: string) => `/v1/applications/${appId}/payment`,
     RECEIPT: (appId: string) => `/v1/applications/${appId}/receipt`,
+    MY_CHILDREN: '/v1/fees/my',
+    CHILD_DETAILS: (studentId: string) => `/v1/fees/my/children/${studentId}`,
+    CREATE_PAYMENT_ORDER: '/v1/fees/my/payments/create-order',
+    VERIFY_PAYMENT: '/v1/fees/my/payments/verify',
+    RECEIPT_BY_TX: (id: string) => `/v1/fees/my/receipts/${id}`,
   },
   TIMELINE: {
     BY_APPLICATION: (appId: string) => `/v1/applications/${appId}/timeline`,

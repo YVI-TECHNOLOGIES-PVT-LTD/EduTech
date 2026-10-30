@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { CreditCard, Loader2, CheckCircle2, ShieldAlert, AlertTriangle, RefreshCw, FileText } from 'lucide-react';
+import {
+  CreditCard,
+  Loader2,
+  CheckCircle2,
+  ShieldAlert,
+  AlertTriangle,
+  RefreshCw,
+  FileText,
+} from 'lucide-react';
+import { apiClient } from '../lib/api-client';
 
 declare global {
   interface Window {
@@ -103,17 +112,19 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         orderPayload.studentChargeDueId = studentChargeDueId;
       }
 
-      const createOrderRes = await axios.post(`${baseApi}/create-order`, orderPayload);
+      let createOrderRes: any;
+      try {
+        createOrderRes = await apiClient.post('/create-order', orderPayload);
+      } catch {
+        createOrderRes = await axios.post(`${baseApi}/create-order`, orderPayload);
+      }
       const orderData = createOrderRes.data;
 
       if (!orderData || !orderData.order_id) {
         throw new Error('Server failed to return a valid Razorpay order_id.');
       }
 
-      const keyId =
-        orderData.key_id ||
-        import.meta.env.VITE_RAZORPAY_KEY_ID ||
-        '';
+      const keyId = orderData.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || '';
 
       if (!keyId) {
         throw new Error('Razorpay Key ID is not configured on client or server.');
@@ -146,12 +157,22 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
           setStatus('verifying');
           try {
             // STEP 3: Call Backend to Authoritatively Verify Signature & Status
-            const verifyRes = await axios.post(`${baseApi}/verify-payment`, {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              payment_order_id: orderData.payment_order_id,
-            });
+            let verifyRes: any;
+            try {
+              verifyRes = await apiClient.post('/verify-payment', {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                payment_order_id: orderData.payment_order_id,
+              });
+            } catch {
+              verifyRes = await axios.post(`${baseApi}/verify-payment`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                payment_order_id: orderData.payment_order_id,
+              });
+            }
 
             const data = verifyRes.data;
 
@@ -290,7 +311,8 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         <div>
           <span className="font-semibold block">Payment Pending Reconciliation</span>
           <span className="text-[11px] text-amber-700 dark:text-amber-300">
-            Gateway verification is temporarily unavailable. Please do not re-pay. Status will settle automatically.
+            Gateway verification is temporarily unavailable. Please do not re-pay. Status will
+            settle automatically.
           </span>
         </div>
         <button
@@ -320,11 +342,7 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       {isLoading ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>
-            {status === 'creating_order'
-              ? 'Creating order...'
-              : 'Verifying payment...'}
-          </span>
+          <span>{status === 'creating_order' ? 'Creating order...' : 'Verifying payment...'}</span>
         </>
       ) : (
         <>

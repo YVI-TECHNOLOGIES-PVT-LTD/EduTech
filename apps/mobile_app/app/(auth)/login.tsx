@@ -9,7 +9,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Redirect } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -27,17 +27,16 @@ export default function LoginScreen() {
   const [isSecure, setIsSecure] = useState(true);
   const { isAuthenticated, isHydrating } = useAuthStore();
 
-  React.useEffect(() => {
-    if (!isHydrating && isAuthenticated) {
-      router.replace(ROUTES.PARENT.DASHBOARD as any);
-    }
-  }, [isAuthenticated, isHydrating, router]);
+  if (!isHydrating && isAuthenticated) {
+    return <Redirect href={ROUTES.PARENT.DASHBOARD as any} />;
+  }
 
   const { mutate: login, isPending, error } = useLogin();
 
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -58,11 +57,11 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       className="flex-1 bg-indigo-950"
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
@@ -240,6 +239,36 @@ export default function LoginScreen() {
                 </Text>
               </Text>
             </TouchableOpacity>
+
+            {__DEV__ && (
+              <View className="items-center mt-4 space-y-2">
+                <TouchableOpacity
+                  onPress={() => {
+                    setValue('email', 'sathish1@gmail.com', { shouldValidate: true });
+                    setValue('password', 'Password@123', { shouldValidate: true });
+                  }}
+                  className="bg-indigo-50 dark:bg-indigo-950/40 px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800"
+                >
+                  <Text className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                    ⚡ Quick Fill: Sathish Naik (Child: Hari Babu)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setValue('email', 'syn.parent.tanmay.bhardwaj.54@synthetic.edutrack.internal', {
+                      shouldValidate: true,
+                    });
+                    setValue('password', 'Password@123', { shouldValidate: true });
+                  }}
+                  className="bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800"
+                >
+                  <Text className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    ⚡ Quick Fill: Tanmay Bhardwaj (Enrolled 2 Children)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>

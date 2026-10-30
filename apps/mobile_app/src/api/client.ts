@@ -41,7 +41,8 @@ const axiosInstance: AxiosInstance = axios.create({
 // Request Interceptor: Attach JWT Token & Correlation ID
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await SecureStorage.getAccessToken();
+    const token =
+      (await SecureStorage.getAccessToken()) || useAuthStore.getState().tokens?.accessToken;
     const workspaceId = await SecureStorage.getWorkspaceId();
 
     if (token && typeof token === 'string' && token.trim()) {

@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../../lib/prismaClient';
+import { toSafeUuid } from '../services/FeeStructureManagerService';
 
 export interface WebhookEventRecord {
   payment_webhook_event_id: string;
@@ -113,7 +114,7 @@ export class PaymentRepository {
   public static async findWebhookEvent(
     providerName: string,
     providerEventId: string,
-    client?: any
+    client?: any,
   ): Promise<WebhookEventRecord | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -140,7 +141,7 @@ export class PaymentRepository {
       paymentOrderId?: string | null;
       paymentTransactionId?: string | null;
     },
-    client?: any
+    client?: any,
   ): Promise<WebhookEventRecord> {
     const db = this.getClient(client);
     const status = data.status || 'received';
@@ -175,7 +176,7 @@ export class PaymentRepository {
       paymentOrderId?: string | null;
       paymentTransactionId?: string | null;
     },
-    client?: any
+    client?: any,
   ): Promise<void> {
     const db = this.getClient(client);
     await db.$executeRaw`
@@ -195,7 +196,7 @@ export class PaymentRepository {
    */
   public static async findWebhookEventById(
     paymentWebhookEventId: string,
-    client?: any
+    client?: any,
   ): Promise<WebhookEventRecord | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -217,7 +218,7 @@ export class PaymentRepository {
     status: 'received' | 'processed' | 'failed' | 'ignored',
     limit: number = 50,
     olderThanMs: number = 0,
-    client?: any
+    client?: any,
   ): Promise<WebhookEventRecord[]> {
     const db = this.getClient(client);
     let rows: any;
@@ -266,7 +267,7 @@ export class PaymentRepository {
       createdBy?: string | null;
       status?: 'created' | 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired';
     },
-    client?: any
+    client?: any,
   ): Promise<PaymentOrderRecord> {
     const db = this.getClient(client);
     const status = data.status || 'created';
@@ -294,7 +295,7 @@ export class PaymentRepository {
   public static async findPaymentOrderById(
     paymentOrderId: string,
     orgId?: string,
-    client?: any
+    client?: any,
   ): Promise<any | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -356,7 +357,7 @@ export class PaymentRepository {
     paymentOrderId: string,
     status: 'created' | 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired',
     updatedBy?: string | null,
-    client?: any
+    client?: any,
   ): Promise<void> {
     const db = this.getClient(client);
     await db.$executeRaw`
@@ -387,7 +388,7 @@ export class PaymentRepository {
       transactionDate?: Date | null;
       createdBy?: string | null;
     },
-    client?: any
+    client?: any,
   ): Promise<PaymentTransactionRecord> {
     const db = this.getClient(client);
     const status = data.status || 'initiated';
@@ -418,7 +419,7 @@ export class PaymentRepository {
    */
   public static async findTransactionByOrderId(
     paymentOrderId: string,
-    client?: any
+    client?: any,
   ): Promise<PaymentTransactionRecord | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -440,7 +441,7 @@ export class PaymentRepository {
    */
   public static async findTransactionByGatewayRef(
     gatewayRef: string,
-    client?: any
+    client?: any,
   ): Promise<PaymentTransactionRecord | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -462,7 +463,7 @@ export class PaymentRepository {
    */
   public static async findTransactionWithOrderAndDueByGatewayRef(
     gatewayRef: string,
-    client?: any
+    client?: any,
   ): Promise<any | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -526,7 +527,7 @@ export class PaymentRepository {
       transactionDate?: Date | null;
       updatedBy?: string | null;
     },
-    client?: any
+    client?: any,
   ): Promise<PaymentTransactionRecord> {
     const db = this.getClient(client);
     const gatewayResponseJson = data.gatewayResponse ? JSON.stringify(data.gatewayResponse) : null;
@@ -569,7 +570,7 @@ export class PaymentRepository {
       notes?: string | null;
       createdBy?: string | null;
     },
-    client?: any
+    client?: any,
   ): Promise<PaymentAllocationRecord> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -594,7 +595,7 @@ export class PaymentRepository {
    */
   public static async getTotalAllocatedForDue(
     studentChargeDueId: string,
-    client?: any
+    client?: any,
   ): Promise<number> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -614,10 +615,7 @@ export class PaymentRepository {
   /**
    * Find student charge due by ID with associated student charge details.
    */
-  public static async findDueById(
-    studentChargeDueId: string,
-    client?: any
-  ): Promise<any | null> {
+  public static async findDueById(studentChargeDueId: string, client?: any): Promise<any | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
       SELECT scd.student_charge_due_id, scd.student_charge_id, scd.installment_term_id,
@@ -641,7 +639,7 @@ export class PaymentRepository {
     studentChargeDueId: string,
     status: 'pending' | 'partially_paid' | 'paid' | 'overdue' | 'waived' | 'cancelled',
     updatedBy?: string | null,
-    client?: any
+    client?: any,
   ): Promise<void> {
     const db = this.getClient(client);
     await db.$executeRaw`
@@ -656,10 +654,7 @@ export class PaymentRepository {
   /**
    * Query all active dues for a student with calculated remaining balances.
    */
-  public static async getEligibleDuesForStudent(
-    studentId: string,
-    client?: any
-  ): Promise<any[]> {
+  public static async getEligibleDuesForStudent(studentId: string, client?: any): Promise<any[]> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
       SELECT scd.student_charge_due_id, scd.student_charge_id, scd.amount_due::float8 as amount_due,
@@ -691,8 +686,12 @@ export class PaymentRepository {
       installment_term: r.term_name || 'Standard Term',
       amount_due: r.amount_due,
       previously_allocated_amount: r.previously_allocated_amount,
-      remaining_payable_amount: Math.max(0, Math.round((r.amount_due - r.previously_allocated_amount + Number.EPSILON) * 100) / 100),
-      due_date: r.due_date instanceof Date ? r.due_date.toISOString().split('T')[0] : String(r.due_date),
+      remaining_payable_amount: Math.max(
+        0,
+        Math.round((r.amount_due - r.previously_allocated_amount + Number.EPSILON) * 100) / 100,
+      ),
+      due_date:
+        r.due_date instanceof Date ? r.due_date.toISOString().split('T')[0] : String(r.due_date),
       status: r.due_status,
     }));
   }
@@ -703,7 +702,7 @@ export class PaymentRepository {
   public static async findDueWithAllocations(
     dueId: string,
     studentId: string,
-    client?: any
+    client?: any,
   ): Promise<any | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -751,7 +750,7 @@ export class PaymentRepository {
   public static async findPaymentOrderForVerification(
     paymentOrderId: string,
     orgId?: string,
-    client?: any
+    client?: any,
   ): Promise<any | null> {
     const db = this.getClient(client);
     const rows: any = await db.$queryRaw`
@@ -827,19 +826,21 @@ export class PaymentRepository {
         },
         installment_plan_terms: r.term_name ? { term_name: r.term_name } : null,
       },
-      payment_transactions: r.payment_transaction_id ? [
-        {
-          payment_transaction_id: r.payment_transaction_id,
-          payment_order_id: r.payment_order_id,
-          payment_method: r.payment_method,
-          status: r.transaction_status,
-          gateway_name: r.gateway_name,
-          gateway_order_id: r.gateway_order_id,
-          gateway_transaction_id: r.gateway_transaction_id,
-          amount: r.transaction_amount,
-          created_at: r.transaction_created_at,
-        },
-      ] : [],
+      payment_transactions: r.payment_transaction_id
+        ? [
+            {
+              payment_transaction_id: r.payment_transaction_id,
+              payment_order_id: r.payment_order_id,
+              payment_method: r.payment_method,
+              status: r.transaction_status,
+              gateway_name: r.gateway_name,
+              gateway_order_id: r.gateway_order_id,
+              gateway_transaction_id: r.gateway_transaction_id,
+              amount: r.transaction_amount,
+              created_at: r.transaction_created_at,
+            },
+          ]
+        : [],
     };
   }
 
@@ -849,9 +850,15 @@ export class PaymentRepository {
   public static async getReceiptDetails(
     orgId: string,
     transactionId: string,
-    client?: any
+    client?: any,
   ): Promise<any | null> {
     const db = this.getClient(client);
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const safeTxId = toSafeUuid(transactionId);
+    const idCondition = safeTxId
+      ? Prisma.sql`(pt.payment_transaction_id = ${safeTxId}::uuid OR pt.payment_order_id = ${safeTxId}::uuid)`
+      : Prisma.sql`(po.order_reference = ${transactionId} OR po.order_reference ILIKE ${`%${transactionId.replace(/^RCPT-/, '')}%`})`;
+
     const rows: any = await db.$queryRaw`
       SELECT pt.payment_transaction_id, pt.payment_order_id, pt.payment_method, pt.status as transaction_status,
              pt.amount::float8 as transaction_amount, pt.currency_code, pt.transaction_date, pt.created_at as transaction_created_at,
@@ -876,18 +883,48 @@ export class PaymentRepository {
       LEFT JOIN academic_year_grades ayg ON ayg.academic_year_grade_id = latest_se.academic_year_grade_id
       LEFT JOIN academic_years ay ON ay.academic_year_id = ayg.academic_year_id
       LEFT JOIN grades g ON g.grade_id = ayg.grade_id
-      WHERE pt.payment_transaction_id = ${transactionId}::uuid
-        ${orgId ? Prisma.sql`AND s.org_id = ${orgId}::uuid` : Prisma.empty}
+      WHERE ${idCondition}
+        ${safeOrgId ? Prisma.sql`AND s.org_id = ${safeOrgId}::uuid` : Prisma.empty}
+      ORDER BY 
+        CASE WHEN pt.status = 'success' THEN 1 ELSE 2 END ASC,
+        pt.created_at DESC
       LIMIT 1;
     `;
     if (!rows.length) return null;
     const r = rows[0];
     const receiptNo = `RCPT-${new Date(r.transaction_created_at).getFullYear()}-${(r.order_reference || '').split('-')[1] || r.payment_transaction_id.slice(0, 6)}`;
+    const studentFullName = `${r.first_name} ${r.last_name || ''}`.trim();
+    const mode =
+      r.payment_method === 'cash'
+        ? 'Cash'
+        : r.payment_method === 'upi'
+          ? 'UPI'
+          : r.payment_method === 'card'
+            ? 'Card'
+            : r.payment_method === 'bank_transfer' || r.payment_method === 'net_banking'
+              ? 'Bank_Transfer'
+              : r.payment_method === 'cheque'
+                ? 'Cheque'
+                : r.payment_method
+                  ? r.payment_method.charAt(0).toUpperCase() + r.payment_method.slice(1)
+                  : 'Online';
+    const createdAtIso = (r.transaction_date || r.transaction_created_at).toISOString();
+
     return {
+      id: r.payment_transaction_id,
       receipt_no: receiptNo,
-      receipt_date: (r.transaction_date || r.transaction_created_at).toISOString(),
+      receipt_number: receiptNo,
+      receipt_type: r.transaction_status === 'cancelled' ? 'CANCELLED' : 'ORIGINAL',
+      receipt_date: createdAtIso,
+      created_at: createdAtIso,
+      print_count: 1,
       student_id: r.student_id,
-      student_name: `${r.first_name} ${r.last_name || ''}`.trim(),
+      student_name: studentFullName,
+      student: {
+        first_name: r.first_name,
+        last_name: r.last_name,
+        admission_no: r.admission_no,
+      },
       admission_no: r.admission_no,
       grade_name: r.grade_name || 'N/A',
       academic_year_name: r.academic_year_name || 'N/A',
@@ -900,9 +937,219 @@ export class PaymentRepository {
       transaction_reference: r.gateway_transaction_id,
       obligation_description: r.obligation_description || 'Fee Obligation',
       installment_term: r.term_name || 'Standard Term',
-      collected_by: r.gateway_name === 'Offline Manual' ? 'Authorized Staff' : 'Payment Gateway',
+      collected_by:
+        r.gateway_name === 'Offline Manual'
+          ? 'Authorized Staff'
+          : r.gateway_name || 'Payment Gateway',
+      transaction_status: r.transaction_status,
       status: r.transaction_status === 'success' ? 'GENERATED' : r.transaction_status.toUpperCase(),
+      transaction: {
+        id: r.payment_transaction_id,
+        payment_transaction_id: r.payment_transaction_id,
+        amount: r.transaction_amount,
+        payment_mode: mode,
+        transaction_reference: r.gateway_transaction_id || r.order_reference,
+        created_at: createdAtIso,
+        student_id: r.student_id,
+        student: {
+          full_name: studentFullName,
+          student_code: r.admission_no,
+          admission_no: r.admission_no,
+        },
+        cashier: {
+          email:
+            r.gateway_name === 'Offline Manual'
+              ? 'finance.office@edutrack.edu'
+              : 'online.gateway@edutrack.edu',
+        },
+      },
     };
+  }
+
+  /**
+   * List official receipts for an organization with pagination and filters.
+   */
+  public static async listReceipts(
+    orgId: string,
+    filter: {
+      from?: string;
+      to?: string;
+      receipt_type?: string;
+      payment_mode?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+      page?: number;
+    } = {},
+    client?: any,
+  ): Promise<{ receipts: any[]; total: number }> {
+    const db = this.getClient(client);
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const limit = Math.min(100, Math.max(1, Number(filter.limit) || 50));
+    const offset = Number(filter.offset) || (filter.page ? (Number(filter.page) - 1) * limit : 0);
+
+    const fromDate = filter.from ? new Date(`${filter.from}T00:00:00.000Z`) : null;
+    const toDate = filter.to ? new Date(`${filter.to}T23:59:59.999Z`) : null;
+    const dateFromFilter =
+      fromDate && !isNaN(fromDate.getTime())
+        ? Prisma.sql`AND pt.created_at >= ${fromDate}`
+        : Prisma.empty;
+    const dateToFilter =
+      toDate && !isNaN(toDate.getTime())
+        ? Prisma.sql`AND pt.created_at <= ${toDate}`
+        : Prisma.empty;
+
+    let statusSql = Prisma.sql`AND pt.status = 'success'::payment_transaction_status`;
+    if (filter.receipt_type === 'CANCELLED') {
+      statusSql = Prisma.sql`AND pt.status = 'cancelled'::payment_transaction_status`;
+    }
+
+    let methodSql = Prisma.empty;
+    if (filter.payment_mode) {
+      const modeNorm = filter.payment_mode.toLowerCase().replace(/[\s-]/g, '_');
+      if (modeNorm === 'cash') {
+        methodSql = Prisma.sql`AND pt.payment_method = 'cash'::payment_method`;
+      } else if (modeNorm === 'upi') {
+        methodSql = Prisma.sql`AND pt.payment_method = 'upi'::payment_method`;
+      } else if (modeNorm === 'card') {
+        methodSql = Prisma.sql`AND pt.payment_method = 'card'::payment_method`;
+      } else if (modeNorm === 'bank_transfer') {
+        methodSql = Prisma.sql`AND pt.payment_method IN ('bank_transfer'::payment_method, 'net_banking'::payment_method)`;
+      } else if (modeNorm === 'cheque') {
+        methodSql = Prisma.sql`AND pt.payment_method = 'other'::payment_method`;
+      }
+    }
+
+    let searchSql = Prisma.empty;
+    if (filter.search && filter.search.trim()) {
+      const s = `%${filter.search.trim()}%`;
+      searchSql = Prisma.sql`AND (
+        s.first_name ILIKE ${s} OR
+        s.last_name ILIKE ${s} OR
+        s.admission_no ILIKE ${s} OR
+        po.order_reference ILIKE ${s} OR
+        pt.gateway_transaction_id ILIKE ${s}
+      )`;
+    }
+
+    const orgSql = safeOrgId ? Prisma.sql`s.org_id = ${safeOrgId}::uuid` : Prisma.sql`true`;
+
+    const countRows: any = await db.$queryRaw`
+      SELECT COUNT(*)::int as total
+      FROM payment_transactions pt
+      JOIN payment_orders po ON po.payment_order_id = pt.payment_order_id
+      JOIN students s ON s.student_id = po.student_id
+      WHERE ${orgSql}
+        ${statusSql}
+        ${dateFromFilter}
+        ${dateToFilter}
+        ${methodSql}
+        ${searchSql};
+    `;
+    const total = countRows[0]?.total || 0;
+
+    const rows: any = await db.$queryRaw`
+      SELECT pt.payment_transaction_id, pt.payment_order_id, pt.payment_method, pt.status as transaction_status,
+             pt.amount::float8 as amount, pt.currency_code, pt.transaction_date, pt.created_at,
+             pt.gateway_name, pt.gateway_transaction_id,
+             po.order_reference,
+             s.student_id, s.admission_no, s.first_name, s.last_name,
+             sc.description as obligation_description,
+             ipt.term_name,
+             ay.academic_year_name, g.grade_name
+      FROM payment_transactions pt
+      JOIN payment_orders po ON po.payment_order_id = pt.payment_order_id
+      JOIN students s ON s.student_id = po.student_id
+      LEFT JOIN student_charge_dues scd ON scd.student_charge_due_id = po.student_charge_due_id
+      LEFT JOIN student_charges sc ON sc.student_charge_id = scd.student_charge_id
+      LEFT JOIN installment_plan_terms ipt ON ipt.installment_term_id = scd.installment_term_id
+      LEFT JOIN LATERAL (
+        SELECT se.academic_year_grade_id
+        FROM student_enrollments se
+        WHERE se.student_id = s.student_id AND se.status = 'active'
+        ORDER BY se.created_at DESC LIMIT 1
+      ) latest_se ON true
+      LEFT JOIN academic_year_grades ayg ON ayg.academic_year_grade_id = latest_se.academic_year_grade_id
+      LEFT JOIN academic_years ay ON ay.academic_year_id = ayg.academic_year_id
+      LEFT JOIN grades g ON g.grade_id = ayg.grade_id
+      WHERE ${orgSql}
+        ${statusSql}
+        ${dateFromFilter}
+        ${dateToFilter}
+        ${methodSql}
+        ${searchSql}
+      ORDER BY pt.created_at DESC
+      LIMIT ${limit} OFFSET ${offset};
+    `;
+
+    const receipts = rows.map((r: any) => {
+      const receiptNo = `RCPT-${new Date(r.created_at).getFullYear()}-${(r.order_reference || '').split('-')[1] || r.payment_transaction_id.slice(0, 6)}`;
+      const studentFullName = `${r.first_name} ${r.last_name || ''}`.trim();
+      const mode =
+        r.payment_method === 'cash'
+          ? 'Cash'
+          : r.payment_method === 'upi'
+            ? 'UPI'
+            : r.payment_method === 'card'
+              ? 'Card'
+              : r.payment_method === 'bank_transfer' || r.payment_method === 'net_banking'
+                ? 'Bank_Transfer'
+                : r.payment_method
+                  ? r.payment_method.charAt(0).toUpperCase() + r.payment_method.slice(1)
+                  : 'Online';
+      const createdAtIso = (r.transaction_date || r.created_at).toISOString();
+
+      return {
+        id: r.payment_transaction_id,
+        receipt_no: receiptNo,
+        receipt_type:
+          r.transaction_status === 'cancelled' ? 'CANCELLED' : filter.receipt_type || 'ORIGINAL',
+        status:
+          r.transaction_status === 'success' ? 'GENERATED' : r.transaction_status.toUpperCase(),
+        created_at: createdAtIso,
+        print_count: 1,
+        student_id: r.student_id,
+        student_name: studentFullName,
+        admission_no: r.admission_no,
+        grade_name: r.grade_name || 'N/A',
+        academic_year_name: r.academic_year_name || 'N/A',
+        payment_transaction_id: r.payment_transaction_id,
+        payment_order_id: r.payment_order_id,
+        order_reference: r.order_reference,
+        amount: r.amount,
+        currency: r.currency_code,
+        payment_method: r.payment_method,
+        transaction_reference: r.gateway_transaction_id,
+        obligation_description: r.obligation_description || 'Fee Obligation',
+        installment_term: r.term_name || 'Standard Term',
+        collected_by:
+          r.gateway_name === 'Offline Manual'
+            ? 'Authorized Staff'
+            : r.gateway_name || 'Payment Gateway',
+        transaction: {
+          id: r.payment_transaction_id,
+          payment_transaction_id: r.payment_transaction_id,
+          amount: r.amount,
+          payment_mode: mode,
+          transaction_reference: r.gateway_transaction_id || r.order_reference,
+          created_at: createdAtIso,
+          student_id: r.student_id,
+          student: {
+            full_name: studentFullName,
+            student_code: r.admission_no,
+            admission_no: r.admission_no,
+          },
+          cashier: {
+            email:
+              r.gateway_name === 'Offline Manual'
+                ? 'finance.office@edutrack.edu'
+                : 'online.gateway@edutrack.edu',
+          },
+        },
+      };
+    });
+
+    return { receipts, total };
   }
 
   /**
@@ -911,18 +1158,28 @@ export class PaymentRepository {
   public static async getPaymentHistory(
     orgId: string,
     filter: any = {},
-    client?: any
+    client?: any,
   ): Promise<{ transactions: any[]; pagination: any }> {
     const db = this.getClient(client);
     const page = Math.max(1, Number(filter.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(filter.limit) || 20));
     const offset = (page - 1) * limit;
 
-    const studentIdFilter = filter.studentId ? Prisma.sql`AND s.student_id = ${filter.studentId}::uuid` : Prisma.empty;
-    const statusFilter = filter.status ? Prisma.sql`AND pt.status = ${filter.status}::payment_transaction_status` : Prisma.empty;
-    const methodFilter = filter.paymentMethod ? Prisma.sql`AND pt.payment_method = ${filter.paymentMethod}::payment_method` : Prisma.empty;
-    const dateFromFilter = filter.dateFrom ? Prisma.sql`AND pt.created_at >= ${new Date(filter.dateFrom)}` : Prisma.empty;
-    const dateToFilter = filter.dateTo ? Prisma.sql`AND pt.created_at <= ${new Date(filter.dateTo)}` : Prisma.empty;
+    const studentIdFilter = filter.studentId
+      ? Prisma.sql`AND s.student_id = ${filter.studentId}::uuid`
+      : Prisma.empty;
+    const statusFilter = filter.status
+      ? Prisma.sql`AND pt.status = ${filter.status}::payment_transaction_status`
+      : Prisma.empty;
+    const methodFilter = filter.paymentMethod
+      ? Prisma.sql`AND pt.payment_method = ${filter.paymentMethod}::payment_method`
+      : Prisma.empty;
+    const dateFromFilter = filter.dateFrom
+      ? Prisma.sql`AND pt.created_at >= ${new Date(filter.dateFrom)}`
+      : Prisma.empty;
+    const dateToFilter = filter.dateTo
+      ? Prisma.sql`AND pt.created_at <= ${new Date(filter.dateTo)}`
+      : Prisma.empty;
 
     const countRows: any = await db.$queryRaw`
       SELECT COUNT(*)::int as total
@@ -981,7 +1238,10 @@ export class PaymentRepository {
       gateway_transaction_id: r.gateway_transaction_id,
       transaction_date: r.transaction_date || r.created_at,
       allocated_amount: r.allocated_amount,
-      unallocated_amount: Math.max(0, Math.round((r.amount - r.allocated_amount + Number.EPSILON) * 100) / 100),
+      unallocated_amount: Math.max(
+        0,
+        Math.round((r.amount - r.allocated_amount + Number.EPSILON) * 100) / 100,
+      ),
       obligation_description: r.obligation_description || 'Fee Obligation',
       term_name: r.term_name || 'Standard',
     }));
@@ -1001,7 +1261,7 @@ export class PaymentRepository {
    * Helper to execute a sequence of queries inside a native database transaction.
    */
   public static async runInTransaction<T>(
-    fn: (tx: Prisma.TransactionClient) => Promise<T>
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
     return await prisma.$transaction(fn, {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,

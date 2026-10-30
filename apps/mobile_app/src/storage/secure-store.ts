@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   ACCESS_TOKEN: 'edutrack_access_token',
   REFRESH_TOKEN: 'edutrack_refresh_token',
   WORKSPACE_ID: 'edutrack_workspace_id',
+  USER_PROFILE: 'edutrack_user_profile',
 } as const;
 
 export const SecureStorage = {
@@ -75,11 +76,26 @@ export const SecureStorage = {
     return this.setItem(STORAGE_KEYS.WORKSPACE_ID, workspaceId);
   },
 
+  async getUserProfile(): Promise<any | null> {
+    const raw = await this.getItem(STORAGE_KEYS.USER_PROFILE);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  },
+
+  async setUserProfile(profile: any): Promise<void> {
+    return this.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+  },
+
   async clearSession(): Promise<void> {
     await Promise.all([
       this.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
       this.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
       this.removeItem(STORAGE_KEYS.WORKSPACE_ID),
+      this.removeItem(STORAGE_KEYS.USER_PROFILE),
     ]);
   },
 };

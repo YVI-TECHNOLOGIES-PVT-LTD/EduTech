@@ -48,7 +48,7 @@ export default function ParentLayout() {
           }}
         />
         <Tabs.Screen
-          name="applications"
+          name="applications/index"
           options={{
             title: 'Applications',
             tabBarIcon: ({ color, focused }) => (
@@ -89,6 +89,17 @@ export default function ParentLayout() {
             ),
           }}
         />
+
+        {/* Hidden Non-Tab Screens */}
+        <Tabs.Screen name="fees" options={{ href: null }} />
+        <Tabs.Screen name="applications/wizard" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]/assessment" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]/decision" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]/documents" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]/fees" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]/receipt" options={{ href: null }} />
+        <Tabs.Screen name="applications/[id]/timeline" options={{ href: null }} />
       </Tabs>
     </ProtectedRoute>
   );

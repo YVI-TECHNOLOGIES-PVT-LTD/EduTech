@@ -285,8 +285,11 @@ export const StudentFeeAssignment: React.FC = () => {
           return;
         }
 
+        const selectedStudent = students.find((s) => s.student_id === selectedSingleStudentId);
+
         const res = await apiClient.post('/fees/ledger/assignments', {
           studentId: selectedSingleStudentId,
+          enrollmentId: selectedStudent?.enrollment_id || undefined,
           feeStructureId: activeStructure.fee_structure_id || activeStructure.id,
           installmentPlanId: activeStructure.installment_plan?.id,
           notes: assignmentNotes.trim() || undefined,

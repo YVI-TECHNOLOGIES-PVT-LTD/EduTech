@@ -2,7 +2,7 @@
  * EduTrack ERP — Phase 15 Finance Operations Test Suite
  * =======================================================
  * Verification suite for Finance Operations Optimization & Executive Insights.
- * 
+ *
  * Tests:
  * 1. Governance, Isolation & Permissions
  * 2. Executive Overview & Financial Realization KPIs
@@ -20,7 +20,7 @@ import { FinanceOperationsRepository } from '../repositories/FinanceOperationsRe
 import { execSync } from 'child_process';
 import path from 'path';
 
-async function runTests() {
+export async function runFinanceOperationsTests() {
   console.log('\n=====================================================');
   console.log('   FINANCE PHASE 15: OPERATIONS & EXECUTIVE INSIGHTS');
   console.log('=====================================================\n');
@@ -48,30 +48,24 @@ async function runTests() {
   try {
     const invalidTenants = ['', '   ', null as any, undefined as any];
     for (const inv of invalidTenants) {
-      await assert.rejects(
-        async () => await FinanceOperationsService.getOverview(inv),
-        { code: 'TENANT_NOT_FOUND' }
-      );
-      await assert.rejects(
-        async () => await FinanceOperationsService.getCollections(inv),
-        { code: 'TENANT_NOT_FOUND' }
-      );
-      await assert.rejects(
-        async () => await FinanceOperationsService.getReceivables(inv),
-        { code: 'TENANT_NOT_FOUND' }
-      );
-      await assert.rejects(
-        async () => await FinanceOperationsService.getExceptions(inv),
-        { code: 'TENANT_NOT_FOUND' }
-      );
-      await assert.rejects(
-        async () => await FinanceOperationsService.getDataQuality(inv),
-        { code: 'TENANT_NOT_FOUND' }
-      );
-      await assert.rejects(
-        async () => await FinanceOperationsService.exportCSV(inv, 'overview'),
-        { code: 'TENANT_NOT_FOUND' }
-      );
+      await assert.rejects(async () => await FinanceOperationsService.getOverview(inv), {
+        code: 'TENANT_NOT_FOUND',
+      });
+      await assert.rejects(async () => await FinanceOperationsService.getCollections(inv), {
+        code: 'TENANT_NOT_FOUND',
+      });
+      await assert.rejects(async () => await FinanceOperationsService.getReceivables(inv), {
+        code: 'TENANT_NOT_FOUND',
+      });
+      await assert.rejects(async () => await FinanceOperationsService.getExceptions(inv), {
+        code: 'TENANT_NOT_FOUND',
+      });
+      await assert.rejects(async () => await FinanceOperationsService.getDataQuality(inv), {
+        code: 'TENANT_NOT_FOUND',
+      });
+      await assert.rejects(async () => await FinanceOperationsService.exportCSV(inv, 'overview'), {
+        code: 'TENANT_NOT_FOUND',
+      });
     }
     recordPass('1. Tenant isolation rejects empty, null, or whitespace orgId on all methods');
   } catch (err: any) {
@@ -86,9 +80,14 @@ async function runTests() {
     assert.strictEqual(caps.automated_remediation, false);
     assert.ok(Array.isArray(caps.supported_ageing_buckets));
     assert.strictEqual(caps.supported_ageing_buckets.length, 6);
-    recordPass('2. Capabilities truthfully report operational insights enabled and GL posting blocked');
+    recordPass(
+      '2. Capabilities truthfully report operational insights enabled and GL posting blocked',
+    );
   } catch (err: any) {
-    recordFail('2. Capabilities truthfully report operational insights enabled and GL posting blocked', err);
+    recordFail(
+      '2. Capabilities truthfully report operational insights enabled and GL posting blocked',
+      err,
+    );
   }
 
   // --- 2. Executive Overview & Financial Realization KPIs ---
@@ -100,12 +99,21 @@ async function runTests() {
     assert.ok(typeof overview.collections.total_collected === 'number');
     assert.ok(typeof overview.receivables.total_outstanding === 'number');
     assert.ok(typeof overview.performance.collection_rate_percentage === 'number');
-    assert.ok(overview.performance.collection_rate_percentage >= 0 && overview.performance.collection_rate_percentage <= 100);
+    assert.ok(
+      overview.performance.collection_rate_percentage >= 0 &&
+        overview.performance.collection_rate_percentage <= 100,
+    );
     assert.ok(overview.exceptions.total_exceptions_count >= 0);
-    assert.strictEqual(overview.concessions.exposure_disclosure.includes('duplicate deduction'), true);
+    assert.strictEqual(
+      overview.concessions.exposure_disclosure.includes('duplicate deduction'),
+      true,
+    );
     recordPass('3. Executive overview calculates collections, receivables, and realization rate');
   } catch (err: any) {
-    recordFail('3. Executive overview calculates collections, receivables, and realization rate', err);
+    recordFail(
+      '3. Executive overview calculates collections, receivables, and realization rate',
+      err,
+    );
   }
 
   try {
@@ -144,7 +152,9 @@ async function runTests() {
     assert.ok(Array.isArray(coll.by_academic_year));
 
     if (coll.total_successful_count > 0) {
-      const expectedAvg = FinanceOperationsRepository.roundMoney(coll.total_successful_amount / coll.total_successful_count);
+      const expectedAvg = FinanceOperationsRepository.roundMoney(
+        coll.total_successful_amount / coll.total_successful_count,
+      );
       assert.strictEqual(coll.average_transaction_amount, expectedAvg);
     }
     recordPass('6. Collections performance groups by method, timeline, and fee component');
@@ -174,14 +184,14 @@ async function runTests() {
     assert.ok(Array.isArray(rec.ageing_buckets));
     assert.strictEqual(rec.ageing_buckets.length, 6);
 
-    const bucketKeys = rec.ageing_buckets.map(b => b.bucket_key);
+    const bucketKeys = rec.ageing_buckets.map((b) => b.bucket_key);
     assert.deepStrictEqual(bucketKeys, [
       'CURRENT',
       'OVERDUE_1_30',
       'OVERDUE_31_60',
       'OVERDUE_61_90',
       'OVERDUE_90_PLUS',
-      'NO_DUE_DATE'
+      'NO_DUE_DATE',
     ]);
 
     const sumBuckets = rec.ageing_buckets.reduce((acc, b) => acc + b.amount, 0);
@@ -214,21 +224,32 @@ async function runTests() {
 
     for (const item of queue.items) {
       assert.ok(item.id.includes('_'));
-      assert.ok(['payments', 'settlements', 'webhooks', 'concessions'].includes(item.source_module));
+      assert.ok(
+        ['payments', 'settlements', 'webhooks', 'concessions'].includes(item.source_module),
+      );
       assert.ok(['HIGH', 'MEDIUM', 'LOW'].includes(item.severity));
       assert.ok(item.drilldown_url.startsWith('/app/finance/'));
     }
     recordPass('10. Exception action center aggregates multi-source exceptions with stable IDs');
   } catch (err: any) {
-    recordFail('10. Exception action center aggregates multi-source exceptions with stable IDs', err);
+    recordFail(
+      '10. Exception action center aggregates multi-source exceptions with stable IDs',
+      err,
+    );
   }
 
   try {
-    const clampedQ1 = await FinanceOperationsService.getExceptions(validTenant, { page: -5, limit: 500 });
+    const clampedQ1 = await FinanceOperationsService.getExceptions(validTenant, {
+      page: -5,
+      limit: 500,
+    });
     assert.strictEqual(clampedQ1.page, 1);
     assert.strictEqual(clampedQ1.limit, 100);
 
-    const clampedQ2 = await FinanceOperationsService.getExceptions(validTenant, { page: 0, limit: 0 });
+    const clampedQ2 = await FinanceOperationsService.getExceptions(validTenant, {
+      page: 0,
+      limit: 0,
+    });
     assert.strictEqual(clampedQ2.page, 1);
     assert.strictEqual(clampedQ2.limit, 25);
     recordPass('11. Pagination bounds clamping enforces limit [1, 100] and page >= 1');
@@ -246,13 +267,18 @@ async function runTests() {
     assert.strictEqual(dq.evaluated_controls_count, 7);
     assert.strictEqual(dq.controls.length, 7);
 
-    const glControl = dq.controls.find(c => c.dimension === 'ACCOUNTING_INTEGRATION_READINESS');
+    const glControl = dq.controls.find((c) => c.dimension === 'ACCOUNTING_INTEGRATION_READINESS');
     assert.ok(glControl);
     assert.strictEqual(glControl.status, 'BLOCKED');
     assert.strictEqual(glControl.details.includes('Schema freeze limitation'), true);
-    recordPass('12. Data quality report verifies 7 control dimensions and discloses GL schema limitation');
+    recordPass(
+      '12. Data quality report verifies 7 control dimensions and discloses GL schema limitation',
+    );
   } catch (err: any) {
-    recordFail('12. Data quality report verifies 7 control dimensions and discloses GL schema limitation', err);
+    recordFail(
+      '12. Data quality report verifies 7 control dimensions and discloses GL schema limitation',
+      err,
+    );
   }
 
   // --- 7. CSV Export & Formula Injection Security ---
@@ -265,19 +291,32 @@ async function runTests() {
     assert.strictEqual(FinanceOperationsService.sanitizeCsvField('  +447123'), "'  +447123");
     assert.strictEqual(FinanceOperationsService.sanitizeCsvField('-100'), "'-100");
     assert.strictEqual(FinanceOperationsService.sanitizeCsvField('@SUM(A1:A10)'), "'@SUM(A1:A10)");
-    assert.strictEqual(FinanceOperationsService.sanitizeCsvField('  @SUM(A1:A10)'), "'  @SUM(A1:A10)");
+    assert.strictEqual(
+      FinanceOperationsService.sanitizeCsvField('  @SUM(A1:A10)'),
+      "'  @SUM(A1:A10)",
+    );
     assert.strictEqual(FinanceOperationsService.sanitizeCsvField('\tCMD'), "'\tCMD");
     assert.strictEqual(FinanceOperationsService.sanitizeCsvField('\rPAY'), "'\rPAY");
     assert.strictEqual(FinanceOperationsService.sanitizeCsvField('Normal Text'), 'Normal Text');
-    assert.strictEqual(FinanceOperationsService.sanitizeCsvField('Contains, Comma'), '"Contains, Comma"');
-    recordPass('13. CSV formula injection sanitizer handles whitespace-preceded dangerous prefixes');
+    assert.strictEqual(
+      FinanceOperationsService.sanitizeCsvField('Contains, Comma'),
+      '"Contains, Comma"',
+    );
+    recordPass(
+      '13. CSV formula injection sanitizer handles whitespace-preceded dangerous prefixes',
+    );
   } catch (err: any) {
-    recordFail('13. CSV formula injection sanitizer handles whitespace-preceded dangerous prefixes', err);
+    recordFail(
+      '13. CSV formula injection sanitizer handles whitespace-preceded dangerous prefixes',
+      err,
+    );
   }
 
   try {
     const overviewCsv = await FinanceOperationsService.exportCSV(validTenant, 'overview');
-    assert.ok(overviewCsv.includes('# EduTrack ERP — Finance Operations & Executive Insights Export'));
+    assert.ok(
+      overviewCsv.includes('# EduTrack ERP — Finance Operations & Executive Insights Export'),
+    );
     assert.ok(overviewCsv.includes('# Export Type: OVERVIEW'));
     assert.ok(overviewCsv.includes('Total Successful Collections'));
     assert.ok(overviewCsv.includes('Total Outstanding Balance'));
@@ -294,21 +333,28 @@ async function runTests() {
     assert.ok(exceptionsCsv.includes('Exception ID'));
     recordPass('14. CSV export produces compliance headers and valid tabular rows for all 4 types');
   } catch (err: any) {
-    recordFail('14. CSV export produces compliance headers and valid tabular rows for all 4 types', err);
+    recordFail(
+      '14. CSV export produces compliance headers and valid tabular rows for all 4 types',
+      err,
+    );
   }
 
   // --- 8. Schema Freeze Verification ---
   console.log('--- 8. Schema Freeze Verification ---');
 
   try {
+    const repoRoot = path.resolve(__dirname, '../../../../../../');
     const diff = execSync('git diff apps/backend/prisma/schema.prisma', {
-      cwd: process.cwd(),
-      encoding: 'utf-8'
+      cwd: repoRoot,
+      encoding: 'utf-8',
     });
     assert.strictEqual(diff.trim(), '', 'schema.prisma has been modified!');
     recordPass('15. schema.prisma remains strictly untouched and identical to repository HEAD');
   } catch (err: any) {
-    recordFail('15. schema.prisma remains strictly untouched and identical to repository HEAD', err);
+    recordFail(
+      '15. schema.prisma remains strictly untouched and identical to repository HEAD',
+      err,
+    );
   }
 
   console.log('\n=====================================================');
@@ -316,11 +362,13 @@ async function runTests() {
   console.log('=====================================================\n');
 
   if (failed > 0) {
-    process.exit(1);
+    throw new Error(`Finance Phase 15 test suite encountered ${failed} failure(s).`);
   }
 }
 
-runTests().catch(err => {
-  console.error('Fatal test error:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  runFinanceOperationsTests().catch((err) => {
+    console.error('Fatal test error:', err);
+    process.exit(1);
+  });
+}

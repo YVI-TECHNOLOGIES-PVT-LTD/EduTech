@@ -23,12 +23,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setHydrating(true);
         const accessToken = await SecureStorage.getAccessToken();
         const refreshToken = await SecureStorage.getRefreshToken();
+        const userProfile = await SecureStorage.getUserProfile();
 
         if (accessToken && isMounted) {
-          setTokens({
-            accessToken,
-            refreshToken: refreshToken || '',
-          });
+          if (userProfile) {
+            useAuthStore.getState().setAuth(userProfile, {
+              accessToken,
+              refreshToken: refreshToken || '',
+            });
+          } else {
+            setTokens({
+              accessToken,
+              refreshToken: refreshToken || '',
+            });
+          }
         }
       } catch (error) {
         console.warn('[AuthProvider] Failed to hydrate secure session:', error);

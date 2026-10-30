@@ -1041,59 +1041,35 @@ export class StudentLedgerService {
   public static async assignFeeStructure(
     orgId: string,
     userId: string | null,
-    payload: AssignFeeStructurePayload,
+    payload: AssignFeeStructurePayload | any,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
 
-    const safeStudentId = toSafeUuid(payload.studentId);
+    const studentIdRaw = payload.studentId || payload.student_id;
+    const structureIdRaw = payload.feeStructureId || payload.fee_structure_id;
+    const enrollmentIdRaw = payload.enrollmentId || payload.enrollment_id;
+    const installmentPlanIdRaw = payload.installmentPlanId || payload.installment_plan_id;
+    const notesRaw = payload.notes || payload.remarks;
+
+    const safeStudentId = toSafeUuid(studentIdRaw);
     if (!safeStudentId) {
       const err: any = new Error('Valid student ID is required');
       err.statusCode = 400;
       throw err;
     }
 
-    const safeStructureId = toSafeUuid(payload.feeStructureId);
+    const safeStructureId = toSafeUuid(structureIdRaw);
     if (!safeStructureId) {
       const err: any = new Error('Valid fee structure ID is required');
       err.statusCode = 400;
       throw err;
     }
 
+    const safeEnrollmentId = toSafeUuid(enrollmentIdRaw);
     const safeUserId = toSafeUuid(userId);
 
-    // 1. Verify Student exists and belongs to tenant
-    const student: any = await prisma.students.findFirst({
-      where: { student_id: safeStudentId, org_id: safeOrgId },
-      include: {
-        student_enrollments: {
-          where: payload.enrollmentId
-            ? { enrollment_id: payload.enrollmentId }
-            : { status: 'active' },
-          include: {
-            academic_year_grades: {
-              include: { academic_years: true, grades: true },
-            },
-          },
-          take: 1,
-        },
-      },
-    });
-
-    if (!student) {
-      const err: any = new Error('Student not found in the current organization');
-      err.statusCode = 404;
-      throw err;
-    }
-
-    const enrollment = student.student_enrollments[0];
-    if (!enrollment) {
-      const err: any = new Error('No active enrollment found for this student to assign fees to');
-      err.statusCode = 400;
-      throw err;
-    }
-
-    // 2. Verify Fee Structure exists, belongs to tenant, and is published
+    // 1. Verify Fee Structure exists, belongs to tenant, and is published
     const feeStructure = await prisma.fee_structures.findFirst({
       where: {
         fee_structure_id: safeStructureId,
@@ -1104,7 +1080,9 @@ export class StudentLedgerService {
         },
       },
       include: {
-        academic_year_grades: true,
+        academic_year_grades: {
+          include: { academic_years: true, grades: true },
+        },
         fee_components: true,
       },
     });
@@ -1125,6 +1103,51 @@ export class StudentLedgerService {
       throw err;
     }
 
+    // 2. Verify Student exists and resolve active enrollment matching the structure's AYG
+    const student: any = await prisma.students.findFirst({
+      where: { student_id: safeStudentId, org_id: safeOrgId },
+      include: {
+        student_enrollments: {
+          where: safeEnrollmentId
+            ? { enrollment_id: safeEnrollmentId }
+            : {
+                status: 'active',
+                academic_year_grade_id: feeStructure.academic_year_grade_id,
+              },
+          include: {
+            academic_year_grades: {
+              include: { academic_years: true, grades: true },
+            },
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!student) {
+      const err: any = new Error('Student not found in the current organization');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    let enrollment = student.student_enrollments?.[0];
+    if (!enrollment) {
+      const anyEnrollment = await prisma.student_enrollments.findFirst({
+        where: { student_id: safeStudentId, status: 'active' },
+        include: { academic_year_grades: { include: { grades: true, academic_years: true } } },
+      });
+      if (anyEnrollment) {
+        const err: any = new Error(
+          `Student is currently enrolled in ${anyEnrollment.academic_year_grades.grades.grade_name} (${anyEnrollment.academic_year_grades.academic_years.academic_year_name}), which does not match fee structure grade ${feeStructure.academic_year_grades.grades.grade_name} (${feeStructure.academic_year_grades.academic_years.academic_year_name}).`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+      const err: any = new Error('No active enrollment found for this student to assign fees to');
+      err.statusCode = 400;
+      throw err;
+    }
+
     // 3. Verify Structure is applicable to the student's grade and academic year
     if (feeStructure.academic_year_grade_id !== enrollment.academic_year_grade_id) {
       const err: any = new Error(
@@ -1135,7 +1158,7 @@ export class StudentLedgerService {
     }
 
     // 4. Verify Installment Plan
-    let installmentPlanId = toSafeUuid(payload.installmentPlanId);
+    let installmentPlanId = toSafeUuid(installmentPlanIdRaw);
     let plan: any = null;
 
     if (!installmentPlanId) {
@@ -1202,14 +1225,21 @@ export class StudentLedgerService {
     }
 
     // 5. Check existing assignment for this enrollment (Idempotency and duplicate prevention)
-    const existingAssignment = enrollment.student_fee_assignments?.find(
-      (a: any) => a.status === 'active',
-    );
+    const existingAssignment = await prisma.student_fee_assignments.findFirst({
+      where: {
+        enrollment_id: enrollment.enrollment_id,
+        status: 'active',
+      },
+      include: {
+        fee_structures: true,
+        installment_plans: true,
+      },
+    });
 
     if (existingAssignment) {
       if (
         existingAssignment.fee_structure_id === safeStructureId &&
-        existingAssignment.installment_plan_id === installmentPlanId
+        (!installmentPlanId || existingAssignment.installment_plan_id === installmentPlanId)
       ) {
         // Idempotent retry: check if charges and dues already exist
         const existingCharges = await prisma.student_charges.findMany({
@@ -1245,7 +1275,7 @@ export class StudentLedgerService {
         }
       } else {
         const err: any = new Error(
-          'An active fee structure is already assigned to this student enrollment',
+          `Student already has an active fee structure ('${existingAssignment.fee_structures?.name || 'Assigned'}') assigned.`,
         );
         err.statusCode = 409;
         throw err;
@@ -1265,7 +1295,7 @@ export class StudentLedgerService {
           fee_structure_id: safeStructureId,
           installment_plan_id: plan.installment_plan_id,
           status: 'active',
-          notes: payload.notes || null,
+          notes: notesRaw || null,
           created_by: safeUserId,
           updated_by: safeUserId,
         },
@@ -1292,6 +1322,7 @@ export class StudentLedgerService {
             student_fee_assignment_id: createdAssignment.student_fee_assignment_id,
             fee_component_id: comp.fee_component_id,
             source_type: 'academic',
+            source_id: comp.fee_component_id,
             description: `${comp.component_name} (${comp.component_code})`,
             amount: compAmount,
             currency_code: 'INR',
@@ -1407,19 +1438,27 @@ export class StudentLedgerService {
   public static async bulkAssignFeeStructure(
     orgId: string,
     userId: string,
-    payload: {
-      studentIds: string[];
-      feeStructureId: string;
-      installmentPlanId?: string;
-      notes?: string;
-    },
+    payload:
+      | {
+          studentIds?: string[];
+          student_ids?: string[];
+          feeStructureId?: string;
+          fee_structure_id?: string;
+          installmentPlanId?: string;
+          installment_plan_id?: string;
+          notes?: string;
+          remarks?: string;
+        }
+      | any,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
-    if (
-      !payload.studentIds ||
-      !Array.isArray(payload.studentIds) ||
-      payload.studentIds.length === 0
-    ) {
+
+    const studentIdsRaw = payload.studentIds || payload.student_ids;
+    const structureIdRaw = payload.feeStructureId || payload.fee_structure_id;
+    const installmentPlanIdRaw = payload.installmentPlanId || payload.installment_plan_id;
+    const notesRaw = payload.notes || payload.remarks;
+
+    if (!studentIdsRaw || !Array.isArray(studentIdsRaw) || studentIdsRaw.length === 0) {
       const err: any = new Error('At least one student ID is required for bulk assignment');
       err.statusCode = 400;
       throw err;
@@ -1432,13 +1471,13 @@ export class StudentLedgerService {
       error?: string;
     }> = [];
 
-    for (const sId of payload.studentIds) {
+    for (const sId of studentIdsRaw) {
       try {
         const assignment = await this.assignFeeStructure(orgId, userId, {
           studentId: sId,
-          feeStructureId: payload.feeStructureId,
-          installmentPlanId: payload.installmentPlanId,
-          notes: payload.notes,
+          feeStructureId: structureIdRaw,
+          installmentPlanId: installmentPlanIdRaw,
+          notes: notesRaw,
         });
 
         results.push({
@@ -1459,7 +1498,7 @@ export class StudentLedgerService {
     const failed = results.filter((r) => !r.success).length;
 
     return {
-      total: payload.studentIds.length,
+      total: studentIdsRaw.length,
       succeeded,
       failed,
       results,

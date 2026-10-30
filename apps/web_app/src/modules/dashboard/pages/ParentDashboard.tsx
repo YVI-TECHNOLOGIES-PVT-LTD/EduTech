@@ -513,32 +513,86 @@ const ParentDashboardInner = () => {
             <div className="space-y-4">
               {/* Render Enrolled Children */}
               {children.map((child) => {
-                const s = child.student;
+                const s = child.student || child;
                 const attendancePercent = s.attendance?.[0]?.attendance_percentage ?? 95;
                 const examPercent = s.exam_stats?.[0]?.percentage ?? 88;
+                const fullName =
+                  s.full_name ||
+                  child.full_name ||
+                  `${s.first_name || child.first_name || ''} ${s.last_name || child.last_name || ''}`.trim() ||
+                  'Student';
+                const admissionNo =
+                  s.admission_no || s.student_code || child.admission_no || 'Pending';
+                const academicYear = s.academic_year_name || child.academic_year_name || null;
+                const gradeName = s.grade_name || child.grade_name || null;
+                const sectionName = s.section_name || child.section_name || null;
+                const rollNumber = s.roll_number || child.roll_number || null;
 
                 return (
                   <div
                     key={child.student_id}
                     className="bg-white dark:bg-card border border-border/40 rounded-3xl overflow-hidden shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift"
                   >
-                    <div className="p-6 bg-gray-50/50 dark:bg-muted/10 border-b border-border/45 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-navy to-blue-900 text-white flex items-center justify-center text-sm font-black shadow-sm">
-                          {s.full_name?.charAt(0)}
+                    <div className="p-6 bg-gray-50/50 dark:bg-muted/10 border-b border-border/45">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-navy to-blue-900 text-white flex items-center justify-center text-sm font-black shadow-sm">
+                            {fullName.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-black text-sm text-navy dark:text-white">
+                              {fullName}
+                            </h3>
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
+                              ID: {admissionNo} • ENROLLED STUDENT
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-black text-sm text-navy dark:text-white">
-                            {s.full_name}
-                          </h3>
-                          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
-                            ID: {s.student_code} • ENROLLED STUDENT
-                          </p>
-                        </div>
+                        <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                          {s.status || 'Active'}
+                        </span>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                        Active
-                      </span>
+
+                      {/* Authoritative Academic Placement Metadata Chips */}
+                      <div className="mt-4 pt-3 border-t border-border/30 flex flex-wrap items-center gap-2">
+                        {/* Academic Year */}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                          <Calendar className="w-3 h-3 text-primary" />
+                          {academicYear || 'Academic Year Pending'}
+                        </span>
+
+                        {/* Grade / Class */}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                          <GraduationCap className="w-3 h-3 text-indigo-500" />
+                          {gradeName || 'Grade Pending'}
+                        </span>
+
+                        {/* Section */}
+                        {sectionName ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                            <Users className="w-3 h-3 text-teal-600" />
+                            Section: {sectionName}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                            <Users className="w-3 h-3 text-amber-500" />
+                            Section Allocation Pending
+                          </span>
+                        )}
+
+                        {/* Roll Number */}
+                        {rollNumber ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                            <ClipboardList className="w-3 h-3 text-purple-500" />
+                            Roll No: {rollNumber}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-medium bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400">
+                            <ClipboardList className="w-3 h-3 text-slate-400" />
+                            Roll No Pending
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="p-6 space-y-6">
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

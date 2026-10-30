@@ -1,5 +1,8 @@
 import prisma from '../../../lib/prismaClient';
 import { toSafeUuid } from './FeeStructureManagerService';
+import { StudentLedgerService } from './StudentLedgerService';
+import { PaymentCollectionService } from './PaymentCollectionService';
+import { PaymentRepository } from '../repositories/PaymentRepository';
 
 export interface ChildFeeOverview {
   student_id: string;
@@ -10,6 +13,7 @@ export interface ChildFeeOverview {
   grade_name: string | null;
   academic_year_name: string | null;
   section_name: string | null;
+  roll_number?: string | null;
   enrollment_id: string | null;
   is_assigned: boolean;
   assignment_id: string | null;
@@ -20,6 +24,9 @@ export interface ChildFeeOverview {
     full_name: string;
     student_code: string;
     grade_name?: string | null;
+    section_name?: string | null;
+    roll_number?: string | null;
+    academic_year_name?: string | null;
   };
   summary: {
     total_assessed: number;
@@ -27,6 +34,8 @@ export interface ChildFeeOverview {
     outstanding_balance: number;
     balance?: number;
     overdue_amount: number;
+    next_due_date?: string | null;
+    next_due_amount?: number | null;
     total_dues_count: number;
     unpaid_dues_count: number;
     status: 'fully_paid' | 'partially_paid' | 'pending' | 'overdue' | 'no_fees_assigned';
@@ -45,9 +54,13 @@ export interface ChildFeeOverview {
     reference_no: string | null;
   }>;
   components: Array<{
+    component_id?: string;
     component_name: string;
     component_code: string;
     amount: number;
+    paid_amount?: number;
+    outstanding_amount?: number;
+    status?: string;
     description: string | null;
   }>;
   dues: Array<{
@@ -75,6 +88,29 @@ export interface ChildFeeOverview {
   }>;
 }
 
+/**
+ * Deterministically select active enrollment within tenant organization.
+ */
+export function selectCurrentEnrollment(enrollments: any[], orgId: string): any | null {
+  if (!enrollments || enrollments.length === 0) return null;
+
+  const tenantEnrollments = enrollments.filter((e) => {
+    const ayOrgId = e.academic_year_grades?.academic_years?.org_id;
+    return !ayOrgId || ayOrgId === orgId;
+  });
+
+  if (tenantEnrollments.length === 0) return null;
+  if (tenantEnrollments.length === 1) return tenantEnrollments[0];
+
+  const activeYearEnrollment = tenantEnrollments.find((e) => {
+    const ayStatus = e.academic_year_grades?.academic_years?.status;
+    return ayStatus && !['closed', 'archived'].includes(ayStatus);
+  });
+
+  if (activeYearEnrollment) return activeYearEnrollment;
+  return tenantEnrollments[0];
+}
+
 export class ParentFinanceService {
   /**
    * Decimal-safe rounding to 2 decimal places
@@ -96,39 +132,54 @@ export class ParentFinanceService {
     const safeStudentId = toSafeUuid(studentId);
     const safeUserId = toSafeUuid(userId);
 
-    if (!safeStudentId) return false;
+    if (!safeStudentId || !safeOrgId) return false;
 
-    // Check if the user is the student directly
-    const directStudent = await prisma.students.findFirst({
-      where: {
-        student_id: safeStudentId,
-        org_id: safeOrgId,
-        OR: [
-          ...(safeUserId ? [{ user_id: safeUserId }] : []),
-          ...(userEmail ? [{ admission_no: userEmail }] : []),
-        ],
-      },
-    });
+    // 1. Check if the user is the student directly within the authorized tenant
+    if (safeUserId) {
+      const directStudent = await prisma.students.findFirst({
+        where: {
+          student_id: safeStudentId,
+          org_id: safeOrgId,
+          user_id: safeUserId,
+        },
+      });
+      if (directStudent) return true;
+    }
 
-    if (directStudent) return true;
+    // 2. Check if the user is a linked parent via student_parents
+    let parent = null;
+    if (safeUserId) {
+      parent = await prisma.parents.findFirst({
+        where: {
+          org_id: safeOrgId,
+          user_id: safeUserId,
+        },
+      });
+    }
 
-    // Check if the user is a linked parent via student_parents
-    const parent = await prisma.parents.findFirst({
-      where: {
-        org_id: safeOrgId,
-        OR: [
-          ...(safeUserId ? [{ user_id: safeUserId }] : []),
-          ...(userEmail ? [{ email: userEmail }] : []),
-        ],
-      },
-    });
+    // Anti-hijacking: safe email fallback only matches unlinked parent profiles (user_id is null)
+    if (!parent && userEmail) {
+      const normalizedEmail = userEmail.trim().toLowerCase();
+      parent = await prisma.parents.findFirst({
+        where: {
+          org_id: safeOrgId,
+          email: { equals: normalizedEmail, mode: 'insensitive' },
+          user_id: null,
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    }
 
     if (!parent) return false;
 
+    // Check relationship and guarantee student also strictly belongs to the tenant organization
     const link = await prisma.student_parents.findFirst({
       where: {
         parent_id: parent.parent_id,
         student_id: safeStudentId,
+        students: {
+          org_id: safeOrgId,
+        },
       },
     });
 
@@ -154,15 +205,27 @@ export class ParentFinanceService {
     const safeUserId = toSafeUuid(userId);
 
     // 1. Resolve parent entity in this organization
-    const parent = await prisma.parents.findFirst({
-      where: {
-        org_id: safeOrgId,
-        OR: [
-          ...(safeUserId ? [{ user_id: safeUserId }] : []),
-          ...(userEmail ? [{ email: userEmail }] : []),
-        ],
-      },
-    });
+    let parent = null;
+    if (safeUserId) {
+      parent = await prisma.parents.findFirst({
+        where: {
+          org_id: safeOrgId,
+          user_id: safeUserId,
+        },
+      });
+    }
+
+    if (!parent && userEmail) {
+      const normalizedEmail = userEmail.trim().toLowerCase();
+      parent = await prisma.parents.findFirst({
+        where: {
+          org_id: safeOrgId,
+          email: { equals: normalizedEmail, mode: 'insensitive' },
+          user_id: null,
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    }
 
     let targetStudentIds: string[] = [];
     let parentName: string | null = null;
@@ -180,18 +243,17 @@ export class ParentFinanceService {
       targetStudentIds = links.map((l: any) => l.student_id);
     } else {
       // Check if user is a student account viewing their own fees
-      const studentSelf = await prisma.students.findFirst({
-        where: {
-          org_id: safeOrgId,
-          OR: [
-            ...(safeUserId ? [{ user_id: safeUserId }] : []),
-            ...(userEmail ? [{ admission_no: userEmail }] : []),
-          ],
-        },
-      });
+      if (safeUserId) {
+        const studentSelf = await prisma.students.findFirst({
+          where: {
+            org_id: safeOrgId,
+            user_id: safeUserId,
+          },
+        });
 
-      if (studentSelf) {
-        targetStudentIds = [studentSelf.student_id];
+        if (studentSelf) {
+          targetStudentIds = [studentSelf.student_id];
+        }
       }
     }
 
@@ -234,7 +296,7 @@ export class ParentFinanceService {
               },
             },
           },
-          take: 1,
+          orderBy: { created_at: 'desc' },
         },
       },
       orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
@@ -243,7 +305,10 @@ export class ParentFinanceService {
     const children: ChildFeeOverview[] = [];
 
     for (const student of students) {
-      const enrollment = student.student_enrollments[0] || null;
+      const enrollment =
+        selectCurrentEnrollment(student.student_enrollments, safeOrgId) ||
+        student.student_enrollments[0] ||
+        null;
       const activeAssignment = enrollment?.student_fee_assignments?.[0] || null;
 
       // Query active charges and dues
@@ -283,7 +348,7 @@ export class ParentFinanceService {
           order_id: o.payment_order_id,
           payment_method: tx.payment_method,
           amount: Number(tx.amount),
-          currency: tx.currency_code,
+          currency: tx.currency_code || 'INR',
           status: tx.status,
           transaction_reference: tx.transaction_reference,
           created_at: tx.created_at.toISOString(),
@@ -295,18 +360,6 @@ export class ParentFinanceService {
       let totalOverdue = 0;
       const duesList: ChildFeeOverview['dues'] = [];
       const componentsList: ChildFeeOverview['components'] = [];
-
-      // Extract components
-      if (activeAssignment?.fee_structures?.fee_components) {
-        for (const comp of activeAssignment.fee_structures.fee_components) {
-          componentsList.push({
-            component_name: comp.component_name,
-            component_code: comp.component_code,
-            amount: Number(comp.amount),
-            description: comp.description,
-          });
-        }
-      }
 
       // Process charges and dues
       for (const charge of charges) {
@@ -356,6 +409,86 @@ export class ParentFinanceService {
         }
       }
 
+      // Extract component breakdown directly from active charges
+      const activeCharges = charges.filter((c) => c.status === 'active');
+      if (activeCharges.length > 0) {
+        for (const charge of activeCharges) {
+          const chargeAmt = Number(charge.amount);
+          let chargePaid = 0;
+          let chargeHasOverdue = false;
+
+          for (const due of charge.student_charge_dues) {
+            if (due.status === 'cancelled') continue;
+            let duePaid = 0;
+            for (const alloc of due.payment_allocations) {
+              if (alloc.payment_transactions?.status === 'success') {
+                duePaid = this.roundMoney(duePaid + Number(alloc.allocated_amount));
+              }
+            }
+            chargePaid = this.roundMoney(chargePaid + duePaid);
+            const dueOutstanding = Math.max(0, this.roundMoney(Number(due.amount_due) - duePaid));
+            const dueDateStr = due.due_date.toISOString().split('T')[0];
+            if (
+              dueDateStr < todayStr &&
+              dueOutstanding > 0 &&
+              due.status !== 'paid' &&
+              due.status !== 'waived'
+            ) {
+              chargeHasOverdue = true;
+            }
+          }
+
+          const chargeOutstanding = Math.max(0, this.roundMoney(chargeAmt - chargePaid));
+          let compStatus = 'pending';
+          if (chargeOutstanding <= 0 && chargeAmt > 0) {
+            compStatus = 'paid';
+          } else if (chargeHasOverdue) {
+            compStatus = 'overdue';
+          } else if (chargePaid > 0) {
+            compStatus = 'partial';
+          }
+
+          componentsList.push({
+            component_id: charge.fee_component_id || charge.student_charge_id,
+            component_name:
+              charge.fee_components?.component_name || charge.description || 'Academic Fee',
+            component_code: charge.fee_components?.component_code || 'COMP',
+            amount: chargeAmt,
+            paid_amount: chargePaid,
+            outstanding_amount: chargeOutstanding,
+            status: compStatus,
+            description: charge.description || charge.fee_components?.description || null,
+          });
+        }
+      } else if (activeAssignment?.fee_structures?.fee_components) {
+        // Fallback to structure components if individual charges are pending generation
+        for (const comp of activeAssignment.fee_structures.fee_components) {
+          const compAmt = Number(comp.amount);
+          componentsList.push({
+            component_id: comp.fee_component_id,
+            component_name: comp.component_name,
+            component_code: comp.component_code,
+            amount: compAmt,
+            paid_amount: 0,
+            outstanding_amount: compAmt,
+            status: 'pending',
+            description: comp.description,
+          });
+        }
+      }
+
+      // Sort dues chronologically
+      duesList.sort((a, b) => a.due_date.localeCompare(b.due_date));
+
+      // Calculate next due installment (earliest upcoming or overdue due with positive balance)
+      let nextDueDate: string | null = null;
+      let nextDueAmount: number | null = null;
+      const unpaidDues = duesList.filter((d) => d.outstanding_amount > 0);
+      if (unpaidDues.length > 0) {
+        nextDueDate = unpaidDues[0].due_date;
+        nextDueAmount = unpaidDues[0].outstanding_amount;
+      }
+
       const outstandingBalance = Math.max(0, this.roundMoney(totalAssessed - totalPaid));
 
       let overallStatus: ChildFeeOverview['summary']['status'] = 'pending';
@@ -382,6 +515,7 @@ export class ParentFinanceService {
         academic_year_name:
           enrollment?.academic_year_grades?.academic_years?.academic_year_name || null,
         section_name: enrollment?.sections?.section_name || null,
+        roll_number: enrollment?.roll_number || null,
         enrollment_id: enrollment?.enrollment_id || null,
         is_assigned: Boolean(activeAssignment),
         assignment_id: activeAssignment?.student_fee_assignment_id || null,
@@ -392,6 +526,10 @@ export class ParentFinanceService {
           full_name: fullName,
           student_code: student.admission_no,
           grade_name: gradeName,
+          section_name: enrollment?.sections?.section_name || null,
+          roll_number: enrollment?.roll_number || null,
+          academic_year_name:
+            enrollment?.academic_year_grades?.academic_years?.academic_year_name || null,
         },
         summary: {
           total_assessed: totalAssessed,
@@ -399,8 +537,10 @@ export class ParentFinanceService {
           outstanding_balance: outstandingBalance,
           balance: outstandingBalance,
           overdue_amount: totalOverdue,
+          next_due_date: nextDueDate,
+          next_due_amount: nextDueAmount,
           total_dues_count: duesList.length,
-          unpaid_dues_count: duesList.filter((d) => d.outstanding_amount > 0).length,
+          unpaid_dues_count: unpaidDues.length,
           status: overallStatus,
         },
         fees: componentsList.map((c, idx) => ({
@@ -451,5 +591,368 @@ export class ParentFinanceService {
       throw err;
     }
     return child;
+  }
+
+  /**
+   * Create an authorized online payment order intent for an authenticated parent's child
+   */
+  public static async createParentPaymentOrder(
+    orgId: string,
+    parentUserId: string,
+    payload: {
+      studentId: string;
+      studentChargeDueId?: string;
+      dueId?: string;
+      amount?: number;
+      paymentMethod?: string;
+      notes?: string;
+    },
+    userEmail?: string,
+  ): Promise<any> {
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const safeParentUserId = toSafeUuid(parentUserId);
+    const studentIdRaw = payload.studentId || (payload as any).student_id;
+    const safeStudentId = toSafeUuid(studentIdRaw);
+    const dueIdRaw =
+      payload.studentChargeDueId ||
+      (payload as any).student_charge_due_id ||
+      payload.dueId ||
+      (payload as any).due_id;
+    const safeDueId = toSafeUuid(dueIdRaw);
+
+    if (!safeOrgId) {
+      const err: any = new Error('Tenant organization ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (!safeStudentId) {
+      const err: any = new Error('Valid student ID is required for payment initiation');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // 1. Authoritative Parent-Child & Tenant Access Verification (P0)
+    const isAuthorized = await this.verifyParentChildAccess(
+      safeOrgId,
+      parentUserId,
+      safeStudentId,
+      userEmail,
+    );
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        'Unauthorized: You are not authorized to initiate payments for this student.',
+      );
+      err.statusCode = 403;
+      err.code = 'UNAUTHORIZED_STUDENT_ACCESS';
+      throw err;
+    }
+
+    // 2. Verify Student belongs to tenant
+    const student = await prisma.students.findFirst({
+      where: { student_id: safeStudentId, org_id: safeOrgId },
+      select: { student_id: true, first_name: true, last_name: true, admission_no: true },
+    });
+
+    if (!student) {
+      const err: any = new Error('Student not found in authorized organization');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // 3. Resolve Target Due and Amount Authoritatively
+    let targetDueId: string;
+    let payableAmount: number;
+
+    if (safeDueId) {
+      // Validate specific requested due
+      const due = await PaymentRepository.findDueWithAllocations(safeDueId, safeStudentId);
+      if (!due) {
+        const err: any = new Error(
+          'Obligation due not found or does not belong to the selected student',
+        );
+        err.statusCode = 404;
+        throw err;
+      }
+
+      if (due.status === 'cancelled' || due.status === 'waived') {
+        const err: any = new Error(
+          `Cannot collect payment on obligation with status '${due.status}'`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const dueAmount = Number(due.amount_due);
+      const allocated = Number(due.allocated_amount);
+      const remainingPayable = Math.max(0, StudentLedgerService.roundMoney(dueAmount - allocated));
+
+      if (remainingPayable <= 0) {
+        const err: any = new Error('This obligation has already been fully paid and settled');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      if (payload.amount !== undefined && payload.amount !== null) {
+        const requested = Number(payload.amount);
+        if (isNaN(requested) || requested <= 0) {
+          const err: any = new Error('Payment amount must be a positive number');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (requested > remainingPayable + 0.001) {
+          const err: any = new Error(
+            `Payment amount (₹${requested.toFixed(2)}) exceeds eligible remaining balance (₹${remainingPayable.toFixed(2)})`,
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+        payableAmount = StudentLedgerService.roundMoney(requested);
+      } else {
+        payableAmount = remainingPayable;
+      }
+
+      targetDueId = safeDueId;
+    } else {
+      // Automatically resolve earliest unpaid due
+      const eligibleDues = await PaymentRepository.getEligibleDuesForStudent(safeStudentId);
+      const activeUnpaidDues = eligibleDues.filter(
+        (d) => d.remaining_payable_amount > 0 && d.status !== 'cancelled' && d.status !== 'waived',
+      );
+
+      if (activeUnpaidDues.length === 0) {
+        const err: any = new Error('No unpaid fee obligations found for this student');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      // Sort: overdue first, then by earliest due date
+      const sortedDues = [...activeUnpaidDues].sort((a, b) => {
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+
+      const selectedDue = sortedDues[0];
+      targetDueId = selectedDue.student_charge_due_id;
+
+      if (payload.amount !== undefined && payload.amount !== null) {
+        const requested = Number(payload.amount);
+        if (isNaN(requested) || requested <= 0) {
+          const err: any = new Error('Payment amount must be a positive number');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (requested > selectedDue.remaining_payable_amount + 0.001) {
+          const err: any = new Error(
+            `Payment amount (₹${requested.toFixed(2)}) exceeds eligible remaining balance (₹${selectedDue.remaining_payable_amount.toFixed(2)})`,
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+        payableAmount = StudentLedgerService.roundMoney(requested);
+      } else {
+        payableAmount = selectedDue.remaining_payable_amount;
+      }
+    }
+
+    // 4. Delegate to authoritative PaymentCollectionService
+    const result = await PaymentCollectionService.createOnlinePaymentOrder(
+      safeOrgId,
+      safeParentUserId || null,
+      {
+        studentId: safeStudentId,
+        studentChargeDueId: targetDueId,
+        amount: payableAmount,
+        paymentMethod: payload.paymentMethod || (payload as any).payment_method || 'card',
+        notes: payload.notes || `Online parent payment for ${student.first_name}`,
+      },
+    );
+
+    return {
+      success: true,
+      order_id: result.order.gateway_order_id,
+      amount: Math.round(result.order.amount * 100), // integer paise
+      amount_in_rupees: result.order.amount,
+      currency: result.order.currency,
+      key_id: result.order.key_id,
+      payment_order_id: result.order.payment_order_id,
+      order_reference: result.order.order_reference,
+      student_id: safeStudentId,
+      student_charge_due_id: targetDueId,
+      is_simulation: Boolean(result.order.is_simulation),
+      checkout_url: `/api/v1/fees/razorpay/checkout/${result.order.payment_order_id}`,
+    };
+  }
+
+  /**
+   * Verify and reconcile an online payment made by an authenticated parent
+   */
+  public static async verifyParentPayment(
+    orgId: string,
+    parentUserId: string,
+    payload: {
+      razorpay_order_id?: string;
+      order_id?: string;
+      razorpayOrderId?: string;
+      razorpay_payment_id?: string;
+      payment_id?: string;
+      razorpayPaymentId?: string;
+      razorpay_signature?: string;
+      signature?: string;
+      razorpaySignature?: string;
+      payment_order_id?: string;
+      paymentOrderId?: string;
+    },
+    userEmail?: string,
+  ): Promise<any> {
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const orderId = String(
+      payload.razorpay_order_id || payload.order_id || payload.razorpayOrderId || '',
+    ).trim();
+    const paymentId = String(
+      payload.razorpay_payment_id || payload.payment_id || payload.razorpayPaymentId || '',
+    ).trim();
+    const signature = String(
+      payload.razorpay_signature || payload.signature || payload.razorpaySignature || '',
+    ).trim();
+    const clientPaymentOrderId = payload.payment_order_id || payload.paymentOrderId;
+
+    if (!orderId || !paymentId || !signature) {
+      const err: any = new Error(
+        'razorpay_order_id, razorpay_payment_id, and razorpay_signature are required for payment verification.',
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // 1. Locate local transaction and order to verify parent-child authorization
+    let localTx: any = await PaymentRepository.findTransactionWithOrderAndDueByGatewayRef(
+      orderId,
+    ).catch(() => null);
+
+    if (!localTx && clientPaymentOrderId) {
+      const orderRecord = await PaymentRepository.findPaymentOrderForVerification(
+        clientPaymentOrderId,
+      ).catch(() => null);
+      if (orderRecord && orderRecord.payment_transactions?.[0]) {
+        localTx = {
+          payment_transaction_id: orderRecord.payment_transactions[0].payment_transaction_id,
+          payment_order_id: orderRecord.payment_order_id,
+          payment_method: orderRecord.payment_transactions[0].payment_method,
+          status: orderRecord.payment_transactions[0].status,
+          amount: Number(orderRecord.amount),
+          payment_orders: orderRecord,
+        };
+      }
+    }
+
+    if (!localTx || !localTx.payment_orders) {
+      const err: any = new Error('Payment order not found for verification');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const order = localTx.payment_orders;
+
+    // 2. Tenant isolation check
+    if (order.org_id && order.org_id !== safeOrgId) {
+      const err: any = new Error(
+        'Payment order does not belong to the authorized tenant organization',
+      );
+      err.statusCode = 403;
+      err.code = 'TENANT_MISMATCH';
+      throw err;
+    }
+
+    // 3. Parent-child access authorization (P0)
+    const isAuthorized = await this.verifyParentChildAccess(
+      safeOrgId,
+      parentUserId,
+      order.student_id,
+      userEmail,
+    );
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        'Unauthorized: You are not authorized to verify payments for this student.',
+      );
+      err.statusCode = 403;
+      err.code = 'UNAUTHORIZED_STUDENT_ACCESS';
+      throw err;
+    }
+
+    // 4. Delegate to PaymentCollectionService.verifyOnlinePayment
+    const verifyResult = await PaymentCollectionService.verifyOnlinePayment(
+      safeOrgId,
+      toSafeUuid(parentUserId),
+      {
+        paymentOrderId: order.payment_order_id,
+        razorpayOrderId: orderId,
+        razorpayPaymentId: paymentId,
+        razorpaySignature: signature,
+      },
+    );
+
+    return verifyResult;
+  }
+
+  /**
+   * Retrieve official receipt details for an authenticated parent's child
+   */
+  public static async getParentReceiptDetails(
+    orgId: string,
+    parentUserId: string,
+    transactionId: string,
+    userEmail?: string,
+  ): Promise<any> {
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+
+    if (!transactionId || typeof transactionId !== 'string' || !transactionId.trim()) {
+      const err: any = new Error('Valid transaction ID or receipt reference is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // 1. Fetch receipt details from repository
+    const receipt = await PaymentRepository.getReceiptDetails(safeOrgId, transactionId.trim());
+
+    if (!receipt) {
+      const err: any = new Error('Receipt or transaction not found in authorized organization');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // 2. Verify transaction status qualifies under receipt rules
+    const isValidReceiptStatus =
+      receipt.receipt_type === 'CANCELLED' ||
+      receipt.status === 'GENERATED' ||
+      receipt.transaction_status === 'success';
+
+    if (!isValidReceiptStatus) {
+      const err: any = new Error(
+        'Receipt is not available for unconfirmed or pending transactions',
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // 3. Strict Parent-Child & Tenant Authorization Check (P0/P5)
+    const isAuthorized = await this.verifyParentChildAccess(
+      safeOrgId,
+      parentUserId,
+      receipt.student_id,
+      userEmail,
+    );
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        'Unauthorized: You are not authorized to access receipts for this student.',
+      );
+      err.statusCode = 403;
+      err.code = 'UNAUTHORIZED_RECEIPT_ACCESS';
+      throw err;
+    }
+
+    return receipt;
   }
 }

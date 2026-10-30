@@ -37,7 +37,7 @@ const FINANCIAL_PERSISTENCE_MODELS = new Set([
 function createStrictFinancialDelegate(modelName: string) {
   const prohibitWrite = (method: string) => {
     throw new Error(
-      `[Persistence Error] Direct write on unmapped Prisma delegate '${modelName}.${method}' is prohibited. Financial records must be persisted durably through their dedicated repository.`
+      `[Persistence Error] Direct write on unmapped Prisma delegate '${modelName}.${method}' is prohibited. Financial records must be persisted durably through their dedicated repository.`,
     );
   };
 
@@ -119,7 +119,7 @@ function attachIncludes(modelName: string, item: any, include: any): any {
       const compStore = fallbackStores.get('fee_components');
       if (compStore) {
         clone.fee_components = Array.from(compStore.values()).filter(
-          (c) => c.fee_structure_id === item.fee_structure_id
+          (c) => c.fee_structure_id === item.fee_structure_id,
         );
       } else {
         clone.fee_components = [];
@@ -130,7 +130,10 @@ function attachIncludes(modelName: string, item: any, include: any): any {
       clone[rel] = [];
     } else if (rel === 'academic_year_grades') {
       clone.academic_year_grades = {
-        academic_years: { org_id: item.org_id || '00000000-0000-0000-0000-000000000001', academic_year_name: 'Academic Year 2026' },
+        academic_years: {
+          org_id: item.org_id || '00000000-0000-0000-0000-000000000001',
+          academic_year_name: 'Academic Year 2026',
+        },
         grades: { grade_name: 'Grade 10', grade_code: 'G10' },
       };
     } else {
@@ -158,8 +161,10 @@ function createSafeModelDelegate(modelName: string) {
     },
     findUnique: async (args?: any) => {
       if (args?.where) {
-        if (args.where.id && store.has(args.where.id)) return attachIncludes(modelName, store.get(args.where.id), args?.include);
-        if (args.where[pkField] && store.has(args.where[pkField])) return attachIncludes(modelName, store.get(args.where[pkField]), args?.include);
+        if (args.where.id && store.has(args.where.id))
+          return attachIncludes(modelName, store.get(args.where.id), args?.include);
+        if (args.where[pkField] && store.has(args.where[pkField]))
+          return attachIncludes(modelName, store.get(args.where[pkField]), args?.include);
       }
       for (const item of store.values()) {
         if (matchesWhere(item, args?.where)) return attachIncludes(modelName, item, args?.include);
@@ -253,9 +258,13 @@ function wrapWithFallbackProxy<T extends object>(target: T): T {
             const txMethod = obj[prop];
             return async function (arg: any, ...rest: any[]) {
               if (typeof arg === 'function') {
-                return txMethod.call(obj, async (tx: any) => {
-                  return arg(wrapWithFallbackProxy(tx));
-                }, ...rest);
+                return txMethod.call(
+                  obj,
+                  async (tx: any) => {
+                    return arg(wrapWithFallbackProxy(tx));
+                  },
+                  ...rest,
+                );
               }
               return txMethod.call(obj, arg, ...rest);
             };
@@ -287,9 +296,33 @@ function wrapWithFallbackProxy<T extends object>(target: T): T {
             };
           }
           const val = obj[prop];
-          if (!prop.startsWith('$') && !prop.startsWith('_') && typeof val === 'object' && val !== null) {
+          if (
+            !prop.startsWith('$') &&
+            !prop.startsWith('_') &&
+            typeof val === 'object' &&
+            val !== null
+          ) {
             return new Proxy(val, {
               get(modelObj: any, methodProp: string | symbol) {
+                if (
+                  FINANCIAL_PERSISTENCE_MODELS.has(prop) &&
+                  typeof methodProp === 'string' &&
+                  [
+                    'create',
+                    'createMany',
+                    'update',
+                    'updateMany',
+                    'delete',
+                    'deleteMany',
+                    'upsert',
+                  ].includes(methodProp)
+                ) {
+                  return async () => {
+                    throw new Error(
+                      `[Persistence Error] Direct write on unmapped Prisma delegate '${prop}.${methodProp}' is prohibited. Financial records must be persisted durably through their dedicated repository.`,
+                    );
+                  };
+                }
                 const methodVal = modelObj[methodProp];
                 if (typeof methodVal === 'function') {
                   return async function (...args: any[]) {
@@ -316,7 +349,13 @@ function wrapWithFallbackProxy<T extends object>(target: T): T {
           }
           return val;
         }
-        if (!prop.startsWith('$') && !prop.startsWith('_') && prop !== 'then' && prop !== 'catch' && prop !== 'finally') {
+        if (
+          !prop.startsWith('$') &&
+          !prop.startsWith('_') &&
+          prop !== 'then' &&
+          prop !== 'catch' &&
+          prop !== 'finally'
+        ) {
           if (!unmappedDelegates.has(prop)) {
             if (FINANCIAL_PERSISTENCE_MODELS.has(prop)) {
               unmappedDelegates.set(prop, createStrictFinancialDelegate(prop));

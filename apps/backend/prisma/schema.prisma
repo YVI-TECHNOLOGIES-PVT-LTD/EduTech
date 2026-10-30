@@ -12,21 +12,22 @@ datasource db {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model academic_year_grades {
-  academic_year_grade_id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  academic_year_id                             String                     @db.Uuid
-  grade_id                                     String                     @db.Uuid
+  academic_year_grade_id                       String                                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academic_year_id                             String                                  @db.Uuid
+  grade_id                                     String                                  @db.Uuid
   intake_capacity                              Int?
-  is_active                                    Boolean                    @default(true)
-  created_at                                   DateTime                   @default(now()) @db.Timestamptz(6)
-  created_by                                   String?                    @db.Uuid
-  updated_at                                   DateTime                   @default(now()) @db.Timestamptz(6)
-  updated_by                                   String?                    @db.Uuid
-  academic_years                               academic_years             @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade, onUpdate: NoAction)
-  users_academic_year_grades_created_byTousers users?                     @relation("academic_year_grades_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  grades                                       grades                     @relation(fields: [grade_id], references: [grade_id], onDelete: Cascade, onUpdate: NoAction)
-  users_academic_year_grades_updated_byTousers users?                     @relation("academic_year_grades_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  is_active                                    Boolean                                 @default(true)
+  created_at                                   DateTime                                @default(now()) @db.Timestamptz(6)
+  created_by                                   String?                                 @db.Uuid
+  updated_at                                   DateTime                                @default(now()) @db.Timestamptz(6)
+  updated_by                                   String?                                 @db.Uuid
+  academic_years                               academic_years                          @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade, onUpdate: NoAction)
+  users_academic_year_grades_created_byTousers users?                                  @relation("academic_year_grades_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  grades                                       grades                                  @relation(fields: [grade_id], references: [grade_id], onDelete: Cascade, onUpdate: NoAction)
+  users_academic_year_grades_updated_byTousers users?                                  @relation("academic_year_grades_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
   assessment_configurations                    assessment_configurations?
   fee_structures                               fee_structures?
+  feed_post_academic_year_grade_targets        feed_post_academic_year_grade_targets[]
   leads                                        leads[]
   sections                                     sections[]
   student_enrollments                          student_enrollments[]
@@ -574,8 +575,12 @@ model organizations {
   designations                          designations[]
   document_chunks                       document_chunks[]
   document_types                        document_types[]
+  feed_posts                            feed_posts[]
   gateway_settlements                   gateway_settlements[]
   grades                                grades[]
+  helpdesk_categories                   helpdesk_categories[]
+  helpdesk_escalation_rules             helpdesk_escalation_rules[]
+  helpdesk_tickets                      helpdesk_tickets[]
   installment_plans                     installment_plans[]
   lead_query_types                      lead_query_types[]
   leads                                 leads[]
@@ -621,21 +626,22 @@ model parents {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model sections {
-  section_id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  academic_year_grade_id           String                @db.Uuid
-  section_name                     String                @db.VarChar(10)
-  class_teacher_id                 String?               @db.Uuid
-  room_no                          String?               @db.VarChar(20)
+  section_id                       String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academic_year_grade_id           String                      @db.Uuid
+  section_name                     String                      @db.VarChar(10)
+  class_teacher_id                 String?                     @db.Uuid
+  room_no                          String?                     @db.VarChar(20)
   capacity                         Int?
-  is_active                        Boolean               @default(true)
-  created_at                       DateTime              @default(now()) @db.Timestamptz(6)
-  created_by                       String?               @db.Uuid
-  updated_at                       DateTime              @default(now()) @db.Timestamptz(6)
-  updated_by                       String?               @db.Uuid
-  academic_year_grades             academic_year_grades  @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onDelete: Cascade, onUpdate: NoAction)
-  staff                            staff?                @relation(fields: [class_teacher_id], references: [staff_id], onUpdate: NoAction)
-  users_sections_created_byTousers users?                @relation("sections_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  users_sections_updated_byTousers users?                @relation("sections_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  is_active                        Boolean                     @default(true)
+  created_at                       DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                       String?                     @db.Uuid
+  updated_at                       DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_by                       String?                     @db.Uuid
+  feed_post_section_targets        feed_post_section_targets[]
+  academic_year_grades             academic_year_grades        @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onDelete: Cascade, onUpdate: NoAction)
+  staff                            staff?                      @relation(fields: [class_teacher_id], references: [staff_id], onUpdate: NoAction)
+  users_sections_created_byTousers users?                      @relation("sections_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  users_sections_updated_byTousers users?                      @relation("sections_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
   student_enrollments              student_enrollments[]
 
   @@unique([academic_year_grade_id, section_name])
@@ -646,31 +652,34 @@ model sections {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model staff {
-  staff_id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_id                        String                    @db.Uuid
-  user_id                       String                    @unique @db.Uuid
-  employee_code                 String                    @db.VarChar(30)
-  designation_id                String?                   @db.Uuid
-  department_id                 String?                   @db.Uuid
-  joining_date                  DateTime?                 @db.Date
-  is_active                     Boolean                   @default(true)
-  created_at                    DateTime                  @default(now()) @db.Timestamptz(6)
-  updated_at                    DateTime                  @default(now()) @db.Timestamptz(6)
-  created_by                    String?                   @db.Uuid
-  updated_by                    String?                   @db.Uuid
+  staff_id                      String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                        String                      @db.Uuid
+  user_id                       String                      @unique @db.Uuid
+  employee_code                 String                      @db.VarChar(30)
+  designation_id                String?                     @db.Uuid
+  department_id                 String?                     @db.Uuid
+  joining_date                  DateTime?                   @db.Date
+  is_active                     Boolean                     @default(true)
+  created_at                    DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                    String?                     @db.Uuid
+  updated_by                    String?                     @db.Uuid
   application_assessments       application_assessments[]
   chatbot_sessions              chatbot_sessions[]
+  helpdesk_escalation_rules     helpdesk_escalation_rules[]
+  helpdesk_tickets              helpdesk_tickets[]
   lead_visits                   lead_visits[]
   leads                         leads[]
   sections                      sections[]
-  users_staff_created_byTousers users?                    @relation("staff_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  departments                   departments?              @relation(fields: [department_id], references: [department_id], onDelete: Restrict, onUpdate: NoAction)
-  designations                  designations?             @relation(fields: [designation_id], references: [designation_id], onDelete: Restrict, onUpdate: NoAction)
-  organizations                 organizations             @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
-  users_staff_updated_byTousers users?                    @relation("staff_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
-  users_staff_user_idTousers    users                     @relation("staff_user_idTousers", fields: [user_id], references: [user_id], onUpdate: NoAction)
+  users_staff_created_byTousers users?                      @relation("staff_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  departments                   departments?                @relation(fields: [department_id], references: [department_id], onDelete: Restrict, onUpdate: NoAction)
+  designations                  designations?               @relation(fields: [designation_id], references: [designation_id], onDelete: Restrict, onUpdate: NoAction)
+  organizations                 organizations               @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_staff_updated_byTousers users?                      @relation("staff_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  users_staff_user_idTousers    users                       @relation("staff_user_idTousers", fields: [user_id], references: [user_id], onUpdate: NoAction)
 
   @@unique([org_id, employee_code])
+  @@unique([org_id, user_id], map: "uq_staff_org_user")
   @@index([department_id], map: "ix_staff_department")
   @@index([designation_id], map: "ix_staff_designation")
   @@index([employee_code], map: "ix_staff_employee_code")
@@ -731,34 +740,37 @@ model student_parents {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model students {
-  student_id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  org_id                           String                    @db.Uuid
-  application_id                   String                    @unique @db.Uuid
-  user_id                          String?                   @db.Uuid
-  admission_no                     String                    @db.VarChar(30)
-  first_name                       String                    @db.VarChar(100)
-  last_name                        String?                   @db.VarChar(100)
-  dob                              DateTime?                 @db.Date
+  student_id                       String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                           String                      @db.Uuid
+  application_id                   String                      @unique @db.Uuid
+  user_id                          String?                     @db.Uuid
+  admission_no                     String                      @db.VarChar(30)
+  first_name                       String                      @db.VarChar(100)
+  last_name                        String?                     @db.VarChar(100)
+  dob                              DateTime?                   @db.Date
   gender                           gender_type?
-  admission_date                   DateTime?                 @db.Date
-  status                           enrollment_status         @default(active)
-  created_at                       DateTime                  @default(now()) @db.Timestamptz(6)
-  updated_at                       DateTime                  @default(now()) @db.Timestamptz(6)
-  created_by                       String?                   @db.Uuid
-  updated_by                       String?                   @db.Uuid
-  nationality                      String?                   @db.VarChar(100)
+  admission_date                   DateTime?                   @db.Date
+  status                           enrollment_status           @default(active)
+  created_at                       DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                       DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                       String?                     @db.Uuid
+  updated_by                       String?                     @db.Uuid
+  nationality                      String?                     @db.VarChar(100)
+  feed_post_student_targets        feed_post_student_targets[]
+  helpdesk_tickets                 helpdesk_tickets[]
   payment_orders                   payment_orders[]
   scholarship_concessions          scholarship_concessions[]
   student_charges                  student_charges[]
   student_enrollments              student_enrollments[]
   student_parents                  student_parents[]
-  admissions_applications          admissions_applications   @relation(fields: [application_id], references: [application_id], onUpdate: NoAction)
-  users_students_created_byTousers users?                    @relation("students_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
-  organizations                    organizations             @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
-  users_students_updated_byTousers users?                    @relation("students_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
-  users_students_user_idTousers    users?                    @relation("students_user_idTousers", fields: [user_id], references: [user_id], onUpdate: NoAction)
+  admissions_applications          admissions_applications     @relation(fields: [application_id], references: [application_id], onUpdate: NoAction)
+  users_students_created_byTousers users?                      @relation("students_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  organizations                    organizations               @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_students_updated_byTousers users?                      @relation("students_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction)
+  users_students_user_idTousers    users?                      @relation("students_user_idTousers", fields: [user_id], references: [user_id], onUpdate: NoAction)
 
   @@unique([org_id, admission_no])
+  @@unique([org_id, student_id], map: "uq_students_org_student")
   @@index([admission_no], map: "ix_students_admission_number")
   @@index([application_id], map: "ix_students_application")
   @@index([org_id], map: "ix_students_org")
@@ -831,12 +843,34 @@ model users {
   fee_components_fee_components_updated_byTousers                                                   fee_components[]                          @relation("fee_components_updated_byTousers")
   fee_structures_fee_structures_created_byTousers                                                   fee_structures[]                          @relation("fee_structures_created_byTousers")
   fee_structures_fee_structures_updated_byTousers                                                   fee_structures[]                          @relation("fee_structures_updated_byTousers")
+  feed_comments_feed_comments_author_user_idTousers                                                 feed_comments[]                           @relation("feed_comments_author_user_idTousers")
+  feed_comments_feed_comments_deleted_by_user_idTousers                                             feed_comments[]                           @relation("feed_comments_deleted_by_user_idTousers")
+  feed_post_academic_year_grade_targets                                                             feed_post_academic_year_grade_targets[]
+  feed_post_allowed_reactions_feed_post_allowed_reactions_created_by_user_idTousers                 feed_post_allowed_reactions[]             @relation("feed_post_allowed_reactions_created_by_user_idTousers")
+  feed_post_allowed_reactions_feed_post_allowed_reactions_updated_by_user_idTousers                 feed_post_allowed_reactions[]             @relation("feed_post_allowed_reactions_updated_by_user_idTousers")
+  feed_post_reactions                                                                               feed_post_reactions[]
+  feed_post_section_targets                                                                         feed_post_section_targets[]
+  feed_post_student_targets                                                                         feed_post_student_targets[]
+  feed_posts_feed_posts_updated_by_user_idTousers                                                   feed_posts[]                              @relation("feed_posts_updated_by_user_idTousers")
+  feed_posts_feed_posts_org_id_author_user_idTousers                                                feed_posts[]                              @relation("feed_posts_org_id_author_user_idTousers")
+  feed_posts_feed_posts_org_id_removed_by_user_idTousers                                            feed_posts[]                              @relation("feed_posts_org_id_removed_by_user_idTousers")
   gateway_settlement_items_gateway_settlement_items_created_byTousers                               gateway_settlement_items[]                @relation("gateway_settlement_items_created_byTousers")
   gateway_settlement_items_gateway_settlement_items_updated_byTousers                               gateway_settlement_items[]                @relation("gateway_settlement_items_updated_byTousers")
   gateway_settlements_gateway_settlements_created_byTousers                                         gateway_settlements[]                     @relation("gateway_settlements_created_byTousers")
   gateway_settlements_gateway_settlements_updated_byTousers                                         gateway_settlements[]                     @relation("gateway_settlements_updated_byTousers")
   grades_grades_created_byTousers                                                                   grades[]                                  @relation("grades_created_byTousers")
   grades_grades_updated_byTousers                                                                   grades[]                                  @relation("grades_updated_byTousers")
+  helpdesk_attachments_helpdesk_attachments_org_id_removed_byTousers                                helpdesk_attachments[]                    @relation("helpdesk_attachments_org_id_removed_byTousers")
+  helpdesk_attachments_helpdesk_attachments_org_id_uploaded_byTousers                               helpdesk_attachments[]                    @relation("helpdesk_attachments_org_id_uploaded_byTousers")
+  helpdesk_categories_helpdesk_categories_created_byTousers                                         helpdesk_categories[]                     @relation("helpdesk_categories_created_byTousers")
+  helpdesk_categories_helpdesk_categories_updated_byTousers                                         helpdesk_categories[]                     @relation("helpdesk_categories_updated_byTousers")
+  helpdesk_escalation_rules_helpdesk_escalation_rules_created_byTousers                             helpdesk_escalation_rules[]               @relation("helpdesk_escalation_rules_created_byTousers")
+  helpdesk_escalation_rules_helpdesk_escalation_rules_updated_byTousers                             helpdesk_escalation_rules[]               @relation("helpdesk_escalation_rules_updated_byTousers")
+  helpdesk_messages                                                                                 helpdesk_messages[]
+  helpdesk_ticket_history_helpdesk_ticket_history_org_id_action_byTousers                           helpdesk_ticket_history[]                 @relation("helpdesk_ticket_history_org_id_action_byTousers")
+  helpdesk_ticket_history_helpdesk_ticket_history_org_id_recipient_user_idTousers                   helpdesk_ticket_history[]                 @relation("helpdesk_ticket_history_org_id_recipient_user_idTousers")
+  helpdesk_tickets_helpdesk_tickets_org_id_created_byTousers                                        helpdesk_tickets[]                        @relation("helpdesk_tickets_org_id_created_byTousers")
+  helpdesk_tickets_helpdesk_tickets_org_id_requester_user_idTousers                                 helpdesk_tickets[]                        @relation("helpdesk_tickets_org_id_requester_user_idTousers")
   installment_plan_terms_installment_plan_terms_created_byTousers                                   installment_plan_terms[]                  @relation("installment_plan_terms_created_byTousers")
   installment_plan_terms_installment_plan_terms_updated_byTousers                                   installment_plan_terms[]                  @relation("installment_plan_terms_updated_byTousers")
   installment_plans_installment_plans_created_byTousers                                             installment_plans[]                       @relation("installment_plans_created_byTousers")
@@ -910,6 +944,7 @@ model users {
   other_users_users_updated_byTousers                                                               users[]                                   @relation("users_updated_byTousers")
 
   @@unique([org_id, email])
+  @@unique([org_id, user_id], map: "uq_users_org_user")
   @@index([org_id], map: "ix_users_org")
   @@index([country_id], map: "ix_users_country")
   @@schema("public")
@@ -1590,6 +1625,325 @@ model student_fee_assignments {
   @@schema("public")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_comments {
+  feed_comment_id                               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  feed_post_id                                  String     @db.Uuid
+  author_user_id                                String     @db.Uuid
+  content                                       String
+  created_at                                    DateTime   @default(now()) @db.Timestamptz(6)
+  deleted_at                                    DateTime?  @db.Timestamptz(6)
+  deleted_by_user_id                            String?    @db.Uuid
+  moderation_reason                             String?
+  feed_posts                                    feed_posts @relation(fields: [feed_post_id], references: [feed_post_id], onDelete: Cascade, onUpdate: NoAction)
+  users_feed_comments_author_user_idTousers     users      @relation("feed_comments_author_user_idTousers", fields: [author_user_id], references: [user_id], onUpdate: NoAction, map: "fk_feed_comments_author")
+  users_feed_comments_deleted_by_user_idTousers users?     @relation("feed_comments_deleted_by_user_idTousers", fields: [deleted_by_user_id], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_feed_comments_deleted_by")
+
+  @@index([author_user_id], map: "idx_feed_comments_author")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_post_academic_year_grade_targets {
+  feed_post_id           String               @db.Uuid
+  academic_year_grade_id String               @db.Uuid
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  created_by_user_id     String?              @db.Uuid
+  academic_year_grades   academic_year_grades @relation(fields: [academic_year_grade_id], references: [academic_year_grade_id], onDelete: Cascade, onUpdate: NoAction, map: "feed_post_academic_year_grade_targe_academic_year_grade_id_fkey")
+  users                  users?               @relation(fields: [created_by_user_id], references: [user_id], onUpdate: NoAction)
+  feed_posts             feed_posts           @relation(fields: [feed_post_id], references: [feed_post_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([feed_post_id, academic_year_grade_id])
+  @@index([academic_year_grade_id, feed_post_id], map: "idx_feed_post_grade_targets_grade_post")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_post_allowed_reactions {
+  feed_post_id                                                String                @db.Uuid
+  reaction_type_id                                            String                @db.Uuid
+  is_enabled                                                  Boolean               @default(true)
+  created_at                                                  DateTime              @default(now()) @db.Timestamptz(6)
+  created_by_user_id                                          String?               @db.Uuid
+  updated_at                                                  DateTime              @default(now()) @db.Timestamptz(6)
+  updated_by_user_id                                          String?               @db.Uuid
+  users_feed_post_allowed_reactions_created_by_user_idTousers users?                @relation("feed_post_allowed_reactions_created_by_user_idTousers", fields: [created_by_user_id], references: [user_id], onUpdate: NoAction)
+  feed_posts                                                  feed_posts            @relation(fields: [feed_post_id], references: [feed_post_id], onDelete: Cascade, onUpdate: NoAction)
+  feed_reaction_types                                         feed_reaction_types   @relation(fields: [reaction_type_id], references: [reaction_type_id], onUpdate: NoAction)
+  users_feed_post_allowed_reactions_updated_by_user_idTousers users?                @relation("feed_post_allowed_reactions_updated_by_user_idTousers", fields: [updated_by_user_id], references: [user_id], onUpdate: NoAction)
+  feed_post_reactions                                         feed_post_reactions[]
+
+  @@id([feed_post_id, reaction_type_id])
+  @@index([reaction_type_id], map: "idx_feed_post_allowed_reactions_type")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_post_reactions {
+  feed_post_reaction_id       String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  feed_post_id                String                      @db.Uuid
+  user_id                     String                      @db.Uuid
+  reaction_type_id            String                      @db.Uuid
+  created_at                  DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                    @default(now()) @db.Timestamptz(6)
+  users                       users                       @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  feed_post_allowed_reactions feed_post_allowed_reactions @relation(fields: [feed_post_id, reaction_type_id], references: [feed_post_id, reaction_type_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_feed_post_reactions_allowed_reaction")
+
+  @@unique([feed_post_id, user_id], map: "uq_feed_post_reactions_post_user")
+  @@index([feed_post_id, reaction_type_id], map: "idx_feed_post_reactions_post_type")
+  @@index([user_id], map: "idx_feed_post_reactions_user")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_post_section_targets {
+  feed_post_id       String     @db.Uuid
+  section_id         String     @db.Uuid
+  created_at         DateTime   @default(now()) @db.Timestamptz(6)
+  created_by_user_id String?    @db.Uuid
+  users              users?     @relation(fields: [created_by_user_id], references: [user_id], onUpdate: NoAction)
+  feed_posts         feed_posts @relation(fields: [feed_post_id], references: [feed_post_id], onDelete: Cascade, onUpdate: NoAction)
+  sections           sections   @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([feed_post_id, section_id])
+  @@index([section_id, feed_post_id], map: "idx_feed_post_section_targets_section_post")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_post_student_targets {
+  org_id             String     @db.Uuid
+  feed_post_id       String     @db.Uuid
+  student_id         String     @db.Uuid
+  created_at         DateTime   @default(now()) @db.Timestamptz(6)
+  created_by_user_id String?    @db.Uuid
+  users              users?     @relation(fields: [created_by_user_id], references: [user_id], onUpdate: NoAction, map: "fk_feed_post_student_targets_creator")
+  feed_posts         feed_posts @relation(fields: [org_id, feed_post_id], references: [org_id, feed_post_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_feed_post_student_targets_post")
+  students           students   @relation(fields: [org_id, student_id], references: [org_id, student_id], onUpdate: NoAction, map: "fk_feed_post_student_targets_student")
+
+  @@id([feed_post_id, student_id])
+  @@index([org_id, student_id, feed_post_id], map: "idx_feed_post_student_targets_student_post")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_posts {
+  feed_post_id                                      String                                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                            String                                  @db.Uuid
+  author_user_id                                    String                                  @db.Uuid
+  feed_type                                         communication_feed_type
+  audience_scope                                    communication_audience_scope
+  title                                             String?                                 @db.VarChar(200)
+  content                                           String
+  status                                            feed_post_status                        @default(draft)
+  comments_enabled                                  Boolean                                 @default(true)
+  reactions_enabled                                 Boolean                                 @default(true)
+  published_at                                      DateTime?                               @db.Timestamptz(6)
+  removed_at                                        DateTime?                               @db.Timestamptz(6)
+  removed_by_user_id                                String?                                 @db.Uuid
+  created_at                                        DateTime                                @default(now()) @db.Timestamptz(6)
+  updated_at                                        DateTime                                @default(now()) @db.Timestamptz(6)
+  updated_by_user_id                                String?                                 @db.Uuid
+  feed_comments                                     feed_comments[]
+  feed_post_academic_year_grade_targets             feed_post_academic_year_grade_targets[]
+  feed_post_allowed_reactions                       feed_post_allowed_reactions[]
+  feed_post_section_targets                         feed_post_section_targets[]
+  feed_post_student_targets                         feed_post_student_targets[]
+  organizations                                     organizations                           @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
+  users_feed_posts_updated_by_user_idTousers        users?                                  @relation("feed_posts_updated_by_user_idTousers", fields: [updated_by_user_id], references: [user_id], onUpdate: NoAction)
+  users_feed_posts_org_id_author_user_idTousers     users                                   @relation("feed_posts_org_id_author_user_idTousers", fields: [org_id, author_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_feed_posts_author")
+  users_feed_posts_org_id_removed_by_user_idTousers users?                                  @relation("feed_posts_org_id_removed_by_user_idTousers", fields: [org_id, removed_by_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_feed_posts_removed_by")
+
+  @@unique([org_id, feed_post_id], map: "uq_feed_posts_org_post")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_reaction_types {
+  reaction_type_id            String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reaction_code               String                        @unique @db.VarChar(30)
+  reaction_label              String                        @db.VarChar(50)
+  emoji                       String                        @db.VarChar(16)
+  display_order               Int                           @default(0) @db.SmallInt
+  is_active                   Boolean                       @default(true)
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  feed_post_allowed_reactions feed_post_allowed_reactions[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model helpdesk_attachments {
+  attachment_id                                        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                               String            @db.Uuid
+  message_id                                           String            @db.Uuid
+  file_name                                            String            @db.VarChar(255)
+  file_path                                            String            @db.VarChar(1000)
+  mime_type                                            String            @db.VarChar(150)
+  file_size_bytes                                      BigInt
+  uploaded_by                                          String            @db.Uuid
+  uploaded_at                                          DateTime          @default(now()) @db.Timestamptz(6)
+  removed_at                                           DateTime?         @db.Timestamptz(6)
+  removed_by                                           String?           @db.Uuid
+  removal_reason                                       String?
+  helpdesk_messages                                    helpdesk_messages @relation(fields: [org_id, message_id], references: [org_id, message_id], onUpdate: NoAction, map: "fk_helpdesk_attachments_message")
+  users_helpdesk_attachments_org_id_removed_byTousers  users?            @relation("helpdesk_attachments_org_id_removed_byTousers", fields: [org_id, removed_by], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_attachments_removed_by")
+  users_helpdesk_attachments_org_id_uploaded_byTousers users             @relation("helpdesk_attachments_org_id_uploaded_byTousers", fields: [org_id, uploaded_by], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_attachments_uploader")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model helpdesk_categories {
+  category_id                                 String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                      String                      @db.Uuid
+  category_name                               String                      @db.VarChar(100)
+  description                                 String?
+  is_active                                   Boolean                     @default(true)
+  display_order                               Int                         @default(0)
+  created_at                                  DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                                  DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                                  String?                     @db.Uuid
+  updated_by                                  String?                     @db.Uuid
+  users_helpdesk_categories_created_byTousers users?                      @relation("helpdesk_categories_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_helpdesk_categories_created_by")
+  organizations                               organizations               @relation(fields: [org_id], references: [org_id], onUpdate: NoAction, map: "fk_helpdesk_categories_org")
+  users_helpdesk_categories_updated_byTousers users?                      @relation("helpdesk_categories_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_helpdesk_categories_updated_by")
+  helpdesk_escalation_rules                   helpdesk_escalation_rules[]
+  helpdesk_tickets                            helpdesk_tickets[]
+
+  @@unique([org_id, category_id], map: "uq_helpdesk_categories_org_id")
+  @@unique([org_id, category_name], map: "uq_helpdesk_categories_org_name")
+  @@index([org_id, is_active, display_order], map: "idx_helpdesk_categories_org_active_order")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model helpdesk_escalation_rules {
+  escalation_rule_id                                String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                            String                    @db.Uuid
+  priority                                          helpdesk_priority?
+  category_id                                       String?                   @db.Uuid
+  auto_escalation_enabled                           Boolean                   @default(false)
+  no_response_after_minutes                         Int                       @default(1440)
+  escalation_recipient_user_id                      String                    @db.Uuid
+  is_active                                         Boolean                   @default(true)
+  created_at                                        DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                                        DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                                        String?                   @db.Uuid
+  updated_by                                        String?                   @db.Uuid
+  helpdesk_categories                               helpdesk_categories?      @relation(fields: [org_id, category_id], references: [org_id, category_id], onUpdate: NoAction, map: "fk_helpdesk_escalation_rules_category")
+  users_helpdesk_escalation_rules_created_byTousers users?                    @relation("helpdesk_escalation_rules_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_helpdesk_escalation_rules_created_by")
+  organizations                                     organizations             @relation(fields: [org_id], references: [org_id], onUpdate: NoAction, map: "fk_helpdesk_escalation_rules_org")
+  staff                                             staff                     @relation(fields: [org_id, escalation_recipient_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_escalation_rules_recipient_staff")
+  users_helpdesk_escalation_rules_updated_byTousers users?                    @relation("helpdesk_escalation_rules_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_helpdesk_escalation_rules_updated_by")
+  helpdesk_ticket_history                           helpdesk_ticket_history[]
+
+  @@unique([org_id, escalation_rule_id], map: "uq_helpdesk_escalation_rules_org_rule")
+  @@index([org_id, is_active, priority, category_id], map: "idx_helpdesk_escalation_rules_org_active")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model helpdesk_messages {
+  message_id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                  String                    @db.Uuid
+  ticket_id               String                    @db.Uuid
+  author_user_id          String                    @db.Uuid
+  message_type            helpdesk_message_type
+  content                 String
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  helpdesk_attachments    helpdesk_attachments[]
+  users                   users                     @relation(fields: [org_id, author_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_messages_author")
+  helpdesk_tickets        helpdesk_tickets          @relation(fields: [org_id, ticket_id], references: [org_id, ticket_id], onUpdate: NoAction, map: "fk_helpdesk_messages_ticket")
+  helpdesk_ticket_history helpdesk_ticket_history[]
+
+  @@unique([org_id, message_id], map: "uq_helpdesk_messages_org_id")
+  @@unique([org_id, ticket_id, message_id], map: "uq_helpdesk_messages_org_ticket_message")
+  @@index([org_id, ticket_id, created_at(sort: Desc), message_id(sort: Desc)], map: "idx_helpdesk_messages_ticket_latest")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model helpdesk_ticket_history {
+  ticket_history_id                                             String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                                        String                      @db.Uuid
+  ticket_id                                                     String                      @db.Uuid
+  action_type                                                   helpdesk_history_action
+  actor_type                                                    helpdesk_history_actor_type @default(user)
+  old_value                                                     Json?
+  new_value                                                     Json?
+  action_by                                                     String?                     @db.Uuid
+  recipient_user_id                                             String?                     @db.Uuid
+  triggering_message_id                                         String?                     @db.Uuid
+  escalation_rule_id                                            String?                     @db.Uuid
+  escalation_rule_snapshot                                      Json?
+  action_at                                                     DateTime                    @default(now()) @db.Timestamptz(6)
+  users_helpdesk_ticket_history_org_id_action_byTousers         users?                      @relation("helpdesk_ticket_history_org_id_action_byTousers", fields: [org_id, action_by], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_ticket_history_actor")
+  helpdesk_escalation_rules                                     helpdesk_escalation_rules?  @relation(fields: [org_id, escalation_rule_id], references: [org_id, escalation_rule_id], onUpdate: NoAction, map: "fk_helpdesk_ticket_history_escalation_rule")
+  users_helpdesk_ticket_history_org_id_recipient_user_idTousers users?                      @relation("helpdesk_ticket_history_org_id_recipient_user_idTousers", fields: [org_id, recipient_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_ticket_history_recipient")
+  helpdesk_tickets                                              helpdesk_tickets            @relation(fields: [org_id, ticket_id], references: [org_id, ticket_id], onUpdate: NoAction, map: "fk_helpdesk_ticket_history_ticket")
+  helpdesk_messages                                             helpdesk_messages?          @relation(fields: [org_id, ticket_id, triggering_message_id], references: [org_id, ticket_id, message_id], onUpdate: NoAction, map: "fk_helpdesk_ticket_history_triggering_message")
+
+  @@index([org_id, ticket_id, action_at(sort: Desc)], map: "idx_helpdesk_ticket_history_ticket_action_at")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model helpdesk_tickets {
+  ticket_id                                              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                                 String                    @db.Uuid
+  ticket_type                                            helpdesk_ticket_type
+  requester_user_id                                      String                    @db.Uuid
+  created_by                                             String                    @db.Uuid
+  student_id                                             String?                   @db.Uuid
+  category_id                                            String                    @db.Uuid
+  priority                                               helpdesk_priority         @default(normal)
+  status                                                 concern_status            @default(open)
+  assigned_to_user_id                                    String?                   @db.Uuid
+  resolved_at                                            DateTime?                 @db.Timestamptz(6)
+  closed_at                                              DateTime?                 @db.Timestamptz(6)
+  created_at                                             DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                                             DateTime                  @default(now()) @db.Timestamptz(6)
+  helpdesk_messages                                      helpdesk_messages[]
+  helpdesk_ticket_history                                helpdesk_ticket_history[]
+  staff                                                  staff?                    @relation(fields: [org_id, assigned_to_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_tickets_assignee")
+  helpdesk_categories                                    helpdesk_categories       @relation(fields: [org_id, category_id], references: [org_id, category_id], onUpdate: NoAction, map: "fk_helpdesk_tickets_category")
+  users_helpdesk_tickets_org_id_created_byTousers        users                     @relation("helpdesk_tickets_org_id_created_byTousers", fields: [org_id, created_by], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_tickets_creator")
+  organizations                                          organizations             @relation(fields: [org_id], references: [org_id], onUpdate: NoAction, map: "fk_helpdesk_tickets_org")
+  users_helpdesk_tickets_org_id_requester_user_idTousers users                     @relation("helpdesk_tickets_org_id_requester_user_idTousers", fields: [org_id, requester_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_helpdesk_tickets_requester")
+  students                                               students?                 @relation(fields: [org_id, student_id], references: [org_id, student_id], onUpdate: NoAction, map: "fk_helpdesk_tickets_student")
+
+  @@unique([org_id, ticket_id], map: "uq_helpdesk_tickets_org_id")
+  @@index([org_id, category_id, status], map: "idx_helpdesk_tickets_org_category_status")
+  @@index([org_id, requester_user_id, created_at(sort: Desc)], map: "idx_helpdesk_tickets_org_requester_created")
+  @@index([org_id, status, created_at(sort: Desc)], map: "idx_helpdesk_tickets_org_status_created")
+  @@schema("public")
+}
+
 enum academic_year_status {
   planning
   open
@@ -1757,6 +2111,7 @@ enum concern_status {
   escalated
   resolved
   closed
+  waiting_for_parent
 
   @@schema("public")
 }
@@ -2145,6 +2500,83 @@ enum student_charge_status {
 enum student_fee_assignment_status {
   active
   cancelled
+
+  @@schema("public")
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum communication_audience_scope {
+  organization
+  all_parents
+  selected_academic_groups
+  selected_students
+  staff_only
+
+  @@schema("public")
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum communication_feed_type {
+  classroom
+  parent
+  student
+  staff_community
+
+  @@schema("public")
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum feed_post_status {
+  draft
+  published
+  removed
+
+  @@schema("public")
+}
+
+enum helpdesk_history_action {
+  status_changed
+  assigned
+  reassigned
+  priority_changed
+  category_changed
+  resolved
+  reopened
+  closed
+  manual_escalated
+  automatic_escalated
+
+  @@schema("public")
+}
+
+enum helpdesk_history_actor_type {
+  user
+  system
+
+  @@schema("public")
+}
+
+enum helpdesk_message_type {
+  initial_description
+  public_reply
+  internal_note
+
+  @@schema("public")
+}
+
+enum helpdesk_priority {
+  low
+  normal
+  high
+  urgent
+
+  @@schema("public")
+}
+
+enum helpdesk_ticket_type {
+  parent_submitted
+  staff_on_behalf
+  internal
 
   @@schema("public")
 }

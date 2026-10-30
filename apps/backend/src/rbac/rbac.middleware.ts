@@ -93,6 +93,7 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         'admission.application.update',
         'admission.application.view_own',
         'admission.application.view',
+        'DASHBOARD_VIEW_PARENT',
       ].includes(requiredPermission)
     ) {
       return next();

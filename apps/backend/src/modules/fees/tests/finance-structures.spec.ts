@@ -144,6 +144,7 @@ export async function runFinanceStructureTests() {
     activeAyGrade = await (prisma as any).academic_year_grades.findFirst({
       where: {
         is_active: true,
+        fee_structures: null,
         academic_years: {
           org_id: { not: undefined },
         },

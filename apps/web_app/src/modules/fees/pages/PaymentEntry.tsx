@@ -260,7 +260,7 @@ export const PaymentEntry: React.FC = () => {
         setSearching(false);
       }
     },
-    [selectedYearId, selectedStudent]
+    [selectedYearId, selectedStudent],
   );
 
   useEffect(() => {
@@ -338,12 +338,14 @@ export const PaymentEntry: React.FC = () => {
     }
     if (entered > selectedObligation.remaining_payable_amount) {
       toast.error(
-        `Amount cannot exceed remaining payable due of ${formatMoney(selectedObligation.remaining_payable_amount)}`
+        `Amount cannot exceed remaining payable due of ${formatMoney(selectedObligation.remaining_payable_amount)}`,
       );
       return false;
     }
     if (['bank_transfer', 'other'].includes(paymentMethod) && !referenceNo.trim()) {
-      toast.error('Transaction reference / UTR / Cheque number is required for bank transfer/other');
+      toast.error(
+        'Transaction reference / UTR / Cheque number is required for bank transfer/other',
+      );
       return false;
     }
     return true;
@@ -366,14 +368,23 @@ export const PaymentEntry: React.FC = () => {
 
       if (!isOnlineMethod) {
         // OFFLINE PAYMENT FLOW
+        const dueId =
+          selectedObligation!.student_charge_due_id || (selectedObligation as any)!.due_id;
         const payload = {
           student_id: selectedStudent!.student_id,
-          student_charge_due_id: selectedObligation!.student_charge_due_id,
+          studentId: selectedStudent!.student_id,
+          student_charge_due_id: dueId,
+          studentChargeDueId: dueId,
+          due_id: dueId,
           amount: amountVal,
           payment_method: paymentMethod,
+          paymentMethod: paymentMethod,
           transaction_reference: referenceNo.trim() || undefined,
+          transactionReference: referenceNo.trim() || undefined,
           payment_date: paymentDate,
+          paymentDate: paymentDate,
           remarks: remarks.trim() || undefined,
+          notes: remarks.trim() || undefined,
         };
 
         const res = await apiClient.post('/fees/payments/collect', payload);
@@ -388,12 +399,19 @@ export const PaymentEntry: React.FC = () => {
         }
       } else {
         // ONLINE GATEWAY FLOW
+        const dueId =
+          selectedObligation!.student_charge_due_id || (selectedObligation as any)!.due_id;
         const orderPayload = {
           student_id: selectedStudent!.student_id,
-          student_charge_due_id: selectedObligation!.student_charge_due_id,
+          studentId: selectedStudent!.student_id,
+          student_charge_due_id: dueId,
+          studentChargeDueId: dueId,
+          due_id: dueId,
           amount: amountVal,
           payment_method: paymentMethod,
+          paymentMethod: paymentMethod,
           notes: remarks.trim() || `Online fee collection for ${selectedStudent!.full_name}`,
+          remarks: remarks.trim() || `Online fee collection for ${selectedStudent!.full_name}`,
         };
 
         const orderRes = await apiClient.post('/fees/payments/create-order', orderPayload);
@@ -409,7 +427,9 @@ export const PaymentEntry: React.FC = () => {
           // Load official Razorpay Checkout script
           const isScriptLoaded = await loadRazorpayScript();
           if (!isScriptLoaded) {
-            toast.error('Failed to load official Razorpay Checkout SDK. Please verify internet connectivity.');
+            toast.error(
+              'Failed to load official Razorpay Checkout SDK. Please verify internet connectivity.',
+            );
             setSubmitting(false);
             return;
           }
@@ -452,7 +472,9 @@ export const PaymentEntry: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Payment processing error:', err);
-      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to process payment');
+      toast.error(
+        err.response?.data?.message || err.response?.data?.error || 'Failed to process payment',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -575,7 +597,7 @@ export const PaymentEntry: React.FC = () => {
           <td style="padding: 10px 8px; text-align: center;">${a.due_date ? new Date(a.due_date).toLocaleDateString('en-IN') : '—'}</td>
           <td style="padding: 10px 8px; text-align: right; font-weight: 600;">₹${Number(a.allocated_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         </tr>
-      `
+      `,
       )
       .join('');
 
@@ -857,10 +879,14 @@ export const PaymentEntry: React.FC = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                       Transaction Confirmed & Allocated
                     </span>
-                    <h3 className="text-xl font-black">Official Receipt {activeReceipt.receipt_no}</h3>
+                    <h3 className="text-xl font-black">
+                      Official Receipt {activeReceipt.receipt_no}
+                    </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-300">
                       Amount Collected: <b>{formatMoney(activeReceipt.amount)}</b> via{' '}
-                      <span className="uppercase">{activeReceipt.payment_method.replace('_', ' ')}</span>
+                      <span className="uppercase">
+                        {activeReceipt.payment_method.replace('_', ' ')}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -930,14 +956,17 @@ export const PaymentEntry: React.FC = () => {
                         }`}
                       >
                         <div className="flex justify-between items-start">
-                          <span className="font-bold text-slate-900 dark:text-white">{st.full_name}</span>
+                          <span className="font-bold text-slate-900 dark:text-white">
+                            {st.full_name}
+                          </span>
                           <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                             {st.admission_no}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                           <span>
-                            {st.enrollment?.grade_name || 'No Grade'} • {st.enrollment?.section_name || '—'}
+                            {st.enrollment?.grade_name || 'No Grade'} •{' '}
+                            {st.enrollment?.section_name || '—'}
                           </span>
                           <span className="capitalize">{st.status}</span>
                         </div>
@@ -962,7 +991,8 @@ export const PaymentEntry: React.FC = () => {
                         {selectedStudent.full_name}
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Admission: <span className="font-mono font-bold">{selectedStudent.admission_no}</span>
+                        Admission:{' '}
+                        <span className="font-mono font-bold">{selectedStudent.admission_no}</span>
                       </p>
                     </div>
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400">
@@ -979,7 +1009,9 @@ export const PaymentEntry: React.FC = () => {
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Assessed</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                            Total Assessed
+                          </span>
                           <span className="font-bold text-slate-800 dark:text-slate-200">
                             {formatMoney(studentLedger.summary.total_assessed_amount)}
                           </span>
@@ -1005,7 +1037,9 @@ export const PaymentEntry: React.FC = () => {
                         </div>
                         {studentLedger.summary.overdue_balance > 0 && (
                           <div className="text-right">
-                            <span className="text-[9px] uppercase font-bold text-amber-600 block">Overdue</span>
+                            <span className="text-[9px] uppercase font-bold text-amber-600 block">
+                              Overdue
+                            </span>
                             <span className="text-xs font-bold text-amber-700">
                               {formatMoney(studentLedger.summary.overdue_balance)}
                             </span>
@@ -1028,7 +1062,9 @@ export const PaymentEntry: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-400 text-center py-4">No ledger summary available.</div>
+                    <div className="text-xs text-slate-400 text-center py-4">
+                      No ledger summary available.
+                    </div>
                   )}
                 </div>
               )}
@@ -1049,7 +1085,9 @@ export const PaymentEntry: React.FC = () => {
                 </div>
 
                 {loadingStudentData ? (
-                  <div className="p-8 text-center text-xs text-slate-400">Loading obligations...</div>
+                  <div className="p-8 text-center text-xs text-slate-400">
+                    Loading obligations...
+                  </div>
                 ) : obligations.length === 0 ? (
                   <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-white/10 text-center space-y-2">
                     <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
@@ -1057,17 +1095,23 @@ export const PaymentEntry: React.FC = () => {
                       No unpaid obligations found
                     </p>
                     <p className="text-[11px] text-slate-400">
-                      This student has cleared all scheduled fee dues, or no charges have been assessed yet.
+                      This student has cleared all scheduled fee dues, or no charges have been
+                      assessed yet.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {obligations.map((ob) => {
+                    {obligations.map((ob, idx) => {
+                      const obDueId =
+                        ob.student_charge_due_id || (ob as any).due_id || `due-${idx}`;
                       const isSelected =
-                        selectedObligation?.student_charge_due_id === ob.student_charge_due_id;
+                        (selectedObligation?.student_charge_due_id &&
+                          selectedObligation.student_charge_due_id === obDueId) ||
+                        ((selectedObligation as any)?.due_id &&
+                          (selectedObligation as any).due_id === obDueId);
                       return (
                         <div
-                          key={ob.student_charge_due_id}
+                          key={obDueId}
                           onClick={() => handleObligationChange(ob)}
                           className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
                             isSelected
@@ -1097,7 +1141,8 @@ export const PaymentEntry: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-3 text-[10px] text-slate-400">
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> Due: {new Date(ob.due_date).toLocaleDateString('en-IN')}
+                                <Clock className="w-3 h-3" /> Due:{' '}
+                                {new Date(ob.due_date).toLocaleDateString('en-IN')}
                               </span>
                               <span>Original: {formatMoney(ob.original_amount)}</span>
                               {ob.previously_allocated_amount > 0 && (
@@ -1143,7 +1188,10 @@ export const PaymentEntry: React.FC = () => {
                   </h3>
                   {selectedObligation && (
                     <span className="text-xs font-bold text-slate-500">
-                      Obligation: <b className="text-slate-800 dark:text-slate-200">{selectedObligation.component_name}</b>
+                      Obligation:{' '}
+                      <b className="text-slate-800 dark:text-slate-200">
+                        {selectedObligation.component_name}
+                      </b>
                     </span>
                   )}
                 </div>
@@ -1158,7 +1206,9 @@ export const PaymentEntry: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setCollectAmount(selectedObligation.remaining_payable_amount.toFixed(2))}
+                          onClick={() =>
+                            setCollectAmount(selectedObligation.remaining_payable_amount.toFixed(2))
+                          }
                           className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold hover:bg-indigo-100 transition-all"
                         >
                           Full ({formatMoney(selectedObligation.remaining_payable_amount)})
@@ -1166,7 +1216,9 @@ export const PaymentEntry: React.FC = () => {
                         <button
                           type="button"
                           onClick={() =>
-                            setCollectAmount((selectedObligation.remaining_payable_amount / 2).toFixed(2))
+                            setCollectAmount(
+                              (selectedObligation.remaining_payable_amount / 2).toFixed(2),
+                            )
                           }
                           className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 transition-all"
                         >
@@ -1176,7 +1228,9 @@ export const PaymentEntry: React.FC = () => {
                     )}
                   </div>
                   <div className="relative">
-                    <span className="absolute left-4 top-3 text-sm font-bold text-slate-400">₹</span>
+                    <span className="absolute left-4 top-3 text-sm font-bold text-slate-400">
+                      ₹
+                    </span>
                     <input
                       type="number"
                       step="0.01"
@@ -1189,12 +1243,14 @@ export const PaymentEntry: React.FC = () => {
                       className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white pl-8 pr-4 py-2.5 rounded-2xl outline-none font-mono font-bold text-base focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-50"
                     />
                   </div>
-                  {selectedObligation && Number(collectAmount) > selectedObligation.remaining_payable_amount && (
-                    <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Amount exceeds eligible due of {formatMoney(selectedObligation.remaining_payable_amount)}
-                    </p>
-                  )}
+                  {selectedObligation &&
+                    Number(collectAmount) > selectedObligation.remaining_payable_amount && (
+                      <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Amount exceeds eligible due of{' '}
+                        {formatMoney(selectedObligation.remaining_payable_amount)}
+                      </p>
+                    )}
                 </div>
 
                 {/* Payment Method Selector Grid */}
@@ -1214,7 +1270,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <Banknote className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
                       <div className="text-xs font-black">Cash</div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400">Offline Counter</div>
+                      <div className="text-[9px] uppercase font-bold text-slate-400">
+                        Offline Counter
+                      </div>
                     </div>
 
                     <div
@@ -1227,7 +1285,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <Landmark className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
                       <div className="text-xs font-black">Bank Transfer</div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400">NEFT / RTGS / IMPS</div>
+                      <div className="text-[9px] uppercase font-bold text-slate-400">
+                        NEFT / RTGS / IMPS
+                      </div>
                     </div>
 
                     <div
@@ -1240,7 +1300,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <Receipt className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
                       <div className="text-xs font-black">Cheque / DD</div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400">Other Offline</div>
+                      <div className="text-[9px] uppercase font-bold text-slate-400">
+                        Other Offline
+                      </div>
                     </div>
 
                     {/* Online Gateway Methods */}
@@ -1254,7 +1316,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <Smartphone className="w-5 h-5 mx-auto text-indigo-600 dark:text-indigo-400" />
                       <div className="text-xs font-black">UPI QR / App</div>
-                      <div className="text-[9px] uppercase font-bold text-indigo-500">Gateway Flow</div>
+                      <div className="text-[9px] uppercase font-bold text-indigo-500">
+                        Gateway Flow
+                      </div>
                     </div>
 
                     <div
@@ -1267,7 +1331,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <CreditCard className="w-5 h-5 mx-auto text-indigo-600 dark:text-indigo-400" />
                       <div className="text-xs font-black">Debit / Credit</div>
-                      <div className="text-[9px] uppercase font-bold text-indigo-500">Gateway Flow</div>
+                      <div className="text-[9px] uppercase font-bold text-indigo-500">
+                        Gateway Flow
+                      </div>
                     </div>
 
                     <div
@@ -1280,7 +1346,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <Landmark className="w-5 h-5 mx-auto text-indigo-600 dark:text-indigo-400" />
                       <div className="text-xs font-black">Net Banking</div>
-                      <div className="text-[9px] uppercase font-bold text-indigo-500">Gateway Flow</div>
+                      <div className="text-[9px] uppercase font-bold text-indigo-500">
+                        Gateway Flow
+                      </div>
                     </div>
 
                     <div
@@ -1293,7 +1361,9 @@ export const PaymentEntry: React.FC = () => {
                     >
                       <Wallet className="w-5 h-5 mx-auto text-indigo-600 dark:text-indigo-400" />
                       <div className="text-xs font-black">Prepaid Wallet</div>
-                      <div className="text-[9px] uppercase font-bold text-indigo-500">Gateway Flow</div>
+                      <div className="text-[9px] uppercase font-bold text-indigo-500">
+                        Gateway Flow
+                      </div>
                     </div>
                   </div>
 
@@ -1379,7 +1449,8 @@ export const PaymentEntry: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4" /> Review & Collect Payment ({formatMoney(Number(collectAmount) || 0)})
+                        <Send className="w-4 h-4" /> Review & Collect Payment (
+                        {formatMoney(Number(collectAmount) || 0)})
                       </>
                     )}
                   </button>
@@ -1640,7 +1711,10 @@ export const PaymentEntry: React.FC = () => {
             <div className="space-y-3 text-xs bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[11px] font-bold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>DEV SIMULATION ONLY — No server Razorpay keys detected. Real payments use official Checkout.</span>
+                <span>
+                  DEV SIMULATION ONLY — No server Razorpay keys detected. Real payments use official
+                  Checkout.
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Order ID:</span>
@@ -1699,7 +1773,9 @@ export const PaymentEntry: React.FC = () => {
             <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-black uppercase tracking-tight">Official Fee Receipt</h3>
+                <h3 className="text-base font-black uppercase tracking-tight">
+                  Official Fee Receipt
+                </h3>
               </div>
               <button
                 onClick={() => setViewingReceiptModal(null)}
@@ -1720,7 +1796,8 @@ export const PaymentEntry: React.FC = () => {
                 <div className="flex justify-between text-slate-500">
                   <span>Student:</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {viewingReceiptModal.student.student_name} ({viewingReceiptModal.student.admission_no})
+                    {viewingReceiptModal.student.student_name} (
+                    {viewingReceiptModal.student.admission_no})
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-500">
@@ -1748,7 +1825,10 @@ export const PaymentEntry: React.FC = () => {
                 </span>
                 <div className="divide-y divide-slate-100 dark:divide-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-3">
                   {viewingReceiptModal.allocations.map((al) => (
-                    <div key={al.allocation_id} className="py-2 flex justify-between items-center text-xs">
+                    <div
+                      key={al.allocation_id}
+                      className="py-2 flex justify-between items-center text-xs"
+                    >
                       <div>
                         <span className="font-bold text-slate-800 dark:text-slate-200 block">
                           {al.component_name}

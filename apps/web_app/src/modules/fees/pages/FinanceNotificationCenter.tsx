@@ -79,6 +79,8 @@ interface TemplateItem {
   supportedChannels: string[];
   titleTemplate: string;
   messageTemplate: string;
+  bodyTemplate?: string;
+  key?: string;
   allowlistedVariables: string[];
 }
 
@@ -109,7 +111,9 @@ interface BatchReminderPreviewResult {
 
 export const FinanceNotificationCenter: React.FC = () => {
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'templates' | 'channels' | 'reminders'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'activity' | 'templates' | 'channels' | 'reminders'
+  >('overview');
 
   // Summary state (Screen A)
   const [summary, setSummary] = useState<NotificationSummary | null>(null);
@@ -130,8 +134,14 @@ export const FinanceNotificationCenter: React.FC = () => {
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [activeTemplateForPreview, setActiveTemplateForPreview] = useState<TemplateItem | null>(null);
-  const [renderedPreview, setRenderedPreview] = useState<{ title: string; message: string; renderedAt: string } | null>(null);
+  const [activeTemplateForPreview, setActiveTemplateForPreview] = useState<TemplateItem | null>(
+    null,
+  );
+  const [renderedPreview, setRenderedPreview] = useState<{
+    title: string;
+    message: string;
+    renderedAt: string;
+  } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Channel health state (Screen D)
@@ -196,7 +206,21 @@ export const FinanceNotificationCenter: React.FC = () => {
     try {
       const res = await apiClient.get('/fees/notifications/templates');
       if (res.data?.success) {
-        setTemplates(res.data.data || []);
+        const rawList = Array.isArray(res.data.data) ? res.data.data : [];
+        const normalized: TemplateItem[] = rawList.map((tpl: any) => ({
+          ...tpl,
+          id: tpl.id || tpl.key || tpl.eventType,
+          name: tpl.name || tpl.key || tpl.eventType,
+          eventType: tpl.eventType,
+          titleTemplate: tpl.titleTemplate || '',
+          messageTemplate: tpl.messageTemplate || tpl.bodyTemplate || '',
+          bodyTemplate: tpl.bodyTemplate || tpl.messageTemplate || '',
+          supportedChannels: Array.isArray(tpl.supportedChannels) ? tpl.supportedChannels : [],
+          allowlistedVariables: Array.isArray(tpl.allowlistedVariables)
+            ? tpl.allowlistedVariables
+            : [],
+        }));
+        setTemplates(normalized);
       }
     } catch (err: any) {
       console.error('Failed to load templates', err);
@@ -269,7 +293,7 @@ export const FinanceNotificationCenter: React.FC = () => {
     setLoadingPreview(true);
     try {
       const res = await apiClient.post('/fees/notifications/preview', {
-        templateKey: template.eventType,
+        templateKey: template.eventType || (template as any).key || template.id,
         sampleData: {},
       });
       if (res.data?.success) {
@@ -387,7 +411,9 @@ export const FinanceNotificationCenter: React.FC = () => {
                 <Bell className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Finance Notifications & Communication</h1>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  Finance Notifications & Communication
+                </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   Tenant-isolated, multi-channel dispatch, audit log & reminder command center
                 </p>
@@ -453,57 +479,82 @@ export const FinanceNotificationCenter: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className={`${GLASS_CARD} p-5 border-l-4 border-l-purple-500`}>
               <div className="flex justify-between items-start">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Generated</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Total Generated
+                </span>
                 <Bell className="w-5 h-5 text-purple-500" />
               </div>
-              <div className="text-2xl font-bold mt-2">{loadingSummary ? '...' : summary?.total ?? 0}</div>
+              <div className="text-2xl font-bold mt-2">
+                {loadingSummary ? '...' : (summary?.total ?? 0)}
+              </div>
               <p className="text-xs text-slate-500 mt-1">Durable finance notifications</p>
             </div>
 
             <div className={`${GLASS_CARD} p-5 border-l-4 border-l-blue-500`}>
               <div className="flex justify-between items-start">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Provider Accepted</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Provider Accepted
+                </span>
                 <Clock className="w-5 h-5 text-blue-500" />
               </div>
-              <div className="text-2xl font-bold mt-2">{loadingSummary ? '...' : summary?.sent ?? 0}</div>
+              <div className="text-2xl font-bold mt-2">
+                {loadingSummary ? '...' : (summary?.sent ?? 0)}
+              </div>
               <p className="text-xs text-slate-500 mt-1">Dispatched to channel adapters</p>
             </div>
 
             <div className={`${GLASS_CARD} p-5 border-l-4 border-l-emerald-500`}>
               <div className="flex justify-between items-start">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Delivered</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Delivered
+                </span>
                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               </div>
-              <div className="text-2xl font-bold mt-2">{loadingSummary ? '...' : summary?.delivered ?? 0}</div>
+              <div className="text-2xl font-bold mt-2">
+                {loadingSummary ? '...' : (summary?.delivered ?? 0)}
+              </div>
               <p className="text-xs text-slate-500 mt-1">Confirmed delivery receipts</p>
             </div>
 
             <div className={`${GLASS_CARD} p-5 border-l-4 border-l-rose-500`}>
               <div className="flex justify-between items-start">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Failed</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Failed
+                </span>
                 <XCircle className="w-5 h-5 text-rose-500" />
               </div>
-              <div className="text-2xl font-bold mt-2">{loadingSummary ? '...' : summary?.failed ?? 0}</div>
+              <div className="text-2xl font-bold mt-2">
+                {loadingSummary ? '...' : (summary?.failed ?? 0)}
+              </div>
               <p className="text-xs text-slate-500 mt-1">Eligible for safe manual retry</p>
             </div>
 
             <div className={`${GLASS_CARD} p-5 border-l-4 border-l-amber-500`}>
               <div className="flex justify-between items-start">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unread In-App</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Unread In-App
+                </span>
                 <Sparkles className="w-5 h-5 text-amber-500" />
               </div>
-              <div className="text-2xl font-bold mt-2">{loadingSummary ? '...' : summary?.unread ?? 0}</div>
+              <div className="text-2xl font-bold mt-2">
+                {loadingSummary ? '...' : (summary?.unread ?? 0)}
+              </div>
               <p className="text-xs text-slate-500 mt-1">Awaiting recipient viewing</p>
             </div>
           </div>
 
           {/* Quick Informational Notice */}
-          <div className={`${GLASS_PANEL} p-4 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300`}>
+          <div
+            className={`${GLASS_PANEL} p-4 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300`}
+          >
             <ShieldCheck className="w-5 h-5 text-emerald-500 flex-shrink-0" />
             <div>
-              <span className="font-semibold text-slate-900 dark:text-white">Strict Financial Invariant Guaranteed:</span>{' '}
-              Notifications are strictly decoupled from financial transactions via asynchronous event subscribers. Sending, retrying,
-              or failing to send a notification never alters student ledger balances, allocations, or payment statuses.
+              <span className="font-semibold text-slate-900 dark:text-white">
+                Strict Financial Invariant Guaranteed:
+              </span>{' '}
+              Notifications are strictly decoupled from financial transactions via asynchronous
+              event subscribers. Sending, retrying, or failing to send a notification never alters
+              student ledger balances, allocations, or payment statuses.
             </div>
           </div>
 
@@ -543,7 +594,10 @@ export const FinanceNotificationCenter: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
                     {summary.recent.map((item) => (
-                      <tr key={item.notification_id} className="hover:bg-slate-50/50 dark:hover:bg-white/5">
+                      <tr
+                        key={item.notification_id}
+                        className="hover:bg-slate-50/50 dark:hover:bg-white/5"
+                      >
                         <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
                           {new Date(item.created_at).toLocaleString()}
                         </td>
@@ -558,9 +612,14 @@ export const FinanceNotificationCenter: React.FC = () => {
                             {item.metadata?.channel || 'in_app'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">{statusBadge(item.metadata?.delivery_status)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {statusBadge(item.metadata?.delivery_status)}
+                        </td>
                         <td className="px-4 py-3 max-w-xs truncate text-xs">
-                          <span className="font-semibold text-slate-900 dark:text-white">{item.title}</span> — {item.message}
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            {item.title}
+                          </span>{' '}
+                          — {item.message}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <button
@@ -672,12 +731,18 @@ export const FinanceNotificationCenter: React.FC = () => {
           {/* Activity Data Table */}
           <div className={`${GLASS_CARD} overflow-hidden`}>
             {loadingActivity ? (
-              <div className="py-20 text-center text-slate-400">Loading notification activity records...</div>
+              <div className="py-20 text-center text-slate-400">
+                Loading notification activity records...
+              </div>
             ) : notifications.length === 0 ? (
               <div className="py-20 text-center text-slate-400">
                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p className="text-base font-semibold">No notification records matched your filters.</p>
-                <p className="text-xs text-slate-500 mt-1">Try modifying your search criteria or channel selections.</p>
+                <p className="text-base font-semibold">
+                  No notification records matched your filters.
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Try modifying your search criteria or channel selections.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -695,7 +760,10 @@ export const FinanceNotificationCenter: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
                     {notifications.map((item) => (
-                      <tr key={item.notification_id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition">
+                      <tr
+                        key={item.notification_id}
+                        className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition"
+                      >
                         <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
                           {new Date(item.created_at).toLocaleString()}
                         </td>
@@ -710,14 +778,22 @@ export const FinanceNotificationCenter: React.FC = () => {
                             {item.metadata?.channel || 'in_app'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">{statusBadge(item.metadata?.delivery_status)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {statusBadge(item.metadata?.delivery_status)}
+                        </td>
                         <td className="px-4 py-3 max-w-md text-xs">
-                          <p className="font-semibold text-slate-900 dark:text-white truncate">{item.title}</p>
-                          <p className="text-slate-500 dark:text-slate-400 truncate">{item.message}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white truncate">
+                            {item.title}
+                          </p>
+                          <p className="text-slate-500 dark:text-slate-400 truncate">
+                            {item.message}
+                          </p>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-center text-xs">
                           {item.is_read ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Read</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                              Read
+                            </span>
                           ) : (
                             <span className="text-amber-500 font-medium">Unread</span>
                           )}
@@ -733,10 +809,17 @@ export const FinanceNotificationCenter: React.FC = () => {
                             {item.metadata?.delivery_status === 'failed' && (
                               <button
                                 disabled={retryingId === item.notification_id}
-                                onClick={() => handleRetry(item.notification_id, item.metadata?.channel || 'in_app')}
+                                onClick={() =>
+                                  handleRetry(
+                                    item.notification_id,
+                                    item.metadata?.channel || 'in_app',
+                                  )
+                                }
                                 className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-semibold border border-rose-200 dark:border-rose-800/50 flex items-center gap-1"
                               >
-                                <RefreshCw className={`w-3 h-3 ${retryingId === item.notification_id ? 'animate-spin' : ''}`} />
+                                <RefreshCw
+                                  className={`w-3 h-3 ${retryingId === item.notification_id ? 'animate-spin' : ''}`}
+                                />
                                 Retry
                               </button>
                             )}
@@ -752,7 +835,8 @@ export const FinanceNotificationCenter: React.FC = () => {
             {/* Pagination Controls */}
             <div className="p-4 border-t border-slate-200 dark:border-white/5 flex items-center justify-between text-xs text-slate-500">
               <div>
-                Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalRecords)} of {totalRecords} records
+                Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalRecords)} of{' '}
+                {totalRecords} records
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -783,32 +867,44 @@ export const FinanceNotificationCenter: React.FC = () => {
       {/* ========================================================================= */}
       {activeTab === 'templates' && (
         <div className="space-y-6">
-          <div className={`${GLASS_PANEL} p-4 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300`}>
+          <div
+            className={`${GLASS_PANEL} p-4 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300`}
+          >
             <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
             <div>
-              <span className="font-semibold text-slate-900 dark:text-white">Strict Template Security Contract:</span> All
-              message templates utilize an allowlist variable renderer with mandatory HTML sanitization. In compliance with
-              the database schema freeze, templates are securely configured through the server event catalog. Custom database
-              overrides require a future schema expansion.
+              <span className="font-semibold text-slate-900 dark:text-white">
+                Strict Template Security Contract:
+              </span>{' '}
+              All message templates utilize an allowlist variable renderer with mandatory HTML
+              sanitization. In compliance with the database schema freeze, templates are securely
+              configured through the server event catalog. Custom database overrides require a
+              future schema expansion.
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loadingTemplates ? (
-              <div className="col-span-2 py-12 text-center text-slate-400">Loading templates...</div>
+              <div className="col-span-2 py-12 text-center text-slate-400">
+                Loading templates...
+              </div>
             ) : (
-              templates.map((tpl) => (
-                <div key={tpl.id} className={`${GLASS_CARD} p-5 flex flex-col justify-between space-y-4`}>
+              (templates || []).map((tpl) => (
+                <div
+                  key={tpl.id || tpl.eventType}
+                  className={`${GLASS_CARD} p-5 flex flex-col justify-between space-y-4`}
+                >
                   <div>
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-bold text-base text-slate-900 dark:text-white">{tpl.name}</h3>
+                        <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                          {tpl.name || tpl.eventType}
+                        </h3>
                         <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-mono bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
                           {tpl.eventType}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
-                        {tpl.supportedChannels.map((ch) => (
+                        {(tpl.supportedChannels || []).map((ch) => (
                           <span
                             key={ch}
                             className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800"
@@ -830,16 +926,18 @@ export const FinanceNotificationCenter: React.FC = () => {
                       <div>
                         <span className="text-slate-400 font-medium">Message Body Pattern:</span>
                         <p className="font-mono bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded border border-slate-200/60 dark:border-white/5 mt-0.5 text-slate-600 dark:text-slate-300">
-                          {tpl.messageTemplate}
+                          {tpl.messageTemplate || tpl.bodyTemplate}
                         </p>
                       </div>
                     </div>
 
                     {/* Allowlisted Variables */}
                     <div className="mt-3">
-                      <span className="text-xs text-slate-400 font-medium">Allowlisted Variables:</span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        Allowlisted Variables:
+                      </span>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {tpl.allowlistedVariables.map((v) => (
+                        {(tpl.allowlistedVariables || []).map((v) => (
                           <span
                             key={v}
                             className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono"
@@ -871,18 +969,25 @@ export const FinanceNotificationCenter: React.FC = () => {
       {/* ========================================================================= */}
       {activeTab === 'channels' && (
         <div className="space-y-6">
-          <div className={`${GLASS_PANEL} p-4 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300`}>
+          <div
+            className={`${GLASS_PANEL} p-4 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300`}
+          >
             <ShieldAlert className="w-5 h-5 text-amber-500 flex-shrink-0" />
             <div>
-              <span className="font-semibold text-slate-900 dark:text-white">Truthful Provider State Reporting:</span> Channel
-              statuses are derived live from server environment probes. Secret credentials (API keys, webhook secrets, authentication tokens)
-              are strictly excluded from client responses and masked securely.
+              <span className="font-semibold text-slate-900 dark:text-white">
+                Truthful Provider State Reporting:
+              </span>{' '}
+              Channel statuses are derived live from server environment probes. Secret credentials
+              (API keys, webhook secrets, authentication tokens) are strictly excluded from client
+              responses and masked securely.
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loadingChannels ? (
-              <div className="col-span-2 py-12 text-center text-slate-400">Probing channel health...</div>
+              <div className="col-span-2 py-12 text-center text-slate-400">
+                Probing channel health...
+              </div>
             ) : (
               channels.map((ch) => {
                 const isOperational = ch.status === 'configured_operational';
@@ -897,7 +1002,9 @@ export const FinanceNotificationCenter: React.FC = () => {
                           {channelIcon(ch.channel)}
                         </div>
                         <div>
-                          <h3 className="font-bold text-base text-slate-900 dark:text-white">{ch.name}</h3>
+                          <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                            {ch.name}
+                          </h3>
                           <p className="text-xs text-slate-500">Provider: {ch.provider}</p>
                         </div>
                       </div>
@@ -925,7 +1032,9 @@ export const FinanceNotificationCenter: React.FC = () => {
                       <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-white/5 space-y-1">
                         <div className="flex justify-between">
                           <span className="text-slate-500">Delivery Receipts:</span>
-                          <span className="font-semibold">{ch.deliveryReceiptSupport ? 'Supported' : 'Not Supported / Ambiguous'}</span>
+                          <span className="font-semibold">
+                            {ch.deliveryReceiptSupport ? 'Supported' : 'Not Supported / Ambiguous'}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500">Persistence Target:</span>
@@ -950,11 +1059,13 @@ export const FinanceNotificationCenter: React.FC = () => {
           <div className={`${GLASS_CARD} p-6 space-y-6`}>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Send className="w-5 h-5 text-purple-600 dark:text-purple-400" /> Authorized Batch Reminder Command
+                <Send className="w-5 h-5 text-purple-600 dark:text-purple-400" /> Authorized Batch
+                Reminder Command
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Trigger authorized fee reminders directly derived from authoritative Stage 4 Phase 8 receivables dues. Fully
-                paid dues, zero balances, and future installments (for overdue reminders) are strictly excluded.
+                Trigger authorized fee reminders directly derived from authoritative Stage 4 Phase 8
+                receivables dues. Fully paid dues, zero balances, and future installments (for
+                overdue reminders) are strictly excluded.
               </p>
             </div>
 
@@ -1018,7 +1129,9 @@ export const FinanceNotificationCenter: React.FC = () => {
                 className="px-4 py-2.5 text-sm font-semibold rounded-xl border border-purple-200 dark:border-purple-800/40 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 transition flex items-center gap-2"
               >
                 <Eye className="w-4 h-4" />
-                {loadingReminderPreview ? 'Analyzing Receivables...' : 'Preview Eligible Recipients (Dry Run)'}
+                {loadingReminderPreview
+                  ? 'Analyzing Receivables...'
+                  : 'Preview Eligible Recipients (Dry Run)'}
               </button>
 
               {reminderPreview && reminderPreview.totalEligible > 0 && (
@@ -1026,7 +1139,8 @@ export const FinanceNotificationCenter: React.FC = () => {
                   onClick={() => setConfirmSendModalOpen(true)}
                   className="px-4 py-2.5 text-sm font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition flex items-center gap-2 shadow-sm"
                 >
-                  <Send className="w-4 h-4" /> Proceed to Dispatch ({reminderPreview.totalEligible} accounts)
+                  <Send className="w-4 h-4" /> Proceed to Dispatch ({reminderPreview.totalEligible}{' '}
+                  accounts)
                 </button>
               )}
             </div>
@@ -1046,20 +1160,28 @@ export const FinanceNotificationCenter: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
-                  <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-400">Total Eligible Accounts</div>
+                  <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-400">
+                    Total Eligible Accounts
+                  </div>
                   <div className="text-2xl font-bold mt-1 text-emerald-900 dark:text-emerald-200">
                     {reminderPreview.totalEligible}
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5">
-                  <div className="text-xs font-semibold text-slate-500">Safely Skipped Accounts</div>
+                  <div className="text-xs font-semibold text-slate-500">
+                    Safely Skipped Accounts
+                  </div>
                   <div className="text-2xl font-bold mt-1">{reminderPreview.skippedCount}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Fully paid or zero balances</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Fully paid or zero balances
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40">
-                  <div className="text-xs font-semibold text-blue-800 dark:text-blue-400">Target Event Type</div>
+                  <div className="text-xs font-semibold text-blue-800 dark:text-blue-400">
+                    Target Event Type
+                  </div>
                   <div className="text-sm font-bold font-mono mt-1 text-blue-900 dark:text-blue-200">
                     {reminderType === 'overdue' ? 'FEE_OVERDUE' : 'FEE_DUE_SOON'}
                   </div>
@@ -1086,13 +1208,21 @@ export const FinanceNotificationCenter: React.FC = () => {
                       <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                         {reminderPreview.previewSummary.map((item, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/5">
-                            <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">{item.studentName}</td>
-                            <td className="px-3 py-2 font-mono text-slate-500">{item.admissionNo}</td>
-                            <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{item.gradeName || 'N/A'}</td>
+                            <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">
+                              {item.studentName}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-slate-500">
+                              {item.admissionNo}
+                            </td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                              {item.gradeName || 'N/A'}
+                            </td>
                             <td className="px-3 py-2 font-bold text-rose-600 dark:text-rose-400">
                               ₹{Number(item.outstandingAmount).toLocaleString()}
                             </td>
-                            <td className="px-3 py-2 text-slate-500">{new Date(item.dueDate).toLocaleDateString()}</td>
+                            <td className="px-3 py-2 text-slate-500">
+                              {new Date(item.dueDate).toLocaleDateString()}
+                            </td>
                             <td className="px-3 py-2 text-right font-medium text-amber-600 dark:text-amber-400">
                               {item.daysOverdue} days
                             </td>
@@ -1121,8 +1251,12 @@ export const FinanceNotificationCenter: React.FC = () => {
                     <Bell className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Notification Audit Record</h2>
-                    <p className="text-xs text-slate-400 font-mono">{selectedNotification.notification_id}</p>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Notification Audit Record
+                    </h2>
+                    <p className="text-xs text-slate-400 font-mono">
+                      {selectedNotification.notification_id}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -1153,13 +1287,17 @@ export const FinanceNotificationCenter: React.FC = () => {
               {/* Title & Body */}
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</label>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Title
+                  </label>
                   <div className="mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 font-semibold text-sm">
                     {selectedNotification.title}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Message Content</label>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Message Content
+                  </label>
                   <div className="mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                     {selectedNotification.message}
                   </div>
@@ -1212,22 +1350,27 @@ export const FinanceNotificationCenter: React.FC = () => {
               </div>
 
               {/* Retries History */}
-              {selectedNotification.metadata?.retry_history && selectedNotification.metadata.retry_history.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Retry History</h4>
-                  <div className="space-y-1">
-                    {selectedNotification.metadata.retry_history.map((rh, idx) => (
-                      <div
-                        key={idx}
-                        className="p-2 rounded bg-slate-50 dark:bg-slate-800 text-xs flex justify-between items-center"
-                      >
-                        <span className="font-medium capitalize">{rh.channel}</span>
-                        <span className="text-slate-400">{new Date(rh.retried_at).toLocaleString()}</span>
-                      </div>
-                    ))}
+              {selectedNotification.metadata?.retry_history &&
+                selectedNotification.metadata.retry_history.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                      Retry History
+                    </h4>
+                    <div className="space-y-1">
+                      {selectedNotification.metadata.retry_history.map((rh, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2 rounded bg-slate-50 dark:bg-slate-800 text-xs flex justify-between items-center"
+                        >
+                          <span className="font-medium capitalize">{rh.channel}</span>
+                          <span className="text-slate-400">
+                            {new Date(rh.retried_at).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
 
             {/* Drawer Actions */}
@@ -1243,7 +1386,7 @@ export const FinanceNotificationCenter: React.FC = () => {
                 onClick={() =>
                   handleRetry(
                     selectedNotification.notification_id,
-                    selectedNotification.metadata?.channel || 'in_app'
+                    selectedNotification.metadata?.channel || 'in_app',
                   )
                 }
                 className="px-4 py-2 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 disabled:opacity-50"
@@ -1270,7 +1413,8 @@ export const FinanceNotificationCenter: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Eye className="w-5 h-5 text-purple-600" />
                 <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  Template Preview: {activeTemplateForPreview.name}
+                  Template Preview:{' '}
+                  {activeTemplateForPreview.name || activeTemplateForPreview.eventType}
                 </h3>
               </div>
               <button
@@ -1282,30 +1426,39 @@ export const FinanceNotificationCenter: React.FC = () => {
             </div>
 
             {loadingPreview ? (
-              <div className="py-12 text-center text-slate-400">Rendering preview with allowlisted mock parameters...</div>
+              <div className="py-12 text-center text-slate-400">
+                Rendering preview with allowlisted mock parameters...
+              </div>
             ) : renderedPreview ? (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/40 text-xs text-purple-800 dark:text-purple-300">
-                  <span className="font-semibold">Safe Simulation:</span> This preview is rendered purely in memory with safe
-                  placeholder variables. No real messages or provider delivery records are created.
+                  <span className="font-semibold">Safe Simulation:</span> This preview is rendered
+                  purely in memory with safe placeholder variables. No real messages or provider
+                  delivery records are created.
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rendered Title</label>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Rendered Title
+                  </label>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 font-semibold text-sm border border-slate-200/60 dark:border-white/5">
                     {renderedPreview.title}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rendered Message</label>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Rendered Message
+                  </label>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-sm border border-slate-200/60 dark:border-white/5 leading-relaxed">
                     {renderedPreview.message}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-6 text-rose-500 text-sm">Failed to generate template preview.</div>
+              <div className="text-center py-6 text-rose-500 text-sm">
+                Failed to generate template preview.
+              </div>
             )}
 
             <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex justify-end">
@@ -1328,19 +1481,26 @@ export const FinanceNotificationCenter: React.FC = () => {
           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 space-y-5 border border-slate-200 dark:border-white/10">
             <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
               <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">Confirm Reminder Dispatch</h3>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                Confirm Reminder Dispatch
+              </h3>
             </div>
 
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               You are about to dispatch real finance reminders to{' '}
-              <strong className="text-purple-600 dark:text-purple-400 font-bold">{reminderPreview.totalEligible}</strong>{' '}
+              <strong className="text-purple-600 dark:text-purple-400 font-bold">
+                {reminderPreview.totalEligible}
+              </strong>{' '}
               eligible student and parent contacts for event type{' '}
-              <strong className="font-mono text-xs">{reminderType === 'overdue' ? 'FEE_OVERDUE' : 'FEE_DUE_SOON'}</strong>.
+              <strong className="font-mono text-xs">
+                {reminderType === 'overdue' ? 'FEE_OVERDUE' : 'FEE_DUE_SOON'}
+              </strong>
+              .
             </p>
 
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-800 dark:text-amber-300">
-              Dispatched notifications will be durably recorded in the central communication registry. Recipients will
-              receive In-App alerts immediately.
+              Dispatched notifications will be durably recorded in the central communication
+              registry. Recipients will receive In-App alerts immediately.
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-white/10">

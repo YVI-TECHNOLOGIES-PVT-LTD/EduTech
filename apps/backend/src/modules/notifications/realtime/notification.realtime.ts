@@ -214,6 +214,18 @@ export class RealtimeNotificationServer {
         if (key.startsWith(`${orgId}:`)) {
           for (const ws of sockets) {
             if (ws.readyState === WebSocket.OPEN) {
+              // Role-based privilege check: prevent raw staff domain events from leaking to parents/students
+              const userRoles = ((ws as any).user?.roles || []).map((r: string) =>
+                String(r).toUpperCase(),
+              );
+              const isPureCustomer =
+                userRoles.length > 0 &&
+                userRoles.every((r: string) => r === 'PARENT' || r === 'STUDENT');
+
+              if (isPureCustomer) {
+                continue;
+              }
+
               ws.send(messageStr);
               sentCount++;
             }

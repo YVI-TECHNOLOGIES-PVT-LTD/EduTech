@@ -45,7 +45,7 @@ export const LandingResolver = {
 
     if (isAdmin) {
       const destination = '/app/admin/dashboard';
-      console.log('[LandingResolver] Admin resolved:', { roles: normalizedRoles, destination });
+      console.debug('[LandingResolver] Admin resolved:', { roles: normalizedRoles, destination });
       return destination;
     }
 
@@ -56,7 +56,7 @@ export const LandingResolver = {
 
     if (isFinance) {
       const destination = '/app/finance/dashboard';
-      console.log('[LandingResolver] Finance resolved:', {
+      console.debug('[LandingResolver] Finance resolved:', {
         roles: normalizedRoles,
         destination,
       });
@@ -79,7 +79,7 @@ export const LandingResolver = {
 
     if (isFrontOffice) {
       const destination = '/app/front-office/dashboard';
-      console.log('[LandingResolver] Front Office resolved:', {
+      console.debug('[LandingResolver] Front Office resolved:', {
         roles: normalizedRoles,
         destination,
       });
@@ -90,7 +90,7 @@ export const LandingResolver = {
     const isFaculty = normalizedRoles.some((r: string) => ['FACULTY', 'TEACHER'].includes(r));
     if (isFaculty) {
       const destination = '/app/faculty/dashboard';
-      console.log('[LandingResolver] Faculty resolved:', { roles: normalizedRoles, destination });
+      console.debug('[LandingResolver] Faculty resolved:', { roles: normalizedRoles, destination });
       return destination;
     }
 
@@ -98,7 +98,7 @@ export const LandingResolver = {
     const isStudent = normalizedRoles.some((r: string) => ['STUDENT'].includes(r));
     if (isStudent) {
       const destination = '/app/student/dashboard';
-      console.log('[LandingResolver] Student resolved:', { roles: normalizedRoles, destination });
+      console.debug('[LandingResolver] Student resolved:', { roles: normalizedRoles, destination });
       return destination;
     }
 
@@ -108,7 +108,10 @@ export const LandingResolver = {
     );
     if (isExamCell) {
       const destination = '/app/exam-admin/dashboard';
-      console.log('[LandingResolver] Exam Cell resolved:', { roles: normalizedRoles, destination });
+      console.debug('[LandingResolver] Exam Cell resolved:', {
+        roles: normalizedRoles,
+        destination,
+      });
       return destination;
     }
 
@@ -118,7 +121,7 @@ export const LandingResolver = {
     );
     if (isParent) {
       const destination = '/app/parent/dashboard';
-      console.log('[LandingResolver] Parent resolved:', { roles: normalizedRoles, destination });
+      console.debug('[LandingResolver] Parent resolved:', { roles: normalizedRoles, destination });
       return destination;
     }
 
@@ -126,13 +129,13 @@ export const LandingResolver = {
     if (visibleModules && visibleModules.length > 0) {
       const sorted = [...visibleModules].sort((a, b) => b.priority - a.priority);
       const destination = sorted[0].route;
-      console.log('[LandingResolver] Module priority fallback:', { destination });
+      console.debug('[LandingResolver] Module priority fallback:', { destination });
       return destination;
     }
 
     // Fallback: Default to Parent dashboard (Safe default, never silently classify unknown as Front Office)
     const fallbackDestination = '/app/parent/dashboard';
-    console.log('[LandingResolver] Fallback resolved:', {
+    console.debug('[LandingResolver] Fallback resolved:', {
       roles: normalizedRoles,
       fallbackDestination,
     });
