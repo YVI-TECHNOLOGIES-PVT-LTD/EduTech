@@ -88,6 +88,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (res.data?.user) {
           const enrichedUser: EnrichedUser = res.data.user;
+          const userRoles = [...(enrichedUser.roles || [])];
+          const isParent = userRoles.some((r) =>
+            ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+          );
+
+          // If parent and post-admission status not explicitly true, check overview as fallback
+          if (isParent && !enrichedUser.hasEnrolledStudent && !enrichedUser.isPostAdmission) {
+            try {
+              const overviewRes = await apiClient.get('/dashboard/parent/overview', {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
+              const children = overviewRes.data?.children || [];
+              if (children.length > 0) {
+                enrichedUser.hasEnrolledStudent = true;
+                enrichedUser.isPostAdmission = true;
+                if (!userRoles.includes('ENROLLED_PARENT')) {
+                  userRoles.push('ENROLLED_PARENT');
+                  enrichedUser.roles = userRoles;
+                }
+              }
+            } catch {
+              // Non-blocking fallback
+            }
+          }
+
           const tenantId = enrichedUser.school_id || '';
           const primaryRole = enrichedUser.roles?.[0] || (enrichedUser as any)?.role || '';
           const newBoundary = `${enrichedUser.id}:${tenantId}:${primaryRole}`;

@@ -184,6 +184,12 @@ export const LoginPage: React.FC = () => {
         login_status: rawUser.login_status || 'APPROVED',
         login_decision_reason: rawUser.login_decision_reason,
         enabledFeatures: rawUser.enabledFeatures,
+        hasEnrolledStudent: Boolean(rawUser.hasEnrolledStudent),
+        isPostAdmission: Boolean(
+          rawUser.isPostAdmission ||
+          rawUser.hasEnrolledStudent ||
+          rawRoles.includes('ENROLLED_PARENT'),
+        ),
       };
 
       dispatch(

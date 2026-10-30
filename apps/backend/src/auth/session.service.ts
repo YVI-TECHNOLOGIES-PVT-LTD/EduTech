@@ -16,6 +16,8 @@ export interface UserProfile {
   roles: string[];
   permissions: string[];
   login_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
+  hasEnrolledStudent?: boolean;
+  isPostAdmission?: boolean;
 }
 
 interface CachedSession {
@@ -143,13 +145,35 @@ export class SessionService {
         }
       }
 
-      // 5. Fallback to parent record check (Verifies user is a registered Parent)
-      if (roles.length === 0) {
-        const parentRecord = await prisma.parents.findUnique({
+      // 5. Parent record & enrollment check
+      let hasEnrolledStudent = false;
+      let parentRecord = null;
+      try {
+        parentRecord = await prisma.parents.findFirst({
           where: { user_id: user.user_id },
+          include: {
+            student_parents: {
+              include: {
+                students: {
+                  select: { student_id: true, status: true },
+                },
+              },
+            },
+          },
         });
-        if (parentRecord) {
+      } catch (e) {
+        logger.warn(`[SessionService] Error loading parent record for user ${user.user_id}`);
+      }
+
+      if (parentRecord) {
+        if (!roles.includes('PARENT')) {
           roles.push('PARENT');
+        }
+        hasEnrolledStudent = (parentRecord.student_parents || []).some(
+          (sp) => sp.students && sp.students.status === 'active',
+        );
+        if (hasEnrolledStudent && !roles.includes('ENROLLED_PARENT')) {
+          roles.push('ENROLLED_PARENT');
         }
       }
 
@@ -170,6 +194,17 @@ export class SessionService {
         permissions.add('admission.application.create');
         permissions.add('admission.application.update');
         permissions.add('admission.application.view');
+        permissions.add('DASHBOARD_VIEW_PARENT');
+        permissions.add('fees.my.view');
+        permissions.add('fees.view');
+
+        if (hasEnrolledStudent || roles.includes('ENROLLED_PARENT')) {
+          permissions.add('fees.payment.view');
+          permissions.add('fees.payment.collect');
+          permissions.add('fees.receipt.generate');
+          permissions.add('communication.view');
+          permissions.add('helpdesk.view');
+        }
       }
 
       if (
@@ -265,6 +300,8 @@ export class SessionService {
         roles,
         permissions: Array.from(permissions),
         login_status: 'APPROVED',
+        hasEnrolledStudent,
+        isPostAdmission: hasEnrolledStudent || roles.includes('ENROLLED_PARENT'),
       };
 
       sessionCache.set(token, {

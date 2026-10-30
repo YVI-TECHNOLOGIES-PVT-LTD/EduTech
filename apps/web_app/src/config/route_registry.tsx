@@ -29,6 +29,7 @@ import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecis
 import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
+import { ParentFeesRouter } from '../pages/ParentFeesRouter';
 import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
 import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
 import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/ParentAdmissionStatusPage';
@@ -223,8 +224,8 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'parent/fees',
-    element: <ParentFeePaymentPage />,
-    layout: 'parent_admission',
+    element: <ParentFeesRouter />,
+    layout: 'dashboard',
     guardType: 'parent',
   },
   {

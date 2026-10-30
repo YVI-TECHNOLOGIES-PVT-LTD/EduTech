@@ -105,9 +105,21 @@ export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
       },
       {
         id: 'p_enrolled_fees',
-        title: 'Fee Payment',
-        url: '/app/parent/fees',
+        title: 'Fees & Payments',
+        url: '/app/fees/my',
         icon: CreditCard,
+      },
+      {
+        id: 'p_enrolled_comm_feeds',
+        title: 'School Feeds',
+        url: '/app/communication/feeds',
+        icon: MessageSquare,
+      },
+      {
+        id: 'p_enrolled_comm_helpdesk',
+        title: 'Helpdesk & Support',
+        url: '/app/communication/helpdesk',
+        icon: HelpCircle,
       },
       {
         id: 'p_enrolled_docs',

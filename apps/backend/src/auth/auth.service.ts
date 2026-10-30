@@ -175,8 +175,9 @@ export class AuthService {
     // Resolve authoritative user profile via SessionService
     let resolvedRoles = roles;
     let resolvedPermissions = permissions;
+    let sessionProfile: any = null;
     try {
-      const sessionProfile = await sessionService.validateSession(accessToken);
+      sessionProfile = await sessionService.validateSession(accessToken);
       if (sessionProfile) {
         resolvedRoles = sessionProfile.roles;
         resolvedPermissions = sessionProfile.permissions;
@@ -207,6 +208,8 @@ export class AuthService {
         roles: resolvedRoles,
         permissions: resolvedPermissions,
         login_status: 'APPROVED',
+        hasEnrolledStudent: Boolean(sessionProfile?.hasEnrolledStudent),
+        isPostAdmission: Boolean(sessionProfile?.isPostAdmission),
       },
     };
   }

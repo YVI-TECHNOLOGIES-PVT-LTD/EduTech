@@ -11,6 +11,7 @@ import {
   Building,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { apiClient } from '@/lib/api-client';
 import { LandingResolver } from '@/services/LandingResolver';
 import { getNavigationForUser, NavigationGroup, NavigationItem } from '@/config/navigation';
 import {
@@ -157,7 +158,31 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
     (user as any)?.isPostAdmission ||
     normalizedRoles.includes('ENROLLED_PARENT'),
   );
-  const navGroups = getNavigationForUser(normalizedRoles, isPostAdmission);
+  const isParent = normalizedRoles.some((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  const [sidebarPostAdmission, setSidebarPostAdmission] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isPostAdmission || !isParent) return;
+    let isMounted = true;
+    apiClient
+      .get('/dashboard/parent/overview')
+      .then((res) => {
+        if (!isMounted) return;
+        const kids = res.data?.children;
+        if (Array.isArray(kids) && kids.length > 0) {
+          setSidebarPostAdmission(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, isParent, isPostAdmission]);
+
+  const effectivePostAdmission = isPostAdmission || sidebarPostAdmission;
+  const navGroups = getNavigationForUser(normalizedRoles, effectivePostAdmission);
   const currentPath = location.pathname;
 
   const homeUrl = LandingResolver.resolveLandingRoute(normalizedRoles, [], user);
