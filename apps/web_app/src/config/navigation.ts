@@ -451,6 +451,32 @@ export const FINANCE_NAVIGATION: NavigationGroup[] = [
         url: '/app/finance/notifications',
         icon: Bell,
       },
+      {
+        id: 'fin_communication_group',
+        title: 'Communication & Helpdesk',
+        icon: MessageSquare,
+        url: '/app/finance/communication/feeds',
+        items: [
+          {
+            id: 'fin_comm_feeds',
+            title: 'Feeds & Announcements',
+            url: '/app/finance/communication/feeds',
+            icon: MessageSquare,
+          },
+          {
+            id: 'fin_comm_helpdesk',
+            title: 'Helpdesk Tickets',
+            url: '/app/finance/communication/helpdesk',
+            icon: HelpCircle,
+          },
+          {
+            id: 'fin_comm_escalation',
+            title: 'Ticket Escalation Rules',
+            url: '/app/finance/communication/escalation',
+            icon: ShieldCheck,
+          },
+        ],
+      },
       { id: 'fin_profile', title: 'My Profile', url: '/app/profile', icon: User },
       { id: 'fin_settings', title: 'Settings', url: '/app/settings', icon: Settings },
     ],

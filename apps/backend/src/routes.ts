@@ -35,6 +35,7 @@ import { staffRouter as staffManagementRouter } from './modules/staff-management
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
 import { chatbotRouter } from './modules/chatbot/routes/chatbot.routes';
 import { notificationRouter, NotificationSubscriber } from './modules/notifications';
+import { communicationRouter } from './modules/communication/communication.routes';
 import { feesRouter } from './modules/fees/fees.routes';
 import { FinanceNotificationSubscriber } from './modules/fees/subscribers/finance-notification.subscriber';
 import { razorpayRouter } from './routes/razorpay.routes';
@@ -826,3 +827,7 @@ router.use('/notifications', authenticate, notificationRouter);
 router.use('/v1/fees', authenticate, resolveTenantMiddleware, feesRouter);
 router.use('/fees', authenticate, resolveTenantMiddleware, feesRouter);
 
+// Communication Module (Feeds & Engagement, Helpdesk, Escalation)
+router.use('/v1/communication', authenticate, resolveTenantMiddleware, communicationRouter);
+router.use('/communication', authenticate, resolveTenantMiddleware, communicationRouter);
+router.use('/v1/fees/communication', authenticate, resolveTenantMiddleware, communicationRouter);

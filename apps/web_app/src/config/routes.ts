@@ -70,5 +70,8 @@ export const ROUTES = {
     OPERATIONS: '/app/finance/operations',
     CHECKOUT: '/app/finance/checkout',
     CHECKOUT_DEMO: '/checkout-demo',
+    COMMUNICATION_FEEDS: '/app/finance/communication/feeds',
+    COMMUNICATION_HELPDESK: '/app/finance/communication/helpdesk',
+    COMMUNICATION_ESCALATION: '/app/finance/communication/escalation',
   },
 };

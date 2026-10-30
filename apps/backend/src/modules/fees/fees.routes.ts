@@ -8,8 +8,12 @@ import { SettingsService } from './services/SettingsService';
 import { LedgerPostingService } from './services/LedgerPostingService';
 import { FinanceController } from './controllers/FinanceController';
 import { ParentFinanceService } from './services/ParentFinanceService';
+import { communicationRouter } from '../communication/communication.routes';
 
 export const feesRouter = Router();
+
+// Mount Communication & Helpdesk within Fees / Finance Router
+feesRouter.use('/communication', communicationRouter);
 
 // ======================================
 // 1. STRUCTURES (Fee Structure Management Phase 3)

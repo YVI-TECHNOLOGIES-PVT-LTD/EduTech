@@ -51,6 +51,9 @@ import { FinanceAccounting } from '../modules/fees/pages/FinanceAccounting';
 import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
 import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
 import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
+import { FinanceCommunicationFeeds } from '../modules/fees/pages/FinanceCommunicationFeeds';
+import { FinanceCommunicationHelpdesk } from '../modules/fees/pages/FinanceCommunicationHelpdesk';
+import { FinanceCommunicationEscalation } from '../modules/fees/pages/FinanceCommunicationEscalation';
 import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
 import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
 import { MyFees } from '../modules/fees/pages/MyFees';
@@ -664,6 +667,24 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <FinanceOperations />,
     layout: 'dashboard',
     permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/communication/feeds',
+    element: <FinanceCommunicationFeeds />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/communication/helpdesk',
+    element: <FinanceCommunicationHelpdesk />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/communication/escalation',
+    element: <FinanceCommunicationEscalation />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
   },
   {
     path: 'finance/checkout',

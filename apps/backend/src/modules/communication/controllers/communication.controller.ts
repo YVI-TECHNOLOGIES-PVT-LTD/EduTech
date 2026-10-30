@@ -1,0 +1,514 @@
+import { Request, Response } from 'express';
+import '../../../auth/auth.middleware';
+import { FeedService } from '../services/FeedService';
+import { HelpdeskService } from '../services/HelpdeskService';
+import { EscalationService } from '../services/EscalationService';
+import { concern_status } from '@prisma/client';
+
+export class CommunicationController {
+  private static extractOrgId(req: Request): string {
+    const orgId =
+      (req as any).tenantOrgId ||
+      (req as any).context?.user?.org_id ||
+      (req as any).context?.user?.school_id;
+    if (!orgId) {
+      const err: any = new Error('Tenant organization could not be resolved from session');
+      err.status = 400;
+      err.code = 'TENANT_NOT_FOUND';
+      throw err;
+    }
+    return orgId;
+  }
+
+  private static extractUserId(req: Request): string {
+    const userId = (req as any).context?.user?.id;
+    if (!userId) {
+      const err: any = new Error('User identity could not be verified');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED';
+      throw err;
+    }
+    return userId;
+  }
+
+  private static extractUserContext(req: Request) {
+    const userId = (req as any).context?.user?.id || '';
+    const roles: string[] = ((req as any).context?.user?.roles || []).map((r: string) =>
+      r.toUpperCase(),
+    );
+    const isParent = roles.includes('PARENT');
+    const isStudent = roles.includes('STUDENT');
+    const isStaff =
+      (!isParent && !isStudent) ||
+      roles.some((r: string) =>
+        [
+          'STAFF',
+          'TEACHER',
+          'ADMIN',
+          'ORG_ADMIN',
+          'FINANCE',
+          'FINANCE_OFFICER',
+          'FINANCE_MANAGER',
+          'SUPERADMIN',
+          'ACCOUNTANT',
+          'PRINCIPAL',
+          'HEAD_OF_INSTITUTE',
+        ].includes(r),
+      );
+
+    return { userId, roles, isStaff, isParent, isStudent };
+  }
+
+  // ==========================================
+  // FEEDS & ENGAGEMENT
+  // ==========================================
+
+  public static async createPost(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const post = await FeedService.createPost(orgId, userId, req.body);
+      res.status(201).json({ success: true, data: post });
+    } catch (error: any) {
+      console.error('[CommunicationController.createPost] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'CREATE_POST_FAILED',
+        message: error.message || 'Failed to create feed post',
+      });
+    }
+  }
+
+  public static async listPosts(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const { feed_type, status, page, limit } = req.query;
+
+      const result = await FeedService.listPosts(orgId, userContext, {
+        feed_type: feed_type as any,
+        status: status as any,
+        page: page ? parseInt(page as string, 10) : undefined,
+        limit: limit ? parseInt(limit as string, 10) : undefined,
+      });
+
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      console.error('[CommunicationController.listPosts] Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.code || 'LIST_POSTS_FAILED',
+        message: error.message || 'Failed to retrieve feed posts',
+      });
+    }
+  }
+
+  public static async getPostById(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const { id } = req.params;
+      const post = await FeedService.getPostById(orgId, id);
+      res.json({ success: true, data: post });
+    } catch (error: any) {
+      console.error('[CommunicationController.getPostById] Error:', error);
+      res.status(error.status || 404).json({
+        success: false,
+        error: error.code || 'POST_NOT_FOUND',
+        message: error.message || 'Feed post not found',
+      });
+    }
+  }
+
+  public static async publishPost(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      const post = await FeedService.publishPost(orgId, id, userId);
+      res.json({ success: true, data: post });
+    } catch (error: any) {
+      console.error('[CommunicationController.publishPost] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'PUBLISH_POST_FAILED',
+        message: error.message || 'Failed to publish post',
+      });
+    }
+  }
+
+  public static async removePost(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      const post = await FeedService.removePost(orgId, id, userId);
+      res.json({ success: true, data: post, message: 'Post removed successfully' });
+    } catch (error: any) {
+      console.error('[CommunicationController.removePost] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'REMOVE_POST_FAILED',
+        message: error.message || 'Failed to remove post',
+      });
+    }
+  }
+
+  public static async addComment(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      const { comment } = req.body;
+
+      if (!comment || !comment.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_COMMENT',
+          message: 'Comment text cannot be empty',
+        });
+      }
+
+      const created = await FeedService.addComment(orgId, id, userId, comment);
+      res.status(201).json({ success: true, data: created });
+    } catch (error: any) {
+      console.error('[CommunicationController.addComment] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'ADD_COMMENT_FAILED',
+        message: error.message || 'Failed to add comment',
+      });
+    }
+  }
+
+  public static async listComments(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const comments = await FeedService.listComments(id);
+      res.json({ success: true, data: comments });
+    } catch (error: any) {
+      console.error('[CommunicationController.listComments] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'LIST_COMMENTS_FAILED',
+        message: error.message || 'Failed to list comments',
+      });
+    }
+  }
+
+  public static async deleteComment(req: Request, res: Response) {
+    try {
+      const userId = CommunicationController.extractUserId(req);
+      const { commentId } = req.params;
+      const { moderation_reason } = req.body || {};
+      const deleted = await FeedService.deleteComment(commentId, userId, moderation_reason);
+      res.json({ success: true, data: deleted, message: 'Comment soft deleted successfully' });
+    } catch (error: any) {
+      console.error('[CommunicationController.deleteComment] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'DELETE_COMMENT_FAILED',
+        message: error.message || 'Failed to delete comment',
+      });
+    }
+  }
+
+  public static async getReactionCatalogue(_req: Request, res: Response) {
+    try {
+      const catalog = await FeedService.getReactionCatalogue();
+      res.json({ success: true, data: catalog });
+    } catch (error: any) {
+      console.error('[CommunicationController.getReactionCatalogue] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'CATALOG_FETCH_FAILED',
+        message: error.message || 'Failed to fetch reaction catalogue',
+      });
+    }
+  }
+
+  public static async reactToPost(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      const { reaction_type_id } = req.body;
+
+      if (!reaction_type_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_REACTION_TYPE',
+          message: 'reaction_type_id is required',
+        });
+      }
+
+      const reaction = await FeedService.reactToPost(orgId, id, userId, reaction_type_id);
+      res.json({ success: true, data: reaction });
+    } catch (error: any) {
+      console.error('[CommunicationController.reactToPost] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'REACT_FAILED',
+        message: error.message || 'Failed to record reaction',
+      });
+    }
+  }
+
+  public static async removeReaction(req: Request, res: Response) {
+    try {
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      await FeedService.removeReaction(id, userId);
+      res.json({ success: true, message: 'Reaction removed successfully' });
+    } catch (error: any) {
+      console.error('[CommunicationController.removeReaction] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'REMOVE_REACTION_FAILED',
+        message: error.message || 'Failed to remove reaction',
+      });
+    }
+  }
+
+  // ==========================================
+  // HELPDESK
+  // ==========================================
+
+  public static async listCategories(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const onlyActive = req.query.active !== 'false';
+      const categories = await HelpdeskService.listCategories(orgId, onlyActive);
+      res.json({ success: true, data: categories });
+    } catch (error: any) {
+      console.error('[CommunicationController.listCategories] Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.code || 'LIST_CATEGORIES_FAILED',
+        message: error.message || 'Failed to fetch helpdesk categories',
+      });
+    }
+  }
+
+  public static async createCategory(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { name, description, display_order } = req.body;
+
+      if (!name || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_NAME',
+          message: 'Category name is required',
+        });
+      }
+
+      const category = await HelpdeskService.createCategory(orgId, userId, {
+        category_name: name.trim(),
+        description,
+        display_order: display_order ? Number(display_order) : undefined,
+      });
+      res.status(201).json({ success: true, data: category });
+    } catch (error: any) {
+      console.error('[CommunicationController.createCategory] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'CREATE_CATEGORY_FAILED',
+        message: error.message || 'Failed to create category',
+      });
+    }
+  }
+
+  public static async createTicket(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const ticket = await HelpdeskService.createTicket(orgId, userId, req.body);
+      res.status(201).json({ success: true, data: ticket });
+    } catch (error: any) {
+      console.error('[CommunicationController.createTicket] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'CREATE_TICKET_FAILED',
+        message: error.message || 'Failed to create helpdesk ticket',
+      });
+    }
+  }
+
+  public static async listTickets(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const { category_id, priority, status, page, limit } = req.query;
+
+      const result = await HelpdeskService.listTickets(orgId, userContext, {
+        category_id: category_id as string,
+        priority: priority as any,
+        status: status as any,
+        page: page ? parseInt(page as string, 10) : undefined,
+        limit: limit ? parseInt(limit as string, 10) : undefined,
+      });
+
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      console.error('[CommunicationController.listTickets] Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.code || 'LIST_TICKETS_FAILED',
+        message: error.message || 'Failed to list tickets',
+      });
+    }
+  }
+
+  public static async getTicketById(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const { id } = req.params;
+
+      const ticket = await HelpdeskService.getTicketById(orgId, id, userContext);
+      res.json({ success: true, data: ticket });
+    } catch (error: any) {
+      console.error('[CommunicationController.getTicketById] Error:', error);
+      res.status(error.status || 404).json({
+        success: false,
+        error: error.code || 'TICKET_NOT_FOUND',
+        message: error.message || 'Helpdesk ticket not found',
+      });
+    }
+  }
+
+  public static async updateTicketStatus(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      const { status, note } = req.body;
+
+      if (!status) {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_STATUS',
+          message: 'Status is required',
+        });
+      }
+
+      const updated = await HelpdeskService.updateTicketStatus(
+        orgId,
+        id,
+        userId,
+        status as concern_status,
+        note,
+      );
+      res.json({ success: true, data: updated });
+    } catch (error: any) {
+      console.error('[CommunicationController.updateTicketStatus] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'UPDATE_STATUS_FAILED',
+        message: error.message || 'Failed to update ticket status',
+      });
+    }
+  }
+
+  public static async assignTicket(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const { id } = req.params;
+      const { assignee_staff_id } = req.body;
+
+      if (!assignee_staff_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_ASSIGNEE',
+          message: 'assignee_staff_id is required',
+        });
+      }
+
+      const updated = await HelpdeskService.assignTicket(orgId, id, userId, assignee_staff_id);
+      res.json({ success: true, data: updated });
+    } catch (error: any) {
+      console.error('[CommunicationController.assignTicket] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'ASSIGN_TICKET_FAILED',
+        message: error.message || 'Failed to assign ticket',
+      });
+    }
+  }
+
+  public static async addMessage(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const { id } = req.params;
+
+      const message = await HelpdeskService.addMessage(
+        orgId,
+        id,
+        userContext.userId,
+        userContext.isStaff,
+        req.body,
+      );
+      res.status(201).json({ success: true, data: message });
+    } catch (error: any) {
+      console.error('[CommunicationController.addMessage] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'ADD_MESSAGE_FAILED',
+        message: error.message || 'Failed to add message',
+      });
+    }
+  }
+
+  // ==========================================
+  // ESCALATION
+  // ==========================================
+
+  public static async listEscalationRules(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const rules = await EscalationService.listRules(orgId);
+      res.json({ success: true, data: rules });
+    } catch (error: any) {
+      console.error('[CommunicationController.listEscalationRules] Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.code || 'LIST_RULES_FAILED',
+        message: error.message || 'Failed to list escalation rules',
+      });
+    }
+  }
+
+  public static async createEscalationRule(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const rule = await EscalationService.createRule(orgId, userId, req.body);
+      res.status(201).json({ success: true, data: rule });
+    } catch (error: any) {
+      console.error('[CommunicationController.createEscalationRule] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'CREATE_RULE_FAILED',
+        message: error.message || 'Failed to create escalation rule',
+      });
+    }
+  }
+
+  public static async evaluateEscalations(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const results = await EscalationService.evaluateEscalations(orgId);
+      res.json({ success: true, data: results });
+    } catch (error: any) {
+      console.error('[CommunicationController.evaluateEscalations] Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.code || 'EVALUATE_ESCALATION_FAILED',
+        message: error.message || 'Failed to evaluate ticket escalations',
+      });
+    }
+  }
+}
