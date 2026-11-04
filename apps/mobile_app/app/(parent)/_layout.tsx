@@ -1,105 +1,89 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProtectedRoute } from '../../src/navigation/protected-route';
 import { useTheme } from '../../src/theme';
+import { DESIGN_TOKENS } from '../../src/theme/tokens/designTokens';
 import { useUnreadNotificationCount } from '../../src/features/notifications/hooks/useUnreadNotificationCount';
 import { useNotificationRealtime } from '../../src/features/notifications/hooks/useNotificationRealtime';
 
 export default function ParentLayout() {
-  const { colors, isDark } = useTheme();
-  const { data: unreadCount } = useUnreadNotificationCount();
+  const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  useUnreadNotificationCount();
   useNotificationRealtime();
+
+  const bottomInset = Math.max(insets.bottom, 8);
+  const tabHeight = 60 + bottomInset;
 
   return (
     <ProtectedRoute>
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: isDark ? '#818cf8' : '#4f46e5',
-          tabBarInactiveTintColor: colors.textMuted,
+          tabBarActiveTintColor: isDark ? '#818CF8' : DESIGN_TOKENS.colors.primary,
+          tabBarInactiveTintColor: isDark ? '#64748B' : DESIGN_TOKENS.colors.textMuted,
           tabBarLabelStyle: {
             fontSize: 11,
             fontWeight: '700',
-            marginTop: -2,
-            marginBottom: 4,
+            marginTop: 2,
+            marginBottom: 2,
           },
           tabBarStyle: {
-            backgroundColor: colors.tabBar,
-            borderTopColor: colors.border,
+            backgroundColor: isDark ? '#0F172A' : DESIGN_TOKENS.colors.surface,
+            borderTopColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.border,
             borderTopWidth: 1,
-            height: 62,
-            paddingTop: 6,
+            height: tabHeight,
+            paddingTop: 8,
+            paddingBottom: bottomInset,
             elevation: 8,
-            shadowColor: colors.shadow,
-            shadowOffset: { width: 0, height: -2 },
+            shadowColor: '#172033',
+            shadowOffset: { width: 0, height: -3 },
             shadowOpacity: 0.05,
-            shadowRadius: 6,
+            shadowRadius: 8,
           },
         }}
       >
+        {/* Canonical Tab 1: Home Dashboard */}
         <Tabs.Screen
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Feather name="home" size={20} color={color} />,
           }}
         />
+
+        {/* Canonical Tab 2: Applications */}
         <Tabs.Screen
-          name="fees"
+          name="applications"
           options={{
-            title: 'Fees',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
-            ),
+            title: 'Applications',
+            tabBarIcon: ({ color }) => <Feather name="file-text" size={20} color={color} />,
           }}
         />
+
+        {/* Canonical Tab 3: Admission Status */}
         <Tabs.Screen
-          name="applications/index"
+          name="status"
           options={{
-            title: 'Admissions',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'document-text' : 'document-text-outline'}
-                size={22}
-                color={color}
-              />
-            ),
+            title: 'Status',
+            tabBarIcon: ({ color }) => <Feather name="check-square" size={20} color={color} />,
           }}
         />
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            title: 'Notifications',
-            tabBarBadge: unreadCount && unreadCount > 0 ? unreadCount : undefined,
-            tabBarBadgeStyle: {
-              backgroundColor: '#ef4444',
-              color: '#ffffff',
-              fontSize: 10,
-              fontWeight: 'bold',
-            },
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'notifications' : 'notifications-outline'}
-                size={22}
-                color={color}
-              />
-            ),
-          }}
-        />
+
+        {/* Canonical Tab 4: Account */}
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Account',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Feather name="user" size={20} color={color} />,
           }}
         />
 
-        {/* Hidden Non-Tab Screens */}
+        {/* Hidden from tab bar */}
+        <Tabs.Screen name="fees" options={{ href: null }} />
+        <Tabs.Screen name="notifications" options={{ href: null }} />
         <Tabs.Screen name="applications/wizard" options={{ href: null }} />
         <Tabs.Screen name="applications/[id]" options={{ href: null }} />
         <Tabs.Screen name="applications/[id]/assessment" options={{ href: null }} />

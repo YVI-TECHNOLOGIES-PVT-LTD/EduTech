@@ -21,7 +21,9 @@ const rawBaseQuery = fetchBaseQuery({
     if (tenantId) {
       headers.set('x-tenant-id', tenantId);
     }
-    headers.set('Content-Type', 'application/json');
+    // Note: Do not unconditionally force 'Content-Type: application/json' here.
+    // RTK Query's fetchBaseQuery automatically sets application/json for objects
+    // and omits it for FormData so the browser can attach the multipart boundary.
     headers.set('Accept', 'application/json');
     return headers;
   },
@@ -32,6 +34,21 @@ export const baseQueryWithReauth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  // If the request body is FormData, ensure Content-Type is unset so fetch attaches multipart boundary
+  if (typeof args !== 'string' && args.body instanceof FormData) {
+    if (args.headers) {
+      if (args.headers instanceof Headers) {
+        args.headers.delete('Content-Type');
+        args.headers.delete('content-type');
+      } else if (Array.isArray(args.headers)) {
+        args.headers = args.headers.filter(([k]) => k.toLowerCase() !== 'content-type');
+      } else if (typeof args.headers === 'object') {
+        delete (args.headers as Record<string, any>)['Content-Type'];
+        delete (args.headers as Record<string, any>)['content-type'];
+      }
+    }
+  }
+
   const requestUrl = typeof args === 'string' ? args : args.url;
   const isLoginEndpoint = requestUrl.includes('/auth/login');
 

@@ -4,12 +4,15 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        mono: ['monospace'],
+      },
       colors: {
         brand: {
-          50: '#eep2ff',
+          50: '#eef0ff',
           100: '#e0e7ff',
           500: '#6366f1',
-          600: '#4f46e5',
+          600: '#5146e5',
           700: '#4338ca',
           800: '#3730a3',
           900: '#312e81',

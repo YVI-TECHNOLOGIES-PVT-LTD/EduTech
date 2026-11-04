@@ -319,8 +319,12 @@ export class StudentService {
       throw new StudentValidationError(`Application not found: ${applicationId}`);
     }
 
-    // IDEMPOTENCY CHECK: If already converted to student, return existing record without duplicate creation!
-    if (app.students) {
+    // IDEMPOTENCY CHECK: If already converted and enrolled in student_enrollments, return existing!
+    if (
+      app.students &&
+      app.students.student_enrollments &&
+      app.students.student_enrollments.length > 0
+    ) {
       logger.info(
         `Application ${applicationId} is already enrolled. Returning existing student ${app.students.student_id}`,
       );
@@ -329,7 +333,7 @@ export class StudentService {
         success: true,
         is_existing: true,
         student: existingStudent || app.students,
-        enrollment: app.students.student_enrollments?.[0] || null,
+        enrollment: app.students.student_enrollments[0],
       };
     }
 
@@ -423,26 +427,40 @@ export class StudentService {
 
     // ATOMIC PRISMA TRANSACTION for Student + Parent Link + Student Enrollment + Application & Lead Status
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create Student Master Record
-      const student = await tx.students.create({
-        data: {
-          org_id: app.org_id,
-          application_id: applicationId,
-          admission_no: admissionNo,
-          first_name: studentFirstName,
-          last_name: studentLastName,
-          dob,
-          gender,
-          admission_date: new Date(),
-          status: 'active',
-          created_by: authorUuid,
-        },
-      });
+      // 1. Create or resolve existing Student Master Record
+      let student: any = app.students;
+      if (!student) {
+        student = await tx.students.create({
+          data: {
+            org_id: app.org_id,
+            application_id: applicationId,
+            admission_no: admissionNo,
+            first_name: studentFirstName,
+            last_name: studentLastName,
+            dob,
+            gender,
+            admission_date: new Date(),
+            status: 'active',
+            created_by: authorUuid,
+          },
+        });
+      }
 
       // 2. Link Parent Record in student_parents
       const relationshipEnum = lead?.contact_relationship || 'guardian';
-      await tx.student_parents.create({
-        data: {
+      await tx.student_parents.upsert({
+        where: {
+          student_id_parent_id: {
+            student_id: student.student_id,
+            parent_id: (parent as any).parent_id,
+          },
+        },
+        update: {
+          relationship: relationshipEnum as any,
+          is_primary_contact: true,
+          updated_at: new Date(),
+        },
+        create: {
           student_id: student.student_id,
           parent_id: (parent as any).parent_id,
           relationship: relationshipEnum as any,

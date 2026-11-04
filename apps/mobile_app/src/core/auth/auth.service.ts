@@ -1,5 +1,6 @@
 import { SecureStorage } from '../../storage/secure-store';
 import { useAuthStore } from '../../stores/auth.store';
+import { useChildStore } from '../../stores/child.store';
 import { UserProfile, AuthTokens } from '../../types/auth.types';
 
 export class AuthService {
@@ -15,6 +16,7 @@ export class AuthService {
 
   static async logout(): Promise<void> {
     await SecureStorage.clearSession();
+    useChildStore.getState().reset();
     useAuthStore.getState().logout();
   }
 

@@ -5,6 +5,7 @@ import {
   useGetDocumentTypesQuery,
   useGetApplicationDocumentsQuery,
   useUploadAdmissionDocumentMutation,
+  useDeleteAdmissionDocumentMutation,
   useLazyGetDocumentSignedUrlQuery,
   type ApplicationRecord,
 } from '@/shared/api/admission.api';
@@ -24,6 +25,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DocumentVerificationCard } from '../../components/DocumentVerificationCard';
+import { DocumentUploadCard } from '../../components/DocumentUploadCard';
 import {
   AlertCircle,
   Plus,
@@ -83,6 +85,19 @@ export function ParentDocumentCenterPage() {
   });
 
   const [uploadDoc] = useUploadAdmissionDocumentMutation();
+  const [deleteDoc] = useDeleteAdmissionDocumentMutation();
+
+  const handleDeleteDoc = async (documentId: string) => {
+    if (!documentId) return;
+    try {
+      await deleteDoc({ documentId, applicationId: targetAppId }).unwrap();
+      refetchDocs();
+      refetchApps();
+    } catch (err: any) {
+      console.error('Failed to remove document:', err);
+      setActionError(err?.data?.message || err?.message || 'Failed to remove document.');
+    }
+  };
   const [getSignedUrl] = useLazyGetDocumentSignedUrlQuery();
 
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
@@ -149,7 +164,7 @@ export function ParentDocumentCenterPage() {
             variant="outline"
             className="text-[10px] font-black uppercase text-purple-700 bg-purple-50 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800"
           >
-            Action Needed ⚠
+            Action Needed
           </Badge>
         );
       case 'Rejected':
@@ -158,7 +173,7 @@ export function ParentDocumentCenterPage() {
             variant="outline"
             className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800"
           >
-            Rejected ✕
+            Rejected
           </Badge>
         );
       case 'Accepted':
@@ -167,7 +182,7 @@ export function ParentDocumentCenterPage() {
             variant="outline"
             className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
           >
-            Accepted ✓
+            Accepted
           </Badge>
         );
       case 'In Review':
@@ -176,7 +191,7 @@ export function ParentDocumentCenterPage() {
             variant="outline"
             className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
           >
-            In Review ⏳
+            In Review
           </Badge>
         );
       default:
@@ -445,20 +460,32 @@ export function ParentDocumentCenterPage() {
                   : undefined;
 
                 return (
-                  <DocumentVerificationCard
+                  <DocumentUploadCard
                     key={docItem.docTypeId}
-                    docKey={docItem.docTypeId}
+                    id={docItem.docTypeId}
                     name={docItem.docTypeName}
                     mandatory={docItem.isMandatory}
                     hint={docItem.description}
-                    uploaded={uploadedInfo}
+                    uploadedDoc={uploadedInfo}
                     isUploading={uploadingDocId === docItem.docTypeId}
-                    onUpload={(e) => handleFileUpload(docItem.docTypeId, e, docItem.docTypeName)}
-                    onView={
+                    uploadProgress={uploadingDocId === docItem.docTypeId ? 85 : 0}
+                    onFileUpload={(e) =>
+                      handleFileUpload(docItem.docTypeId, e, docItem.docTypeName)
+                    }
+                    onUploadDoc={async (file) => {
+                      const pseudoEvent = { target: { files: [file] } } as any;
+                      await handleFileUpload(docItem.docTypeId, pseudoEvent, docItem.docTypeName);
+                    }}
+                    onViewDoc={
                       docItem.uploadedDocument
                         ? () => handleViewDoc(docItem.uploadedDocument!.document_id)
                         : undefined
                     }
+                    onRemoveDoc={() => {
+                      if (docItem.uploadedDocument?.document_id) {
+                        handleDeleteDoc(docItem.uploadedDocument.document_id);
+                      }
+                    }}
                   />
                 );
               })}

@@ -6,537 +6,642 @@ import {
   SafeAreaView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/auth.store';
+import { useChildStore } from '../../src/stores/child.store';
 import { applicationsApi } from '../../src/api/applications.api';
 import { notificationsApi } from '../../src/api/notifications.api';
 import { QUERY_KEYS } from '../../src/api/query-keys';
 import { ApplicationStatusCard } from '../../src/components/admission/ApplicationStatusCard';
-import { ChildSwitcher } from '../../src/components/admission/ChildSwitcher';
-import { EnrolledChildFeeCard } from '../../src/components/parent/EnrolledChildFeeCard';
-import { useMyChildrenFees } from '../../src/features/parent';
-import { AdmissionApplication, ChildFeeOverview } from '../../src/types/admission.types';
+import { SelectedChildCard } from '../../src/components/child/SelectedChildCard';
+import { ChildSwitcherSheet } from '../../src/components/child/ChildSwitcherSheet';
+import { DailyAttendancePill } from '../../src/components/dashboard/DailyAttendancePill';
+import { TodayScheduleGlance } from '../../src/components/dashboard/TodayScheduleGlance';
+import { QuickActionGrid } from '../../src/components/dashboard/QuickActionGrid';
+import { AcademicPriorityCard } from '../../src/components/dashboard/AcademicPriorityCard';
+import { FinanceSummaryWidget } from '../../src/components/dashboard/FinanceSummaryWidget';
+import { AnnouncementCarousel } from '../../src/components/dashboard/AnnouncementCarousel';
+import { AdmissionApplication } from '../../src/types/admission.types';
+import { EnrolledChild, ApplicantChild } from '../../src/types/child.types';
+import { getApplicationStatusConfig } from '../../src/utils/status-mapper';
 import { useTheme } from '../../src/theme';
+import { DESIGN_TOKENS } from '../../src/theme/tokens/designTokens';
+import { ParentPortalHeader } from '../../src/components/common/ParentPortalHeader';
+import { ParentEmptyState } from '../../src/components/common/ParentEmptyState';
+import { ParentLoadingSkeleton } from '../../src/components/common/ParentLoadingSkeleton';
 import { Button } from '../../src/components/ui/atoms/Button';
 
 export default function ParentDashboardScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { isDark } = useTheme();
   const user = useAuthStore((state) => state.user);
 
-  const [selectedAppId, setSelectedAppId] = useState<string>('');
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  // Authoritative Child Store (Independent per-child classification)
+  const activeChild = useChildStore((s) => s.getSelectedChild());
+  const syncChildren = useChildStore((s) => s.syncChildren);
+  const isChildLoading = useChildStore((s) => s.isLoading);
 
-  // 1. Fetch Parent Applications
+  const [switcherVisible, setSwitcherVisible] = useState(false);
+
+  // Synchronize children and lifecycle on mount or auth change
+  useEffect(() => {
+    syncChildren(user?.id);
+  }, [user?.id, syncChildren]);
+
+  // 1. Fetch Applications for Pre-Admission views & fallback
   const {
     data: applications = [],
-    isLoading: loadingApps,
-    isError: errorApps,
-    error: appError,
+    isLoading: isAppsLoading,
+    isError: isAppsError,
+    error: appsError,
     refetch: refetchApps,
-    isRefetching: refetchingApps,
+    isRefetching: isAppsRefetching,
   } = useQuery<AdmissionApplication[], Error>({
     queryKey: QUERY_KEYS.applications.mine(),
     queryFn: () => applicationsApi.listMine(),
   });
 
-  // 2. Fetch Parent's Enrolled Children & Fee Summary
-  const {
-    children: enrolledChildren = [],
-    isLoading: loadingChildren,
-    refetch: refetchChildren,
-    isRefetching: refetchingChildren,
-  } = useMyChildrenFees();
-
-  // 3. Fetch Unread Notifications Count
+  // 2. Fetch Unread Notifications Count
   const { data: unreadCount = 0 } = useQuery<number, Error>({
     queryKey: QUERY_KEYS.notifications.unreadCount,
     queryFn: () => notificationsApi.getUnreadCount(),
     staleTime: 1000 * 30,
   });
 
-  const handleRefreshAll = async () => {
-    await Promise.all([refetchApps(), refetchChildren()]);
+  const handleRefresh = async () => {
+    await Promise.all([syncChildren(user?.id), refetchApps()]);
   };
 
-  const isGlobalRefreshing = refetchingApps || refetchingChildren;
-  const isGlobalLoading = loadingApps && loadingChildren;
+  const parentName =
+    user?.full_name ||
+    user?.fullName ||
+    (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '') ||
+    'Parent';
 
-  // Auto-select first application
+  // Resolve matching application if current active child is an applicant
   const activeAppId =
-    selectedAppId ||
-    (applications.length > 0 ? applications[0].application_id || (applications[0] as any).id : '');
+    activeChild && activeChild.kind === 'applicant'
+      ? activeChild.applicationId
+      : applications.length > 0
+        ? applications[0].application_id || (applications[0] as any).id
+        : '';
 
   const activeApplication =
     applications.find(
       (app: AdmissionApplication) => (app.application_id || (app as any).id) === activeAppId,
     ) || (applications.length > 0 ? applications[0] : null);
 
-  // Auto-select first enrolled student
-  const activeStudentId =
-    selectedStudentId || (enrolledChildren.length > 0 ? enrolledChildren[0].student_id : '');
-
-  const activeEnrolledChild =
-    enrolledChildren.find((c: ChildFeeOverview) => c.student_id === activeStudentId) ||
-    (enrolledChildren.length > 0 ? enrolledChildren[0] : null);
-
-  const parentName = user?.full_name || user?.fullName || 'Parent';
-  const isPostAdmission = Boolean(
-    user?.hasEnrolledStudent ||
-    user?.isPostAdmission ||
-    (user?.roles || []).includes('ENROLLED_PARENT') ||
-    enrolledChildren.length > 0,
-  );
-
-  useEffect(() => {
-    if (enrolledChildren.length > 0 && (!user?.hasEnrolledStudent || !user?.isPostAdmission)) {
-      useAuthStore.getState().updateUser({
-        hasEnrolledStudent: true,
-        isPostAdmission: true,
-      });
-    }
-  }, [enrolledChildren.length, user?.hasEnrolledStudent, user?.isPostAdmission]);
+  const isEnrolled = activeChild?.kind === 'enrolled';
+  const enrolledStudent = isEnrolled ? (activeChild as EnrolledChild) : null;
+  const applicantStudent =
+    activeChild?.kind === 'applicant' ? (activeChild as ApplicantChild) : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+      ]}
+    >
       {/* Top Header */}
-      <View className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <View className="w-10 h-10 rounded-2xl bg-indigo-600 items-center justify-center mr-3 shadow-md shadow-indigo-600/30">
-            <Ionicons name="school" size={20} color="#ffffff" />
-          </View>
-          <View>
-            <Text className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              EduTrack ERP
-            </Text>
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              {isPostAdmission ? 'Enrolled Parent Portal' : 'Parent Portal'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Notifications Icon with Badge */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => router.push('/(parent)/notifications' as any)}
-          accessibilityRole="button"
-          accessibilityLabel={`Notifications, ${unreadCount} unread`}
-          className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center relative"
-        >
-          <Ionicons name="notifications-outline" size={20} color={colors.iconSecondary} />
-          {unreadCount > 0 && (
-            <View className="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-[18px] h-[18px] items-center justify-center px-1 border-2 border-white dark:border-slate-900">
-              <Text className="text-[9px] font-extrabold text-white">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+      <ParentPortalHeader
+        showLogo={true}
+        rightAction={
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push('/(parent)/notifications' as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`Notifications, ${unreadCount} unread`}
+            style={[styles.notificationButton, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}
+          >
+            <Feather
+              name="bell"
+              size={19}
+              color={isDark ? '#F1F5F9' : DESIGN_TOKENS.colors.textPrimary}
+            />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isGlobalRefreshing}
-            onRefresh={handleRefreshAll}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            refreshing={isAppsRefetching || isChildLoading}
+            onRefresh={handleRefresh}
+            tintColor={DESIGN_TOKENS.colors.primary}
+            colors={[DESIGN_TOKENS.colors.primary]}
           />
         }
       >
-        {/* 1. Welcome Greeting Banner */}
-        <View className="mb-6 bg-indigo-600 dark:bg-indigo-900/60 rounded-3xl p-6 shadow-lg shadow-indigo-600/20">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-bold uppercase tracking-wider text-indigo-200">
-              {isPostAdmission ? 'Enrolled Parent Portal' : 'Parent Self-Service Hub'}
-            </Text>
-            <View className="bg-white/20 px-2.5 py-0.5 rounded-full">
-              <Text className="text-[10px] font-extrabold text-white uppercase tracking-wider">
-                {isPostAdmission ? 'Enrolled Student Active' : 'Active Session'}
-              </Text>
-            </View>
-          </View>
-          <Text className="text-xl font-black text-white tracking-tight">
-            Welcome back, {parentName}!
-          </Text>
-          <Text className="text-xs text-indigo-100 mt-1 leading-relaxed">
-            {isPostAdmission
-              ? 'Monitor enrolled student fee ledgers, academic progress, and institutional services.'
-              : "Monitor your child's enrollment progress, submit required documents, and track evaluation milestones."}
-          </Text>
-        </View>
+        {/* Child Selector Card at Top */}
+        <SelectedChildCard onOpenSwitcher={() => setSwitcherVisible(true)} />
 
-        {/* 2. Loading State */}
-        {isGlobalLoading && (
-          <View className="py-16 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text className="text-xs font-bold text-slate-500 mt-3">
-              Loading student records & applications...
-            </Text>
-          </View>
-        )}
-
-        {/* 3. Enrolled Children & Fee Ledger Section */}
-        {!isGlobalLoading && enrolledChildren.length > 0 && (
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Enrolled Students ({enrolledChildren.length})
-              </Text>
-              <TouchableOpacity onPress={handleRefreshAll} className="flex-row items-center">
-                <Feather name="refresh-cw" size={12} color={colors.primary} />
-                <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400 ml-1">
-                  Refresh
+        {/* ========================================================================= */}
+        {/* VIEW A: POST-ADMISSION ENROLLED STUDENT VIEW (RULE 2: student_enrollments) */}
+        {/* ========================================================================= */}
+        {isEnrolled && enrolledStudent && (
+          <View>
+            {/* Student Banner */}
+            <View
+              style={[
+                styles.welcomeCard,
+                { backgroundColor: isDark ? '#1E1B4B' : DESIGN_TOKENS.colors.primary },
+              ]}
+            >
+              <View style={styles.sessionHeaderRow}>
+                <Text style={styles.sessionTagText}>
+                  Academic Year {enrolledStudent.academicYear}
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.enrolledBadge}>
+                  <Text style={styles.enrolledBadgeText}>Enrolled Student</Text>
+                </View>
+              </View>
 
-            {/* Enrolled Child Switcher if multiple */}
-            {enrolledChildren.length > 1 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 16 }}
-                className="flex-row mb-3"
-              >
-                {enrolledChildren.map((c: ChildFeeOverview) => {
-                  const isSelected = c.student_id === activeStudentId;
-                  const name = c.first_name || c.full_name || 'Child';
-                  return (
-                    <TouchableOpacity
-                      key={c.student_id}
-                      activeOpacity={0.8}
-                      onPress={() => setSelectedStudentId(c.student_id)}
-                      className={`flex-row items-center px-4 py-2.5 rounded-2xl mr-2.5 border shadow-sm ${
-                        isSelected
-                          ? 'bg-teal-600 border-teal-600'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                      }`}
-                    >
-                      <View
-                        className={`w-6 h-6 rounded-full items-center justify-center mr-2 ${
-                          isSelected ? 'bg-white/20' : 'bg-teal-50 dark:bg-teal-950/60'
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-black ${
-                            isSelected ? 'text-white' : 'text-teal-600 dark:text-teal-400'
-                          }`}
-                        >
-                          {name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <Text
-                        className={`text-xs font-bold ${
-                          isSelected ? 'text-white' : 'text-slate-700 dark:text-slate-200'
-                        }`}
-                      >
-                        {name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            {activeEnrolledChild && <EnrolledChildFeeCard child={activeEnrolledChild} />}
-          </View>
-        )}
-
-        {/* 4. Active Applications Section */}
-        {!isGlobalLoading && applications.length > 0 && (
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Admission Applications ({applications.length})
+              <Text style={styles.welcomeGreetingText}>{enrolledStudent.fullName}</Text>
+              <Text style={styles.welcomeSubtext}>
+                Grade {enrolledStudent.gradeLevel} • Section {enrolledStudent.section}
+                {enrolledStudent.rollNumber ? ` • Roll #${enrolledStudent.rollNumber}` : ''} • Adm:{' '}
+                {enrolledStudent.admissionNumber}
               </Text>
-              {enrolledChildren.length === 0 && (
-                <TouchableOpacity onPress={handleRefreshAll} className="flex-row items-center">
-                  <Feather name="refresh-cw" size={12} color={colors.primary} />
-                  <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400 ml-1">
-                    Refresh
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
 
-            {/* Multi-Child Application Switcher */}
-            <ChildSwitcher
-              applications={applications}
-              selectedId={activeAppId}
-              onSelect={(id) => setSelectedAppId(id)}
+            {/* Daily Attendance Pill */}
+            <DailyAttendancePill
+              status={(enrolledStudent.attendanceToday?.status as any) || 'present'}
+              timestamp={enrolledStudent.attendanceToday?.timestamp}
             />
 
-            {activeApplication && (
-              <ApplicationStatusCard
-                application={activeApplication}
-                onPress={() => {
-                  const appId = activeApplication.application_id || (activeApplication as any).id;
-                  router.push(`/(parent)/applications/${appId}` as any);
-                }}
-              />
-            )}
+            {/* Today Schedule Glance */}
+            <TodayScheduleGlance />
+
+            {/* Academic Priority Card */}
+            <AcademicPriorityCard />
+
+            {/* Operational Student SIS Modules Grid */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={[
+                  styles.sectionHeaderTitle,
+                  {
+                    color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary,
+                    marginBottom: 10,
+                  },
+                ]}
+              >
+                Student Services & Portals
+              </Text>
+              <QuickActionGrid />
+            </View>
+
+            {/* Student Term Fees Widget */}
+            <FinanceSummaryWidget
+              hasPendingFees={enrolledStudent.hasPendingFees}
+              amount={enrolledStudent.pendingFeeAmount}
+            />
+
+            {/* School Announcements */}
+            <AnnouncementCarousel />
           </View>
         )}
 
-        {/* 5. Error State */}
-        {!isGlobalLoading &&
-          errorApps &&
-          applications.length === 0 &&
-          enrolledChildren.length === 0 && (
-            <View className="mb-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-3xl p-5">
-              <View className="flex-row items-center mb-2">
-                <Ionicons name="alert-circle" size={22} color="#ef4444" />
-                <Text className="text-sm font-bold text-red-700 dark:text-red-300 ml-2">
-                  Unable to load records
-                </Text>
+        {/* ========================================================================= */}
+        {/* VIEW B: PRE-ADMISSION APPLICANT VIEW (RULE 1: no student_enrollments)      */}
+        {/* ========================================================================= */}
+        {!isEnrolled && applicantStudent && (
+          <View>
+            {/* Welcome Greeting Banner */}
+            <View
+              style={[
+                styles.welcomeCard,
+                { backgroundColor: isDark ? '#1E1B4B' : DESIGN_TOKENS.colors.primary },
+              ]}
+            >
+              <View style={styles.sessionHeaderRow}>
+                <Text style={styles.sessionTagText}>Session 2026–2027</Text>
+                <View style={styles.preAdmissionBadge}>
+                  <Text style={styles.preAdmissionBadgeText}>Admission Applicant</Text>
+                </View>
               </View>
-              <Text className="text-xs text-red-600 dark:text-red-400 mb-4 leading-relaxed">
-                {appError?.message || 'A network error occurred while retrieving your data.'}
-              </Text>
-              <Button
-                title="Retry Connection"
-                variant="outline"
-                size="sm"
-                onPress={handleRefreshAll}
-              />
-            </View>
-          )}
 
-        {/* 6. Empty State (Neither applications nor enrolled children) */}
-        {!isGlobalLoading &&
-          !errorApps &&
-          applications.length === 0 &&
-          enrolledChildren.length === 0 && (
-            <View className="bg-white dark:bg-slate-900 rounded-3xl p-8 items-center text-center border border-slate-200/80 dark:border-slate-800 shadow-sm mb-6">
-              <View className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/60 items-center justify-center mb-4 border border-indigo-100 dark:border-indigo-900">
-                <Ionicons name="document-text-outline" size={32} color="#4f46e5" />
-              </View>
-              <Text className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight text-center">
-                No Student Records Yet
+              <Text style={styles.welcomeGreetingText}>Welcome, {parentName}!</Text>
+              <Text style={styles.welcomeSubtext}>
+                Tracking application for {applicantStudent.fullName} • Applying:{' '}
+                {applicantStudent.applyingGrade}
               </Text>
-              <Text className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1.5 leading-relaxed max-w-xs">
-                Start your child's enrollment process by completing an online admission application.
-              </Text>
-              <View className="w-full mt-6">
-                <Button
-                  title="Start Admission Application"
-                  variant="primary"
-                  size="md"
-                  onPress={() => router.push('/(parent)/applications/wizard' as any)}
+            </View>
+
+            {/* Active Application Status Section */}
+            {activeApplication && (
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text
+                    style={[
+                      styles.sectionHeaderTitle,
+                      { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                    ]}
+                  >
+                    Active Application Status
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleRefresh}
+                    style={styles.refreshLink}
+                    accessibilityRole="button"
+                    accessibilityLabel="Refresh application status"
+                  >
+                    <Feather name="refresh-cw" size={13} color={DESIGN_TOKENS.colors.primary} />
+                    <Text style={styles.refreshLinkText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <ApplicationStatusCard
+                  application={activeApplication}
+                  onPress={() => {
+                    const appId = activeApplication.application_id || (activeApplication as any).id;
+                    router.push(`/(parent)/applications/${appId}` as any);
+                  }}
                 />
               </View>
-            </View>
-          )}
+            )}
 
-        {/* 7. Quick Action Cards */}
-        <View className="mb-4">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-            {isPostAdmission ? 'Enrolled Services & Portals' : 'Quick Shortcuts & Portals'}
-          </Text>
+            {/* Quick Action Shortcuts for Admission Workflow */}
+            <View style={styles.shortcutsSection}>
+              <Text
+                style={[
+                  styles.sectionHeaderTitle,
+                  {
+                    color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary,
+                    marginBottom: 12,
+                  },
+                ]}
+              >
+                Admission Portals & Actions
+              </Text>
 
-          <View className="space-y-3">
-            {isPostAdmission ? (
-              <>
-                {/* 1. Post-Admission: Fee Ledger & Online Payments */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => router.push('/(parent)/fees' as any)}
-                  className="bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-800 shadow-sm flex-row items-center justify-between mb-3"
-                >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-11 h-11 rounded-xl bg-emerald-600 items-center justify-center mr-3 shadow-sm">
-                      <Ionicons name="wallet" size={22} color="#ffffff" />
-                    </View>
-                    <View className="flex-1">
-                      <View className="flex-row items-center justify-between mr-2">
-                        <Text className="text-sm font-black text-emerald-950 dark:text-emerald-200">
-                          Fee Ledger & Payments
-                        </Text>
-                        {activeEnrolledChild?.summary?.outstanding_balance !== undefined && (
-                          <View
-                            className={`px-2 py-0.5 rounded-full ${
-                              Number(activeEnrolledChild.summary.outstanding_balance) > 0
-                                ? 'bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700'
-                                : 'bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700'
-                            }`}
-                          >
-                            <Text
-                              className={`text-[10px] font-black ${
-                                Number(activeEnrolledChild.summary.outstanding_balance) > 0
-                                  ? 'text-rose-700 dark:text-rose-300'
-                                  : 'text-emerald-700 dark:text-emerald-300'
-                              }`}
-                            >
-                              {Number(activeEnrolledChild.summary.outstanding_balance) > 0
-                                ? `Due: ₹${Number(activeEnrolledChild.summary.outstanding_balance).toLocaleString('en-IN')}`
-                                : 'All Dues Paid'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-                        Pay tuition dues, download official receipts & view installments
-                      </Text>
-                    </View>
-                  </View>
-                  <Feather name="chevron-right" size={18} color="#059669" />
-                </TouchableOpacity>
-
-                {/* 2. Post-Admission: Enrolled Child Profile */}
-                {activeEnrolledChild && (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => router.push('/(parent)/fees' as any)}
-                    className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
-                  >
-                    <View className="flex-row items-center flex-1">
-                      <View className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 items-center justify-center mr-3 border border-blue-100 dark:border-blue-900">
-                        <Ionicons name="school" size={20} color="#3b82f6" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                          {activeEnrolledChild.full_name ||
-                            `${activeEnrolledChild.first_name} ${activeEnrolledChild.last_name || ''}`}
-                        </Text>
-                        <Text className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {activeEnrolledChild.grade_name || 'Class Grade'}
-                          {activeEnrolledChild.section_name
-                            ? ` • Section ${activeEnrolledChild.section_name}`
-                            : ''}{' '}
-                          • Adm: {activeEnrolledChild.admission_no}
-                        </Text>
-                      </View>
-                    </View>
-                    <Feather name="chevron-right" size={18} color="#94a3b8" />
-                  </TouchableOpacity>
-                )}
-
-                {/* 3. Post-Admission: School Notices & Alerts */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => router.push('/(parent)/notifications' as any)}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
-                >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 items-center justify-center mr-3 border border-amber-100 dark:border-amber-900">
-                      <Ionicons name="notifications" size={20} color="#f59e0b" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        School Notices & Alerts
-                      </Text>
-                      <Text className="text-xs text-slate-400 mt-0.5">
-                        {unreadCount > 0
-                          ? `${unreadCount} unread update(s)`
-                          : 'No unread notifications'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Feather name="chevron-right" size={18} color="#94a3b8" />
-                </TouchableOpacity>
-
-                {/* 4. Post-Admission: Admissions Desk & Sibling Registration */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => router.push('/(parent)/applications' as any)}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
-                >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center mr-3 border border-slate-200 dark:border-slate-700">
-                      <Ionicons name="document-text" size={20} color="#64748b" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        Admissions Desk & Siblings
-                      </Text>
-                      <Text className="text-xs text-slate-400 mt-0.5">
-                        Apply for another child or review past admissions
-                      </Text>
-                    </View>
-                  </View>
-                  <Feather name="chevron-right" size={18} color="#94a3b8" />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                {/* Pre-Admission: New Application Wizard */}
+              <View style={styles.shortcutsList}>
+                {/* 1. New Admission Application */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => router.push('/(parent)/applications/wizard' as any)}
-                  className="bg-indigo-50/60 dark:bg-indigo-950/40 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800 shadow-sm flex-row items-center justify-between mb-3"
+                  style={[
+                    styles.shortcutCard,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(81, 70, 229, 0.15)'
+                        : DESIGN_TOKENS.colors.primaryLight,
+                      borderColor: isDark ? 'rgba(81, 70, 229, 0.35)' : '#C7D2FE',
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="New Admission Application"
                 >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-11 h-11 rounded-xl bg-indigo-600 items-center justify-center mr-3">
-                      <Ionicons name="add-circle" size={22} color="#ffffff" />
+                  <View style={styles.shortcutContent}>
+                    <View
+                      style={[
+                        styles.shortcutIconContainer,
+                        { backgroundColor: DESIGN_TOKENS.colors.primary },
+                      ]}
+                    >
+                      <Feather name="plus-circle" size={20} color="#FFFFFF" />
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-black text-indigo-950 dark:text-indigo-200">
+                    <View style={styles.shortcutTextContainer}>
+                      <Text
+                        style={[styles.shortcutTitle, { color: isDark ? '#E0E7FF' : '#312E81' }]}
+                      >
                         New Admission Application
                       </Text>
-                      <Text className="text-xs text-indigo-700 dark:text-indigo-400 mt-0.5">
-                        Start a new 8-step admission form for another child
+                      <Text
+                        style={[
+                          styles.shortcutDescription,
+                          { color: isDark ? '#C7D2FE' : '#4338CA' },
+                        ]}
+                      >
+                        Start an 8-step enrollment application
                       </Text>
                     </View>
                   </View>
-                  <Feather name="chevron-right" size={18} color="#6366f1" />
+                  <Feather name="chevron-right" size={18} color={DESIGN_TOKENS.colors.primary} />
                 </TouchableOpacity>
 
-                {/* Pre-Admission: All Applications */}
+                {/* 2. My Applications */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => router.push('/(parent)/applications' as any)}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                  style={[
+                    styles.shortcutCard,
+                    {
+                      backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                      borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="My Applications"
                 >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 items-center justify-center mr-3 border border-indigo-100 dark:border-indigo-900">
-                      <Ionicons name="folder-open" size={20} color="#4f46e5" />
+                  <View style={styles.shortcutContent}>
+                    <View
+                      style={[
+                        styles.shortcutIconContainer,
+                        {
+                          backgroundColor: isDark
+                            ? 'rgba(81, 70, 229, 0.2)'
+                            : DESIGN_TOKENS.colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name="file-text"
+                        size={20}
+                        color={isDark ? '#818CF8' : DESIGN_TOKENS.colors.primary}
+                      />
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    <View style={styles.shortcutTextContainer}>
+                      <Text
+                        style={[
+                          styles.shortcutTitle,
+                          { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                        ]}
+                      >
                         My Applications
                       </Text>
-                      <Text className="text-xs text-slate-400 mt-0.5">
-                        View all registered student admissions ({applications.length})
+                      <Text
+                        style={[
+                          styles.shortcutDescription,
+                          { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                        ]}
+                      >
+                        View registered applications ({applications.length})
                       </Text>
                     </View>
                   </View>
-                  <Feather name="chevron-right" size={18} color="#94a3b8" />
+                  <Feather name="chevron-right" size={18} color="#94A3B8" />
                 </TouchableOpacity>
 
-                {/* Pre-Admission: Notifications */}
+                {/* 3. Admission Status & Milestones */}
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => router.push('/(parent)/notifications' as any)}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+                  onPress={() => {
+                    if (activeAppId) {
+                      router.push(`/(parent)/status?id=${activeAppId}` as any);
+                    } else {
+                      router.push('/(parent)/status' as any);
+                    }
+                  }}
+                  style={[
+                    styles.shortcutCard,
+                    {
+                      backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                      borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Admission Status and Milestones"
                 >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 items-center justify-center mr-3 border border-emerald-100 dark:border-emerald-900">
-                      <Ionicons name="notifications" size={20} color="#10b981" />
+                  <View style={styles.shortcutContent}>
+                    <View
+                      style={[
+                        styles.shortcutIconContainer,
+                        {
+                          backgroundColor: isDark ? 'rgba(14, 165, 233, 0.2)' : '#E0F2FE',
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name="check-square"
+                        size={20}
+                        color={isDark ? '#38BDF8' : '#0284C7'}
+                      />
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        Notifications & Alerts
+                    <View style={styles.shortcutTextContainer}>
+                      <Text
+                        style={[
+                          styles.shortcutTitle,
+                          { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                        ]}
+                      >
+                        Admission Status & Milestones
                       </Text>
-                      <Text className="text-xs text-slate-400 mt-0.5">
-                        {unreadCount > 0
-                          ? `${unreadCount} unread update(s)`
-                          : 'No unread notifications'}
+                      <Text
+                        style={[
+                          styles.shortcutDescription,
+                          { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                        ]}
+                      >
+                        {activeApplication
+                          ? `${activeApplication.student_name || 'Child'}: ${getApplicationStatusConfig(activeApplication.status).label}`
+                          : 'Track 7-stage admission progress & requirements'}
                       </Text>
                     </View>
                   </View>
-                  <Feather name="chevron-right" size={18} color="#94a3b8" />
+                  <Feather name="chevron-right" size={18} color="#94A3B8" />
                 </TouchableOpacity>
-              </>
-            )}
+              </View>
+            </View>
           </View>
-        </View>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW C: EMPTY OR UNLINKED STATE (NO CHILDREN / NO APPLICATIONS YET)       */}
+        {/* ========================================================================= */}
+        {!activeChild && !isChildLoading && (
+          <View>
+            <ParentEmptyState
+              ionIcon="document-text-outline"
+              title="No Admission Applications or Students Yet"
+              description="Start your child's enrollment by completing an online admission application, or link your existing student record."
+              actionText="Start Admission Application"
+              onAction={() => router.push('/(parent)/applications/wizard' as any)}
+            />
+          </View>
+        )}
+
+        {/* Loading Indicator */}
+        {isChildLoading && <ParentLoadingSkeleton type="cards" />}
       </ScrollView>
+
+      {/* Child Switcher Bottom Sheet */}
+      <ChildSwitcherSheet visible={switcherVisible} onClose={() => setSwitcherVisible(false)} />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: DESIGN_TOKENS.spacing.standard,
+    paddingTop: 14,
+    paddingBottom: 40,
+  },
+  notificationButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: DESIGN_TOKENS.colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  welcomeCard: {
+    borderRadius: DESIGN_TOKENS.radius.card,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  sessionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sessionTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.85)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  enrolledBadge: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  enrolledBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  preAdmissionBadge: {
+    backgroundColor: '#D97706',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  preAdmissionBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  welcomeGreetingText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 4,
+  },
+  welcomeSubtext: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+  },
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  sectionHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  refreshLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  refreshLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
+    marginLeft: 4,
+  },
+  shortcutsSection: {
+    marginTop: 4,
+  },
+  shortcutsList: {
+    gap: 12,
+  },
+  shortcutCard: {
+    borderRadius: DESIGN_TOKENS.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+    minHeight: 68,
+  },
+  shortcutContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  shortcutIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  shortcutTextContainer: {
+    flex: 1,
+  },
+  shortcutTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  shortcutDescription: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+});

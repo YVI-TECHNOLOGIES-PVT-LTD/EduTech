@@ -10,3 +10,8 @@ export * from './decision.api';
 export * from './fees.api';
 export * from './timeline.api';
 export * from './notifications.api';
+export * from './finance.api';
+export * from './academics.api';
+export * from './helpdesk.api';
+export * from './transport.api';
+export * from './library.api';

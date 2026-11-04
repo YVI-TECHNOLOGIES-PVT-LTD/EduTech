@@ -5,6 +5,8 @@ import { updateStudentSchema } from '../dto/request/update-student.dto';
 import { updateStudentStatusSchema } from '../dto/request/update-status.dto';
 import { searchStudentSchema } from '../dto/request/search-student.dto';
 import { StudentError } from '../errors/student.errors';
+import { ParentStudentLifecycleService } from '../../parent-management/services/parent.student-lifecycle.service';
+import { ParentError } from '../../parent-management/errors/parent.errors';
 
 export class StudentController {
   static async create(req: Request, res: Response) {
@@ -31,9 +33,23 @@ export class StudentController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user = (req as any).context?.user || (req as any).user;
+      const isParentOnly =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r: string) =>
+          ['ADMIN', 'SUPERADMIN', 'ADMISSION_OFFICER', 'STAFF', 'FRONT_OFFICE'].includes(r),
+        );
+
+      if (isParentOnly && user?.id) {
+        await ParentStudentLifecycleService.assertParentCanAccessStudent(user.id, id, user.org_id);
+      }
+
       const result = await StudentService.getStudentById(id);
       return res.json(result);
     } catch (error: any) {
+      if (error instanceof ParentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
       if (error instanceof StudentError) {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });
       }

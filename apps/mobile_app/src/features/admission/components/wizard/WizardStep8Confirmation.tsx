@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Button } from '../../../../components/ui/atoms/Button';
 
@@ -38,7 +38,16 @@ export const WizardStep8Confirmation: React.FC<WizardStep8ConfirmationProps> = (
           <Text className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
             Application Reference Number
           </Text>
-          <Text className="text-lg font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1">
+          <Text
+            className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-1"
+            style={{
+              fontFamily: Platform.select({
+                ios: 'Menlo',
+                android: 'monospace',
+                default: 'monospace',
+              }),
+            }}
+          >
             {applicationNumber}
           </Text>
         </View>

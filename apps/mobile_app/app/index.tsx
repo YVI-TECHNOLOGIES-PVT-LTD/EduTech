@@ -11,5 +11,5 @@ export default function IndexScreen() {
     return <Loader type="page" message="Loading EduTrack ERP..." />;
   }
 
-  return <Redirect href={(isAuthenticated ? ROUTES.PARENT.DASHBOARD : ROUTES.AUTH.LOGIN) as any} />;
+  return <Redirect href={(isAuthenticated ? ROUTES.MAIN.HOME : ROUTES.AUTH.LOGIN) as any} />;
 }

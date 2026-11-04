@@ -69,6 +69,8 @@ export function useSubmitApplication() {
               uri: fileObj.uri,
               name: fileObj.name,
               type: fileObj.type,
+              rawFile: (fileObj as any).rawFile,
+              size: fileObj.size,
             },
           });
         } catch (uploadErr) {

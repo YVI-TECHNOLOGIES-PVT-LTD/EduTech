@@ -6,21 +6,25 @@ import {
   SafeAreaView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useApplicationAssessment } from '../../../../src/features/admission/hooks/useApplicationAssessment';
 import { AssessmentCard } from '../../../../src/components/admission/AssessmentCard';
 import { useTheme } from '../../../../src/theme';
+import { DESIGN_TOKENS } from '../../../../src/theme/tokens/designTokens';
+import { ParentPortalHeader } from '../../../../src/components/common/ParentPortalHeader';
+import { ParentEmptyState } from '../../../../src/components/common/ParentEmptyState';
+import { ParentLoadingSkeleton } from '../../../../src/components/common/ParentLoadingSkeleton';
 import { Button } from '../../../../src/components/ui/atoms/Button';
 
 export default function AssessmentTrackerScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const { colors } = useTheme();
+  const params = useLocalSearchParams<{ id: string }>();
+  const { isDark } = useTheme();
 
-  const appId = id || '';
+  const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const appId = rawId && rawId !== '[id]' ? rawId : '';
 
   const {
     data: assessment,
@@ -32,90 +36,186 @@ export default function AssessmentTrackerScreen() {
   } = useApplicationAssessment(appId);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+      ]}
+    >
       {/* Header */}
-      <View className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1 mr-2">
+      <ParentPortalHeader
+        title="Assessment Tracker"
+        subtitle="Entrance Test & Student Evaluation"
+        showBack={true}
+        rightAction={
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mr-3"
-            accessibilityLabel="Back"
+            activeOpacity={0.8}
+            onPress={() => refetch()}
+            style={[styles.refreshButton, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}
+            accessibilityRole="button"
+            accessibilityLabel="Refresh assessment details"
           >
-            <Ionicons name="arrow-back" size={20} color={colors.iconSecondary} />
+            <Feather
+              name="refresh-cw"
+              size={16}
+              color={isDark ? '#F1F5F9' : DESIGN_TOKENS.colors.textPrimary}
+            />
           </TouchableOpacity>
-          <View className="flex-1">
-            <Text className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Assessment Tracker
-            </Text>
-            <Text className="text-xs font-semibold text-slate-400">
-              Entrance Test & Student Evaluation
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => refetch()}
-          className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center"
-          accessibilityLabel="Refresh assessment"
-        >
-          <Feather name="refresh-cw" size={18} color={colors.iconSecondary} />
-        </TouchableOpacity>
-      </View>
+        }
+      />
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            tintColor={DESIGN_TOKENS.colors.primary}
+            colors={[DESIGN_TOKENS.colors.primary]}
           />
         }
       >
         {/* Info Banner */}
-        <View className="bg-purple-50/60 dark:bg-purple-950/40 p-4 rounded-3xl border border-purple-100 dark:border-purple-900 flex-row items-center mb-5">
-          <Ionicons name="school" size={20} color="#9333ea" />
-          <View className="ml-3 flex-1">
-            <Text className="text-xs font-bold text-purple-950 dark:text-purple-200">
+        <View
+          style={[
+            styles.milestonesBanner,
+            {
+              backgroundColor: isDark
+                ? 'rgba(81, 70, 229, 0.15)'
+                : DESIGN_TOKENS.colors.primaryLight,
+              borderColor: isDark ? 'rgba(81, 70, 229, 0.35)' : '#C7D2FE',
+            },
+          ]}
+        >
+          <View style={styles.bannerIconWrapper}>
+            <Feather name="award" size={20} color={DESIGN_TOKENS.colors.primary} />
+          </View>
+          <View style={styles.bannerTextContainer}>
+            <Text style={[styles.bannerTitle, { color: isDark ? '#E0E7FF' : '#312E81' }]}>
               Evaluation Milestones
             </Text>
-            <Text className="text-[11px] text-purple-800/80 dark:text-purple-300 mt-0.5">
+            <Text style={[styles.bannerDescription, { color: isDark ? '#C7D2FE' : '#4338CA' }]}>
               Entrance exam schedules, venue details, and academic evaluation updates are posted
               here.
             </Text>
           </View>
         </View>
 
-        {/* Loading */}
-        {isLoading && (
-          <View className="py-16 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text className="text-xs font-bold text-slate-500 mt-3">
-              Loading assessment status...
-            </Text>
-          </View>
-        )}
+        {/* Loading State */}
+        {isLoading && <ParentLoadingSkeleton type="cards" />}
 
-        {/* Error */}
+        {/* Error State */}
         {!isLoading && isError && (
-          <View className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-3xl p-5 mb-4">
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="alert-circle" size={22} color="#ef4444" />
-              <Text className="text-sm font-bold text-red-700 dark:text-red-300 ml-2">
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(220, 38, 38, 0.15)'
+                  : DESIGN_TOKENS.colors.errorLight,
+                borderColor: isDark ? 'rgba(220, 38, 38, 0.4)' : '#FECACA',
+              },
+            ]}
+          >
+            <View style={styles.errorHeader}>
+              <Feather name="alert-circle" size={20} color={DESIGN_TOKENS.colors.error} />
+              <Text
+                style={[
+                  styles.errorTitle,
+                  { color: isDark ? '#FCA5A5' : DESIGN_TOKENS.colors.error },
+                ]}
+              >
                 Failed to load assessment details
               </Text>
             </View>
-            <Text className="text-xs text-red-600 dark:text-red-400 mb-4 leading-relaxed">
-              {error?.message || 'A network error occurred.'}
+            <Text style={[styles.errorMessage, { color: isDark ? '#F87171' : '#991B1B' }]}>
+              {error?.message || 'A network error occurred while retrieving evaluation status.'}
             </Text>
             <Button title="Try Again" variant="outline" size="sm" onPress={() => refetch()} />
           </View>
         )}
 
+        {/* Empty State */}
+        {!isLoading && !isError && !assessment && (
+          <ParentEmptyState
+            ionIcon="school-outline"
+            title="No Assessment Scheduled"
+            description="There are no entrance tests or evaluation sessions scheduled for this application at this time."
+          />
+        )}
+
         {/* Assessment Card */}
-        {!isLoading && !isError && <AssessmentCard assessment={assessment || null} />}
+        {!isLoading && !isError && assessment && <AssessmentCard assessment={assessment} />}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  refreshButton: {
+    width: 38,
+    height: 38,
+    borderRadius: DESIGN_TOKENS.radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  milestonesBanner: {
+    padding: 16,
+    borderRadius: DESIGN_TOKENS.radius.card,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  bannerIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(81, 70, 229, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  bannerDescription: {
+    fontSize: 11,
+    fontWeight: '500',
+    lineHeight: 16,
+  },
+  errorCard: {
+    borderWidth: 1,
+    borderRadius: DESIGN_TOKENS.radius.card,
+    padding: 16,
+    marginBottom: 16,
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  errorMessage: {
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+});

@@ -72,7 +72,11 @@ export class AdmissionDocumentService {
       !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
     let targetDocTypeId = dto.document_type_id;
-    const docCode = dto.document_code || dto.document_type || dto.document_type_code;
+    const docCode =
+      dto.document_code ||
+      dto.document_type ||
+      dto.document_type_code ||
+      (targetDocTypeId && !isUuid(targetDocTypeId) ? targetDocTypeId : undefined);
 
     if (isUuid(targetDocTypeId)) {
       // Validate that document_type exists, is active, AND strictly belongs to authoritativeOrgId
@@ -108,6 +112,10 @@ export class AdmissionDocumentService {
       // Name/code lookup scoped strictly to authoritativeOrgId
       const docNameMap: Record<string, string> = {
         aadhaar_card: "Student's Aadhaar Card",
+        doc_type_birth_cert: 'Birth Certificate',
+        doc_type_photo: "Student's Photo",
+        doc_type_report_card: 'Previous Academic Records',
+        doc_type_address_proof: 'Proof of Residence',
         birth_certificate: 'Birth Certificate',
         passport_photo: "Student's Photo",
         academic_records: 'Previous Academic Records',

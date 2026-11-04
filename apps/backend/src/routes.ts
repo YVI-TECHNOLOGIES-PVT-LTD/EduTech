@@ -807,6 +807,9 @@ router.use('/students', authenticate, studentManagementRouter);
 // Parent Management Module (Phase 3.4)
 router.use('/v1/parents', authenticate, parentManagementRouter);
 router.use('/parents', authenticate, parentManagementRouter);
+router.use('/v1/parent-portal', authenticate, parentManagementRouter);
+router.use('/parent-portal', authenticate, parentManagementRouter);
+router.use('/api/parent-portal', authenticate, parentManagementRouter);
 
 // Academic Structure Management Module (Phase 3.5)
 router.use('/v1/academic', authenticate, academicManagementRouter);

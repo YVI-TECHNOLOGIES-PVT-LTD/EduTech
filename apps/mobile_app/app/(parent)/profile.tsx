@@ -1,22 +1,50 @@
 import React from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { authApi } from '../../src/api/auth.api';
 import { ROUTES } from '../../src/constants/routes';
 import { useTheme } from '../../src/theme';
+import { DESIGN_TOKENS } from '../../src/theme/tokens/designTokens';
+import { ParentPortalHeader } from '../../src/components/common/ParentPortalHeader';
 import { Button } from '../../src/components/ui/atoms/Button';
 
 export default function ParentProfileScreen() {
   const router = useRouter();
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
 
-  const handleLogout = async () => {
-    await authApi.logout();
-    logout();
-    router.replace(ROUTES.AUTH.LOGIN as any);
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out?',
+      'Are you sure you want to log out of your parent account on this device?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await authApi.logout();
+            } catch (e) {
+              // Ignore network errors on logout
+            } finally {
+              logout();
+              router.replace(ROUTES.AUTH.LOGIN as any);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const displayName =
@@ -24,12 +52,6 @@ export default function ParentProfileScreen() {
     user?.fullName ||
     (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '') ||
     'Parent Guardian';
-
-  const isPostAdmission = Boolean(
-    user?.hasEnrolledStudent ||
-    user?.isPostAdmission ||
-    (user?.roles || []).includes('ENROLLED_PARENT'),
-  );
 
   const initials =
     displayName
@@ -40,122 +62,370 @@ export default function ParentProfileScreen() {
       .join('') || 'PG';
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <View className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800">
-        <Text className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-          Parent Account
-        </Text>
-        <Text className="text-xs font-semibold text-slate-400">
-          {isPostAdmission ? 'Enrolled parent details & settings' : 'Account details & security'}
-        </Text>
-      </View>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+      ]}
+    >
+      {/* Top Header */}
+      <ParentPortalHeader title="Parent Account" subtitle="Account details & security" />
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        {/* User Card */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm items-center mb-6">
-          <View className="w-20 h-20 rounded-3xl bg-indigo-600 items-center justify-center mb-3 shadow-md shadow-indigo-600/30">
-            <Text className="text-2xl font-black text-white">{initials}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* User Profile Card */}
+        <View
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+              borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+            },
+          ]}
+        >
+          <View style={[styles.avatarContainer, { backgroundColor: DESIGN_TOKENS.colors.primary }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <Text className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+
+          <Text
+            style={[
+              styles.displayName,
+              { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+            ]}
+          >
             {displayName}
           </Text>
-          <Text className="text-xs font-semibold text-slate-400 mt-0.5">
+
+          <Text
+            style={[
+              styles.displayEmail,
+              { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+            ]}
+          >
             {user?.email || 'parent@example.com'}
           </Text>
-          <View className="mt-3 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800">
-            <Text className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              {isPostAdmission
-                ? 'Enrolled Student Active • Parent Portal'
-                : 'Verified Parent Account'}
-            </Text>
+
+          <View
+            style={[
+              styles.verificationBadge,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(22, 163, 74, 0.2)'
+                  : DESIGN_TOKENS.colors.successLight,
+                borderColor: isDark ? 'rgba(22, 163, 74, 0.4)' : '#BBF7D0',
+              },
+            ]}
+          >
+            <Feather name="check-circle" size={12} color={DESIGN_TOKENS.colors.success} />
+            <Text style={styles.verificationBadgeText}>Verified Parent Account</Text>
           </View>
         </View>
 
         {/* Account Details Section */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm mb-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+              borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+            ]}
+          >
             Account Information
           </Text>
 
-          {/* Email */}
-          <View className="flex-row items-center justify-between py-2.5 border-b border-slate-100 dark:border-slate-800">
-            <View className="flex-row items-center">
-              <Feather name="mail" size={16} color="#64748b" />
-              <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300 ml-3">
+          {/* Email Row */}
+          <View style={[styles.infoRow, { borderBottomColor: isDark ? '#334155' : '#F1F5F9' }]}>
+            <View style={styles.infoLabelContainer}>
+              <Feather name="mail" size={15} color={DESIGN_TOKENS.colors.primary} />
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                ]}
+              >
                 Email
               </Text>
             </View>
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
+            <Text
+              numberOfLines={2}
+              style={[
+                styles.infoValue,
+                { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+              ]}
+            >
               {user?.email || 'Not provided'}
             </Text>
           </View>
 
-          {/* Phone */}
-          <View className="flex-row items-center justify-between py-2.5 border-b border-slate-100 dark:border-slate-800">
-            <View className="flex-row items-center">
-              <Feather name="phone" size={16} color="#64748b" />
-              <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300 ml-3">
+          {/* Phone Row */}
+          <View style={[styles.infoRow, { borderBottomColor: isDark ? '#334155' : '#F1F5F9' }]}>
+            <View style={styles.infoLabelContainer}>
+              <Feather name="phone" size={15} color={DESIGN_TOKENS.colors.primary} />
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                ]}
+              >
                 Mobile
               </Text>
             </View>
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
-              {user?.phone || user?.phoneNumber || 'Not provided'}
+            <Text
+              style={[
+                styles.infoValue,
+                { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+              ]}
+            >
+              {user?.phone || (user as any)?.phoneNumber || 'Not provided'}
             </Text>
           </View>
 
-          {/* Role */}
-          <View className="flex-row items-center justify-between py-2.5 border-b border-slate-100 dark:border-slate-800">
-            <View className="flex-row items-center">
-              <Feather name="shield" size={16} color="#64748b" />
-              <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300 ml-3">
+          {/* Role Row */}
+          <View style={[styles.infoRow, { borderBottomColor: isDark ? '#334155' : '#F1F5F9' }]}>
+            <View style={styles.infoLabelContainer}>
+              <Feather name="shield" size={15} color={DESIGN_TOKENS.colors.primary} />
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                ]}
+              >
                 Role
               </Text>
             </View>
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
+            <Text
+              style={[
+                styles.infoValue,
+                { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+              ]}
+            >
               {user?.roles?.join(', ') || 'PARENT'}
             </Text>
           </View>
 
-          {/* School / Org ID */}
-          <View className="flex-row items-center justify-between py-2.5">
-            <View className="flex-row items-center">
-              <Feather name="home" size={16} color="#64748b" />
-              <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300 ml-3">
+          {/* School Affiliation */}
+          <View style={styles.infoRowLast}>
+            <View style={styles.infoLabelContainer}>
+              <Feather name="home" size={15} color={DESIGN_TOKENS.colors.primary} />
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                ]}
+              >
                 School Affiliation
               </Text>
             </View>
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono">
-              {user?.school_id ? `SCH-${user.school_id.slice(0, 8)}` : 'EduTrack Main'}
+            <Text
+              style={[
+                styles.infoValue,
+                { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+              ]}
+            >
+              {(user as any)?.school_id
+                ? `SCH-${(user as any).school_id.slice(0, 8)}`
+                : 'EduTrack Main'}
             </Text>
           </View>
         </View>
 
-        {/* Preferences */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm mb-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+        {/* Preferences Section */}
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+              borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+            ]}
+          >
             Preferences
           </Text>
 
           <TouchableOpacity
+            activeOpacity={0.7}
             onPress={toggleTheme}
-            className="flex-row items-center justify-between py-2"
+            style={styles.preferenceRow}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle Theme Mode"
           >
-            <View className="flex-row items-center">
-              <Feather name={isDark ? 'moon' : 'sun'} size={16} color="#64748b" />
-              <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300 ml-3">
+            <View style={styles.infoLabelContainer}>
+              <Feather
+                name={isDark ? 'moon' : 'sun'}
+                size={16}
+                color={DESIGN_TOKENS.colors.primary}
+              />
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                ]}
+              >
                 Theme Mode
               </Text>
             </View>
-            <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">
-              {isDark ? 'Dark Mode' : 'Light Mode'}
-            </Text>
+            <View style={styles.preferenceValuePill}>
+              <Text style={styles.preferenceValueText}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* Logout Button */}
-        <Button title="Sign Out of Account" variant="danger" size="lg" onPress={handleLogout} />
+        {/* Logout Action */}
+        <View style={styles.logoutContainer}>
+          <Button title="Sign Out of Account" variant="danger" size="lg" onPress={handleLogout} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  profileCard: {
+    borderRadius: DESIGN_TOKENS.radius.featureCard,
+    padding: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  avatarContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  displayName: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  displayEmail: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  verificationBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.success,
+    marginLeft: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionCard: {
+    borderRadius: DESIGN_TOKENS.radius.card,
+    padding: 20,
+    borderWidth: 1,
+    marginBottom: 20,
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 14,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  infoRowLast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+  },
+  infoLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+    flexShrink: 1,
+    marginLeft: 12,
+  },
+  preferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  preferenceValuePill: {
+    backgroundColor: DESIGN_TOKENS.colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: DESIGN_TOKENS.radius.small,
+  },
+  preferenceValueText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  logoutContainer: {
+    marginTop: 8,
+  },
+});

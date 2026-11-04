@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { apiClient } from './client';
 import { ENDPOINTS } from './endpoints';
 import { AdmissionDocument } from '../types/admission.types';
@@ -9,6 +10,8 @@ export interface UploadDocumentParams {
     uri: string;
     name: string;
     type: string;
+    rawFile?: any;
+    size?: number;
   };
 }
 
@@ -30,11 +33,39 @@ export const documentsApi = {
   async upload(params: UploadDocumentParams): Promise<AdmissionDocument> {
     const formData = new FormData();
     formData.append('document_type_id', params.documentTypeId);
-    formData.append('file', {
-      uri: params.file.uri,
-      name: params.file.name,
-      type: params.file.type,
-    } as any);
+    formData.append('document_code', params.documentTypeId);
+    formData.append('document_type', params.documentTypeId);
+    formData.append('application_id', params.applicationId);
+
+    if (Platform.OS === 'web') {
+      let fileToAppend: any = params.file.rawFile;
+      if (!fileToAppend && params.file.uri) {
+        if (params.file.uri.startsWith('blob:') || params.file.uri.startsWith('data:')) {
+          try {
+            const resp = await fetch(params.file.uri);
+            fileToAppend = await resp.blob();
+          } catch (e) {
+            console.warn('[documentsApi] Could not fetch blob URI:', e);
+          }
+        }
+      }
+
+      if (fileToAppend) {
+        formData.append('file', fileToAppend, params.file.name);
+      } else {
+        formData.append('file', {
+          uri: params.file.uri,
+          name: params.file.name,
+          type: params.file.type,
+        } as any);
+      }
+    } else {
+      formData.append('file', {
+        uri: params.file.uri,
+        name: params.file.name,
+        type: params.file.type,
+      } as any);
+    }
 
     const res = await apiClient.upload<any>(
       ENDPOINTS.DOCUMENTS.UPLOAD(params.applicationId),

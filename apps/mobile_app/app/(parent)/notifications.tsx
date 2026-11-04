@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import {
   useNotifications,
   useUnreadNotificationCount,
@@ -17,18 +18,20 @@ import {
   useMarkAllNotificationsRead,
   useNotificationRealtime,
   NotificationCard,
-  NotificationSkeleton,
-  NotificationEmptyState,
   ConnectionStatusBanner,
   resolveNotificationRoute,
   NotificationItem,
 } from '../../src/features/notifications';
 import { useTheme } from '../../src/theme';
+import { DESIGN_TOKENS } from '../../src/theme/tokens/designTokens';
+import { ParentPortalHeader } from '../../src/components/common/ParentPortalHeader';
+import { ParentEmptyState } from '../../src/components/common/ParentEmptyState';
+import { ParentLoadingSkeleton } from '../../src/components/common/ParentLoadingSkeleton';
 import { Button } from '../../src/components/ui/atoms/Button';
 
 export default function ParentNotificationsScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { isDark } = useTheme();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread'>('all');
   const [markingId, setMarkingId] = useState<string | null>(null);
@@ -38,7 +41,6 @@ export default function ParentNotificationsScreen() {
 
   // 2. Notification Queries & Mutations
   const { notifications, isLoading, isError, error, refetch, isRefetching } = useNotifications();
-
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
   const { mutate: markRead } = useMarkNotificationRead();
   const { mutate: markAllRead, isPending: isMarkingAll } = useMarkAllNotificationsRead();
@@ -53,11 +55,9 @@ export default function ParentNotificationsScreen() {
 
   // 4. Notification Tap / Deep-Link Action
   const handleNotificationPress = (item: NotificationItem) => {
-    // Automatically mark as read on tap if unread
     if (!item.is_read) {
       markRead(item.notification_id);
     }
-
     const route = resolveNotificationRoute(item);
     if (route) {
       router.push(route as any);
@@ -79,78 +79,100 @@ export default function ParentNotificationsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+      ]}
+    >
       {/* Top Header */}
-      <View className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1 mr-2">
-          <View>
-            <View className="flex-row items-center">
-              <Text className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                Notifications
-              </Text>
-              {unreadCount > 0 && (
-                <View className="bg-indigo-600 dark:bg-indigo-500 px-2 py-0.5 rounded-full ml-2">
-                  <Text className="text-[10px] font-black text-white">{unreadCount} new</Text>
-                </View>
-              )}
-            </View>
-            <Text className="text-xs font-semibold text-slate-400 mt-0.5">
-              Admission alerts & updates
-            </Text>
-          </View>
-        </View>
+      <ParentPortalHeader
+        title="Notifications"
+        subtitle="Admission alerts & updates"
+        rightAction={
+          <View style={styles.headerActions}>
+            {unreadCount > 0 && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                disabled={isMarkingAll}
+                onPress={handleMarkAllRead}
+                style={[
+                  styles.readAllButton,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(81, 70, 229, 0.2)'
+                      : DESIGN_TOKENS.colors.primaryLight,
+                    borderColor: isDark ? 'rgba(81, 70, 229, 0.4)' : '#C7D2FE',
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Mark all notifications as read"
+              >
+                {isMarkingAll ? (
+                  <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.primary} />
+                ) : (
+                  <>
+                    <Feather name="check" size={13} color={DESIGN_TOKENS.colors.primary} />
+                    <Text style={styles.readAllButtonText}>Read all</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
-        <View className="flex-row items-center space-x-2">
-          {/* Mark All as Read Action */}
-          {unreadCount > 0 && (
             <TouchableOpacity
-              activeOpacity={0.7}
-              disabled={isMarkingAll}
-              onPress={handleMarkAllRead}
-              className="py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex-row items-center mr-2"
+              activeOpacity={0.8}
+              onPress={() => refetch()}
+              style={[styles.refreshButton, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh notifications"
             >
-              {isMarkingAll ? (
-                <ActivityIndicator size="small" color="#4f46e5" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-done" size={14} color="#4f46e5" />
-                  <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400 ml-1">
-                    Read all
-                  </Text>
-                </>
-              )}
+              <Feather
+                name="refresh-cw"
+                size={16}
+                color={isDark ? '#F1F5F9' : DESIGN_TOKENS.colors.textPrimary}
+              />
             </TouchableOpacity>
-          )}
-
-          {/* Refresh Action */}
-          <TouchableOpacity
-            onPress={() => refetch()}
-            className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center"
-            accessibilityLabel="Refresh notifications"
-          >
-            <Feather name="refresh-cw" size={18} color={colors.iconSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+          </View>
+        }
+      />
 
       {/* Non-blocking Connection State Banner */}
       <ConnectionStatusBanner status={socketStatus} />
 
-      {/* Filter Tabs */}
-      <View className="px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800/80 flex-row space-x-2">
+      {/* Filter Segmented Controls */}
+      <View
+        style={[
+          styles.filtersContainer,
+          {
+            backgroundColor: isDark ? '#0F172A' : DESIGN_TOKENS.colors.surface,
+            borderBottomColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setActiveFilter('all')}
-          className={`py-1.5 px-4 rounded-xl border ${
+          style={[
+            styles.filterPill,
             activeFilter === 'all'
-              ? 'bg-indigo-600 border-indigo-600'
-              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
-          }`}
+              ? styles.filterPillActive
+              : isDark
+                ? styles.filterPillInactiveDark
+                : styles.filterPillInactiveLight,
+          ]}
         >
           <Text
-            className={`text-xs font-bold ${
-              activeFilter === 'all' ? 'text-white' : 'text-slate-600 dark:text-slate-300'
-            }`}
+            style={[
+              styles.filterPillText,
+              {
+                color:
+                  activeFilter === 'all'
+                    ? '#FFFFFF'
+                    : isDark
+                      ? '#94A3B8'
+                      : DESIGN_TOKENS.colors.textSecondary,
+              },
+            ]}
           >
             All ({notifications.length})
           </Text>
@@ -159,47 +181,73 @@ export default function ParentNotificationsScreen() {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setActiveFilter('unread')}
-          className={`py-1.5 px-4 rounded-xl border ${
+          style={[
+            styles.filterPill,
             activeFilter === 'unread'
-              ? 'bg-indigo-600 border-indigo-600'
-              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
-          }`}
+              ? styles.filterPillActive
+              : isDark
+                ? styles.filterPillInactiveDark
+                : styles.filterPillInactiveLight,
+          ]}
         >
           <Text
-            className={`text-xs font-bold ${
-              activeFilter === 'unread' ? 'text-white' : 'text-slate-600 dark:text-slate-300'
-            }`}
+            style={[
+              styles.filterPillText,
+              {
+                color:
+                  activeFilter === 'unread'
+                    ? '#FFFFFF'
+                    : isDark
+                      ? '#94A3B8'
+                      : DESIGN_TOKENS.colors.textSecondary,
+              },
+            ]}
           >
             Unread ({unreadCount})
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Notification List Scroll View */}
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            tintColor={DESIGN_TOKENS.colors.primary}
+            colors={[DESIGN_TOKENS.colors.primary]}
           />
         }
       >
-        {/* Loading Skeleton */}
-        {isLoading && <NotificationSkeleton />}
+        {/* Loading State */}
+        {isLoading && <ParentLoadingSkeleton type="list" />}
 
         {/* Error State */}
         {!isLoading && isError && (
-          <View className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-3xl p-5 mb-4">
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="alert-circle" size={22} color="#ef4444" />
-              <Text className="text-sm font-bold text-red-700 dark:text-red-300 ml-2">
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(220, 38, 38, 0.15)'
+                  : DESIGN_TOKENS.colors.errorLight,
+                borderColor: isDark ? 'rgba(220, 38, 38, 0.4)' : '#FECACA',
+              },
+            ]}
+          >
+            <View style={styles.errorHeader}>
+              <Feather name="alert-circle" size={20} color={DESIGN_TOKENS.colors.error} />
+              <Text
+                style={[
+                  styles.errorTitle,
+                  { color: isDark ? '#FCA5A5' : DESIGN_TOKENS.colors.error },
+                ]}
+              >
                 Failed to load notifications
               </Text>
             </View>
-            <Text className="text-xs text-red-600 dark:text-red-400 mb-4 leading-relaxed">
+            <Text style={[styles.errorMessage, { color: isDark ? '#F87171' : '#991B1B' }]}>
               {error?.message || 'A network error occurred while retrieving notifications.'}
             </Text>
             <Button title="Try Again" variant="outline" size="sm" onPress={() => refetch()} />
@@ -208,22 +256,121 @@ export default function ParentNotificationsScreen() {
 
         {/* Empty State */}
         {!isLoading && !isError && displayedNotifications.length === 0 && (
-          <NotificationEmptyState />
+          <ParentEmptyState
+            icon="bell-off"
+            title="No Notifications Yet"
+            description={
+              activeFilter === 'unread'
+                ? 'You have caught up with all admission alerts.'
+                : 'Admission announcements, evaluation updates, and document verification notices will be shown here.'
+            }
+          />
         )}
 
-        {/* Notification Cards */}
-        {!isLoading &&
-          !isError &&
-          displayedNotifications.map((item: NotificationItem) => (
-            <NotificationCard
-              key={item.notification_id}
-              notification={item}
-              onPress={handleNotificationPress}
-              onMarkRead={handleMarkSingleRead}
-              isMarkingRead={markingId === item.notification_id}
-            />
-          ))}
+        {/* Notifications Listing */}
+        {!isLoading && !isError && displayedNotifications.length > 0 && (
+          <View style={styles.notificationsList}>
+            {displayedNotifications.map((item: NotificationItem) => (
+              <NotificationCard
+                key={item.notification_id}
+                notification={item}
+                isMarkingRead={markingId === item.notification_id}
+                onPress={() => handleNotificationPress(item)}
+                onMarkRead={() => handleMarkSingleRead(item.notification_id)}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  readAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: DESIGN_TOKENS.radius.input,
+    borderWidth: 1,
+  },
+  readAllButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+    marginLeft: 4,
+  },
+  refreshButton: {
+    width: 38,
+    height: 38,
+    borderRadius: DESIGN_TOKENS.radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filtersContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: DESIGN_TOKENS.radius.small,
+  },
+  filterPillActive: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+  },
+  filterPillInactiveLight: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filterPillInactiveDark: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  errorCard: {
+    borderWidth: 1,
+    borderRadius: DESIGN_TOKENS.radius.card,
+    padding: 16,
+    marginBottom: 16,
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  errorMessage: {
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  notificationsList: {
+    gap: 10,
+  },
+});

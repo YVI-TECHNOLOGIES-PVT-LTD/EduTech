@@ -19,11 +19,44 @@ export const applicationsApi = {
   },
 
   /**
-   * Get Single Application by ID: GET /v1/applications/:id
+   * Get Single Application by ID:
+   * First tries canonical /v1/applications/:id.
+   * If not found (or already finalized in admissions), falls back to /v1/admissions/:id.
    */
   async getById(id: string): Promise<AdmissionApplication> {
-    const res = await apiClient.get<any>(ENDPOINTS.APPLICATIONS.BY_ID(id));
-    return res?.application || res?.data || res;
+    if (!id || id === '[id]') {
+      throw new Error('Application ID is required.');
+    }
+
+    try {
+      const res = await apiClient.get<any>(ENDPOINTS.APPLICATIONS.BY_ID(id));
+      const app = res?.application || res?.data || res;
+      if (app && (app.application_id || app.id)) {
+        return app;
+      }
+    } catch (primaryErr) {
+      try {
+        const fallbackRes = await apiClient.get<any>(`/v1/admissions/${id}`);
+        const fallbackApp = fallbackRes?.application || fallbackRes?.data || fallbackRes;
+        if (fallbackApp && (fallbackApp.application_id || fallbackApp.id)) {
+          return fallbackApp;
+        }
+      } catch {
+        throw primaryErr;
+      }
+    }
+
+    try {
+      const fallbackRes = await apiClient.get<any>(`/v1/admissions/${id}`);
+      const fallbackApp = fallbackRes?.application || fallbackRes?.data || fallbackRes;
+      if (fallbackApp && (fallbackApp.application_id || fallbackApp.id)) {
+        return fallbackApp;
+      }
+    } catch {
+      // Continue to throw default
+    }
+
+    throw new Error('The requested admission application could not be located.');
   },
 
   /**

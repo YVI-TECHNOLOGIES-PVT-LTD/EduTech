@@ -5,6 +5,7 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { Platform } from 'react-native';
 import { ENV } from '../config/env';
 import { SecureStorage } from '../storage/secure-store';
 import { useAuthStore } from '../stores/auth.store';
@@ -100,7 +101,17 @@ axiosInstance.interceptors.response.use(
     const details = responseData.details || undefined;
 
     if (ENV.ENABLE_LOGGING) {
-      console.warn(`[API Error ${status}] ${sanitizeUrlForLog(error.config?.url)}:`, serverMessage);
+      if (status >= 500) {
+        console.warn(
+          `[API Server Error ${status}] ${sanitizeUrlForLog(error.config?.url)}:`,
+          serverMessage,
+        );
+      } else {
+        console.log(
+          `[API Error ${status}] ${sanitizeUrlForLog(error.config?.url)}:`,
+          serverMessage,
+        );
+      }
     }
 
     // 401 Unauthorized Handling
@@ -197,12 +208,16 @@ export const apiClient = {
   },
 
   async upload<T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> {
+    const headers = { ...(config?.headers || {}) };
+    if (Platform.OS !== 'web') {
+      headers['Content-Type'] = 'multipart/form-data';
+    } else {
+      delete (headers as any)['Content-Type'];
+      delete (headers as any)['content-type'];
+    }
     const response = await axiosInstance.post<T>(url, formData, {
       ...config,
-      headers: {
-        ...(config?.headers || {}),
-        'Content-Type': 'multipart/form-data',
-      },
+      headers,
     });
     return response.data;
   },

@@ -66,7 +66,7 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
               mandatory: dt.is_mandatory,
               accept: isPhoto ? '.jpg,.jpeg,.png' : '.pdf,.jpg,.jpeg,.png',
               maxSizeMb: 5,
-              hint: `${isPhoto ? 'JPG / PNG' : 'PDF / JPG / PNG'} • Max 5 MB${dt.is_mandatory ? '' : ' (Optional)'}`,
+              hint: `${isPhoto ? 'JPG / PNG' : 'PDF / JPG / PNG'} â€¢ Max 5 MB${dt.is_mandatory ? '' : ' (Optional)'}`,
             };
           }),
         );
@@ -127,9 +127,9 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
         <div className="space-y-1 text-xs text-amber-950">
           <h3 className="font-extrabold">File Upload Guidelines</h3>
           <ul className="space-y-0.5 text-amber-900 font-medium text-[11px]">
-            <li>• Max file size: 5 MB per PDF, JPG, or PNG file</li>
-            <li>• Ensure document text and photograph are clearly legible</li>
-            <li>• Uploaded files will undergo security scanning and school desk verification</li>
+            <li>â€¢ Max file size: 5 MB per PDF, JPG, or PNG file</li>
+            <li>â€¢ Ensure document text and photograph are clearly legible</li>
+            <li>â€¢ Uploaded files will undergo security scanning and school desk verification</li>
           </ul>
         </div>
       </div>
@@ -180,6 +180,7 @@ export const ParentDocumentsStep: React.FC<ParentDocumentsStepProps> = ({
                 hint={doc.hint}
                 accept={doc.accept}
                 maxSizeMb={doc.maxSizeMb}
+                selectedFile={selectedFiles[doc.id] || null}
                 uploadedDoc={uploadedDocs[doc.id]}
                 isReselectRequired={isReselectRequired}
                 onFileUpload={(e) => onFileUpload(doc.id, e)}
