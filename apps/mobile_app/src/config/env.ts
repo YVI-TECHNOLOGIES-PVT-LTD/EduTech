@@ -18,15 +18,18 @@ const getApiBaseUrl = (): string => {
     return process.env.EXPO_PUBLIC_API_URL || 'https://staging-api.edutrack.com/api';
   }
   const devHost = getDevHost();
-  if (devHost) {
+  if (devHost && devHost !== 'localhost' && devHost !== '127.0.0.1') {
     return `http://${devHost}:3000/api`;
+  }
+  // Android Emulator uses 10.0.2.2 to reach host machine localhost even without adb reverse
+  if (Platform.OS === 'android') {
+    if (process.env.EXPO_PUBLIC_API_URL && !process.env.EXPO_PUBLIC_API_URL.includes('localhost')) {
+      return process.env.EXPO_PUBLIC_API_URL;
+    }
+    return 'http://10.0.2.2:3000/api';
   }
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
-  }
-  // Android Emulator uses 10.0.2.2 to access host machine localhost
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000/api';
   }
   return 'http://localhost:3000/api';
 };
@@ -39,14 +42,17 @@ const getWsUrl = (): string => {
     return process.env.EXPO_PUBLIC_WS_URL || 'wss://staging-api.edutrack.com/ws/notifications';
   }
   const devHost = getDevHost();
-  if (devHost) {
+  if (devHost && devHost !== 'localhost' && devHost !== '127.0.0.1') {
     return `ws://${devHost}:3000/ws/notifications`;
+  }
+  if (Platform.OS === 'android') {
+    if (process.env.EXPO_PUBLIC_WS_URL && !process.env.EXPO_PUBLIC_WS_URL.includes('localhost')) {
+      return process.env.EXPO_PUBLIC_WS_URL;
+    }
+    return 'ws://10.0.2.2:3000/ws/notifications';
   }
   if (process.env.EXPO_PUBLIC_WS_URL) {
     return process.env.EXPO_PUBLIC_WS_URL;
-  }
-  if (Platform.OS === 'android') {
-    return 'ws://10.0.2.2:3000/ws/notifications';
   }
   return 'ws://localhost:3000/ws/notifications';
 };
