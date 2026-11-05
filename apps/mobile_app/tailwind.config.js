@@ -29,9 +29,6 @@ module.exports = {
         '3xl': '24px',
         '4xl': '32px',
       },
-      fontFamily: {
-        mono: ['monospace'],
-      },
     },
   },
   plugins: [],

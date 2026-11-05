@@ -5,6 +5,10 @@ import { ValidationError } from '../../errors/ValidationError';
 import { BusinessRuleError } from '../../errors/BusinessRuleError';
 import { resolveCountryAndPhone } from '../../../../utils/country-resolver';
 import { LeadIdentityResolver } from '../../../lead-management/services/lead.identity-resolver.service';
+import {
+  generateApplicationNumber,
+  isApplicationNumberUniqueConstraintError,
+} from '../../../../utils/application-number.util';
 
 export interface CanonicalPublicApplicationPayload {
   school_id?: string;
@@ -413,44 +417,50 @@ export class PublicApplicationService {
       });
 
       if (!application) {
-        // Create Admissions Application record with unique application_number check
+        // Create Admissions Application record with collision-resistant number and retry handling
         const year = new Date().getFullYear();
-        const appCount = await tx.admissions_applications.count();
-        let appSeq = appCount + 1;
-        let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-        while (
-          await tx.admissions_applications.findUnique({
-            where: { application_number: applicationNumber },
-          })
-        ) {
-          appSeq++;
-          applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-        }
+        const MAX_RETRIES = 3;
+        let lastCreateErr: any;
 
-        try {
-          application = await tx.admissions_applications.create({
-            data: {
-              lead_id: lead.lead_id,
-              org_id: finalOrgId,
-              academic_year_id: finalAcademicYearId,
-              application_number: applicationNumber,
-              application_date: new Date(),
-              status: application_status.submitted,
-              created_by: user.user_id,
-            },
-          });
-        } catch (createErr: any) {
-          if (createErr.code === 'P2002') {
-            application = await tx.admissions_applications.findFirst({
-              where: {
-                org_id: finalOrgId,
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          const applicationNumber = generateApplicationNumber(year);
+          try {
+            application = await tx.admissions_applications.create({
+              data: {
                 lead_id: lead.lead_id,
+                org_id: finalOrgId,
+                academic_year_id: finalAcademicYearId,
+                application_number: applicationNumber,
+                application_date: new Date(),
+                status: application_status.submitted,
+                created_by: user.user_id,
               },
             });
-            if (!application) throw createErr;
-          } else {
+            break;
+          } catch (createErr: any) {
+            lastCreateErr = createErr;
+            if (createErr?.code === 'P2002') {
+              const existingLeadApp = await tx.admissions_applications.findFirst({
+                where: {
+                  org_id: finalOrgId,
+                  lead_id: lead.lead_id,
+                },
+              });
+              if (existingLeadApp) {
+                application = existingLeadApp;
+                break;
+              }
+
+              if (isApplicationNumberUniqueConstraintError(createErr) && attempt < MAX_RETRIES) {
+                continue;
+              }
+            }
             throw createErr;
           }
+        }
+
+        if (!application) {
+          throw lastCreateErr;
         }
       }
 

@@ -7,6 +7,10 @@ import {
 import { ApplicationDeclaration } from '../../domain/application/ApplicationDeclaration';
 import { supabase } from '../../../../config/supabase';
 import prisma from '../../../../lib/prismaClient';
+import {
+  generateApplicationNumber,
+  isApplicationNumberUniqueConstraintError,
+} from '../../../../utils/application-number.util';
 
 export class ApplicationRepository
   extends BaseRepository<AdmissionApplication>
@@ -182,27 +186,46 @@ export class ApplicationRepository
 
   public async save(application: AdmissionApplication): Promise<void> {
     const year = new Date().getFullYear();
-    const appCount = await prisma.admissions_applications.count();
-    const appNumber =
-      (application as any).applicationNumber ||
-      `APP-${year}-${String(appCount + 1).padStart(5, '0')}`;
+    const existingAppNumber = (application as any).applicationNumber;
+    const MAX_RETRIES = 3;
+    let lastError: any;
 
-    const payload: any = {
-      application_id: application.id,
-      application_number: appNumber,
-      org_id: application.schoolId,
-      academic_year_id: application.academicYearId,
-      lead_id: application.leadId,
-      status: (application.status || 'submitted').toLowerCase() as any,
-      created_by: application.createdBy,
-      updated_at: application.updatedAt,
-    };
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const appNumber = existingAppNumber || generateApplicationNumber(year);
 
-    await prisma.admissions_applications.upsert({
-      where: { application_id: application.id },
-      create: payload,
-      update: payload,
-    });
+      const payload: any = {
+        application_id: application.id,
+        application_number: appNumber,
+        org_id: application.schoolId,
+        academic_year_id: application.academicYearId,
+        lead_id: application.leadId,
+        status: (application.status || 'submitted').toLowerCase() as any,
+        created_by: application.createdBy,
+        updated_at: application.updatedAt,
+      };
+
+      try {
+        await prisma.admissions_applications.upsert({
+          where: { application_id: application.id },
+          create: payload,
+          update: payload,
+        });
+        (application as any).applicationNumber = appNumber;
+        return;
+      } catch (err: any) {
+        lastError = err;
+        if (
+          !existingAppNumber &&
+          isApplicationNumberUniqueConstraintError(err) &&
+          attempt < MAX_RETRIES
+        ) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw lastError;
   }
 
   public async findTimeline(applicationId: string): Promise<any[]> {

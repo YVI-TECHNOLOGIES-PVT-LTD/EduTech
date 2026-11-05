@@ -21,6 +21,10 @@ import { AdmissionEvents, ApplicationEventType } from '../events/admission.event
 import { LeadIdentityResolver } from '../../lead-management/services/lead.identity-resolver.service';
 import { StorageService } from '../../../services/storage.service';
 import { logger } from '../../../utils/logger';
+import {
+  generateApplicationNumber,
+  isApplicationNumberUniqueConstraintError,
+} from '../../../utils/application-number.util';
 
 export class AdmissionService {
   static async createApplication(
@@ -172,225 +176,230 @@ export class AdmissionService {
     const parentFullName = `${pFirst} ${pLast}`.trim() || 'Parent User';
 
     // 4. Atomic transaction for Lead Resolution + Application Creation
-    let txResult: { application: any; isNew: boolean };
+    let txResult: { application: any; isNew: boolean } | undefined;
+    const MAX_RETRIES = 3;
+    let lastError: any;
 
-    try {
-      txResult = await prisma.$transaction(
-        async (tx) => {
-          // 4. Delegate to LeadIdentityResolver for deterministic matching & sibling protection
-          const resolution = await LeadIdentityResolver.resolveLead(
-            {
-              parentId: parentRecord ? parentRecord.parent_id : null,
-              orgId: safeOrgId,
-              userId: performedBy,
-              parentName: parentFullName,
-              parentPhone: dto.contact_phone || dto.parent_phone,
-              parentEmail: dto.contact_email || dto.parent_email,
-              contactRelationship: dto.contact_relationship,
-            },
-            {
-              firstName: sFirst || 'Applicant',
-              lastName: sLast,
-              dateOfBirth: validDob,
-              gender: dto.gender,
-              academicYearGradeId: aygId,
-              curriculumPreference: dto.curriculum_preference,
-              scholarshipInterest: dto.scholarship_interest,
-              remarks: dto.remarks,
-            },
-            {
-              targetLeadId,
-              isNewChild: Boolean((dto as any).is_new_child),
-              performedBy,
-              tx,
-            },
-          );
-
-          if (resolution.resolutionType === 'AMBIGUOUS') {
-            throw new ApplicationValidationError(
-              resolution.reason ||
-                'Multiple existing children match this name under your account. Please provide the Date of Birth or select the child directly.',
-            );
-          }
-
-          const resolvedLead = resolution.lead;
-          if (!resolvedLead) {
-            throw new ApplicationValidationError(
-              'Failed to resolve or create a valid Lead record for this child',
-            );
-          }
-
-          // 5. Authoritative Lead -> Application 1:1 check
-          // If an application already exists for this resolved Lead within the org, return it idempotently
-          const existingApp = await tx.admissions_applications.findFirst({
-            where: {
-              org_id: safeOrgId,
-              lead_id: resolvedLead.lead_id,
-            },
-            include: {
-              leads: {
-                include: {
-                  parents: true,
-                  academic_year_grades: {
-                    include: {
-                      grades: true,
-                      academic_years: true,
-                    },
-                  },
-                  staff: {
-                    include: {
-                      users_staff_user_idTousers: true,
-                    },
-                  },
-                },
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        txResult = await prisma.$transaction(
+          async (tx) => {
+            // 4. Delegate to LeadIdentityResolver for deterministic matching & sibling protection
+            const resolution = await LeadIdentityResolver.resolveLead(
+              {
+                parentId: parentRecord ? parentRecord.parent_id : null,
+                orgId: safeOrgId,
+                userId: performedBy,
+                parentName: parentFullName,
+                parentPhone: dto.contact_phone || dto.parent_phone,
+                parentEmail: dto.contact_email || dto.parent_email,
+                contactRelationship: dto.contact_relationship,
               },
-              academic_years: true,
-              organizations: true,
-              admission_documents: {
-                include: { document_types: true },
+              {
+                firstName: sFirst || 'Applicant',
+                lastName: sLast,
+                dateOfBirth: validDob,
+                gender: dto.gender,
+                academicYearGradeId: aygId,
+                curriculumPreference: dto.curriculum_preference,
+                scholarshipInterest: dto.scholarship_interest,
+                remarks: dto.remarks,
               },
-              application_assessments: true,
-              admission_decisions: true,
-              admission_fee_payments: true,
-            },
-          });
+              {
+                targetLeadId,
+                isNewChild: Boolean((dto as any).is_new_child),
+                performedBy,
+                tx,
+              },
+            );
 
-          if (existingApp) {
-            return { application: existingApp, isNew: false };
-          }
+            if (resolution.resolutionType === 'AMBIGUOUS') {
+              throw new ApplicationValidationError(
+                resolution.reason ||
+                  'Multiple existing children match this name under your account. Please provide the Date of Birth or select the child directly.',
+              );
+            }
 
-          // Generate application number
-          const year = new Date().getFullYear();
-          const lastApp = await tx.admissions_applications.findFirst({
-            where: { application_number: { startsWith: `APP-${year}-` } },
-            orderBy: { application_number: 'desc' },
-            select: { application_number: true },
-          });
-          let nextAppSeq = 1;
-          if (lastApp?.application_number) {
-            const match = lastApp.application_number.match(/(\d+)$/);
-            if (match) nextAppSeq = parseInt(match[1], 10) + 1;
-          }
-          const applicationNumber = `APP-${year}-${String(nextAppSeq).padStart(5, '0')}`;
+            const resolvedLead = resolution.lead;
+            if (!resolvedLead) {
+              throw new ApplicationValidationError(
+                'Failed to resolve or create a valid Lead record for this child',
+              );
+            }
 
-          // Create the application linked to resolvedLead.lead_id
-          const newApp = await tx.admissions_applications.create({
-            data: {
-              lead_id: resolvedLead.lead_id,
-              org_id: safeOrgId,
-              academic_year_id: safeAcademicYearId,
-              application_number: applicationNumber,
-              application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
-              status: dto.status || application_status.submitted,
-              created_by: performedBy || undefined,
-              nationality: dto.nationality || undefined,
-              previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
-              previous_school_address: dto.previous_school_address || undefined,
-              previous_school_board: dto.previous_school_board || undefined,
-              previous_grade: dto.previous_grade || undefined,
-              previous_school_year: dto.previous_school_year || undefined,
-            } as any,
-            include: {
-              leads: {
-                include: {
-                  parents: true,
-                  academic_year_grades: {
-                    include: {
-                      grades: true,
-                      academic_years: true,
+            // 5. Authoritative Lead -> Application 1:1 check
+            // If an application already exists for this resolved Lead within the org, return it idempotently
+            const existingApp = await tx.admissions_applications.findFirst({
+              where: {
+                org_id: safeOrgId,
+                lead_id: resolvedLead.lead_id,
+              },
+              include: {
+                leads: {
+                  include: {
+                    parents: true,
+                    academic_year_grades: {
+                      include: {
+                        grades: true,
+                        academic_years: true,
+                      },
                     },
-                  },
-                  staff: {
-                    include: {
-                      users_staff_user_idTousers: true,
+                    staff: {
+                      include: {
+                        users_staff_user_idTousers: true,
+                      },
                     },
                   },
                 },
+                academic_years: true,
+                organizations: true,
+                admission_documents: {
+                  include: { document_types: true },
+                },
+                application_assessments: true,
+                admission_decisions: true,
+                admission_fee_payments: true,
               },
-              academic_years: true,
-              organizations: true,
-              admission_documents: {
-                include: { document_types: true },
+            });
+
+            if (existingApp) {
+              return { application: existingApp, isNew: false };
+            }
+
+            // Generate application number
+            const year = new Date().getFullYear();
+            const applicationNumber = generateApplicationNumber(year);
+
+            // Create the application linked to resolvedLead.lead_id
+            const newApp = await tx.admissions_applications.create({
+              data: {
+                lead_id: resolvedLead.lead_id,
+                org_id: safeOrgId,
+                academic_year_id: safeAcademicYearId,
+                application_number: applicationNumber,
+                application_date: dto.application_date
+                  ? new Date(dto.application_date)
+                  : new Date(),
+                status: dto.status || application_status.submitted,
+                created_by: performedBy || undefined,
+                nationality: dto.nationality || undefined,
+                previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
+                previous_school_address: dto.previous_school_address || undefined,
+                previous_school_board: dto.previous_school_board || undefined,
+                previous_grade: dto.previous_grade || undefined,
+                previous_school_year: dto.previous_school_year || undefined,
+              } as any,
+              include: {
+                leads: {
+                  include: {
+                    parents: true,
+                    academic_year_grades: {
+                      include: {
+                        grades: true,
+                        academic_years: true,
+                      },
+                    },
+                    staff: {
+                      include: {
+                        users_staff_user_idTousers: true,
+                      },
+                    },
+                  },
+                },
+                academic_years: true,
+                organizations: true,
+                admission_documents: {
+                  include: { document_types: true },
+                },
+                application_assessments: true,
+                admission_decisions: true,
+                admission_fee_payments: true,
               },
-              application_assessments: true,
-              admission_decisions: true,
-              admission_fee_payments: true,
-            },
-          });
+            });
 
-          return { application: newApp, isNew: true };
-        },
-        { maxWait: 15000, timeout: 30000 },
-      );
-    } catch (err: any) {
-      // Concurrency protection: If race condition creates application first (P2002 on lead_id or lock timeout),
-      // safely fallback to retrieving the already-created application for this Lead.
-      if (
-        err?.code === 'P2002' ||
-        err?.message?.includes('expired transaction') ||
-        err?.message?.includes('Transaction already closed')
-      ) {
-        let existingRaceApp: any = null;
-        if (targetLeadId) {
-          existingRaceApp = await AdmissionRepository.findByLeadId(targetLeadId, safeOrgId);
-        }
-        if (!existingRaceApp && parentRecord && sFirst) {
-          const matchedLead = await prisma.leads.findFirst({
-            where: {
-              org_id: safeOrgId,
-              parent_id: parentRecord.parent_id,
-              student_first_name: { equals: sFirst, mode: 'insensitive' },
-              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-            },
-          });
-          if (matchedLead) {
-            existingRaceApp = await AdmissionRepository.findByLeadId(
-              matchedLead.lead_id,
-              safeOrgId,
-            );
+            return { application: newApp, isNew: true };
+          },
+          { maxWait: 15000, timeout: 30000 },
+        );
+        break;
+      } catch (err: any) {
+        // Concurrency protection: If race condition creates application first (P2002 on lead_id or lock timeout),
+        // safely fallback to retrieving the already-created application for this Lead.
+        if (
+          err?.code === 'P2002' ||
+          err?.message?.includes('expired transaction') ||
+          err?.message?.includes('Transaction already closed')
+        ) {
+          let existingRaceApp: any = null;
+          if (targetLeadId) {
+            existingRaceApp = await AdmissionRepository.findByLeadId(targetLeadId, safeOrgId);
           }
-        }
-        if (!existingRaceApp && performedBy && sFirst) {
-          const matchedLead = await prisma.leads.findFirst({
-            where: {
-              org_id: safeOrgId,
-              created_by: performedBy,
-              student_first_name: { equals: sFirst, mode: 'insensitive' },
-              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-            },
-          });
-          if (matchedLead) {
-            existingRaceApp = await AdmissionRepository.findByLeadId(
-              matchedLead.lead_id,
-              safeOrgId,
-            );
+          if (!existingRaceApp && parentRecord && sFirst) {
+            const matchedLead = await prisma.leads.findFirst({
+              where: {
+                org_id: safeOrgId,
+                parent_id: parentRecord.parent_id,
+                student_first_name: { equals: sFirst, mode: 'insensitive' },
+                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+              },
+            });
+            if (matchedLead) {
+              existingRaceApp = await AdmissionRepository.findByLeadId(
+                matchedLead.lead_id,
+                safeOrgId,
+              );
+            }
           }
-        }
-        if (!existingRaceApp && (dto.contact_phone || dto.parent_phone) && sFirst) {
-          const matchedLead = await prisma.leads.findFirst({
-            where: {
-              org_id: safeOrgId,
-              contact_phone: dto.contact_phone || dto.parent_phone,
-              student_first_name: { equals: sFirst, mode: 'insensitive' },
-              ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
-            },
-          });
-          if (matchedLead) {
-            existingRaceApp = await AdmissionRepository.findByLeadId(
-              matchedLead.lead_id,
-              safeOrgId,
-            );
+          if (!existingRaceApp && performedBy && sFirst) {
+            const matchedLead = await prisma.leads.findFirst({
+              where: {
+                org_id: safeOrgId,
+                created_by: performedBy,
+                student_first_name: { equals: sFirst, mode: 'insensitive' },
+                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+              },
+            });
+            if (matchedLead) {
+              existingRaceApp = await AdmissionRepository.findByLeadId(
+                matchedLead.lead_id,
+                safeOrgId,
+              );
+            }
           }
-        }
+          if (!existingRaceApp && (dto.contact_phone || dto.parent_phone) && sFirst) {
+            const matchedLead = await prisma.leads.findFirst({
+              where: {
+                org_id: safeOrgId,
+                contact_phone: dto.contact_phone || dto.parent_phone,
+                student_first_name: { equals: sFirst, mode: 'insensitive' },
+                ...(sLast ? { student_last_name: { equals: sLast, mode: 'insensitive' } } : {}),
+              },
+            });
+            if (matchedLead) {
+              existingRaceApp = await AdmissionRepository.findByLeadId(
+                matchedLead.lead_id,
+                safeOrgId,
+              );
+            }
+          }
 
-        if (existingRaceApp) {
-          txResult = { application: existingRaceApp, isNew: false };
+          if (existingRaceApp) {
+            txResult = { application: existingRaceApp, isNew: false };
+            break;
+          } else {
+            if (isApplicationNumberUniqueConstraintError(err) && attempt < MAX_RETRIES) {
+              continue;
+            }
+            throw err;
+          }
         } else {
           throw err;
         }
-      } else {
-        throw err;
       }
+    }
+
+    if (!txResult) {
+      throw lastError;
     }
 
     const application = txResult.application;

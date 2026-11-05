@@ -19,6 +19,10 @@ import { AuditService } from '../AuditService';
 import { LeadIdentityResolver } from '../../../lead-management/services/lead.identity-resolver.service';
 
 import { ApplicationWorkflowOrchestrator } from './ApplicationWorkflowOrchestrator';
+import {
+  generateApplicationNumber,
+  isApplicationNumberUniqueConstraintError,
+} from '../../../../utils/application-number.util';
 
 const LEGACY_STATUS_MAP: Record<string, string> = {
   draft: 'DRAFT',
@@ -183,49 +187,63 @@ export class ApplicationService extends BaseService {
     // Generate Server Authoritative Application Record
     const id = crypto.randomUUID();
     const year = new Date().getFullYear();
-    const appCount = await prisma.admissions_applications.count();
-    const appNumber = `APP-${year}-${String(appCount + 1).padStart(5, '0')}`;
 
     let newAppRecord: any;
-    try {
-      newAppRecord = await prisma.admissions_applications.create({
-        data: {
-          application_id: id,
-          application_number: appNumber,
-          org_id: targetOrgId,
-          academic_year_id: targetAyId,
-          lead_id: leadId,
-          status: 'submitted',
-          created_by: createdBy || undefined,
-        },
-      });
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        const raceApp = await prisma.admissions_applications.findFirst({
-          where: { lead_id: leadId },
+    const MAX_RETRIES = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const appNumber = generateApplicationNumber(year);
+      try {
+        newAppRecord = await prisma.admissions_applications.create({
+          data: {
+            application_id: id,
+            application_number: appNumber,
+            org_id: targetOrgId,
+            academic_year_id: targetAyId,
+            lead_id: leadId,
+            status: 'submitted',
+            created_by: createdBy || undefined,
+          },
         });
-        if (raceApp) {
-          const app = new AdmissionApplication(
-            raceApp.application_id,
-            raceApp.org_id,
-            raceApp.academic_year_id,
-            raceApp.lead_id,
-            (raceApp.status || 'SUBMITTED').toUpperCase() as ApplicationStatus,
-            1,
-            true,
-            raceApp.created_by,
-            'Existing application retrieved',
-            null,
-            new Date(raceApp.created_at),
-            new Date(raceApp.updated_at),
-            null,
-            raceApp.application_number,
-          );
-          app.applicationNumber = raceApp.application_number;
-          return app;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        if (err?.code === 'P2002') {
+          const raceApp = await prisma.admissions_applications.findFirst({
+            where: { lead_id: leadId },
+          });
+          if (raceApp) {
+            const app = new AdmissionApplication(
+              raceApp.application_id,
+              raceApp.org_id,
+              raceApp.academic_year_id,
+              raceApp.lead_id,
+              (raceApp.status || 'SUBMITTED').toUpperCase() as ApplicationStatus,
+              1,
+              true,
+              raceApp.created_by,
+              'Existing application retrieved',
+              null,
+              new Date(raceApp.created_at),
+              new Date(raceApp.updated_at),
+              null,
+              raceApp.application_number,
+            );
+            app.applicationNumber = raceApp.application_number;
+            return app;
+          }
+
+          if (isApplicationNumberUniqueConstraintError(err) && attempt < MAX_RETRIES) {
+            continue;
+          }
         }
+        throw err;
       }
-      throw err;
+    }
+
+    if (!newAppRecord) {
+      throw lastError;
     }
 
     const application = new AdmissionApplication(

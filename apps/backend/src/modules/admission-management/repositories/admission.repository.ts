@@ -2,6 +2,10 @@ import { application_status } from '@prisma/client';
 import prisma from '../../../lib/prismaClient';
 import { CreateApplicationDto } from '../dto/request/create-application.dto';
 import { UpdateApplicationDto } from '../dto/request/update-application.dto';
+import {
+  generateApplicationNumber,
+  isApplicationNumberUniqueConstraintError,
+} from '../../../utils/application-number.util';
 
 export class AdmissionRepository {
   static async findById(application_id: string, org_id?: string, parentUserId?: string) {
@@ -82,39 +86,43 @@ export class AdmissionRepository {
 
   static async create(dto: CreateApplicationDto, createdBy?: string | null) {
     const year = new Date().getFullYear();
-    const lastApp = await prisma.admissions_applications.findFirst({
-      where: { application_number: { startsWith: `APP-${year}-` } },
-      orderBy: { application_number: 'desc' },
-      select: { application_number: true },
-    });
-    let appSeq = 1;
-    if (lastApp?.application_number) {
-      const match = lastApp.application_number.match(/(\d+)$/);
-      if (match) appSeq = parseInt(match[1], 10) + 1;
-    }
-    const application_number = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+    const MAX_RETRIES = 3;
+    let lastError: any;
 
-    return prisma.admissions_applications.create({
-      data: {
-        lead_id: dto.lead_id!,
-        org_id: dto.org_id!,
-        academic_year_id: dto.academic_year_id!,
-        application_number,
-        application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
-        status: dto.status || application_status.submitted,
-        created_by: createdBy || undefined,
-        nationality: dto.nationality || undefined,
-        previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
-        previous_school_address: dto.previous_school_address || undefined,
-        previous_school_board: dto.previous_school_board || undefined,
-        previous_grade: dto.previous_grade || undefined,
-        previous_school_year: dto.previous_school_year || undefined,
-      } as any,
-      include: {
-        leads: true,
-        academic_years: true,
-      },
-    });
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const application_number = generateApplicationNumber(year);
+      try {
+        return await prisma.admissions_applications.create({
+          data: {
+            lead_id: dto.lead_id!,
+            org_id: dto.org_id!,
+            academic_year_id: dto.academic_year_id!,
+            application_number,
+            application_date: dto.application_date ? new Date(dto.application_date) : new Date(),
+            status: dto.status || application_status.submitted,
+            created_by: createdBy || undefined,
+            nationality: dto.nationality || undefined,
+            previous_school_name: dto.previous_school_name || dto.previous_school || undefined,
+            previous_school_address: dto.previous_school_address || undefined,
+            previous_school_board: dto.previous_school_board || undefined,
+            previous_grade: dto.previous_grade || undefined,
+            previous_school_year: dto.previous_school_year || undefined,
+          } as any,
+          include: {
+            leads: true,
+            academic_years: true,
+          },
+        });
+      } catch (err: any) {
+        lastError = err;
+        if (isApplicationNumberUniqueConstraintError(err) && attempt < MAX_RETRIES) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw lastError;
   }
 
   static async update(application_id: string, dto: UpdateApplicationDto) {

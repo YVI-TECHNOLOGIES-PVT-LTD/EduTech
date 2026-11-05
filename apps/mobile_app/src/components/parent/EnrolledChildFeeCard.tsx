@@ -10,6 +10,7 @@ import {
   Linking,
   AppState,
   AppStateStatus,
+  Platform,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { ChildFeeOverview } from '../../types/admission.types';
@@ -386,7 +387,16 @@ export const EnrolledChildFeeCard: React.FC<EnrolledChildFeeCardProps> = ({
                 </View>
               </View>
               <View className="flex-row items-center mt-1">
-                <Text className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 mr-2">
+                <Text
+                  className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-2"
+                  style={{
+                    fontFamily: Platform.select({
+                      ios: 'Menlo',
+                      android: 'monospace',
+                      default: 'monospace',
+                    }),
+                  }}
+                >
                   {admissionNo}
                 </Text>
                 <Text className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
@@ -633,7 +643,16 @@ export const EnrolledChildFeeCard: React.FC<EnrolledChildFeeCardProps> = ({
                         <Text className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           {comp.component_name}
                         </Text>
-                        <Text className="text-[10px] font-mono text-slate-400 ml-1.5">
+                        <Text
+                          className="text-[10px] text-slate-400 ml-1.5"
+                          style={{
+                            fontFamily: Platform.select({
+                              ios: 'Menlo',
+                              android: 'monospace',
+                              default: 'monospace',
+                            }),
+                          }}
+                        >
                           ({comp.component_code})
                         </Text>
                       </View>
@@ -818,7 +837,16 @@ export const EnrolledChildFeeCard: React.FC<EnrolledChildFeeCardProps> = ({
                         </Text>
                       </TouchableOpacity>
                       <View className="items-end">
-                        <Text className="text-[10px] font-mono text-slate-400">
+                        <Text
+                          className="text-[10px] text-slate-400"
+                          style={{
+                            fontFamily: Platform.select({
+                              ios: 'Menlo',
+                              android: 'monospace',
+                              default: 'monospace',
+                            }),
+                          }}
+                        >
                           {tx.transaction_reference || 'CONFIRMED'}
                         </Text>
                         <View className="flex-row items-center mt-0.5">
@@ -972,7 +1000,16 @@ export const EnrolledChildFeeCard: React.FC<EnrolledChildFeeCardProps> = ({
                       <Text className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
                         Receipt Number
                       </Text>
-                      <Text className="text-xs font-mono font-black text-emerald-900 dark:text-emerald-200 mt-0.5">
+                      <Text
+                        className="text-xs font-black text-emerald-900 dark:text-emerald-200 mt-0.5"
+                        style={{
+                          fontFamily: Platform.select({
+                            ios: 'Menlo',
+                            android: 'monospace',
+                            default: 'monospace',
+                          }),
+                        }}
+                      >
                         {receiptNumber}
                       </Text>
                       <Text className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">
@@ -989,13 +1026,31 @@ export const EnrolledChildFeeCard: React.FC<EnrolledChildFeeCardProps> = ({
                       </View>
                       <View className="flex-row justify-between">
                         <Text className="text-xs text-slate-400">Admission No:</Text>
-                        <Text className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+                        <Text
+                          className="text-xs font-bold text-slate-800 dark:text-slate-200"
+                          style={{
+                            fontFamily: Platform.select({
+                              ios: 'Menlo',
+                              android: 'monospace',
+                              default: 'monospace',
+                            }),
+                          }}
+                        >
                           {admissionCode}
                         </Text>
                       </View>
                       <View className="flex-row justify-between">
                         <Text className="text-xs text-slate-400">Transaction Ref:</Text>
-                        <Text className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+                        <Text
+                          className="text-xs font-bold text-slate-800 dark:text-slate-200"
+                          style={{
+                            fontFamily: Platform.select({
+                              ios: 'Menlo',
+                              android: 'monospace',
+                              default: 'monospace',
+                            }),
+                          }}
+                        >
                           {transactionRef}
                         </Text>
                       </View>
