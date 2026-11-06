@@ -1,16 +1,5 @@
 import React from 'react';
-import {
-  GraduationCap,
-  ShieldCheck,
-  Sparkles,
-  Heart,
-  Users,
-  Info,
-  CheckCircle2,
-  Calendar,
-  School,
-  BookOpen,
-} from 'lucide-react';
+import { GraduationCap, ShieldCheck, Sparkles, CheckCircle2, School } from 'lucide-react';
 import { EnrolledChild, ReactionType, FeedPost } from '../types';
 
 interface SocialFeedRightSidebarProps {
@@ -19,7 +8,7 @@ interface SocialFeedRightSidebarProps {
   childrenList: EnrolledChild[];
   selectedChildId: string | null;
   onSelectChild: (childId: string | null) => void;
-  reactionCatalog: ReactionType[];
+  reactionCatalog?: ReactionType[];
   posts: FeedPost[];
 }
 
@@ -175,45 +164,6 @@ export const SocialFeedRightSidebar: React.FC<SocialFeedRightSidebarProps> = ({
             <span className="text-[10px] text-slate-500 dark:text-slate-400">Comments</span>
           </div>
         </div>
-      </div>
-
-      {/* ─── 4. REACTION TYPES KEY ──────────────────────────────── */}
-      {reactionCatalog.length > 0 && (
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-xs">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-            <Heart className="w-3.5 h-3.5 text-rose-500" />
-            Interactive Reactions
-          </h4>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-            Express support on school updates with verified reaction types:
-          </p>
-
-          <div className="flex flex-wrap gap-1.5">
-            {reactionCatalog.map((r) => (
-              <span
-                key={r.reactionTypeId || r.reaction_type_id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200/60 dark:border-white/5 text-slate-700 dark:text-slate-200"
-              >
-                <span>{r.emoji}</span>
-                <span className="font-medium text-[11px]">
-                  {r.reactionLabel || r.reaction_label}
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ─── 5. COMMUNITY GUIDELINES ─────────────────────────────── */}
-      <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs text-indigo-900 dark:text-indigo-200 space-y-1.5">
-        <div className="flex items-center gap-2 font-semibold text-indigo-700 dark:text-indigo-300">
-          <Info className="w-4 h-4 shrink-0" />
-          <span>Community Guidelines</span>
-        </div>
-        <p className="text-[11px] leading-relaxed text-indigo-800/80 dark:text-indigo-300/80">
-          We encourage active participation, constructive feedback, and mutual respect. Please keep
-          all comments relevant to classroom education and student growth.
-        </p>
       </div>
     </aside>
   );
