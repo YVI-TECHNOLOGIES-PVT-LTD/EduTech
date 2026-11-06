@@ -7,6 +7,30 @@ export function toSafeUuid(val?: string | null): string | null {
   return UUID_REGEX.test(val.trim()) ? val.trim() : null;
 }
 
+export interface DocumentSummaryItem {
+  document_id: string;
+  document_type_id: string;
+  document_name: string;
+  original_file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+  verify_status: string;
+  verification_remarks?: string | null;
+  uploaded_at: Date;
+  verified_at?: Date | null;
+  is_mandatory: boolean;
+  storage_path?: string | null;
+}
+
+export interface DocumentStatsSummary {
+  total_required: number;
+  submitted: number;
+  pending: number;
+  verified: number;
+  rejected: number;
+  completion_status: 'Complete' | 'Action Needed' | 'In Review' | 'Submitted' | 'Not Started';
+}
+
 export interface ParentChildPlacementSummary {
   student_id: string;
   admission_no: string;
@@ -24,6 +48,10 @@ export interface ParentChildPlacementSummary {
   roll_number: string | null;
   enrollment_id: string | null;
   enrollment_status: string | null;
+  application_id?: string | null;
+  documents?: DocumentSummaryItem[];
+  document_stats?: DocumentStatsSummary;
+  photo_url?: string | null;
   // Backward compatibility object for existing ParentDashboard.tsx
   student: {
     id: string;
@@ -61,6 +89,11 @@ export interface ParentAdmissionApplicationSummary {
   parent_email: string;
   created_at: Date;
   updated_at: Date;
+  admission_no?: string | null;
+  section_name?: string | null;
+  documents?: DocumentSummaryItem[];
+  document_stats?: DocumentStatsSummary;
+  photo_url?: string | null;
 }
 
 export interface ParentOverviewResponse {
@@ -94,6 +127,58 @@ export function selectCurrentEnrollment(enrollments: any[], orgId: string): any 
 
   // Fallback to the latest enrollment by date
   return tenantEnrollments[0];
+}
+
+function computeDocumentSummary(
+  docs: any[] = [],
+  allDocTypes: any[] = [],
+): { documents: DocumentSummaryItem[]; document_stats: DocumentStatsSummary } {
+  const mappedDocs: DocumentSummaryItem[] = docs.map((d: any) => ({
+    document_id: d.document_id,
+    document_type_id: d.document_type_id,
+    document_name: d.document_types?.document_name || d.original_file_name || 'Document',
+    original_file_name: d.original_file_name || null,
+    mime_type: d.mime_type || null,
+    file_size: d.file_size ? Number(d.file_size) : null,
+    verify_status: d.verify_status || 'pending',
+    verification_remarks: d.verification_remarks || null,
+    uploaded_at: d.uploaded_at,
+    verified_at: d.verified_at || null,
+    is_mandatory: Boolean(d.document_types?.is_mandatory),
+    storage_path: d.storage_path || null,
+  }));
+
+  const mandatoryDocTypes = allDocTypes.filter((dt) => dt.is_mandatory);
+  const totalRequired = mandatoryDocTypes.length || Math.max(mappedDocs.length, 1);
+  const submitted = mappedDocs.length;
+  const verified = mappedDocs.filter((d) => d.verify_status === 'verified').length;
+  const pending = mappedDocs.filter((d) => d.verify_status === 'pending').length;
+  const rejected = mappedDocs.filter(
+    (d) => d.verify_status === 'rejected' || d.verify_status === 'resubmission_requested',
+  ).length;
+
+  let completionStatus: DocumentStatsSummary['completion_status'] = 'Not Started';
+  if (rejected > 0) {
+    completionStatus = 'Action Needed';
+  } else if (verified >= totalRequired && totalRequired > 0) {
+    completionStatus = 'Complete';
+  } else if (pending > 0) {
+    completionStatus = 'In Review';
+  } else if (submitted > 0) {
+    completionStatus = 'Submitted';
+  }
+
+  return {
+    documents: mappedDocs,
+    document_stats: {
+      total_required: totalRequired,
+      submitted,
+      pending,
+      verified,
+      rejected,
+      completion_status: completionStatus,
+    },
+  };
 }
 
 export class ParentOverviewService {
@@ -169,6 +254,10 @@ export class ParentOverviewService {
     let children: ParentChildPlacementSummary[] = [];
     const studentRecords: any[] = [];
 
+    const orgDocTypes = await prisma.document_types.findMany({
+      where: { org_id: safeOrgId },
+    });
+
     // 2. Fetch authoritative student records and active enrollments
     if (targetStudentIds.length > 0) {
       const records = await prisma.students.findMany({
@@ -189,6 +278,16 @@ export class ParentOverviewService {
               sections: true,
             },
             orderBy: [{ enrollment_date: 'desc' }, { created_at: 'desc' }],
+          },
+          admissions_applications: {
+            include: {
+              admission_documents: {
+                include: {
+                  document_types: true,
+                },
+                orderBy: { uploaded_at: 'desc' },
+              },
+            },
           },
         },
         orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
@@ -211,6 +310,11 @@ export class ParentOverviewService {
         const rollNumber = activeEnrollment?.roll_number || null;
         const enrollmentStatus = activeEnrollment?.status || null;
 
+        const docSummary = computeDocumentSummary(
+          (student as any).admissions_applications?.admission_documents || [],
+          orgDocTypes,
+        );
+
         return {
           student_id: student.student_id,
           admission_no: student.admission_no,
@@ -228,6 +332,10 @@ export class ParentOverviewService {
           roll_number: rollNumber,
           enrollment_id: activeEnrollment?.enrollment_id || null,
           enrollment_status: enrollmentStatus,
+          application_id: student.application_id || null,
+          documents: docSummary.documents,
+          document_stats: docSummary.document_stats,
+          photo_url: null,
           student: {
             id: student.student_id,
             student_id: student.student_id,
@@ -304,6 +412,12 @@ export class ParentOverviewService {
             },
           },
           academic_years: true,
+          admission_documents: {
+            include: {
+              document_types: true,
+            },
+            orderBy: { uploaded_at: 'desc' },
+          },
         },
         orderBy: { created_at: 'desc' },
       });
@@ -321,6 +435,8 @@ export class ParentOverviewService {
         lead?.academic_year_grades?.academic_years?.academic_year_name ||
         '';
 
+      const docSummary = computeDocumentSummary(app.admission_documents || [], orgDocTypes);
+
       return {
         id: app.application_id,
         application_id: app.application_id,
@@ -332,6 +448,11 @@ export class ParentOverviewService {
         parent_email: lead?.contact_email || normalizedEmail || '',
         created_at: app.created_at,
         updated_at: app.updated_at,
+        admission_no: null,
+        section_name: null,
+        documents: docSummary.documents,
+        document_stats: docSummary.document_stats,
+        photo_url: null,
       };
     });
 

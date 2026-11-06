@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { apiClient } from '../../../lib/api-client';
+import { Modal } from '../../../components/ui/modal';
 import {
   Wallet,
   Search,
@@ -760,25 +761,24 @@ export const StudentFeeAssignment: React.FC = () => {
       )}
 
       {/* ── CONFIRMATION MODAL ─────────────────────────────────────────── */}
-      {showConfirmModal && activeStructure && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Confirm Student Fee Assignment
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {assignmentMode === 'single'
-                    ? 'Assigning 1 Student'
-                    : `Bulk Assigning ${selectedBulkStudentIds.length} Students`}
-                </p>
-              </div>
-            </div>
-
+      <Modal
+        isOpen={Boolean(showConfirmModal && activeStructure)}
+        onClose={() => setShowConfirmModal(false)}
+        size="md"
+        title="Confirm Student Fee Assignment"
+        description={
+          assignmentMode === 'single'
+            ? 'Assigning 1 Student'
+            : `Bulk Assigning ${selectedBulkStudentIds.length} Students`
+        }
+        icon={
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        }
+      >
+        {activeStructure && (
+          <div className="space-y-4">
             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500">Structure:</span>
@@ -809,11 +809,11 @@ export const StudentFeeAssignment: React.FC = () => {
                 placeholder="e.g. Regular Academic Year Admission Batch A"
                 value={assignmentNotes}
                 onChange={(e) => setAssignmentNotes(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-white/5">
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
@@ -832,8 +832,8 @@ export const StudentFeeAssignment: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── SUCCESS RECEIPT RESULT ────────────────────────────────────── */}
       {lastSuccessResult && (

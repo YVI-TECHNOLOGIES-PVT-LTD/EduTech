@@ -1,13 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { useApplicationList } from '../../hooks/useApplication';
+import ParentDashboardService from '@/modules/dashboard/services/ParentDashboardService';
 import {
   useGetDocumentTypesQuery,
   useGetApplicationDocumentsQuery,
   useUploadAdmissionDocumentMutation,
   useDeleteAdmissionDocumentMutation,
   useLazyGetDocumentSignedUrlQuery,
-  type ApplicationRecord,
 } from '@/shared/api/admission.api';
 import {
   getApplicationDocumentStatus,
@@ -24,7 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DocumentVerificationCard } from '../../components/DocumentVerificationCard';
 import { DocumentUploadCard } from '../../components/DocumentUploadCard';
 import {
   AlertCircle,
@@ -39,15 +39,61 @@ import {
   RotateCcw,
   XCircle,
   FolderCheck,
+  Download,
+  Building,
+  User,
 } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
 
+export interface UnifiedStudentCard {
+  id: string;
+  studentId: string | null;
+  applicationId: string;
+  studentName: string;
+  admissionNo: string;
+  gradeName: string;
+  sectionName: string | null;
+  photoUrl: string | null;
+  isEnrolled: boolean;
+  totalRequired: number;
+  submitted: number;
+  pending: number;
+  rejected: number;
+  verified: number;
+  completionStatus: CanonicalOverallDocumentStatus;
+  documents: any[];
+}
+
 export function ParentDocumentCenterPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const params = useParams<{ applicationId?: string; id?: string }>();
   const activeParamAppId = params.applicationId || params.id;
 
-  // 1. Fetch all applications belonging strictly to the authenticated parent
+  // 1. Fetch parent overview containing registered students and in-progress applications
+  const [parentOverview, setParentOverview] = useState<{
+    children: any[];
+    admissions: any[];
+  } | null>(null);
+  const [isOverviewLoading, setIsOverviewLoading] = useState(true);
+
+  const fetchOverview = async () => {
+    try {
+      setIsOverviewLoading(true);
+      const data = await ParentDashboardService.getOverview();
+      setParentOverview(data);
+    } catch (e) {
+      console.warn('Failed to load parent overview, relying on application list fallback', e);
+    } finally {
+      setIsOverviewLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOverview();
+  }, [user?.id, user?.school_id]);
+
+  // 2. Fetch all applications belonging strictly to the authenticated parent as fallback/supplement
   const {
     applications = [],
     isLoading: isAppsLoading,
@@ -55,27 +101,158 @@ export function ParentDocumentCenterPage() {
     refetch: refetchApps,
   } = useApplicationList({ limit: 50 }, { mine: true });
 
-  // Resolve selected application if on detail view
-  const selectedApp = useMemo(() => {
-    if (!activeParamAppId || applications.length === 0) return null;
+  // 3. Document types catalogue
+  const { data: docTypes = [], isLoading: isDocTypesLoading } = useGetDocumentTypesQuery();
+
+  // 4. Construct unified student list (One Card Per Student)
+  const studentCards = useMemo<UnifiedStudentCard[]>(() => {
+    const list: UnifiedStudentCard[] = [];
+    const seenAppIds = new Set<string>();
+    const seenStudentIds = new Set<string>();
+
+    // A. Enrolled children through authoritative parent relationship
+    if (parentOverview?.children && Array.isArray(parentOverview.children)) {
+      parentOverview.children.forEach((c: any) => {
+        const studentId = c.student_id;
+        const appId = c.application_id || studentId;
+        if (studentId && seenStudentIds.has(studentId)) return;
+        if (studentId) seenStudentIds.add(studentId);
+        if (appId) seenAppIds.add(appId);
+
+        const stats = c.document_stats || {};
+        let compStatus: CanonicalOverallDocumentStatus = 'Not Started';
+        if (stats.rejected > 0) compStatus = 'Action Needed';
+        else if (stats.completion_status === 'Complete') compStatus = 'Accepted';
+        else if (stats.pending > 0) compStatus = 'In Review';
+        else if (stats.submitted > 0) compStatus = 'Action Needed';
+
+        list.push({
+          id: studentId || appId,
+          studentId: studentId || null,
+          applicationId: appId,
+          studentName:
+            c.full_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Student',
+          admissionNo: c.admission_no || 'ADM-PENDING',
+          gradeName: c.grade_name || 'Enrolled Student',
+          sectionName: c.section_name || null,
+          photoUrl: c.photo_url || null,
+          isEnrolled: true,
+          totalRequired: stats.total_required || 0,
+          submitted: stats.submitted || c.documents?.length || 0,
+          pending: stats.pending || 0,
+          rejected: stats.rejected || 0,
+          verified: stats.verified || 0,
+          completionStatus: compStatus,
+          documents: c.documents || [],
+        });
+      });
+    }
+
+    // B. In-progress admission applications belonging to the parent
+    if (parentOverview?.admissions && Array.isArray(parentOverview.admissions)) {
+      parentOverview.admissions.forEach((a: any) => {
+        const appId = a.application_id || a.id;
+        if (!appId || seenAppIds.has(appId)) return;
+        seenAppIds.add(appId);
+
+        const stats = a.document_stats || {};
+        let compStatus: CanonicalOverallDocumentStatus = 'Not Started';
+        if (stats.rejected > 0) compStatus = 'Action Needed';
+        else if (stats.completion_status === 'Complete') compStatus = 'Accepted';
+        else if (stats.pending > 0) compStatus = 'In Review';
+        else if (stats.submitted > 0) compStatus = 'Action Needed';
+
+        list.push({
+          id: appId,
+          studentId: null,
+          applicationId: appId,
+          studentName: a.student_name || 'Applicant',
+          admissionNo: a.application_number || 'APP-2026',
+          gradeName: a.grade_applied_for || 'Grade Applied',
+          sectionName: null,
+          photoUrl: a.photo_url || null,
+          isEnrolled: false,
+          totalRequired: stats.total_required || 0,
+          submitted: stats.submitted || a.documents?.length || 0,
+          pending: stats.pending || 0,
+          rejected: stats.rejected || 0,
+          verified: stats.verified || 0,
+          completionStatus: compStatus,
+          documents: a.documents || [],
+        });
+      });
+    }
+
+    // C. Fallback: Applications from useApplicationList not already registered
+    if (applications && Array.isArray(applications)) {
+      applications.forEach((app: any) => {
+        const appId = app.application_id || app.id;
+        if (!appId || seenAppIds.has(appId)) return;
+        seenAppIds.add(appId);
+
+        const lead = app.lead || app.leads;
+        const sName =
+          app.student_name ||
+          (lead
+            ? `${lead.student_first_name || ''} ${lead.student_last_name || ''}`.trim()
+            : 'Applicant');
+        const gName =
+          app.grade_applied_for ||
+          app.grade_name ||
+          lead?.grade_name ||
+          lead?.academic_year_grades?.grades?.grade_name ||
+          'Grade Applied';
+
+        const stats = getApplicationDocumentStatus({
+          documentTypes: docTypes,
+          applicationDocuments: app.documents || app.admission_documents || [],
+          applicationId: appId,
+        });
+
+        list.push({
+          id: appId,
+          studentId: null,
+          applicationId: appId,
+          studentName: sName,
+          admissionNo: app.application_number || `APP-${appId.slice(0, 8).toUpperCase()}`,
+          gradeName: gName,
+          sectionName: null,
+          photoUrl: app.photo_url || null,
+          isEnrolled: false,
+          totalRequired: stats.requiredCount,
+          submitted: stats.uploadedCount,
+          pending: stats.pendingCount,
+          rejected: stats.rejectedCount,
+          verified: stats.verifiedCount,
+          completionStatus: stats.overallStatus,
+          documents: app.documents || app.admission_documents || [],
+        });
+      });
+    }
+
+    return list;
+  }, [parentOverview, applications, docTypes]);
+
+  // Selected student resolution (support both URL parameter and inline selection)
+  const [selectedStudentStateId, setSelectedStudentStateId] = useState<string | null>(null);
+  const activeSelectedId = activeParamAppId || selectedStudentStateId;
+
+  const selectedStudent = useMemo(() => {
+    if (!activeSelectedId || studentCards.length === 0) return null;
     return (
-      applications.find(
-        (app) =>
-          app.application_id === activeParamAppId ||
-          app.id === activeParamAppId ||
-          app.application_number === activeParamAppId,
+      studentCards.find(
+        (s) =>
+          s.id === activeSelectedId ||
+          s.applicationId === activeSelectedId ||
+          s.studentId === activeSelectedId ||
+          s.admissionNo === activeSelectedId,
       ) || null
     );
-  }, [applications, activeParamAppId]);
+  }, [studentCards, activeSelectedId]);
 
-  const targetAppId = selectedApp?.application_id || selectedApp?.id || activeParamAppId || '';
+  const targetAppId = selectedStudent?.applicationId || activeParamAppId || '';
 
-  // 2. Fetch document types catalogue
-  const { data: docTypes = [], isLoading: isDocTypesLoading } = useGetDocumentTypesQuery(
-    targetAppId ? { application_id: targetAppId } : undefined,
-  );
-
-  // 3. Fetch uploaded documents for the active detail application
+  // Fetch uploaded documents for the active detail application
   const {
     data: uploadedDocs = [],
     isLoading: isDocsLoading,
@@ -86,6 +263,10 @@ export function ParentDocumentCenterPage() {
 
   const [uploadDoc] = useUploadAdmissionDocumentMutation();
   const [deleteDoc] = useDeleteAdmissionDocumentMutation();
+  const [getSignedUrl] = useLazyGetDocumentSignedUrlQuery();
+
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleDeleteDoc = async (documentId: string) => {
     if (!documentId) return;
@@ -93,15 +274,12 @@ export function ParentDocumentCenterPage() {
       await deleteDoc({ documentId, applicationId: targetAppId }).unwrap();
       refetchDocs();
       refetchApps();
+      fetchOverview();
     } catch (err: any) {
       console.error('Failed to remove document:', err);
       setActionError(err?.data?.message || err?.message || 'Failed to remove document.');
     }
   };
-  const [getSignedUrl] = useLazyGetDocumentSignedUrlQuery();
-
-  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleFileUpload = async (
     docTypeId: string,
@@ -134,10 +312,11 @@ export function ParentDocumentCenterPage() {
       await uploadDoc({ applicationId: targetAppId, formData }).unwrap();
       refetchDocs();
       refetchApps();
+      fetchOverview();
     } catch (err: any) {
-      console.error('Failed to resubmit document:', err);
+      console.error('Failed to upload document:', err);
       setActionError(
-        err?.data?.message || err?.message || 'Failed to resubmit document. Please try again.',
+        err?.data?.message || err?.message || 'Failed to upload document. Please try again.',
       );
     } finally {
       setUploadingDocId(null);
@@ -152,7 +331,25 @@ export function ParentDocumentCenterPage() {
         window.open(res.signed_url, '_blank', 'noopener,noreferrer');
       }
     } catch (err) {
-      console.error('Failed to get signed download URL:', err);
+      console.error('Failed to get signed URL:', err);
+    }
+  };
+
+  const handleDownloadDoc = async (documentId: string, docName?: string) => {
+    if (!documentId) return;
+    try {
+      const res = await getSignedUrl(documentId).unwrap();
+      if (res?.signed_url) {
+        const link = document.createElement('a');
+        link.href = res.signed_url;
+        link.download = `${docName || 'document'}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Failed to download document:', err);
     }
   };
 
@@ -207,13 +404,13 @@ export function ParentDocumentCenterPage() {
   };
 
   // Loading State
-  if (isAppsLoading) {
+  if (isAppsLoading && isOverviewLoading) {
     return (
       <PageContainer variant="default">
         <div className="p-12 text-center space-y-3">
           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-bold text-muted-foreground">
-            Loading Document Status Center...
+            Loading Student Document Records...
           </p>
         </div>
       </PageContainer>
@@ -221,7 +418,7 @@ export function ParentDocumentCenterPage() {
   }
 
   // Error State
-  if (appsError) {
+  if (appsError && !parentOverview) {
     return (
       <PageContainer variant="default">
         <div className="p-12 text-center space-y-4 max-w-md mx-auto">
@@ -229,13 +426,16 @@ export function ParentDocumentCenterPage() {
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-foreground">Failed to load applications</h3>
+            <h3 className="text-sm font-bold text-foreground">Failed to load student documents</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Unable to retrieve your admission applications. Please try again.
+              Unable to retrieve student document profiles. Please try again.
             </p>
           </div>
           <Button
-            onClick={() => refetchApps()}
+            onClick={() => {
+              refetchApps();
+              fetchOverview();
+            }}
             variant="outline"
             size="sm"
             className="font-bold text-xs"
@@ -248,32 +448,32 @@ export function ParentDocumentCenterPage() {
     );
   }
 
-  // Zero Applications State
-  if (applications.length === 0) {
+  // Zero Registered Students State
+  if (studentCards.length === 0) {
     return (
       <PageContainer variant="default">
         <PageHeader
-          title="Document Status Center"
-          description="View verification clearance, audit remarks, and document approval status for your children."
+          title="Student Document Center"
+          description="View verification clearance, audit remarks, and required certificates for your registered children."
           badge={
             <Badge
               variant="outline"
               className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
             >
-              Admission Self-Service
+              Parent Self-Service
             </Badge>
           }
         />
         <EmptyState
-          title="No Admission Applications Found"
-          description="You need a registered admission application to view document verification status."
+          title="No Registered Students Found"
+          description="No students or admission applications are currently registered under your parent account."
           action={
             <Button
               onClick={() => navigate('/app/admissions/wizard')}
               className="font-bold text-xs px-6 shadow-md"
             >
               <Plus className="w-4 h-4 mr-1.5" />
-              Start New Application
+              Start New Admission Application
             </Button>
           }
         />
@@ -282,67 +482,24 @@ export function ParentDocumentCenterPage() {
   }
 
   // =========================================================================
-  // VIEW MODE 1: DETAIL VIEW (/app/admissions/documents/:applicationId)
+  // VIEW MODE 1: DETAIL VIEW (When a student card is selected)
   // =========================================================================
-  if (activeParamAppId) {
-    if (!selectedApp) {
-      return (
-        <PageContainer variant="default">
-          <div className="p-8 text-center space-y-4 max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Application Not Found</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                The requested application ID is invalid or does not belong to your account.
-              </p>
-            </div>
-            <Button
-              onClick={() => navigate('/app/admissions/documents')}
-              variant="outline"
-              size="sm"
-              className="font-bold text-xs"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-              Back to Document Center
-            </Button>
-          </div>
-        </PageContainer>
-      );
-    }
-
-    const studentName =
-      selectedApp.student_name ||
-      (selectedApp.leads
-        ? `${selectedApp.leads.student_first_name || ''} ${selectedApp.leads.student_last_name || ''}`.trim()
-        : selectedApp.lead
-          ? `${selectedApp.lead.student_first_name || ''} ${selectedApp.lead.student_last_name || ''}`.trim()
-          : 'Applicant');
-
-    const appNumber =
-      selectedApp.application_number ||
-      selectedApp.applicationNumber ||
-      `APP-${targetAppId.slice(0, 8).toUpperCase()}`;
-
-    const gradeApplied =
-      selectedApp.grade_applied_for ||
-      selectedApp.grade_name ||
-      (selectedApp.lead as any)?.grade_applied_for ||
-      selectedApp.leads?.academic_year_grades?.grades?.grade_name ||
-      'Grade Applied';
-
+  if (selectedStudent) {
     const effectiveAppDocs =
-      uploadedDocs && uploadedDocs.length > 0
-        ? uploadedDocs
-        : selectedApp?.documents || (selectedApp as any)?.admission_documents || [];
+      uploadedDocs && uploadedDocs.length > 0 ? uploadedDocs : selectedStudent.documents || [];
 
-    // Canonical Status Calculation for Detail View
     const detailStats = getApplicationDocumentStatus({
       documentTypes: docTypes,
       applicationDocuments: effectiveAppDocs,
       applicationId: targetAppId,
     });
+
+    const handleBackToList = () => {
+      setSelectedStudentStateId(null);
+      if (activeParamAppId) {
+        navigate('/app/admissions/documents');
+      }
+    };
 
     return (
       <PageContainer variant="default">
@@ -351,45 +508,55 @@ export function ParentDocumentCenterPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/app/admissions/documents')}
-            className="text-xs font-bold text-muted-foreground hover:text-foreground -ml-2 h-8 px-2"
+            onClick={handleBackToList}
+            className="text-xs font-bold text-muted-foreground hover:text-foreground -ml-2 h-8 px-2 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-            Back to Document Center
+            Back to All Students
           </Button>
         </div>
 
-        {/* Application Header Card */}
+        {/* Student Identity Card */}
         <Card className="p-6 rounded-2xl border-border/80 bg-card shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <Avatar size="lg" className="border border-border/80 shrink-0">
                 <AvatarImage
-                  src={
-                    (selectedApp as any).photo_url ||
-                    (selectedApp as any).student_photo_url ||
-                    (selectedApp.lead as any)?.photo_url
-                  }
-                  alt={studentName}
+                  src={selectedStudent.photoUrl || undefined}
+                  alt={selectedStudent.studentName}
                 />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-base">
-                  {getInitials(studentName, 'A')}
+                  {getInitials(selectedStudent.studentName, 'S')}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
-                  <h2 className="text-lg font-extrabold text-foreground">{studentName}</h2>
+                  <h2 className="text-lg font-extrabold text-foreground">
+                    {selectedStudent.studentName}
+                  </h2>
                   <Badge
                     variant="outline"
                     className="text-[10px] font-bold font-mono tracking-wider text-indigo-600 bg-indigo-50/50 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800"
                   >
-                    {appNumber}
+                    {selectedStudent.isEnrolled
+                      ? `ADM: ${selectedStudent.admissionNo}`
+                      : selectedStudent.admissionNo}
                   </Badge>
+                  {selectedStudent.isEnrolled && (
+                    <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200">
+                      Enrolled Student
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-1">
                   <span className="flex items-center space-x-1 font-semibold">
                     <GraduationCap className="w-3.5 h-3.5 text-muted-foreground/70" />
-                    <span>Grade: {gradeApplied}</span>
+                    <span>
+                      {selectedStudent.gradeName}
+                      {selectedStudent.sectionName
+                        ? ` • Section ${selectedStudent.sectionName}`
+                        : ''}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -414,11 +581,11 @@ export function ParentDocumentCenterPage() {
           </div>
         )}
 
-        {/* Verification Status & Required Certificates Grid */}
+        {/* Verification Status & Required Certificates List */}
         <Card className="p-6 rounded-2xl border-border/80 bg-card shadow-sm space-y-6">
           <SectionHeader
-            title={`Required Verification Certificates (${detailStats.uploadedCount} of ${detailStats.requiredCount} Uploaded)`}
-            description="View verification clearance, audit remarks, and replacement requests from the school admission desk."
+            title={`${selectedStudent.studentName}'s Documents (${detailStats.uploadedCount} of ${detailStats.requiredCount} Uploaded)`}
+            description="Manage required certificates, inspect school audit remarks, and upload document replacements."
             action={
               <div className="flex items-center gap-2">
                 <button
@@ -426,6 +593,7 @@ export function ParentDocumentCenterPage() {
                   onClick={() => {
                     refetchDocs();
                     refetchApps();
+                    fetchOverview();
                   }}
                   className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
                 >
@@ -433,7 +601,7 @@ export function ParentDocumentCenterPage() {
                   <span>Refresh</span>
                 </button>
                 <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                  STATUS CENTER
+                  VERIFICATION DESK
                 </span>
               </div>
             }
@@ -497,20 +665,20 @@ export function ParentDocumentCenterPage() {
   }
 
   // =========================================================================
-  // VIEW MODE 2: OVERVIEW CARDS LIST (/app/admissions/documents)
+  // VIEW MODE 2: STUDENT CARDS OVERVIEW (One card per registered student)
   // =========================================================================
   return (
     <PageContainer variant="default">
-      {/* Canonical Page Header */}
+      {/* Page Header */}
       <PageHeader
-        title="Document Status Center"
-        description="Track verification progress, review school audit feedback, and manage required certificates for your children."
+        title="Student Document Center"
+        description="Select a registered student to view their document completion status, submit pending certificates, and review school verification feedback."
         badge={
           <Badge
             variant="outline"
             className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
           >
-            Admission Self-Service
+            Parent Self-Service
           </Badge>
         }
         actions={
@@ -519,20 +687,23 @@ export function ParentDocumentCenterPage() {
             className="font-bold text-xs shadow-md"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Start New Application
+            New Application
           </Button>
         }
       />
 
-      {/* Applications Cards Section */}
+      {/* Student Cards Grid */}
       <div className="space-y-6">
         <SectionHeader
-          title={`Registered Applications (${applications.length})`}
-          description="Select an application to view verification clearance and document status."
+          title={`Registered Students (${studentCards.length})`}
+          description="Click on any student to inspect, upload, and manage that student's documents."
           action={
             <button
               type="button"
-              onClick={() => refetchApps()}
+              onClick={() => {
+                refetchApps();
+                fetchOverview();
+              }}
               className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" />
@@ -542,119 +713,84 @@ export function ParentDocumentCenterPage() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {applications.map((app: ApplicationRecord) => {
-            const appId = app.application_id || app.id;
-            const studentName =
-              app.student_name ||
-              (app.leads
-                ? `${app.leads.student_first_name || ''} ${app.leads.student_last_name || ''}`.trim()
-                : app.lead
-                  ? `${app.lead.student_first_name || ''} ${app.lead.student_last_name || ''}`.trim()
-                  : 'Applicant');
-
-            const appNumber =
-              app.application_number ||
-              app.applicationNumber ||
-              (appId ? `APP-${appId.slice(0, 8).toUpperCase()}` : 'APP-2026');
-
-            const gradeApplied =
-              app.grade_applied_for ||
-              app.grade_name ||
-              (app.lead as any)?.grade_applied_for ||
-              app.leads?.academic_year_grades?.grades?.grade_name ||
-              'Grade Applied';
-
-            const submittedDate =
-              app.application_date || app.submitted_at || app.created_at
-                ? new Date(
-                    app.application_date || app.submitted_at || app.created_at,
-                  ).toLocaleDateString()
-                : 'Recently';
-
-            const appDocs =
-              app.documents && app.documents.length > 0
-                ? app.documents
-                : (app as any).admission_documents || [];
-
-            // Canonical Status Calculation for Application Card
-            const stats = getApplicationDocumentStatus({
-              documentTypes: docTypes,
-              applicationDocuments: appDocs,
-              applicationId: appId,
-            });
-
+          {studentCards.map((student) => {
             const progressPct =
-              stats.requiredCount > 0
-                ? Math.min(100, Math.round((stats.uploadedCount / stats.requiredCount) * 100))
+              student.totalRequired > 0
+                ? Math.min(100, Math.round((student.submitted / student.totalRequired) * 100))
                 : 0;
 
             return (
               <Card
-                key={appId}
-                className="p-6 rounded-2xl border-border/80 shadow-sm hover:shadow-md transition-shadow space-y-5 bg-card flex flex-col justify-between"
+                key={student.id}
+                onClick={() => setSelectedStudentStateId(student.id)}
+                className="p-6 rounded-2xl border-border/80 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800 transition-all space-y-5 bg-card flex flex-col justify-between cursor-pointer group"
               >
                 <div className="space-y-4">
-                  {/* Card Header */}
+                  {/* Card Header: Photo + Student Name + Admission No + Status */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                      <Avatar size="default" className="border border-border/80 shrink-0">
+                      <Avatar
+                        size="default"
+                        className="border border-border/80 shrink-0 group-hover:ring-2 group-hover:ring-indigo-500/30 transition-all"
+                      >
                         <AvatarImage
-                          src={
-                            (app as any).photo_url ||
-                            (app as any).student_photo_url ||
-                            (app.lead as any)?.photo_url
-                          }
-                          alt={studentName}
+                          src={student.photoUrl || undefined}
+                          alt={student.studentName}
                         />
                         <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                          {getInitials(studentName, 'A')}
+                          {getInitials(student.studentName, 'S')}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-extrabold text-foreground truncate">
-                          {studentName}
+                        <h3 className="text-sm font-extrabold text-foreground truncate group-hover:text-indigo-600 transition-colors">
+                          {student.studentName}
                         </h3>
                         <div className="flex items-center space-x-1.5 mt-0.5">
                           <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                            {appNumber}
+                            {student.isEnrolled
+                              ? `ADM: ${student.admissionNo}`
+                              : student.admissionNo}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="shrink-0">{renderStatusBadge(stats.overallStatus)}</div>
+                    <div className="shrink-0">{renderStatusBadge(student.completionStatus)}</div>
                   </div>
 
                   <div className="border-t border-border/60" />
 
-                  {/* Context Info */}
+                  {/* Grade & Section */}
                   <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
                     <span className="flex items-center space-x-1 font-semibold">
                       <GraduationCap className="w-3.5 h-3.5 text-muted-foreground/70" />
-                      <span>{gradeApplied}</span>
+                      <span>{student.gradeName}</span>
                     </span>
-                    <span className="flex items-center space-x-1 font-semibold text-[11px]">
-                      <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
-                      <span>{submittedDate}</span>
-                    </span>
+                    {student.sectionName && (
+                      <span className="inline-flex items-center text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+                        Sec {student.sectionName}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Document Progress Bar */}
+                  {/* Document Completion Progress Bar */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-muted-foreground text-[11px]">Documents</span>
+                      <span className="text-muted-foreground text-[11px]">
+                        Documents Completion
+                      </span>
                       <span className="text-foreground">
-                        {stats.uploadedCount} / {stats.requiredCount}
+                        {student.submitted} / {student.totalRequired}
                       </span>
                     </div>
                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${
-                          stats.overallStatus === 'Action Needed'
+                          student.completionStatus === 'Action Needed'
                             ? 'bg-purple-500'
-                            : stats.overallStatus === 'Rejected'
+                            : student.completionStatus === 'Rejected'
                               ? 'bg-rose-500'
-                              : stats.overallStatus === 'Accepted'
+                              : student.completionStatus === 'Accepted'
                                 ? 'bg-emerald-500'
                                 : 'bg-indigo-600'
                         }`}
@@ -663,38 +799,27 @@ export function ParentDocumentCenterPage() {
                     </div>
                   </div>
 
-                  {/* Verification Breakdown Pills */}
+                  {/* Breakdown Pills */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-muted-foreground font-medium">
-                    {stats.resubmissionCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-purple-700 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
-                        <RotateCcw className="w-3 h-3" />
-                        {stats.resubmissionCount} Action Needed
-                      </span>
-                    )}
-                    {stats.verifiedCount > 0 && (
+                    {student.verified > 0 && (
                       <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                         <CheckCircle2 className="w-3 h-3" />
-                        {stats.verifiedCount} Accepted
+                        {student.verified} Verified
                       </span>
                     )}
-                    {stats.pendingCount > 0 && (
+                    {student.pending > 0 && (
                       <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
                         <Clock className="w-3 h-3" />
-                        {stats.pendingCount} In Review
+                        {student.pending} Pending
                       </span>
                     )}
-                    {stats.rejectedCount > 0 && (
+                    {student.rejected > 0 && (
                       <span className="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400 font-semibold bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800">
                         <XCircle className="w-3 h-3" />
-                        {stats.rejectedCount} Rejected
+                        {student.rejected} Action Needed
                       </span>
                     )}
-                    {stats.notUploadedCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-900/40 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-800">
-                        {stats.notUploadedCount} Not Uploaded
-                      </span>
-                    )}
-                    {stats.uploadedCount === 0 && (
+                    {student.submitted === 0 && (
                       <span className="text-[11px] text-slate-400 italic">No uploads yet</span>
                     )}
                   </div>
@@ -704,11 +829,14 @@ export function ParentDocumentCenterPage() {
                 <div className="pt-3 border-t border-border/60">
                   <Button
                     size="sm"
-                    onClick={() => navigate(`/app/admissions/documents/${appId}`)}
-                    className="w-full font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStudentStateId(student.id);
+                    }}
+                    className="w-full font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors"
                   >
                     <FolderCheck className="w-3.5 h-3.5" />
-                    <span>View Documents</span>
+                    <span>View Student Documents</span>
                     <ArrowRight className="w-3.5 h-3.5 ml-0.5 opacity-80" />
                   </Button>
                 </div>

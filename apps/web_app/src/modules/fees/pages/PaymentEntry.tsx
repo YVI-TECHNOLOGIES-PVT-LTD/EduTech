@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../lib/api-client';
+import { Modal } from '../../../components/ui/modal';
 import {
   Coins,
   Search,
@@ -1616,22 +1617,16 @@ export const PaymentEntry: React.FC = () => {
       )}
 
       {/* ── CONFIRMATION MODAL ── */}
-      {showConfirmModal && selectedStudent && selectedObligation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
-              <h3 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                Confirm Payment Collection
-              </h3>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
+      <Modal
+        isOpen={Boolean(showConfirmModal && selectedStudent && selectedObligation)}
+        onClose={() => setShowConfirmModal(false)}
+        size="sm"
+        title="Confirm Payment Collection"
+        description="Verify transaction amounts and recorded payment instrument."
+        icon={<ShieldAlert className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+      >
+        {selectedStudent && selectedObligation && (
+          <div className="space-y-4">
             <div className="space-y-3 text-xs bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
               <div className="flex justify-between">
                 <span className="text-slate-500">Student:</span>
@@ -1673,41 +1668,37 @@ export const PaymentEntry: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-white/5">
               <button
+                type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleProcessConfirmedPayment}
-                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md"
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md"
               >
                 Confirm & Collect
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── GATEWAY SIMULATION MODAL (For Online flows when testing or keys missing) ── */}
-      {showGatewaySimulation && activeOnlineOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-black uppercase tracking-tight">Gateway Checkout</h3>
-              </div>
-              <button
-                onClick={() => setShowGatewaySimulation(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
+      <Modal
+        isOpen={Boolean(showGatewaySimulation && activeOnlineOrder)}
+        onClose={() => setShowGatewaySimulation(false)}
+        size="sm"
+        title="Gateway Checkout"
+        description="Institutional payment gateway verification simulator."
+        icon={<Smartphone className="w-5 h-5 text-indigo-600" />}
+      >
+        {activeOnlineOrder && (
+          <div className="space-y-4">
             <div className="space-y-3 text-xs bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[11px] font-bold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -1748,130 +1739,124 @@ export const PaymentEntry: React.FC = () => {
               />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-white/5">
               <button
+                type="button"
                 onClick={() => handleExecuteSimulation('FAILURE')}
-                className="flex-1 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="flex-1 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
               >
                 Decline / Cancel
               </button>
               <button
+                type="button"
                 onClick={() => handleExecuteSimulation('SUCCESS')}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md"
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md"
               >
                 Authorize & Verify
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── VIEW RECEIPT MODAL (From History) ── */}
-      {viewingReceiptModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-black uppercase tracking-tight">
-                  Official Fee Receipt
-                </h3>
+      <Modal
+        isOpen={Boolean(viewingReceiptModal)}
+        onClose={() => setViewingReceiptModal(null)}
+        size="md"
+        title="Official Fee Receipt"
+        description="Authorized institutional payment voucher."
+        icon={<Receipt className="w-5 h-5 text-indigo-600" />}
+      >
+        {viewingReceiptModal && (
+          <div className="space-y-4 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5 space-y-2">
+              <div className="flex justify-between font-mono font-bold text-sm">
+                <span>{viewingReceiptModal.receipt_no}</span>
+                <span className="text-emerald-600 uppercase font-black">
+                  {viewingReceiptModal.status}
+                </span>
               </div>
-              <button
-                onClick={() => setViewingReceiptModal(null)}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex justify-between text-slate-500">
+                <span>Student:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {viewingReceiptModal.student.student_name} (
+                  {viewingReceiptModal.student.admission_no})
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>Method:</span>
+                <span className="font-bold uppercase">
+                  {viewingReceiptModal.payment_method.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>Payment Date:</span>
+                <span>{new Date(viewingReceiptModal.payment_date).toLocaleString('en-IN')}</span>
+              </div>
+              {viewingReceiptModal.gateway_reference && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Reference:</span>
+                  <span className="font-mono">{viewingReceiptModal.gateway_reference}</span>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5 space-y-2">
-                <div className="flex justify-between font-mono font-bold text-sm">
-                  <span>{viewingReceiptModal.receipt_no}</span>
-                  <span className="text-emerald-600 uppercase font-black">
-                    {viewingReceiptModal.status}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <span>Student:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {viewingReceiptModal.student.student_name} (
-                    {viewingReceiptModal.student.admission_no})
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <span>Method:</span>
-                  <span className="font-bold uppercase">
-                    {viewingReceiptModal.payment_method.replace('_', ' ')}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <span>Payment Date:</span>
-                  <span>{new Date(viewingReceiptModal.payment_date).toLocaleString('en-IN')}</span>
-                </div>
-                {viewingReceiptModal.gateway_reference && (
-                  <div className="flex justify-between text-slate-500">
-                    <span>Reference:</span>
-                    <span className="font-mono">{viewingReceiptModal.gateway_reference}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Allocations breakdown */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                  Allocated Fee Obligations
-                </span>
-                <div className="divide-y divide-slate-100 dark:divide-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-3">
-                  {viewingReceiptModal.allocations.map((al) => (
-                    <div
-                      key={al.allocation_id}
-                      className="py-2 flex justify-between items-center text-xs"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block">
-                          {al.component_name}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          Due: {new Date(al.due_date).toLocaleDateString('en-IN')}
-                        </span>
-                      </div>
-                      <span className="font-mono font-black text-emerald-600">
-                        {formatMoney(al.allocated_amount)}
+            {/* Allocations breakdown */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                Allocated Fee Obligations
+              </span>
+              <div className="divide-y divide-slate-100 dark:divide-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-3">
+                {viewingReceiptModal.allocations.map((al) => (
+                  <div
+                    key={al.allocation_id}
+                    className="py-2 flex justify-between items-center text-xs"
+                  >
+                    <div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                        {al.component_name}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Due: {new Date(al.due_date).toLocaleDateString('en-IN')}
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 flex justify-between items-center">
-                <span className="text-xs uppercase font-black text-emerald-800 dark:text-emerald-300">
-                  Total Amount Paid
-                </span>
-                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                  {formatMoney(viewingReceiptModal.amount)}
-                </span>
+                    <span className="font-mono font-black text-emerald-600">
+                      {formatMoney(al.allocated_amount)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 flex justify-between items-center">
+              <span className="text-xs uppercase font-black text-emerald-800 dark:text-emerald-300">
+                Total Amount Paid
+              </span>
+              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                {formatMoney(viewingReceiptModal.amount)}
+              </span>
+            </div>
+
+            <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-white/5">
               <button
+                type="button"
                 onClick={() => setViewingReceiptModal(null)}
-                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
               >
                 Close
               </button>
               <button
+                type="button"
                 onClick={() => handlePrintReceipt(viewingReceiptModal)}
-                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md"
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md"
               >
                 <Printer className="w-4 h-4" /> Print Receipt
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

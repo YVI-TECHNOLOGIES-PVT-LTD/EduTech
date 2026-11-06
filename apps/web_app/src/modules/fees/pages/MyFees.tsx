@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { apiClient } from '../../../lib/api-client';
 import { useAuth } from '../../../context/AuthContext';
+import { Modal } from '../../../components/ui/modal';
 import {
   Printer,
   CreditCard,
@@ -652,30 +653,20 @@ export const MyFees: React.FC = () => {
       </div>
 
       {/* ── CHECKOUT MODAL ────────────────────────────────────────────── */}
-      {isCheckoutModalOpen && selectedDueForPayment && activeRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600">
-                  <CreditCard className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Fee Checkout & Review
-                  </h3>
-                  <p className="text-xs text-slate-400">Authorized Institutional Payment Gateway</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsCheckoutModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
+      <Modal
+        isOpen={Boolean(isCheckoutModalOpen && selectedDueForPayment && activeRecord)}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        size="md"
+        title="Fee Checkout & Review"
+        description="Authorized Institutional Payment Gateway"
+        icon={
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600">
+            <CreditCard className="w-5 h-5" />
+          </div>
+        }
+      >
+        {selectedDueForPayment && activeRecord && (
+          <div className="space-y-5">
             {/* Due Summary Card */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-3 text-xs">
               <div className="flex justify-between">
@@ -802,48 +793,33 @@ export const MyFees: React.FC = () => {
               />
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── OFFICIAL RECEIPT MODAL ────────────────────────────────────── */}
-      {isReceiptModalOpen && selectedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Official Payment Receipt
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Receipt No:{' '}
-                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                      {selectedReceipt.receipt_number}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrintReceipt}
-                  className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Print Receipt"
-                >
-                  <Printer className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setIsReceiptModalOpen(false)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
+      <Modal
+        isOpen={Boolean(isReceiptModalOpen && selectedReceipt)}
+        onClose={() => setIsReceiptModalOpen(false)}
+        size="lg"
+        title="Official Payment Receipt"
+        description={
+          selectedReceipt ? (
+            <>
+              Receipt No:{' '}
+              <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                {selectedReceipt.receipt_number}
+              </span>
+            </>
+          ) : undefined
+        }
+        icon={
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+        }
+      >
+        {selectedReceipt && (
+          <div className="space-y-4">
             {/* Printable Receipt Content */}
             <div
               ref={receiptPrintRef}
@@ -941,8 +917,8 @@ export const MyFees: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

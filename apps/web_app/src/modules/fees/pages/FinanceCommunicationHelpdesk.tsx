@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../../lib/api-client';
 import { useAuth } from '../../../context/AuthContext';
+import { Modal } from '../../../components/ui/modal';
 import {
   HelpCircle,
   Plus,
@@ -241,7 +242,11 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       setShowCreateModal(false);
       setNewTitle('');
       setNewDescription('');
-      fetchTickets();
+      if (statusFilter !== 'all' && statusFilter !== 'open') {
+        setStatusFilter('all');
+      } else {
+        fetchTickets();
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to create ticket');
     } finally {
@@ -676,120 +681,127 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
       </div>
 
       {/* Create Ticket Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 dark:border-white/10 space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Create New Ticket</h2>
-            <form onSubmit={handleCreateTicket} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Subject / Title *
-                </label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  required
-                  placeholder="Brief summary of inquiry"
-                  className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
-                />
-              </div>
-              {isParent && parentChildren.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Relates to Student
-                  </label>
-                  <select
-                    value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
-                  >
-                    <option value="">General (No specific student)</option>
-                    {parentChildren.map((child: any) => {
-                      const id = child.student_id || child.id;
-                      const name =
-                        child.full_name ||
-                        `${child.first_name || ''} ${child.last_name || ''}`.trim() ||
-                        'Student';
-                      const adm = child.admission_no || child.student_code || '';
-                      return (
-                        <option key={id} value={id}>
-                          {name} {adm ? `(${adm})` : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={newCategoryId}
-                    onChange={(e) => setNewCategoryId(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
-                  >
-                    <option value="">Select Category</option>
-                    {Array.isArray(categories) &&
-                      categories.map((c) => (
-                        <option key={c.category_id} value={c.category_id}>
-                          {c.category_name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
-                  >
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Initial Description *
-                </label>
-                <textarea
-                  rows={4}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  required
-                  placeholder="Detailed description of the issue or question..."
-                  className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800 dark:border-white/10 dark:text-white"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border rounded-xl text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingTicket}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700"
-                >
-                  {submittingTicket ? 'Creating...' : 'Submit Ticket'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        size="md"
+        title="Create New Ticket"
+        description="Submit a support inquiry or request assistance from institutional desk staff."
+        icon={<HelpCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+      >
+        <form onSubmit={handleCreateTicket} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              Subject / Title <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              required
+              placeholder="Brief summary of inquiry"
+              className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            />
           </div>
-        </div>
-      )}
+
+          {isParent && parentChildren.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                Relates to Student
+              </label>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                <option value="">General (No specific student)</option>
+                {parentChildren.map((child: any) => {
+                  const id = child.student_id || child.id;
+                  const name =
+                    child.full_name ||
+                    `${child.first_name || ''} ${child.last_name || ''}`.trim() ||
+                    'Student';
+                  const adm = child.admission_no || child.student_code || '';
+                  return (
+                    <option key={id} value={id}>
+                      {name} {adm ? `(${adm})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                Category <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={newCategoryId}
+                onChange={(e) => setNewCategoryId(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                <option value="">Select Category</option>
+                {Array.isArray(categories) &&
+                  categories.map((c) => (
+                    <option key={c.category_id} value={c.category_id}>
+                      {c.category_name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                Priority
+              </label>
+              <select
+                value={newPriority}
+                onChange={(e) => setNewPriority(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              Initial Description <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              required
+              placeholder="Detailed description of the issue or question..."
+              className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              className="px-4 py-2 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submittingTicket}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+            >
+              {submittingTicket ? 'Creating...' : 'Submit Ticket'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../lib/api-client';
+import { Modal } from '../../../components/ui/modal';
 import {
   Search,
   User,
@@ -103,7 +104,9 @@ export interface LedgerSummaryData {
 
 export const AdminFeeLedger: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'LEDGER' | 'EXAM_BRIDGE'>('LEDGER');
-  const [detailTab, setDetailTab] = useState<'OVERVIEW' | 'ASSESSMENTS' | 'PAYMENTS' | 'DUES' | 'TIMELINE' | 'CONCESSIONS'>('OVERVIEW');
+  const [detailTab, setDetailTab] = useState<
+    'OVERVIEW' | 'ASSESSMENTS' | 'PAYMENTS' | 'DUES' | 'TIMELINE' | 'CONCESSIONS'
+  >('OVERVIEW');
   const [studentConcessions, setStudentConcessions] = useState<any[]>([]);
 
   // Academic Years
@@ -168,31 +171,34 @@ export const AdminFeeLedger: React.FC = () => {
   };
 
   // 2. Fetch Students List
-  const fetchStudents = useCallback(async (query = '', yearId = selectedYearId) => {
-    setSearching(true);
-    try {
-      const res = await apiClient.get('/fees/ledger/students', {
-        params: {
-          query: query || undefined,
-          academicYearId: yearId || undefined,
-          limit: 30,
-        },
-      });
+  const fetchStudents = useCallback(
+    async (query = '', yearId = selectedYearId) => {
+      setSearching(true);
+      try {
+        const res = await apiClient.get('/fees/ledger/students', {
+          params: {
+            query: query || undefined,
+            academicYearId: yearId || undefined,
+            limit: 30,
+          },
+        });
 
-      const list: StudentListItem[] = res.data?.data || [];
-      setStudents(list);
+        const list: StudentListItem[] = res.data?.data || [];
+        setStudents(list);
 
-      // Auto-select first student if none selected
-      if (!selectedStudent && list.length > 0) {
-        loadStudentLedger(list[0]);
+        // Auto-select first student if none selected
+        if (!selectedStudent && list.length > 0) {
+          loadStudentLedger(list[0]);
+        }
+      } catch (err: any) {
+        console.error('Error fetching students:', err);
+        toast.error('Failed to search students');
+      } finally {
+        setSearching(false);
       }
-    } catch (err: any) {
-      console.error('Error fetching students:', err);
-      toast.error('Failed to search students');
-    } finally {
-      setSearching(false);
-    }
-  }, [selectedYearId, selectedStudent]);
+    },
+    [selectedYearId, selectedStudent],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -214,7 +220,9 @@ export const AdminFeeLedger: React.FC = () => {
         apiClient.get(`/fees/ledger/students/${student.student_id}/payments`),
         apiClient.get(`/fees/ledger/students/${student.student_id}/dues`),
         apiClient.get(`/fees/ledger/students/${student.student_id}/transactions`),
-        apiClient.get(`/fees/scholarships/student/${student.student_id}`).catch(() => ({ data: { data: [] } })),
+        apiClient
+          .get(`/fees/scholarships/student/${student.student_id}`)
+          .catch(() => ({ data: { data: [] } })),
       ]);
 
       setLedgerSummary(sumRes.data?.data || null);
@@ -236,7 +244,7 @@ export const AdminFeeLedger: React.FC = () => {
     if (!selectedStudent) return;
     try {
       const res = await apiClient.get(
-        `/fees/ledger/students/${selectedStudent.student_id}/eligible-structures`
+        `/fees/ledger/students/${selectedStudent.student_id}/eligible-structures`,
       );
       setEligibleData(res.data?.data || null);
       const structs = res.data?.data?.structures || [];
@@ -359,7 +367,8 @@ export const AdminFeeLedger: React.FC = () => {
             Student Fee Ledger
           </h1>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-            Tenant-scoped student accounts, fee assessments, verified payment allocations, and obligations.
+            Tenant-scoped student accounts, fee assessments, verified payment allocations, and
+            obligations.
           </p>
         </div>
 
@@ -374,7 +383,11 @@ export const AdminFeeLedger: React.FC = () => {
               className="bg-transparent border-0 outline-none text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
             >
               {academicYears.map((y) => (
-                <option key={y.academic_year_id || y.id} value={y.academic_year_id || y.id} className="dark:bg-slate-800">
+                <option
+                  key={y.academic_year_id || y.id}
+                  value={y.academic_year_id || y.id}
+                  className="dark:bg-slate-800"
+                >
                   {y.academic_year_name || y.name}
                 </option>
               ))}
@@ -413,7 +426,9 @@ export const AdminFeeLedger: React.FC = () => {
             className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
             title="Refresh Ledger"
           >
-            <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${searching || loadingLedger ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${searching || loadingLedger ? 'animate-spin' : ''}`}
+            />
           </button>
         </div>
       </div>
@@ -525,7 +540,9 @@ export const AdminFeeLedger: React.FC = () => {
             {selectedStudent && ledgerSummary ? (
               <>
                 {/* 1. Student Identity Header Card */}
-                <div className={`${GLASS_CARD} flex flex-col md:flex-row md:items-center justify-between gap-6`}>
+                <div
+                  className={`${GLASS_CARD} flex flex-col md:flex-row md:items-center justify-between gap-6`}
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-2xl shadow-xl shadow-emerald-500/20 shrink-0">
                       {selectedStudent.first_name[0]}
@@ -541,19 +558,39 @@ export const AdminFeeLedger: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        <span>Admission No: <strong className="text-slate-800 dark:text-slate-200">{selectedStudent.admission_no}</strong></span>
+                        <span>
+                          Admission No:{' '}
+                          <strong className="text-slate-800 dark:text-slate-200">
+                            {selectedStudent.admission_no}
+                          </strong>
+                        </span>
                         <span>•</span>
-                        <span>Class: <strong className="text-slate-800 dark:text-slate-200">{selectedStudent.enrollment?.grade_name || 'Not Enrolled'}</strong></span>
+                        <span>
+                          Class:{' '}
+                          <strong className="text-slate-800 dark:text-slate-200">
+                            {selectedStudent.enrollment?.grade_name || 'Not Enrolled'}
+                          </strong>
+                        </span>
                         {selectedStudent.enrollment?.section_name && (
                           <>
                             <span>•</span>
-                            <span>Section: <strong className="text-slate-800 dark:text-slate-200">{selectedStudent.enrollment.section_name}</strong></span>
+                            <span>
+                              Section:{' '}
+                              <strong className="text-slate-800 dark:text-slate-200">
+                                {selectedStudent.enrollment.section_name}
+                              </strong>
+                            </span>
                           </>
                         )}
                         {selectedStudent.enrollment?.roll_number && (
                           <>
                             <span>•</span>
-                            <span>Roll: <strong className="text-slate-800 dark:text-slate-200">{selectedStudent.enrollment.roll_number}</strong></span>
+                            <span>
+                              Roll:{' '}
+                              <strong className="text-slate-800 dark:text-slate-200">
+                                {selectedStudent.enrollment.roll_number}
+                              </strong>
+                            </span>
                           </>
                         )}
                       </div>
@@ -626,43 +663,59 @@ export const AdminFeeLedger: React.FC = () => {
                   </div>
 
                   {/* Outstanding Balance */}
-                  <div className={`p-5 rounded-3xl border shadow-sm space-y-1 ${
-                    ledgerSummary.summary.outstanding_balance > 0
-                      ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/30'
-                      : 'bg-white/70 dark:bg-slate-900/70 border-slate-200/80 dark:border-white/10'
-                  }`}>
-                    <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                      ledgerSummary.summary.outstanding_balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
-                    }`}>
+                  <div
+                    className={`p-5 rounded-3xl border shadow-sm space-y-1 ${
+                      ledgerSummary.summary.outstanding_balance > 0
+                        ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/30'
+                        : 'bg-white/70 dark:bg-slate-900/70 border-slate-200/80 dark:border-white/10'
+                    }`}
+                  >
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider ${
+                        ledgerSummary.summary.outstanding_balance > 0
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-slate-500'
+                      }`}
+                    >
                       Outstanding Balance
                     </span>
-                    <p className={`text-xl md:text-2xl font-black ${
-                      ledgerSummary.summary.outstanding_balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
-                    }`}>
+                    <p
+                      className={`text-xl md:text-2xl font-black ${
+                        ledgerSummary.summary.outstanding_balance > 0
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-slate-900 dark:text-white'
+                      }`}
+                    >
                       {formatMoney(ledgerSummary.summary.outstanding_balance)}
                     </p>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                      {ledgerSummary.summary.has_assessed_charges ? 'Billed Payable' : 'Unbilled Obligation'}
+                      {ledgerSummary.summary.has_assessed_charges
+                        ? 'Billed Payable'
+                        : 'Unbilled Obligation'}
                     </p>
                   </div>
 
                   {/* Overdue Balance */}
-                  <div className={`p-5 rounded-3xl border shadow-sm space-y-1 ${
-                    ledgerSummary.summary.overdue_balance > 0
-                      ? 'bg-amber-500/10 border-amber-500/30'
-                      : 'bg-white/70 dark:bg-slate-900/70 border-slate-200/80 dark:border-white/10'
-                  }`}>
+                  <div
+                    className={`p-5 rounded-3xl border shadow-sm space-y-1 ${
+                      ledgerSummary.summary.overdue_balance > 0
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-white/70 dark:bg-slate-900/70 border-slate-200/80 dark:border-white/10'
+                    }`}
+                  >
                     <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                       Overdue Dues
                     </span>
-                    <p className={`text-xl md:text-2xl font-black ${
-                      ledgerSummary.summary.overdue_balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'
-                    }`}>
+                    <p
+                      className={`text-xl md:text-2xl font-black ${
+                        ledgerSummary.summary.overdue_balance > 0
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-slate-900 dark:text-white'
+                      }`}
+                    >
                       {formatMoney(ledgerSummary.summary.overdue_balance)}
                     </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                      Past due date
-                    </p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">Past due date</p>
                   </div>
                 </div>
 
@@ -716,30 +769,30 @@ export const AdminFeeLedger: React.FC = () => {
                     Scheduled Dues ({dues.length})
                   </button>
 
-                    <button
-                      onClick={() => setDetailTab('TIMELINE')}
-                      className={`pb-3 transition-colors border-b-2 flex items-center gap-1.5 ${
-                        detailTab === 'TIMELINE'
-                          ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                          : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      Timeline ({transactions.length})
-                    </button>
+                  <button
+                    onClick={() => setDetailTab('TIMELINE')}
+                    className={`pb-3 transition-colors border-b-2 flex items-center gap-1.5 ${
+                      detailTab === 'TIMELINE'
+                        ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Timeline ({transactions.length})
+                  </button>
 
-                    <button
-                      onClick={() => setDetailTab('CONCESSIONS')}
-                      className={`pb-3 transition-colors border-b-2 flex items-center gap-1.5 ${
-                        detailTab === 'CONCESSIONS'
-                          ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                          : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      <Award className="w-3.5 h-3.5" />
-                      Concessions & Scholarships ({studentConcessions.length})
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setDetailTab('CONCESSIONS')}
+                    className={`pb-3 transition-colors border-b-2 flex items-center gap-1.5 ${
+                      detailTab === 'CONCESSIONS'
+                        ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <Award className="w-3.5 h-3.5" />
+                    Concessions & Scholarships ({studentConcessions.length})
+                  </button>
+                </div>
 
                 {/* 5. Detail Tab Content */}
                 {detailTab === 'OVERVIEW' && (
@@ -775,7 +828,12 @@ export const AdminFeeLedger: React.FC = () => {
                               {assessments.assigned_structure.fee_structure.name}
                             </p>
                             <p className="text-xs text-slate-500">
-                              Annual Total: <strong className="text-emerald-600">{formatMoney(assessments.assigned_structure.fee_structure.total_amount)}</strong>
+                              Annual Total:{' '}
+                              <strong className="text-emerald-600">
+                                {formatMoney(
+                                  assessments.assigned_structure.fee_structure.total_amount,
+                                )}
+                              </strong>
                             </p>
                           </div>
 
@@ -784,10 +842,13 @@ export const AdminFeeLedger: React.FC = () => {
                               Assigned Installment Plan
                             </span>
                             <p className="text-base font-black text-slate-900 dark:text-white">
-                              {assessments.assigned_structure.installment_plan?.plan_name || 'Standard Single Payment'}
+                              {assessments.assigned_structure.installment_plan?.plan_name ||
+                                'Standard Single Payment'}
                             </p>
                             <p className="text-xs text-slate-500">
-                              Terms: {assessments.assigned_structure.installment_plan?.terms?.length || 1} installments
+                              Terms:{' '}
+                              {assessments.assigned_structure.installment_plan?.terms?.length || 1}{' '}
+                              installments
                             </p>
                           </div>
                         </div>
@@ -798,7 +859,9 @@ export const AdminFeeLedger: React.FC = () => {
                             No Published Fee Structure Assigned
                           </p>
                           <p className="text-xs text-slate-500 max-w-md mx-auto">
-                            This student enrollment does not have an active fee structure assigned yet. You can assign a published fee structure configured for Grade {selectedStudent.enrollment?.grade_name}.
+                            This student enrollment does not have an active fee structure assigned
+                            yet. You can assign a published fee structure configured for Grade{' '}
+                            {selectedStudent.enrollment?.grade_name}.
                           </p>
                           <button
                             onClick={handleOpenAssignModal}
@@ -832,11 +895,14 @@ export const AdminFeeLedger: React.FC = () => {
                         <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
                           <span className="text-slate-400 font-semibold">Section & Roll</span>
                           <p className="font-bold text-slate-800 dark:text-slate-200 mt-1">
-                            {selectedStudent.enrollment?.section_name || 'N/A'} (Roll #{selectedStudent.enrollment?.roll_number || 'N/A'})
+                            {selectedStudent.enrollment?.section_name || 'N/A'} (Roll #
+                            {selectedStudent.enrollment?.roll_number || 'N/A'})
                           </p>
                         </div>
                         <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
-                          <span className="text-slate-400 font-semibold">Date of Birth / Gender</span>
+                          <span className="text-slate-400 font-semibold">
+                            Date of Birth / Gender
+                          </span>
                           <p className="font-bold text-slate-800 dark:text-slate-200 mt-1">
                             {selectedStudent.dob || 'N/A'} ({selectedStudent.gender || 'N/A'})
                           </p>
@@ -855,21 +921,31 @@ export const AdminFeeLedger: React.FC = () => {
                         <h4 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center justify-between">
                           <span>Structure Components Breakdown</span>
                           <span className="text-xs font-bold text-emerald-600">
-                            Total: {formatMoney(assessments.assigned_structure.fee_structure.total_amount)}
+                            Total:{' '}
+                            {formatMoney(assessments.assigned_structure.fee_structure.total_amount)}
                           </span>
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {assessments.assigned_structure.fee_structure.components.map((comp: any) => (
-                            <div key={comp.component_id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-bold text-slate-900 dark:text-white">{comp.component_name}</p>
-                                <span className="text-[10px] text-slate-400">{comp.component_code}</span>
+                          {assessments.assigned_structure.fee_structure.components.map(
+                            (comp: any) => (
+                              <div
+                                key={comp.component_id}
+                                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 flex items-center justify-between"
+                              >
+                                <div>
+                                  <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                    {comp.component_name}
+                                  </p>
+                                  <span className="text-[10px] text-slate-400">
+                                    {comp.component_code}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                                  {formatMoney(comp.amount)}
+                                </span>
                               </div>
-                              <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-                                {formatMoney(comp.amount)}
-                              </span>
-                            </div>
-                          ))}
+                            ),
+                          )}
                         </div>
                       </div>
                     )}
@@ -899,19 +975,32 @@ export const AdminFeeLedger: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                               {assessments.charges.map((chg: any) => (
-                                <tr key={chg.charge_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                <tr
+                                  key={chg.charge_id}
+                                  className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                                >
                                   <td className="py-3 font-bold text-slate-800 dark:text-slate-200">
                                     {chg.description}
                                   </td>
                                   <td className="py-3 text-slate-500">{chg.component_name}</td>
                                   <td className="py-3 text-slate-500">{chg.charge_date}</td>
-                                  <td className="py-3 font-bold text-slate-900 dark:text-white">{formatMoney(chg.amount)}</td>
-                                  <td className="py-3 font-bold text-emerald-600">{formatMoney(chg.paid_amount)}</td>
-                                  <td className="py-3 font-bold text-rose-600">{formatMoney(chg.balance_amount)}</td>
+                                  <td className="py-3 font-bold text-slate-900 dark:text-white">
+                                    {formatMoney(chg.amount)}
+                                  </td>
+                                  <td className="py-3 font-bold text-emerald-600">
+                                    {formatMoney(chg.paid_amount)}
+                                  </td>
+                                  <td className="py-3 font-bold text-rose-600">
+                                    {formatMoney(chg.balance_amount)}
+                                  </td>
                                   <td className="py-3">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                      chg.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                                    }`}>
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                        chg.status === 'active'
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-slate-100 text-slate-600'
+                                      }`}
+                                    >
                                       {chg.status}
                                     </span>
                                   </td>
@@ -933,7 +1022,12 @@ export const AdminFeeLedger: React.FC = () => {
                         Recorded Payment Transactions
                       </h4>
                       <div className="text-xs font-semibold text-slate-500 flex items-center gap-3">
-                        <span>Total Paid: <strong className="text-emerald-600">{formatMoney(payments?.total_paid)}</strong></span>
+                        <span>
+                          Total Paid:{' '}
+                          <strong className="text-emerald-600">
+                            {formatMoney(payments?.total_paid)}
+                          </strong>
+                        </span>
                         {payments?.unallocated > 0 && (
                           <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
                             Unallocated: {formatMoney(payments.unallocated)}
@@ -962,7 +1056,10 @@ export const AdminFeeLedger: React.FC = () => {
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {payments.transactions.map((tx: any) => (
-                              <tr key={tx.payment_transaction_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                              <tr
+                                key={tx.payment_transaction_id}
+                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                              >
                                 <td className="py-3 text-slate-500">
                                   {new Date(tx.transaction_date).toLocaleDateString()}
                                 </td>
@@ -973,13 +1070,15 @@ export const AdminFeeLedger: React.FC = () => {
                                   {tx.payment_method}
                                 </td>
                                 <td className="py-3">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                    tx.status === 'success'
-                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                                      : tx.status === 'pending'
-                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                                      : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                                  }`}>
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                      tx.status === 'success'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                        : tx.status === 'pending'
+                                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                          : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                    }`}
+                                  >
                                     {tx.status}
                                   </span>
                                 </td>
@@ -1027,7 +1126,10 @@ export const AdminFeeLedger: React.FC = () => {
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {dues.map((d: any) => (
-                              <tr key={d.due_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                              <tr
+                                key={d.due_id}
+                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                              >
                                 <td className="py-3 text-slate-800 dark:text-slate-200 font-bold">
                                   {d.due_date}
                                 </td>
@@ -1035,9 +1137,15 @@ export const AdminFeeLedger: React.FC = () => {
                                   {d.charge_description}
                                 </td>
                                 <td className="py-3 text-slate-500">{d.term_name}</td>
-                                <td className="py-3 font-bold text-slate-900 dark:text-white">{formatMoney(d.amount_due)}</td>
-                                <td className="py-3 font-bold text-emerald-600">{formatMoney(d.paid_amount)}</td>
-                                <td className={`py-3 font-bold ${d.outstanding_amount > 0 ? 'text-rose-600' : 'text-slate-500'}`}>
+                                <td className="py-3 font-bold text-slate-900 dark:text-white">
+                                  {formatMoney(d.amount_due)}
+                                </td>
+                                <td className="py-3 font-bold text-emerald-600">
+                                  {formatMoney(d.paid_amount)}
+                                </td>
+                                <td
+                                  className={`py-3 font-bold ${d.outstanding_amount > 0 ? 'text-rose-600' : 'text-slate-500'}`}
+                                >
                                   {formatMoney(d.outstanding_amount)}
                                 </td>
                                 <td className="py-3">
@@ -1078,13 +1186,15 @@ export const AdminFeeLedger: React.FC = () => {
                       <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200 dark:before:bg-white/10">
                         {transactions.map((evt: any) => (
                           <div key={evt.event_id} className="relative flex items-start gap-4">
-                            <div className={`w-5 h-5 rounded-full -ml-6 border-2 flex items-center justify-center shrink-0 ${
-                              evt.category === 'CREDIT'
-                                ? 'bg-emerald-500 border-white text-white'
-                                : evt.category === 'DEBIT'
-                                ? 'bg-rose-500 border-white text-white'
-                                : 'bg-slate-400 border-white text-white'
-                            }`} />
+                            <div
+                              className={`w-5 h-5 rounded-full -ml-6 border-2 flex items-center justify-center shrink-0 ${
+                                evt.category === 'CREDIT'
+                                  ? 'bg-emerald-500 border-white text-white'
+                                  : evt.category === 'DEBIT'
+                                    ? 'bg-rose-500 border-white text-white'
+                                    : 'bg-slate-400 border-white text-white'
+                              }`}
+                            />
                             <div className="flex-1 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-white/5 flex items-center justify-between">
                               <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -1124,7 +1234,8 @@ export const AdminFeeLedger: React.FC = () => {
                           Scholarships, Concessions & Waivers
                         </h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          Financial relief awards, merit scholarships, and fee waivers applied to student dues.
+                          Financial relief awards, merit scholarships, and fee waivers applied to
+                          student dues.
                         </p>
                       </div>
                       <a
@@ -1143,7 +1254,9 @@ export const AdminFeeLedger: React.FC = () => {
                           No Scholarships or Concessions Recorded
                         </p>
                         <p className="text-xs text-slate-500 max-w-md mx-auto">
-                          This student has no awarded or applied concessions in the current database. To grant merit, sports, sibling, or need-based aid, submit a recommendation in the Scholarship Desk.
+                          This student has no awarded or applied concessions in the current
+                          database. To grant merit, sports, sibling, or need-based aid, submit a
+                          recommendation in the Scholarship Desk.
                         </p>
                       </div>
                     ) : (
@@ -1163,7 +1276,10 @@ export const AdminFeeLedger: React.FC = () => {
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {studentConcessions.map((c: any) => (
-                              <tr key={c.scholarship_concession_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                              <tr
+                                key={c.scholarship_concession_id}
+                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                              >
                                 <td className="py-3">
                                   <div className="font-bold text-slate-900 dark:text-white">
                                     {c.concession_name}
@@ -1186,15 +1302,17 @@ export const AdminFeeLedger: React.FC = () => {
                                   {c.scope?.replace('_', ' ')}
                                 </td>
                                 <td className="py-3">
-                                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                    c.status === 'applied'
-                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                      : c.status === 'approved'
-                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300'
-                                      : c.status === 'rejected'
-                                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300'
-                                      : 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300'
-                                  }`}>
+                                  <span
+                                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                      c.status === 'applied'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                        : c.status === 'approved'
+                                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300'
+                                          : c.status === 'rejected'
+                                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300'
+                                            : 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300'
+                                    }`}
+                                  >
                                     {c.status}
                                   </span>
                                 </td>
@@ -1223,7 +1341,8 @@ export const AdminFeeLedger: React.FC = () => {
                   Select a Student
                 </h3>
                 <p className="text-xs max-w-sm mx-auto">
-                  Search and select a student from the directory on the left to view their complete financial ledger, fee structures, and payment history.
+                  Search and select a student from the directory on the left to view their complete
+                  financial ledger, fee structures, and payment history.
                 </p>
               </div>
             )}
@@ -1258,7 +1377,8 @@ export const AdminFeeLedger: React.FC = () => {
 
           {selectedClass && (
             <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl text-xs text-slate-500">
-              Exam bridge records loaded for selected class. Financial clearance rules are derived directly from the verified ledger balances.
+              Exam bridge records loaded for selected class. Financial clearance rules are derived
+              directly from the verified ledger balances.
             </div>
           )}
         </div>
@@ -1267,112 +1387,105 @@ export const AdminFeeLedger: React.FC = () => {
       {/* ======================================================== */}
       {/* MODAL: ASSIGN PUBLISHED FEE STRUCTURE                     */}
       {/* ======================================================== */}
-      {showAssignModal && eligibleData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 space-y-6 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                  Assign Fee Structure
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Select a published fee structure for {selectedStudent?.full_name} ({eligibleData.enrollment?.grade_name})
+      <Modal
+        isOpen={Boolean(showAssignModal && eligibleData)}
+        onClose={() => setShowAssignModal(false)}
+        size="md"
+        title="Assign Fee Structure"
+        description={
+          eligibleData
+            ? `Select a published fee structure for ${selectedStudent?.full_name} (${eligibleData.enrollment?.grade_name})`
+            : ''
+        }
+        icon={<CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+      >
+        {eligibleData && (
+          <form onSubmit={handleAssignStructure} className="space-y-4">
+            {/* Fee Structure Dropdown */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Published Fee Structure <span className="text-rose-500">*</span>
+              </label>
+              {eligibleData.structures.length === 0 ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl">
+                  No published fee structures found for {eligibleData.enrollment?.grade_name}.
+                  Please publish a fee structure first in Fee Structure Management.
                 </p>
-              </div>
-              <button
-                onClick={() => setShowAssignModal(false)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              ) : (
+                <select
+                  value={selectedStructureId}
+                  onChange={(e) => setSelectedStructureId(e.target.value)}
+                  required
+                  className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs font-bold outline-none"
+                >
+                  {eligibleData.structures.map((s: any) => (
+                    <option key={s.fee_structure_id} value={s.fee_structure_id}>
+                      {s.name} — {formatMoney(s.total_amount)} ({s.components_count} components)
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            <form onSubmit={handleAssignStructure} className="space-y-4">
-              {/* Fee Structure Dropdown */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Published Fee Structure *
-                </label>
-                {eligibleData.structures.length === 0 ? (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl">
-                    No published fee structures found for {eligibleData.enrollment?.grade_name}. Please publish a fee structure first in Fee Structure Management.
-                  </p>
-                ) : (
-                  <select
-                    value={selectedStructureId}
-                    onChange={(e) => setSelectedStructureId(e.target.value)}
-                    required
-                    className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs font-bold outline-none"
-                  >
-                    {eligibleData.structures.map((s: any) => (
-                      <option key={s.fee_structure_id} value={s.fee_structure_id}>
-                        {s.name} — {formatMoney(s.total_amount)} ({s.components_count} components)
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Installment Plan Dropdown */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Installment Plan
-                </label>
-                {eligibleData.installment_plans.length === 0 ? (
-                  <p className="text-xs text-slate-500">
-                    No published installment plans found. Standard single payment will apply.
-                  </p>
-                ) : (
-                  <select
-                    value={selectedPlanId}
-                    onChange={(e) => setSelectedPlanId(e.target.value)}
-                    className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs font-bold outline-none"
-                  >
-                    <option value="">Default Single Payment</option>
-                    {eligibleData.installment_plans.map((p: any) => (
-                      <option key={p.installment_plan_id} value={p.installment_plan_id}>
-                        {p.plan_name} ({p.terms_count} terms)
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Assignment Notes (Optional)
-                </label>
-                <textarea
-                  value={assignmentNotes}
-                  onChange={(e) => setAssignmentNotes(e.target.value)}
-                  placeholder="e.g. Standard academic year fee assignment..."
-                  rows={2}
-                  className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs outline-none"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setShowAssignModal(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            {/* Installment Plan Dropdown */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Installment Plan
+              </label>
+              {eligibleData.installment_plans.length === 0 ? (
+                <p className="text-xs text-slate-500">
+                  No published installment plans found. Standard single payment will apply.
+                </p>
+              ) : (
+                <select
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                  className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs font-bold outline-none"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={assigning || eligibleData.structures.length === 0}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 transition-all shadow-md"
-                >
-                  {assigning ? 'Assigning...' : 'Confirm Assignment'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                  <option value="">Default Single Payment</option>
+                  {eligibleData.installment_plans.map((p: any) => (
+                    <option key={p.installment_plan_id} value={p.installment_plan_id}>
+                      {p.plan_name} ({p.terms_count} terms)
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Assignment Notes (Optional)
+              </label>
+              <textarea
+                value={assignmentNotes}
+                onChange={(e) => setAssignmentNotes(e.target.value)}
+                placeholder="e.g. Standard academic year fee assignment..."
+                rows={2}
+                className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs outline-none resize-none"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setShowAssignModal(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={assigning || eligibleData.structures.length === 0}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 transition-all shadow-md"
+              >
+                {assigning ? 'Assigning...' : 'Confirm Assignment'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 };
