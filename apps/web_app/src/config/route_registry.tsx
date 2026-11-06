@@ -17,7 +17,11 @@ import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashbo
 import WorkspaceDashboard from '../modules/admission/pages/Workspace';
 import Applicant360Page from '../modules/admission/pages/Applicant360';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
-import { ApplicationsManagementPage } from '../modules/admission/pages/front-office/ApplicationsManagementPage';
+const ApplicationsManagementPage = React.lazy(() =>
+  import('../modules/admission/pages/front-office/ApplicationsManagementPage').then((m) => ({
+    default: m.ApplicationsManagementPage,
+  })),
+);
 import { CounsellingPage } from '../modules/admission/pages/front-office/CounsellingPage';
 import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
 import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
@@ -26,15 +30,37 @@ import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWiz
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
 
-import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
-import { MyChildren } from '../modules/student/pages/MyChildren';
+const ParentDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/ParentDashboard').then((m) => ({
+    default: m.ParentDashboard,
+  })),
+);
+const MyChildren = React.lazy(() =>
+  import('../modules/student/pages/MyChildren').then((m) => ({ default: m.MyChildren })),
+);
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
 import { ParentFeesRouter } from '../pages/ParentFeesRouter';
-import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
-import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
-import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/ParentAdmissionStatusPage';
-import { ParentSubmittedApplicationPage } from '../modules/admission/pages/parent/ParentSubmittedApplicationPage';
+const ParentDocumentCenterPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentDocumentCenterPage').then((m) => ({
+    default: m.ParentDocumentCenterPage,
+  })),
+);
+const ParentFeePaymentPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentFeePaymentPage').then((m) => ({
+    default: m.ParentFeePaymentPage,
+  })),
+);
+const ParentAdmissionStatusPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentAdmissionStatusPage').then((m) => ({
+    default: m.ParentAdmissionStatusPage,
+  })),
+);
+const ParentSubmittedApplicationPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentSubmittedApplicationPage').then((m) => ({
+    default: m.ParentSubmittedApplicationPage,
+  })),
+);
 
 import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
 import { FinanceConfigurationPage } from '../modules/fees/pages/FinanceConfiguration';
@@ -53,12 +79,22 @@ import { FinanceAccounting } from '../modules/fees/pages/FinanceAccounting';
 import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
 import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
 import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
-import { FinanceCommunicationFeeds } from '../modules/fees/pages/FinanceCommunicationFeeds';
-import { FinanceCommunicationHelpdesk } from '../modules/fees/pages/FinanceCommunicationHelpdesk';
+const FinanceCommunicationFeeds = React.lazy(() =>
+  import('../modules/fees/pages/FinanceCommunicationFeeds').then((m) => ({
+    default: m.FinanceCommunicationFeeds,
+  })),
+);
+const FinanceCommunicationHelpdesk = React.lazy(() =>
+  import('../modules/fees/pages/FinanceCommunicationHelpdesk').then((m) => ({
+    default: m.FinanceCommunicationHelpdesk,
+  })),
+);
 import { FinanceCommunicationEscalation } from '../modules/fees/pages/FinanceCommunicationEscalation';
 import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
 import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
-import { MyFees } from '../modules/fees/pages/MyFees';
+const MyFees = React.lazy(() =>
+  import('../modules/fees/pages/MyFees').then((m) => ({ default: m.MyFees })),
+);
 
 export interface RouteConfig {
   path: string;

@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/api-client';
 import { LandingResolver } from '@/services/LandingResolver';
+import { ParentDashboardService } from '@/modules/dashboard/services/ParentDashboardService';
 import { getNavigationForUser, NavigationGroup, NavigationItem } from '@/config/navigation';
 import {
   Sidebar,
@@ -166,11 +167,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
   useEffect(() => {
     if (isPostAdmission || !isParent) return;
     let isMounted = true;
-    apiClient
-      .get('/dashboard/parent/overview')
-      .then((res) => {
+    ParentDashboardService.getOverview()
+      .then((data) => {
         if (!isMounted) return;
-        const kids = res.data?.children;
+        const kids = data?.children;
         if (Array.isArray(kids) && kids.length > 0) {
           setSidebarPostAdmission(true);
         }

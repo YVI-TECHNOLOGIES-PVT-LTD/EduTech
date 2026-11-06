@@ -29,6 +29,7 @@ import {
 import { Badge } from '../../../components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
+import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 
 type FeeTrackerState = 'DUE' | 'VERIFYING' | 'VERIFIED' | 'HIDDEN';
 
@@ -85,6 +86,17 @@ const ParentDashboardInner = () => {
   const [admissions, setAdmissions] = useState<any[]>([]);
   const [feeData, setFeeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Non-blocking prefetch of secondary parent routes during browser idle time
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => {
+        import('../../student/pages/MyChildren');
+        import('../../admission/pages/parent/ParentDocumentCenterPage');
+        import('../../fees/pages/MyFees');
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -192,15 +204,7 @@ const ParentDashboardInner = () => {
     return { activeApps, hasDue, isVerifying, totalAmount, stateKey };
   }, [admissions]);
 
-  if (loading)
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-navy border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-          Loading Parent Portal...
-        </p>
-      </div>
-    );
+  if (loading) return <PageSkeleton />;
 
   const totalStudents = children.length;
   // Dynamic admission fee due calculation based on whether fee payment is active

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api-client';
+import { ParentDashboardService } from '../modules/dashboard/services/ParentDashboardService';
 import { EnrichedUser } from '../types/auth';
 import { useAppDispatch, useAppSelector } from '../app/store';
 import {
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const overviewRes = await apiClient.get('/dashboard/parent/overview', {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
               });
+              ParentDashboardService.setCachedOverview(overviewRes.data);
               const children = overviewRes.data?.children || [];
               if (children.length > 0) {
                 enrichedUser.hasEnrolledStudent = true;

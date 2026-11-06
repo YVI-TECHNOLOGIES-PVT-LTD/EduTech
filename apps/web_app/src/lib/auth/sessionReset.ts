@@ -10,6 +10,7 @@ import { useDashboardStore } from '@/store/dashboard.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useAppStore } from '@/store/app.store';
 import { API_CONFIG } from '@/config/api';
+import { ParentDashboardService } from '@/modules/dashboard/services/ParentDashboardService';
 
 /**
  * Monotonically increasing session generation counter.
@@ -103,6 +104,7 @@ export async function resetAuthenticatedClientState(
     try {
       await queryClient.cancelQueries();
       queryClient.clear();
+      ParentDashboardService.invalidateCache();
     } catch (qErr) {
       console.error('[AuthReset] Error clearing TanStack Query cache:', qErr);
     }

@@ -32,6 +32,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 
@@ -80,15 +81,22 @@ export const MyChildren: React.FC = () => {
   }, [user?.id, user?.school_id]);
 
   const selectedChild = useMemo(() => {
-    if (!selectedChildId || children.length === 0) return null;
-    return (
-      children.find(
-        (c) =>
-          c.student_id === selectedChildId ||
-          c.admission_no === selectedChildId ||
-          c.id === selectedChildId,
-      ) || null
-    );
+    if (children.length === 0) return null;
+    if (selectedChildId) {
+      return (
+        children.find(
+          (c) =>
+            c.student_id === selectedChildId ||
+            c.admission_no === selectedChildId ||
+            c.id === selectedChildId,
+        ) || children[0]
+      );
+    }
+    // For single child parents, show student profile directly without unnecessary selection UI
+    if (children.length === 1) {
+      return children[0];
+    }
+    return null;
   }, [children, selectedChildId]);
 
   const getChildFeeBalance = (childId: string) => {
@@ -113,14 +121,7 @@ export const MyChildren: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-          Loading My Children Profiles...
-        </p>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // ─── 0. ZERO CHILDREN EMPTY STATE ──────────────────────────────────────────

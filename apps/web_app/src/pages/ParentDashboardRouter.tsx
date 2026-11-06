@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDashboardService } from '../modules/dashboard/services/ParentDashboardService';
+import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 
 /**
  * Parent Dashboard Lifecycle Router
@@ -51,14 +52,7 @@ export const ParentDashboardRouter: React.FC = () => {
   }
 
   if (checkingOverview && hasEnrolledKids === null) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-navy border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-          Resolving Student Profile...
-        </p>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return <ParentDashboardPage />;

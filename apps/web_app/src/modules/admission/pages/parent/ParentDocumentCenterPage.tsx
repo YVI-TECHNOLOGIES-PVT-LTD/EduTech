@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useApplicationList } from '../../hooks/useApplication';
 import ParentDashboardService from '@/modules/dashboard/services/ParentDashboardService';
@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 import { DocumentUploadCard } from '../../components/DocumentUploadCard';
 import {
   AlertCircle,
@@ -69,7 +70,10 @@ export function ParentDocumentCenterPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const params = useParams<{ applicationId?: string; id?: string }>();
-  const activeParamAppId = params.applicationId || params.id;
+  const [searchParams] = useSearchParams();
+  const queryAppId =
+    searchParams.get('applicationId') || searchParams.get('id') || searchParams.get('studentId');
+  const activeParamAppId = params.applicationId || params.id || queryAppId;
 
   // 1. Fetch parent overview containing registered students and in-progress applications
   const [parentOverview, setParentOverview] = useState<{
@@ -409,16 +413,7 @@ export function ParentDocumentCenterPage() {
 
   // Loading State
   if (isAppsLoading && isOverviewLoading) {
-    return (
-      <PageContainer variant="default">
-        <div className="p-12 text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-bold text-muted-foreground">
-            Loading Student Document Records...
-          </p>
-        </div>
-      </PageContainer>
-    );
+    return <PageSkeleton />;
   }
 
   // Error State

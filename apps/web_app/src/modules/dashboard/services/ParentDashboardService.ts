@@ -11,6 +11,13 @@ export class ParentDashboardService {
 
   private static readonly CACHE_TTL_MS = 30000; // 30 seconds stale-while-revalidate
 
+  public static setCachedOverview(data: any): void {
+    ParentDashboardService.overviewCache = {
+      data,
+      timestamp: Date.now(),
+    };
+  }
+
   public static invalidateCache(): void {
     ParentDashboardService.overviewCache = null;
     ParentDashboardService.overviewPromise = null;
