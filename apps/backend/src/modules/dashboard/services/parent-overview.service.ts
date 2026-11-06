@@ -52,6 +52,9 @@ export interface ParentChildPlacementSummary {
   documents?: DocumentSummaryItem[];
   document_stats?: DocumentStatsSummary;
   photo_url?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  nationality?: string | null;
   // Backward compatibility object for existing ParentDashboard.tsx
   student: {
     id: string;
@@ -336,6 +339,9 @@ export class ParentOverviewService {
           documents: docSummary.documents,
           document_stats: docSummary.document_stats,
           photo_url: null,
+          dob: student.dob ? student.dob.toISOString().split('T')[0] : null,
+          gender: student.gender || null,
+          nationality: student.nationality || null,
           student: {
             id: student.student_id,
             student_id: student.student_id,

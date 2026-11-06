@@ -27,6 +27,7 @@ import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
 
 import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
+import { MyChildren } from '../modules/student/pages/MyChildren';
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
 import { ParentFeesRouter } from '../pages/ParentFeesRouter';
@@ -194,7 +195,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   // Post-Admission Enrolled Parent Routes
   {
     path: 'parent/my-child',
-    element: <ParentDashboard />,
+    element: <MyChildren />,
     layout: 'dashboard',
     guardType: 'parent',
   },

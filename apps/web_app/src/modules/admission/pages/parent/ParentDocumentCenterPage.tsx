@@ -53,6 +53,7 @@ export interface UnifiedStudentCard {
   admissionNo: string;
   gradeName: string;
   sectionName: string | null;
+  academicYearName?: string | null;
   photoUrl: string | null;
   isEnrolled: boolean;
   totalRequired: number;
@@ -135,6 +136,7 @@ export function ParentDocumentCenterPage() {
           admissionNo: c.admission_no || 'ADM-PENDING',
           gradeName: c.grade_name || 'Enrolled Student',
           sectionName: c.section_name || null,
+          academicYearName: c.academic_year_name || null,
           photoUrl: c.photo_url || null,
           isEnrolled: true,
           totalRequired: stats.total_required || 0,
@@ -170,6 +172,7 @@ export function ParentDocumentCenterPage() {
           admissionNo: a.application_number || 'APP-2026',
           gradeName: a.grade_applied_for || 'Grade Applied',
           sectionName: null,
+          academicYearName: a.academic_year_name || null,
           photoUrl: a.photo_url || null,
           isEnrolled: false,
           totalRequired: stats.total_required || 0,
@@ -217,6 +220,7 @@ export function ParentDocumentCenterPage() {
           admissionNo: app.application_number || `APP-${appId.slice(0, 8).toUpperCase()}`,
           gradeName: gName,
           sectionName: null,
+          academicYearName: app.academic_year?.name || app.academic_year_name || null,
           photoUrl: app.photo_url || null,
           isEnrolled: false,
           totalRequired: stats.requiredCount,
@@ -760,17 +764,25 @@ export function ParentDocumentCenterPage() {
 
                   <div className="border-t border-border/60" />
 
-                  {/* Grade & Section */}
+                  {/* Grade, Section & Academic Year */}
                   <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
                     <span className="flex items-center space-x-1 font-semibold">
                       <GraduationCap className="w-3.5 h-3.5 text-muted-foreground/70" />
                       <span>{student.gradeName}</span>
                     </span>
-                    {student.sectionName && (
-                      <span className="inline-flex items-center text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
-                        Sec {student.sectionName}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {student.academicYearName && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-muted/40 text-muted-foreground px-2 py-0.5 rounded border border-border/40">
+                          <CalendarDays className="w-3 h-3 text-primary" />
+                          {student.academicYearName}
+                        </span>
+                      )}
+                      {student.sectionName && (
+                        <span className="inline-flex items-center text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+                          Sec {student.sectionName}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Document Completion Progress Bar */}
@@ -801,6 +813,10 @@ export function ParentDocumentCenterPage() {
 
                   {/* Breakdown Pills */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-muted-foreground font-medium">
+                    <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                      <FolderCheck className="w-3 h-3" />
+                      {student.submitted} Submitted
+                    </span>
                     {student.verified > 0 && (
                       <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                         <CheckCircle2 className="w-3 h-3" />

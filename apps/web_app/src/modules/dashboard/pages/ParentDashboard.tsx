@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
-import { apiClient } from '../../../lib/api-client';
 import { Link } from 'react-router-dom';
 import {
   FileText,
@@ -24,9 +23,11 @@ import {
   ChevronRight,
   ClipboardList,
   DollarSign,
+  AlertTriangle,
+  FolderCheck,
 } from 'lucide-react';
 import { Badge } from '../../../components/ui/badge';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
 
 type FeeTrackerState = 'DUE' | 'VERIFYING' | 'VERIFIED' | 'HIDDEN';
@@ -217,6 +218,44 @@ const ParentDashboardInner = () => {
   const admissionSubLabel =
     activeAdmissionsCount > 0 ? `${activeAdmissionsCount} In Progress` : 'All Clear';
 
+  // Overall attendance rate calculation across registered children
+  const avgAttendance =
+    children.length > 0
+      ? Math.round(
+          children.reduce((acc, c) => {
+            const s = c.student || c;
+            const rate = s.attendance?.[0]?.attendance_percentage ?? 95;
+            return acc + rate;
+          }, 0) / children.length,
+        )
+      : 95;
+
+  // Pending action banners check
+  const pendingDocsCount = children.reduce((sum, c) => sum + (c.document_stats?.pending || 0), 0);
+
+  const actionAlerts: { label: string; actionText: string; url: string }[] = [];
+  if (totalDue > 0) {
+    actionAlerts.push({
+      label: `You have outstanding fee obligations of ₹${totalDue.toLocaleString()}.`,
+      actionText: 'Pay Fees',
+      url: '/app/fees/my',
+    });
+  }
+  if (pendingDocsCount > 0) {
+    actionAlerts.push({
+      label: `${pendingDocsCount} required student document(s) pending verification or upload.`,
+      actionText: 'Document Center',
+      url: '/app/parent/documents',
+    });
+  }
+  if (totalAdmissionFeesPending > 0) {
+    actionAlerts.push({
+      label: `Admission fee payment of ₹${totalAdmissionFeesPending.toLocaleString()} is ready for processing.`,
+      actionText: 'Complete Payment',
+      url: '/app/parent/payments',
+    });
+  }
+
   const kpis = [
     {
       label: 'My Children',
@@ -225,6 +264,15 @@ const ParentDashboardInner = () => {
       color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
       sub: 'Active profiles',
       points: [0, 1, totalStudents],
+    },
+    {
+      label: 'Avg Attendance',
+      value: avgAttendance,
+      icon: Activity,
+      color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+      suffix: '%',
+      sub: avgAttendance >= 85 ? 'On Track' : 'Needs Attention',
+      points: [80, 90, avgAttendance],
     },
     {
       label: 'Admissions Progress',
@@ -274,6 +322,7 @@ const ParentDashboardInner = () => {
           <span className="text-2xl font-black text-navy dark:text-white tracking-tight">
             {c.format}
             <CountUp to={c.value} />
+            {c.suffix}
           </span>
           <span className="text-[10px] font-bold text-muted-foreground ml-1">{c.sub}</span>
         </div>
@@ -297,6 +346,21 @@ const ParentDashboardInner = () => {
             </h3>
             <div className="space-y-2 font-bold">
               <Link
+                to="/app/parent/my-child"
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
+                    My Children Hub
+                  </span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+
+              <Link
                 to="/app/fees/my"
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
               >
@@ -312,15 +376,15 @@ const ParentDashboardInner = () => {
               </Link>
 
               <Link
-                to="/app/student/exams/dashboard"
+                to="/app/parent/documents"
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                    <FileText className="w-4 h-4" />
+                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <FolderCheck className="w-4 h-4" />
                   </div>
                   <span className="text-xs text-muted-foreground group-hover:text-foreground">
-                    Marksheet Tracker
+                    Documents Centre
                   </span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
@@ -383,10 +447,43 @@ const ParentDashboardInner = () => {
           </span>
           <h1 className="text-3xl font-black mt-2 tracking-tight">Welcome Back</h1>
           <p className="text-white/70 text-xs mt-1 max-w-md leading-relaxed">
-            Easily monitor and check your child's academic grades, notice bulletins, and pending
+            Quickly monitor your family's academic standing, notice bulletins, and pending
             administrative balances.
           </p>
         </div>
+
+        {/* Pending Actions Alert Banner */}
+        {actionAlerts.length > 0 && (
+          <div className="space-y-3">
+            {actionAlerts.map((alert, idx) => (
+              <div
+                key={idx}
+                className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                      Pending Action
+                    </span>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white mt-0.5">
+                      {alert.label}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to={alert.url}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all shrink-0"
+                >
+                  {alert.actionText}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Active Fee Obligations Tracker Roadmap */}
         <AnimatePresence mode="wait">
@@ -525,12 +622,20 @@ const ParentDashboardInner = () => {
           </div>
         )}
 
-        {/* Kids Overview / Profiles Section */}
+        {/* Streamlined Registered Children Quick-Access Cards */}
         <div className="space-y-4">
-          <h2 className="text-xs font-black text-navy dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            Family Academic Registry
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black text-navy dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              Registered Children
+            </h2>
+            <Link
+              to="/app/parent/my-child"
+              className="text-xs font-black text-primary hover:underline flex items-center gap-1"
+            >
+              Open My Children Hub <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
 
           {children.length === 0 && admissions.length === 0 ? (
             <div className="bg-white dark:bg-card p-12 rounded-3xl border border-dashed border-border/60 text-center">
@@ -543,12 +648,11 @@ const ParentDashboardInner = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Render Enrolled Children */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Enrolled Student Quick-Access Cards */}
               {children.map((child) => {
                 const s = child.student || child;
                 const attendancePercent = s.attendance?.[0]?.attendance_percentage ?? 95;
-                const examPercent = s.exam_stats?.[0]?.percentage ?? 88;
                 const fullName =
                   s.full_name ||
                   child.full_name ||
@@ -560,208 +664,169 @@ const ParentDashboardInner = () => {
                 const gradeName = s.grade_name || child.grade_name || null;
                 const sectionName = s.section_name || child.section_name || null;
                 const rollNumber = s.roll_number || child.roll_number || null;
+                const balance = getFeeBalance(child.student_id);
 
                 return (
                   <div
                     key={child.student_id}
-                    className="bg-white dark:bg-card border border-border/40 rounded-3xl overflow-hidden shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift"
+                    className="bg-white dark:bg-card border border-border/50 rounded-3xl p-6 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex flex-col justify-between gap-5"
                   >
-                    <div className="p-6 bg-gray-50/50 dark:bg-muted/10 border-b border-border/45">
-                      <div className="flex justify-between items-center">
+                    <div>
+                      {/* Top identity bar */}
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-navy to-blue-900 text-white flex items-center justify-center text-sm font-black shadow-sm">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-navy to-blue-900 text-white flex items-center justify-center text-base font-black shadow-sm shrink-0">
                             {fullName.charAt(0)}
                           </div>
                           <div>
-                            <h3 className="font-black text-sm text-navy dark:text-white">
+                            <h3 className="font-black text-base text-navy dark:text-white leading-tight">
                               {fullName}
                             </h3>
-                            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
-                              ID: {admissionNo} • ENROLLED STUDENT
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                              ID: {admissionNo}
                             </p>
                           </div>
                         </div>
-                        <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                          {s.status || 'Active'}
+                        <span className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
+                          {s.status || 'Enrolled'}
                         </span>
                       </div>
 
-                      {/* Authoritative Academic Placement Metadata Chips */}
-                      <div className="mt-4 pt-3 border-t border-border/30 flex flex-wrap items-center gap-2">
-                        {/* Academic Year */}
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
-                          <Calendar className="w-3 h-3 text-primary" />
-                          {academicYear || 'Academic Year Pending'}
-                        </span>
-
-                        {/* Grade / Class */}
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                      {/* Academic Placement Tags */}
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-navy dark:text-white border border-border/40">
                           <GraduationCap className="w-3 h-3 text-indigo-500" />
                           {gradeName || 'Grade Pending'}
                         </span>
-
-                        {/* Section */}
-                        {sectionName ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                        {sectionName && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-navy dark:text-white border border-border/40">
                             <Users className="w-3 h-3 text-teal-600" />
-                            Section: {sectionName}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-                            <Users className="w-3 h-3 text-amber-500" />
-                            Section Allocation Pending
+                            Sec {sectionName}
                           </span>
                         )}
-
-                        {/* Roll Number */}
-                        {rollNumber ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white dark:bg-card border border-border/60 text-navy dark:text-white shadow-xs">
+                        {rollNumber && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-navy dark:text-white border border-border/40">
                             <ClipboardList className="w-3 h-3 text-purple-500" />
-                            Roll No: {rollNumber}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-medium bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400">
-                            <ClipboardList className="w-3 h-3 text-slate-400" />
-                            Roll No Pending
+                            Roll #{rollNumber}
                           </span>
                         )}
+                        {academicYear && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-muted-foreground border border-border/40">
+                            <Calendar className="w-3 h-3 text-primary" />
+                            {academicYear}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Snapshot Metrics */}
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                            Attendance
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                            <span className="text-sm font-black text-navy dark:text-white">
+                              {attendancePercent}%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                            Fee Balance
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <CreditCard className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-sm font-black text-navy dark:text-white">
+                              {balance > 0 ? `₹${balance.toLocaleString()}` : 'Cleared'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-6 space-y-6">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-xl shadow-sm text-emerald-500 border border-gray-50">
-                            <Activity className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-black text-gray-400 uppercase">
-                              Attendance
-                            </p>
-                            <p className="text-xs font-bold text-navy">{attendancePercent}%</p>
-                          </div>
-                        </div>
 
-                        <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-xl shadow-sm text-blue-500 border border-gray-50">
-                            <Award className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-black text-gray-400 uppercase">
-                              Exam Score
-                            </p>
-                            <p className="text-xs font-bold text-navy">{examPercent}%</p>
-                          </div>
-                        </div>
-
-                        <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center gap-3 col-span-2 md:col-span-1">
-                          <div className="p-2 bg-white rounded-xl shadow-sm text-purple-500 border border-gray-50">
-                            <CreditCard className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-black text-gray-400 uppercase">
-                              Current Term Balance
-                            </p>
-                            <p className="text-xs font-bold text-navy">
-                              ₹{getFeeBalance(child.student_id).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-gray-100">
-                        <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-4">
-                          Assigned Academic Guides
-                        </h4>
-                        <div className="flex flex-wrap gap-3">
-                          {s.faculty_assignments?.length > 0 ? (
-                            s.faculty_assignments.map((fa: any, idx: number) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-2.5 bg-gray-50/40 dark:bg-muted/5 border border-border/40 px-3.5 py-2 rounded-xl"
-                              >
-                                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
-                                  {fa.faculty?.full_name?.charAt(0)}
-                                </div>
-                                <span className="text-xs font-bold text-gray-900 dark:text-white">
-                                  {fa.faculty?.full_name}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-xs text-gray-400 font-semibold italic">
-                              No advisors assigned yet.
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                    {/* Navigation CTA: Deep link to My Children */}
+                    <div className="pt-2 border-t border-border/30 flex items-center justify-between gap-3">
+                      <Link
+                        to={`/app/parent/documents`}
+                        className="text-[10px] font-black text-muted-foreground hover:text-navy dark:hover:text-white transition-colors"
+                      >
+                        Documents
+                      </Link>
+                      <Link
+                        to={`/app/fees/my`}
+                        className="text-[10px] font-black text-muted-foreground hover:text-navy dark:hover:text-white transition-colors"
+                      >
+                        Invoices
+                      </Link>
+                      <Link
+                        to={`/app/parent/my-child?childId=${child.student_id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-navy hover:bg-navy/90 text-white shadow-xs transition-all ml-auto"
+                      >
+                        View Profile & Records
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   </div>
                 );
               })}
 
-              {/* Render Active Admission Applicants */}
+              {/* Render Admission Applicant Cards */}
               {admissions.map((app) => (
                 <div
                   key={app.id}
-                  className="bg-white dark:bg-card border border-border/40 rounded-3xl overflow-hidden shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift"
+                  className="bg-white dark:bg-card border border-border/50 rounded-3xl p-6 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex flex-col justify-between gap-5"
                 >
-                  <div className="p-6 bg-amber-500/5 dark:bg-amber-500/10 border-b border-border/45 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center text-sm font-black shadow-sm">
-                        {app.student_name?.charAt(0)}
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center text-base font-black shadow-sm shrink-0">
+                          {app.student_name?.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="font-black text-base text-navy dark:text-white leading-tight">
+                            {app.student_name}
+                          </h3>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                            Applied Grade: {app.grade_applied_for}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-black text-sm text-navy dark:text-white">
-                          {app.student_name}
-                        </h3>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
-                          Applied Grade: {app.grade_applied_for} • ADMISSION APPLICANT
+                      <span className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-600 border border-amber-500/30 shrink-0">
+                        {app.status?.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                          Stage
+                        </p>
+                        <p className="text-xs font-bold text-navy dark:text-white capitalize mt-1">
+                          {app.status?.replace('_', ' ')}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                          Admission Fee
+                        </p>
+                        <p className="text-xs font-bold text-navy dark:text-white mt-1">
+                          ₹{Number(app.payment_amount || 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-600 border border-amber-500/30">
-                      {app.status?.replace('_', ' ')}
-                    </span>
                   </div>
-                  <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-xl shadow-sm text-amber-500 border border-gray-50">
-                          <Clock className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-gray-400 uppercase">
-                            Application Stage
-                          </p>
-                          <p className="text-xs font-bold text-navy truncate capitalize">
-                            {app.status?.replace('_', ' ')}
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-xl shadow-sm text-primary border border-gray-50">
-                          <DollarSign className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-gray-400 uppercase">
-                            Admission Fee
-                          </p>
-                          <p className="text-xs font-bold text-navy">
-                            ₹{Number(app.payment_amount || 0).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-2">
-                      <Link
-                        to={`/app/admissions/${app.id}`}
-                        className="text-xs font-black text-primary hover:underline flex items-center gap-1"
-                      >
-                        View Application Timeline <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
+                  <div className="pt-2 border-t border-border/30 flex justify-end">
+                    <Link
+                      to={`/app/admissions/${app.id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all"
+                    >
+                      View Application Timeline
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
               ))}
