@@ -302,19 +302,11 @@ export class ParentFinanceService {
       orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
     });
 
-    const children: ChildFeeOverview[] = [];
-
-    for (const student of students) {
-      const enrollment =
-        selectCurrentEnrollment(student.student_enrollments, safeOrgId) ||
-        student.student_enrollments[0] ||
-        null;
-      const activeAssignment = enrollment?.student_fee_assignments?.[0] || null;
-
-      // Query active charges and dues
-      const charges = await prisma.student_charges.findMany({
+    // 3. Batch fetch all charges and payment orders for ALL target students concurrently (Eliminate N+1)
+    const [allCharges, allPaymentOrders] = await Promise.all([
+      prisma.student_charges.findMany({
         where: {
-          student_id: student.student_id,
+          student_id: { in: targetStudentIds },
           status: { in: ['active', 'waived'] },
         },
         include: {
@@ -330,17 +322,46 @@ export class ParentFinanceService {
           },
         },
         orderBy: { charge_date: 'asc' },
-      });
-
-      // Query payment history
-      const paymentOrders = await prisma.payment_orders.findMany({
-        where: { student_id: student.student_id },
+      }),
+      prisma.payment_orders.findMany({
+        where: { student_id: { in: targetStudentIds } },
         include: {
           payment_transactions: {
             orderBy: { created_at: 'desc' },
           },
         },
-      });
+      }),
+    ]);
+
+    // Group charges and payment orders by student_id in memory
+    const chargesByStudent = new Map<string, typeof allCharges>();
+    for (const charge of allCharges) {
+      const list = chargesByStudent.get(charge.student_id) || [];
+      list.push(charge);
+      chargesByStudent.set(charge.student_id, list);
+    }
+
+    const ordersByStudent = new Map<string, typeof allPaymentOrders>();
+    for (const order of allPaymentOrders) {
+      if (order.student_id) {
+        const list = ordersByStudent.get(order.student_id) || [];
+        list.push(order);
+        ordersByStudent.set(order.student_id, list);
+      }
+    }
+
+    const children: ChildFeeOverview[] = [];
+
+    for (const student of students) {
+      const enrollment =
+        selectCurrentEnrollment(student.student_enrollments, safeOrgId) ||
+        student.student_enrollments[0] ||
+        null;
+      const activeAssignment = enrollment?.student_fee_assignments?.[0] || null;
+
+      // Grouped in-memory lookups (0 database queries in loop)
+      const charges = chargesByStudent.get(student.student_id) || [];
+      const paymentOrders = ordersByStudent.get(student.student_id) || [];
 
       const paymentHistory = paymentOrders.flatMap((o) =>
         o.payment_transactions.map((tx: any) => ({

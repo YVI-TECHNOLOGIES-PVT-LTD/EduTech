@@ -25,6 +25,8 @@ import {
 import { useReactToPrint } from 'react-to-print';
 import { toast } from 'sonner';
 import { RazorpayCheckout } from '../../../components/RazorpayCheckout';
+import { ParentDashboardService } from '../../dashboard/services/ParentDashboardService';
+import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 
 export const MyFees: React.FC = () => {
   const { user } = useAuth();
@@ -48,10 +50,10 @@ export const MyFees: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [yearRes, structRes, ledgRes] = await Promise.all([
+      const [yearRes, structRes, rawLedger] = await Promise.all([
         apiClient.get('/academic-years/current').catch(() => ({ data: null })),
         apiClient.get('/fees/structures').catch(() => ({ data: [] })),
-        apiClient.get('/fees/my').catch(() => ({ data: [] })),
+        ParentDashboardService.getMyFees().catch(() => []),
       ]);
 
       setActiveYear(yearRes.data);
@@ -61,7 +63,6 @@ export const MyFees: React.FC = () => {
         : structRes.data?.items || structRes.data?.structures || [];
       setStructures(structList);
 
-      const rawLedger = ledgRes.data;
       const list = Array.isArray(rawLedger)
         ? rawLedger
         : rawLedger?.children || rawLedger?.data || [];
@@ -120,12 +121,7 @@ export const MyFees: React.FC = () => {
   const activeRecord = childrenRecords[safeChildIndex] || null;
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 space-y-3">
-        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
-        <p className="text-xs font-bold text-slate-500">Loading student financial ledger...</p>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (

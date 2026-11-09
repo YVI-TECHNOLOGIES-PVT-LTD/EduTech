@@ -182,7 +182,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
   }, [user?.id, isParent, isPostAdmission]);
 
   const effectivePostAdmission = isPostAdmission || sidebarPostAdmission;
-  const navGroups = getNavigationForUser(normalizedRoles, effectivePostAdmission);
+  const rolesKey = normalizedRoles.join(',');
+  const navGroups = useMemo(
+    () => getNavigationForUser(normalizedRoles, effectivePostAdmission),
+    [rolesKey, effectivePostAdmission],
+  );
   const currentPath = location.pathname;
 
   const homeUrl = LandingResolver.resolveLandingRoute(normalizedRoles, [], user);

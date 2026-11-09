@@ -184,6 +184,22 @@ function computeDocumentSummary(
   };
 }
 
+// In-memory 5-minute TTL cache for document types to avoid repeating static DB lookups
+const docTypesCache = new Map<string, { data: any[]; timestamp: number }>();
+const DOC_TYPES_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getCachedOrgDocTypes(safeOrgId: string) {
+  const cached = docTypesCache.get(safeOrgId);
+  if (cached && Date.now() - cached.timestamp < DOC_TYPES_CACHE_TTL_MS) {
+    return cached.data;
+  }
+  const data = await prisma.document_types.findMany({
+    where: { org_id: safeOrgId },
+  });
+  docTypesCache.set(safeOrgId, { data, timestamp: Date.now() });
+  return data;
+}
+
 export class ParentOverviewService {
   /**
    * Retrieve authoritative parent overview data scoped by organization and authenticated user.
@@ -257,124 +273,6 @@ export class ParentOverviewService {
     let children: ParentChildPlacementSummary[] = [];
     const studentRecords: any[] = [];
 
-    const orgDocTypes = await prisma.document_types.findMany({
-      where: { org_id: safeOrgId },
-    });
-
-    // 2. Fetch authoritative student records and active enrollments
-    if (targetStudentIds.length > 0) {
-      const records = await prisma.students.findMany({
-        where: {
-          student_id: { in: targetStudentIds },
-          org_id: safeOrgId, // Strict tenant boundary enforcement
-        },
-        include: {
-          student_enrollments: {
-            where: { status: 'active' },
-            include: {
-              academic_year_grades: {
-                include: {
-                  academic_years: true,
-                  grades: true,
-                },
-              },
-              sections: true,
-            },
-            orderBy: [{ enrollment_date: 'desc' }, { created_at: 'desc' }],
-          },
-          admissions_applications: {
-            include: {
-              admission_documents: {
-                include: {
-                  document_types: true,
-                },
-                orderBy: { uploaded_at: 'desc' },
-              },
-            },
-          },
-        },
-        orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
-      });
-
-      studentRecords.push(...records);
-
-      children = records.map((student) => {
-        const activeEnrollment = selectCurrentEnrollment(student.student_enrollments, safeOrgId);
-        const ayg = activeEnrollment?.academic_year_grades;
-        const academicYear = ayg?.academic_years;
-        const grade = ayg?.grades;
-        const section = activeEnrollment?.sections;
-
-        const fullName = `${student.first_name} ${student.last_name || ''}`.trim();
-        const academicYearName = academicYear?.academic_year_name || null;
-        const gradeName = grade?.grade_name || null;
-        const gradeCode = grade?.grade_code || null;
-        const sectionName = section?.section_name || null;
-        const rollNumber = activeEnrollment?.roll_number || null;
-        const enrollmentStatus = activeEnrollment?.status || null;
-
-        const docSummary = computeDocumentSummary(
-          (student as any).admissions_applications?.admission_documents || [],
-          orgDocTypes,
-        );
-
-        return {
-          student_id: student.student_id,
-          admission_no: student.admission_no,
-          first_name: student.first_name,
-          last_name: student.last_name,
-          full_name: fullName,
-          status: student.status,
-          academic_year_id: academicYear?.academic_year_id || null,
-          academic_year_name: academicYearName,
-          grade_id: grade?.grade_id || null,
-          grade_name: gradeName,
-          grade_code: gradeCode,
-          section_id: section?.section_id || null,
-          section_name: sectionName,
-          roll_number: rollNumber,
-          enrollment_id: activeEnrollment?.enrollment_id || null,
-          enrollment_status: enrollmentStatus,
-          application_id: student.application_id || null,
-          documents: docSummary.documents,
-          document_stats: docSummary.document_stats,
-          photo_url: null,
-          dob: student.dob ? student.dob.toISOString().split('T')[0] : null,
-          gender: student.gender || null,
-          nationality: student.nationality || null,
-          student: {
-            id: student.student_id,
-            student_id: student.student_id,
-            full_name: fullName,
-            first_name: student.first_name,
-            last_name: student.last_name,
-            admission_no: student.admission_no,
-            student_code: student.admission_no, // preserved backward-compatible alias
-            status: student.status,
-            academic_year_id: academicYear?.academic_year_id || null,
-            academic_year_name: academicYearName,
-            grade_id: grade?.grade_id || null,
-            grade_name: gradeName,
-            grade_code: gradeCode,
-            section_id: section?.section_id || null,
-            section_name: sectionName,
-            roll_number: rollNumber,
-            enrollment_id: activeEnrollment?.enrollment_id || null,
-            enrollment_status: enrollmentStatus,
-            attendance: [{ attendance_percentage: 95 }],
-            exam_stats: [{ percentage: 88 }],
-            faculty_assignments: [],
-          },
-        };
-      });
-    }
-
-    // 3. Fetch in-progress admission applications (not yet enrolled into students table)
-    // Gather all application IDs of already-enrolled students for dual-layer deduplication
-    const enrolledAppIds = studentRecords
-      .map((s) => s.application_id)
-      .filter((id): id is string => Boolean(id));
-
     const orConditions: any[] = [];
     if (safeUserId) {
       orConditions.push({ created_by: safeUserId });
@@ -394,40 +292,156 @@ export class ParentOverviewService {
       });
     }
 
-    let activeApplications: any[] = [];
-    if (orConditions.length > 0) {
-      activeApplications = await prisma.admissions_applications.findMany({
-        where: {
-          org_id: safeOrgId,
-          OR: orConditions,
-          status: {
-            notIn: ['rejected', 'withdrawn'],
-          },
-          students: null, // Layer 1: Exclude provisioned students via relation
-          ...(enrolledAppIds.length > 0 ? { application_id: { notIn: enrolledAppIds } } : {}), // Layer 2: Foreign key exclusion
-        },
-        include: {
-          leads: {
+    // Parallel Concurrent Execution: Fetch doc types, student records, and raw admissions simultaneously
+    const [orgDocTypes, records, rawActiveApplications] = await Promise.all([
+      getCachedOrgDocTypes(safeOrgId),
+      targetStudentIds.length > 0
+        ? prisma.students.findMany({
+            where: {
+              student_id: { in: targetStudentIds },
+              org_id: safeOrgId, // Strict tenant boundary enforcement
+            },
             include: {
-              academic_year_grades: {
+              student_enrollments: {
+                where: { status: 'active' },
                 include: {
-                  grades: true,
-                  academic_years: true,
+                  academic_year_grades: {
+                    include: {
+                      academic_years: true,
+                      grades: true,
+                    },
+                  },
+                  sections: true,
+                },
+                orderBy: [{ enrollment_date: 'desc' }, { created_at: 'desc' }],
+              },
+              admissions_applications: {
+                include: {
+                  admission_documents: {
+                    include: {
+                      document_types: true,
+                    },
+                    orderBy: { uploaded_at: 'desc' },
+                  },
                 },
               },
             },
-          },
-          academic_years: true,
-          admission_documents: {
-            include: {
-              document_types: true,
+            orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
+          })
+        : Promise.resolve([]),
+      orConditions.length > 0
+        ? prisma.admissions_applications.findMany({
+            where: {
+              org_id: safeOrgId,
+              OR: orConditions,
+              status: {
+                notIn: ['rejected', 'withdrawn'],
+              },
+              students: null, // Layer 1: Exclude provisioned students via relation
             },
-            orderBy: { uploaded_at: 'desc' },
-          },
+            include: {
+              leads: {
+                include: {
+                  academic_year_grades: {
+                    include: {
+                      grades: true,
+                      academic_years: true,
+                    },
+                  },
+                },
+              },
+              academic_years: true,
+              admission_documents: {
+                include: {
+                  document_types: true,
+                },
+                orderBy: { uploaded_at: 'desc' },
+              },
+            },
+            orderBy: { created_at: 'desc' },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    studentRecords.push(...records);
+
+    children = records.map((student) => {
+      const activeEnrollment = selectCurrentEnrollment(student.student_enrollments, safeOrgId);
+      const ayg = activeEnrollment?.academic_year_grades;
+      const academicYear = ayg?.academic_years;
+      const grade = ayg?.grades;
+      const section = activeEnrollment?.sections;
+
+      const fullName = `${student.first_name} ${student.last_name || ''}`.trim();
+      const academicYearName = academicYear?.academic_year_name || null;
+      const gradeName = grade?.grade_name || null;
+      const gradeCode = grade?.grade_code || null;
+      const sectionName = section?.section_name || null;
+      const rollNumber = activeEnrollment?.roll_number || null;
+      const enrollmentStatus = activeEnrollment?.status || null;
+
+      const docSummary = computeDocumentSummary(
+        (student as any).admissions_applications?.admission_documents || [],
+        orgDocTypes,
+      );
+
+      return {
+        student_id: student.student_id,
+        admission_no: student.admission_no,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        full_name: fullName,
+        status: student.status,
+        academic_year_id: academicYear?.academic_year_id || null,
+        academic_year_name: academicYearName,
+        grade_id: grade?.grade_id || null,
+        grade_name: gradeName,
+        grade_code: gradeCode,
+        section_id: section?.section_id || null,
+        section_name: sectionName,
+        roll_number: rollNumber,
+        enrollment_id: activeEnrollment?.enrollment_id || null,
+        enrollment_status: enrollmentStatus,
+        application_id: student.application_id || null,
+        documents: docSummary.documents,
+        document_stats: docSummary.document_stats,
+        photo_url: null,
+        dob: student.dob ? student.dob.toISOString().split('T')[0] : null,
+        gender: student.gender || null,
+        nationality: student.nationality || null,
+        student: {
+          id: student.student_id,
+          student_id: student.student_id,
+          full_name: fullName,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          admission_no: student.admission_no,
+          student_code: student.admission_no, // preserved backward-compatible alias
+          status: student.status,
+          academic_year_id: academicYear?.academic_year_id || null,
+          academic_year_name: academicYearName,
+          grade_id: grade?.grade_id || null,
+          grade_name: gradeName,
+          grade_code: gradeCode,
+          section_id: section?.section_id || null,
+          section_name: sectionName,
+          roll_number: rollNumber,
+          enrollment_id: activeEnrollment?.enrollment_id || null,
+          enrollment_status: enrollmentStatus,
+          attendance: [{ attendance_percentage: 95 }],
+          exam_stats: [{ percentage: 88 }],
+          faculty_assignments: [],
         },
-        orderBy: { created_at: 'desc' },
-      });
-    }
+      };
+    });
+
+    // In-memory Layer 2 Deduplication: filter out any application belonging to an enrolled student
+    const enrolledAppIds = new Set(
+      studentRecords.map((s) => s.application_id).filter((id): id is string => Boolean(id)),
+    );
+    const activeApplications = rawActiveApplications.filter(
+      (app: any) => !enrolledAppIds.has(app.application_id),
+    );
 
     const admissions: ParentAdmissionApplicationSummary[] = activeApplications.map((app) => {
       const lead = app.leads;

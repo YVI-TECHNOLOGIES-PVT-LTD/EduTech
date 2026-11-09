@@ -40,7 +40,7 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   });
   const unreadCount = unreadData?.count ?? 0;
 
-  // 2. Fetch notifications list (lazy when open or unread present)
+  // 2. Fetch notifications list (lazy: fetch only when open to avoid startup network load)
   const {
     data: rawData,
     isLoading,
@@ -49,8 +49,8 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   } = useGetNotificationsQuery(
     { limit: 20 },
     {
-      skip: !isAuthenticated,
-      pollingInterval: isOpen ? 15000 : 60000,
+      skip: !isAuthenticated || !isOpen,
+      pollingInterval: isOpen ? 15000 : undefined,
     },
   );
 
