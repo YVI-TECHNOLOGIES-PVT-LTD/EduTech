@@ -1,15 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/context/LanguageContext';
-import {
-  Sparkles,
-  ChevronDown,
-  ChevronRight,
-  User,
-  LogOut,
-  Settings,
-  Building,
-} from 'lucide-react';
+import { Sparkles, ChevronDown, User, LogOut, Settings, Building } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/api-client';
 import { LandingResolver } from '@/services/LandingResolver';
@@ -29,6 +21,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -144,8 +137,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === 'collapsed';
+
+  const handleLinkClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
 
   const rawRoles: string[] =
     Array.isArray(user?.roles) && user.roles.length > 0
@@ -284,6 +283,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       fo_visits: 'navigation.interviews',
       fo_exams: 'navigation.entranceExams',
       fo_decisions: 'navigation.admissionDecisions',
+      fo_helpdesk: 'navigation.helpdesk',
+      adm_helpdesk: 'navigation.helpdesk',
+      fin_helpdesk: 'navigation.helpdesk',
+      gen_helpdesk: 'navigation.helpdesk',
       admin_overview: 'navigation.overview',
       admin_school: 'navigation.schoolSetup',
       admin_staff: 'navigation.staffManagement',
@@ -310,80 +313,104 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
     // If item has children, render expandable parent node
     if (hasChildren) {
+      const parentNode = (
+        <div
+          className={`w-full flex items-center justify-between rounded-xl transition-all ${
+            depth === 0
+              ? 'px-3 py-2 text-xs font-bold min-h-[38px]'
+              : 'px-2.5 py-1.5 text-[11px] font-semibold min-h-[32px]'
+          } ${
+            isDirectActive
+              ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs font-extrabold'
+              : isSubActive
+                ? 'bg-sidebar-accent/60 text-sidebar-foreground font-bold'
+                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          }`}
+        >
+          {/* Left Action: Navigate or Toggle */}
+          <Link
+            to={item.url}
+            onClick={(e) => {
+              handleLinkClick();
+              if (!item.url || item.url === '#') {
+                e.preventDefault();
+                toggleExpanded(item.id);
+              }
+            }}
+            className="flex-1 flex items-center gap-2.5 min-w-0 group-data-[collapsible=icon]:justify-center cursor-pointer"
+          >
+            <Icon
+              className={`shrink-0 w-4 h-4 transition-colors ${
+                isDirectActive
+                  ? 'text-white dark:text-black'
+                  : isSubActive
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-sidebar-foreground/70'
+              }`}
+            />
+            {!isCollapsed && <span className="truncate">{itemTitle}</span>}
+          </Link>
+
+          {/* Badge if present */}
+          {!isCollapsed && item.badge && (
+            <span className="ms-auto me-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
+              {item.badge}
+            </span>
+          )}
+
+          {/* Right Action: Expand/Collapse Chevron Button */}
+          {!isCollapsed && (
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              aria-controls={`subnav-${item.id}`}
+              aria-label={`Toggle ${itemTitle}`}
+              onClick={(e) => toggleExpanded(item.id, e)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleExpanded(item.id, e);
+                }
+              }}
+              className={`p-1 rounded-lg hover:bg-sidebar-border/40 transition-colors cursor-pointer shrink-0 ms-1 ${
+                isDirectActive ? 'text-white dark:text-black' : 'text-sidebar-foreground/60'
+              }`}
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  isExpanded ? 'rotate-0' : '-rotate-90'
+                }`}
+              />
+            </button>
+          )}
+        </div>
+      );
+
       return (
         <SidebarMenuItem
           key={item.id}
           className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center select-none"
         >
-          <div
-            className={`w-full flex items-center justify-between rounded-xl transition-all ${
-              depth === 0
-                ? 'px-2.5 py-2 text-xs font-bold'
-                : 'px-2 py-1.5 text-[11px] font-semibold'
-            } ${
-              isDirectActive
-                ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs font-extrabold'
-                : isSubActive
-                  ? 'bg-sidebar-accent/50 text-sidebar-foreground font-bold'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-            }`}
-          >
-            {/* Left Action: Navigate or Toggle */}
-            <Link
-              to={item.url}
-              onClick={(e) => {
-                if (!item.url || item.url === '#') {
-                  e.preventDefault();
-                  toggleExpanded(item.id);
-                }
-              }}
-              className="flex-1 flex items-center gap-2.5 min-w-0 group-data-[collapsible=icon]:justify-center cursor-pointer"
-              title={isCollapsed ? itemTitle : undefined}
-            >
-              <Icon
-                className={`shrink-0 ${depth === 0 ? 'w-4 h-4' : 'w-3.5 h-3.5'} ${
-                  isDirectActive
-                    ? 'text-white dark:text-black'
-                    : isSubActive
-                      ? 'text-indigo-600 dark:text-indigo-400'
-                      : 'text-sidebar-foreground/70'
-                }`}
-              />
-              {!isCollapsed && <span className="truncate">{itemTitle}</span>}
-            </Link>
-
-            {/* Right Action: Expand/Collapse Chevron Button */}
-            {!isCollapsed && (
-              <button
-                type="button"
-                aria-expanded={isExpanded}
-                aria-controls={`subnav-${item.id}`}
-                aria-label={`Toggle ${itemTitle}`}
-                onClick={(e) => toggleExpanded(item.id, e)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleExpanded(item.id, e);
-                  }
-                }}
-                className={`p-1 rounded-lg hover:bg-sidebar-border/40 transition-transform cursor-pointer shrink-0 ${
-                  isDirectActive ? 'text-white dark:text-black' : 'text-sidebar-foreground/60'
-                }`}
+          {isCollapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>{parentNode}</TooltipTrigger>
+              <TooltipContent
+                side="right"
+                align="center"
+                className="text-xs font-semibold px-2.5 py-1 z-50"
               >
-                {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                )}
-              </button>
-            )}
-          </div>
+                {itemTitle}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            parentNode
+          )}
 
           {/* Render Nested Children when Expanded */}
           {!isCollapsed && isExpanded && (
             <SidebarMenuSub
               id={`subnav-${item.id}`}
-              className="ms-3 ps-2 border-s border-sidebar-border/60 space-y-0.5 my-1"
+              className="ms-3 ps-2.5 border-s border-sidebar-border/60 space-y-0.5 my-1"
             >
               {children!.map((child) => renderNavigationItem(child, depth + 1))}
             </SidebarMenuSub>
@@ -393,29 +420,53 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
     }
 
     // Leaf node: standard navigation link button
+    const leafNode = (
+      <Link
+        to={item.url}
+        onClick={handleLinkClick}
+        className={`w-full flex items-center gap-2.5 rounded-xl transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 cursor-pointer ${
+          depth === 0
+            ? 'px-3 py-2 text-xs font-bold min-h-[38px]'
+            : 'px-2.5 py-1.5 text-[11px] font-semibold min-h-[32px]'
+        } ${
+          isDirectActive
+            ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs font-extrabold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+        }`}
+      >
+        <Icon
+          className={`shrink-0 w-4 h-4 transition-colors ${
+            isDirectActive ? 'text-white dark:text-black' : 'text-sidebar-foreground/70'
+          }`}
+        />
+        {!isCollapsed && <span className="truncate">{itemTitle}</span>}
+        {!isCollapsed && item.badge && (
+          <span className="ms-auto inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    );
+
     return (
       <SidebarMenuItem
         key={item.id}
         className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
       >
-        <Link
-          to={item.url}
-          title={isCollapsed ? itemTitle : undefined}
-          className={`w-full flex items-center gap-2.5 rounded-xl transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 cursor-pointer ${
-            depth === 0 ? 'px-2.5 py-2 text-xs font-bold' : 'px-2 py-1.5 text-[11px] font-semibold'
-          } ${
-            isDirectActive
-              ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs font-extrabold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-          }`}
-        >
-          <Icon
-            className={`shrink-0 ${depth === 0 ? 'w-4 h-4' : 'w-3.5 h-3.5'} ${
-              isDirectActive ? 'text-white dark:text-black' : 'text-sidebar-foreground/70'
-            }`}
-          />
-          {!isCollapsed && <span className="truncate">{itemTitle}</span>}
-        </Link>
+        {isCollapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{leafNode}</TooltipTrigger>
+            <TooltipContent
+              side="right"
+              align="center"
+              className="text-xs font-semibold px-2.5 py-1 z-50"
+            >
+              {itemTitle}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          leafNode
+        )}
       </SidebarMenuItem>
     );
   };
@@ -426,6 +477,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       <SidebarHeader className="p-3.5 border-b border-sidebar-border group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
         <Link
           to={homeUrl}
+          onClick={handleLinkClick}
           className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center"
         >
           <img
@@ -448,7 +500,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
       </SidebarHeader>
 
       {/* 2. Content with Dynamic Recursive Navigation Groups & Sub-items */}
-      <SidebarContent className="p-2 space-y-4">
+      <SidebarContent className="p-2 space-y-3 overflow-y-auto overflow-x-hidden scrollbar-thin">
         {navGroups.map((group) => (
           <SidebarGroup key={group.id}>
             {!isCollapsed && (

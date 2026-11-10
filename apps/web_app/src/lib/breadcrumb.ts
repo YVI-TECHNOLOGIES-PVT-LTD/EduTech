@@ -7,6 +7,11 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
   // Root
   app: 'Home',
   dashboard: 'Dashboard',
+  'front-office': 'Front Office',
+  communication: 'Communication',
+  feeds: 'Feeds & Announcements',
+  helpdesk: 'Helpdesk Tickets',
+  escalation: 'Ticket Escalation',
   assessment: 'Assessment Platform',
   questions: 'Question Bank',
   templates: 'Template Builder',

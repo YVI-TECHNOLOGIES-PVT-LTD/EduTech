@@ -31,6 +31,7 @@ import {
   Bell,
   TrendingUp,
   Compass,
+  LifeBuoy,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -328,7 +329,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
       { id: 'fo_students', title: 'Students', url: '/app/people/students', icon: Users },
       {
         id: 'fo_communication_group',
-        title: 'Communication & Helpdesk',
+        title: 'Communication',
         icon: MessageSquare,
         url: '/app/communication/feeds',
         items: [
@@ -338,13 +339,13 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
             url: '/app/communication/feeds',
             icon: MessageSquare,
           },
-          {
-            id: 'fo_comm_helpdesk',
-            title: 'Helpdesk Tickets',
-            url: '/app/communication/helpdesk',
-            icon: HelpCircle,
-          },
         ],
+      },
+      {
+        id: 'fo_helpdesk',
+        title: 'Helpdesk Tickets',
+        url: '/app/communication/helpdesk',
+        icon: LifeBuoy,
       },
       { id: 'fo_settings', title: 'Settings', url: '/app/settings', icon: Settings },
     ],
@@ -485,7 +486,7 @@ export const FINANCE_NAVIGATION: NavigationGroup[] = [
       },
       {
         id: 'fin_communication_group',
-        title: 'Communication & Helpdesk',
+        title: 'Communication',
         icon: MessageSquare,
         url: '/app/communication/feeds',
         items: [
@@ -496,18 +497,18 @@ export const FINANCE_NAVIGATION: NavigationGroup[] = [
             icon: MessageSquare,
           },
           {
-            id: 'fin_comm_helpdesk',
-            title: 'Helpdesk Tickets',
-            url: '/app/communication/helpdesk',
-            icon: HelpCircle,
-          },
-          {
             id: 'fin_comm_escalation',
             title: 'Ticket Escalation Rules',
             url: '/app/communication/escalation',
             icon: ShieldCheck,
           },
         ],
+      },
+      {
+        id: 'fin_helpdesk',
+        title: 'Helpdesk Tickets',
+        url: '/app/communication/helpdesk',
+        icon: LifeBuoy,
       },
       { id: 'fin_profile', title: 'My Profile', url: '/app/profile', icon: User },
       { id: 'fin_settings', title: 'Settings', url: '/app/settings', icon: Settings },
@@ -613,7 +614,7 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
       { id: 'adm_import', title: 'Import History', url: '/app/import/history', icon: FileText },
       {
         id: 'adm_communication_group',
-        title: 'Communication & Helpdesk',
+        title: 'Communication',
         icon: MessageSquare,
         url: '/app/communication/feeds',
         items: [
@@ -624,18 +625,18 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
             icon: MessageSquare,
           },
           {
-            id: 'adm_comm_helpdesk',
-            title: 'Helpdesk Tickets',
-            url: '/app/communication/helpdesk',
-            icon: HelpCircle,
-          },
-          {
             id: 'adm_comm_escalation',
             title: 'Ticket Escalation Rules',
             url: '/app/communication/escalation',
             icon: ShieldCheck,
           },
         ],
+      },
+      {
+        id: 'adm_helpdesk',
+        title: 'Helpdesk Tickets',
+        url: '/app/communication/helpdesk',
+        icon: LifeBuoy,
       },
       { id: 'adm_settings', title: 'Settings', url: '/app/settings', icon: Settings },
     ],
@@ -651,7 +652,7 @@ export const GENERAL_NAVIGATION: NavigationGroup[] = [
       { id: 'gen_dashboard', title: 'Dashboard', url: '/app/dashboard', icon: LayoutDashboard },
       {
         id: 'gen_communication_group',
-        title: 'Communication & Helpdesk',
+        title: 'Communication',
         icon: MessageSquare,
         url: '/app/communication/feeds',
         items: [
@@ -661,13 +662,13 @@ export const GENERAL_NAVIGATION: NavigationGroup[] = [
             url: '/app/communication/feeds',
             icon: MessageSquare,
           },
-          {
-            id: 'gen_comm_helpdesk',
-            title: 'Helpdesk Tickets',
-            url: '/app/communication/helpdesk',
-            icon: HelpCircle,
-          },
         ],
+      },
+      {
+        id: 'gen_helpdesk',
+        title: 'Helpdesk Tickets',
+        url: '/app/communication/helpdesk',
+        icon: LifeBuoy,
       },
       { id: 'gen_profile', title: 'My Profile', url: '/app/profile', icon: User },
       { id: 'gen_settings', title: 'Settings', url: '/app/settings', icon: Settings },
