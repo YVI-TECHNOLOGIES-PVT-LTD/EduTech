@@ -20,8 +20,8 @@ declare global {
   var __prisma: (PrismaClient & Record<string, any>) | undefined;
 }
 
-// ── Financial Persistence Models ─────────────────────────────────────────────
-// Financial persistence models must NEVER silently route writes to memory.
+// ── Financial & Resource Persistence Models ──────────────────────────────────
+// Persistence models must NEVER silently route writes to memory.
 // Any direct write on these models without a physical Prisma delegate fails explicitly.
 const FINANCIAL_PERSISTENCE_MODELS = new Set([
   'payment_orders',
@@ -32,6 +32,43 @@ const FINANCIAL_PERSISTENCE_MODELS = new Set([
   'student_charge_dues',
   'scholarship_concessions',
   'scholarship_concession_approval_history',
+  'learning_resources',
+  'resource_categories',
+  'learning_resource_grades',
+  'learning_resource_shares',
+  'learning_resource_tags',
+  'resource_tags',
+  'curriculum_plans',
+  'curriculum_plan_units',
+  'curriculum_learning_outcomes',
+  'academic_calendars',
+  'academic_terms',
+  'academic_calendar_entries',
+  'academic_calendar_entry_grades',
+  'academic_calendar_working_days',
+  'subjects',
+  'subject_categories',
+  'academic_year_grade_subjects',
+  'learning_resource_subjects',
+  'academic_year_curriculum_mappings',
+  'curriculum_frameworks',
+  'curriculum_framework_versions',
+  'timetable_versions',
+  'timetable_entries',
+  'timetable_publication_history',
+  'bell_schedules',
+  'bell_schedule_days',
+  'bell_schedule_periods',
+  'classrooms',
+  'section_subject_faculty_assignments',
+  'staff_unavailable_slots',
+  'staff_subject_qualifications',
+  'lesson_plans',
+  'lesson_plan_outcomes',
+  'lesson_plan_resources',
+  'lesson_activities',
+  'lesson_differentiation_strategies',
+  'lesson_exit_tickets',
 ]);
 
 function createStrictFinancialDelegate(modelName: string) {

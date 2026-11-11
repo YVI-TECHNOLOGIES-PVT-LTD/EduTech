@@ -96,6 +96,54 @@ const MyFees = React.lazy(() =>
   import('../modules/fees/pages/MyFees').then((m) => ({ default: m.MyFees })),
 );
 
+const SuperAdminDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/SuperAdminDashboard').then((m) => ({
+    default: m.SuperAdminDashboard,
+  })),
+);
+
+const TeacherDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/TeacherDashboard').then((m) => ({
+    default: m.TeacherDashboard,
+  })),
+);
+
+const TeacherClassesPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherClassesPage').then((m) => ({
+    default: m.TeacherClassesPage,
+  })),
+);
+
+const TeacherTimetablePage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherTimetablePage').then((m) => ({
+    default: m.TeacherTimetablePage,
+  })),
+);
+
+const TeacherSubjectsPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherSubjectsPage').then((m) => ({
+    default: m.TeacherSubjectsPage,
+  })),
+);
+
+const TeacherCurriculumPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherCurriculumPage').then((m) => ({
+    default: m.TeacherCurriculumPage,
+  })),
+);
+
+const TeacherLessonPlansPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherLessonPlansPage').then((m) => ({
+    default: m.TeacherLessonPlansPage,
+  })),
+);
+
+const TeacherWorkloadPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherWorkloadPage').then((m) => ({
+    default: m.TeacherWorkloadPage,
+  })),
+);
+
 export interface RouteConfig {
   path: string;
   element: React.ReactNode;
@@ -109,6 +157,8 @@ export interface RouteConfig {
     | 'front_office'
     | 'parent'
     | 'admin'
+    | 'super_admin'
+    | 'teacher'
     | 'none';
 }
 
@@ -138,6 +188,54 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
     guardType: 'admin',
+  },
+  {
+    path: 'super-admin/dashboard',
+    element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'teacher/dashboard',
+    element: <TeacherDashboard />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/classes',
+    element: <TeacherClassesPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/timetable',
+    element: <TeacherTimetablePage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/subjects',
+    element: <TeacherSubjectsPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/curriculum',
+    element: <TeacherCurriculumPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/lesson-plans',
+    element: <TeacherLessonPlansPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/workload',
+    element: <TeacherWorkloadPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
   },
   {
     path: 'faculty/dashboard',

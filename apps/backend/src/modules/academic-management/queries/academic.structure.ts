@@ -4,9 +4,12 @@ import { AcademicMapper } from '../mappers/academic.mapper';
 const db: any = prisma;
 
 export class AcademicStructureQuery {
-  static async getFullStructure(academicYearId: string) {
-    const year = await db.academic_years.findUnique({
-      where: { academic_year_id: academicYearId },
+  static async getFullStructure(orgId: string, academicYearId: string) {
+    const year = await db.academic_years.findFirst({
+      where: {
+        academic_year_id: academicYearId,
+        org_id: orgId,
+      },
       include: {
         academic_year_grades: {
           include: {
@@ -17,6 +20,7 @@ export class AcademicStructureQuery {
                   include: { users_staff_user_idTousers: true },
                 },
               },
+              orderBy: { section_name: 'asc' },
             },
           },
           orderBy: { grades: { display_order: 'asc' } },

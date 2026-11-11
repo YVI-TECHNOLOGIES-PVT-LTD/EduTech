@@ -1,0 +1,837 @@
+{
+  "info": {
+    "name": "EduTrack ERP — Phase 2: Academic Year Configuration",
+    "description": "Complete Postman collection for testing and validating Phase 2: Academic Year Configuration (Academic Years, Grades, Grade Offerings, Sections, Class Teacher Assignment, Overview & Dashboard) with Multi-Tenant Security and RBAC validation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenantBToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "academicYearId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gradeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "academicYearGradeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sectionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staffId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Authentication",
+      "item": [
+        {
+          "name": "Login as Tenant A Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set('authToken', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tenanta.edu\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as Tenant B Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set('tenantBToken', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tenantb.edu\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Academic Year Management",
+      "item": [
+        {
+          "name": "Create Academic Year",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.academic_year_id) {",
+                  "    pm.collectionVariables.set('academicYearId', res.data.academic_year_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academic_year_name\": \"2026-2027\",\n  \"start_date\": \"2026-06-01T00:00:00.000Z\",\n  \"end_date\": \"2027-04-30T00:00:00.000Z\",\n  \"status\": \"planning\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years"]
+            }
+          }
+        },
+        {
+          "name": "List Academic Years",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Academic Year By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Academic Year",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"open\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}"]
+            }
+          }
+        },
+        {
+          "name": "Set Current Academic Year",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}/set-current",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}", "set-current"]
+            }
+          }
+        },
+        {
+          "name": "Get Current Academic Year",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "current"]
+            }
+          }
+        },
+        {
+          "name": "Get Academic Year Tree Structure",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}/structure",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}", "structure"]
+            }
+          }
+        },
+        {
+          "name": "Archive Academic Year",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}/archive",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}", "archive"]
+            }
+          }
+        },
+        {
+          "name": "Tenant Isolation: Cross-Tenant Year Access (404 expected)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cross-tenant returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tenantBToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Grade Management",
+      "item": [
+        {
+          "name": "Create Grade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.grade_id) {",
+                  "    pm.collectionVariables.set('gradeId', res.data.grade_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grade_code\": \"G10\",\n  \"grade_name\": \"Grade 10\",\n  \"display_order\": 10,\n  \"stage\": \"SECONDARY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/grades",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "grades"]
+            }
+          }
+        },
+        {
+          "name": "List Grades",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/grades?is_active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "grades"],
+              "query": [{ "key": "is_active", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "Get Grade By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/grades/{{gradeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "grades", "{{gradeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Grade",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grade_name\": \"Grade 10 - High School\",\n  \"display_order\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/grades/{{gradeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "grades", "{{gradeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Prevent Duplicate Grade Code (409 expected)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Conflict 409 returned for duplicate code', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grade_code\": \"G10\",\n  \"grade_name\": \"Duplicate Grade 10\",\n  \"display_order\": 11\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/grades",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "grades"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Academic Year Grade Offerings",
+      "item": [
+        {
+          "name": "Map Grade to Academic Year",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.academic_year_grade_id) {",
+                  "    pm.collectionVariables.set('academicYearGradeId', res.data.academic_year_grade_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grade_id\": \"{{gradeId}}\",\n  \"capacity\": 120\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}/grades",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}", "grades"]
+            }
+          }
+        },
+        {
+          "name": "List Grade Offerings for Academic Year",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/years/{{academicYearId}}/grades",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "years", "{{academicYearId}}", "grades"]
+            }
+          }
+        },
+        {
+          "name": "Get Grade Offering By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/year-grades/{{academicYearGradeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "year-grades", "{{academicYearGradeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Grade Offering Capacity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 150,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/year-grades/{{academicYearGradeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "year-grades", "{{academicYearGradeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Grade Offering",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/year-grades/{{academicYearGradeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "year-grades", "{{academicYearGradeId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Section Management",
+      "item": [
+        {
+          "name": "Create Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.section_id) {",
+                  "    pm.collectionVariables.set('sectionId', res.data.section_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academic_year_grade_id\": \"{{academicYearGradeId}}\",\n  \"section_name\": \"Section A\",\n  \"capacity\": 40,\n  \"room_number\": \"101\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections"]
+            }
+          }
+        },
+        {
+          "name": "List Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections?academic_year_grade_id={{academicYearGradeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections"],
+              "query": [{ "key": "academic_year_grade_id", "value": "{{academicYearGradeId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Section By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections/{{sectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections", "{{sectionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Section",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 45,\n  \"room_number\": \"102-North\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections/{{sectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections", "{{sectionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Section (Safe Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections/{{sectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections", "{{sectionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Faculty Assignment",
+      "item": [
+        {
+          "name": "Assign Class Teacher",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"class_teacher_id\": \"{{staffId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections/{{sectionId}}/class-teacher",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections", "{{sectionId}}", "class-teacher"]
+            }
+          }
+        },
+        {
+          "name": "Remove Class Teacher",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"class_teacher_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/sections/{{sectionId}}/class-teacher",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "sections", "{{sectionId}}", "class-teacher"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Academic Overview & UI Compatibility",
+      "item": [
+        {
+          "name": "Get Academic Setup Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "overview"]
+            }
+          }
+        },
+        {
+          "name": "Get Academic Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Classes (UI Backward Compatibility)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/academic/classes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "academic", "classes"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

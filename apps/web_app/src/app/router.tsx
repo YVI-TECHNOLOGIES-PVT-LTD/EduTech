@@ -10,6 +10,8 @@ import {
   FrontOfficeRouteGuard,
   ParentRouteGuard,
   AdminRouteGuard,
+  SuperAdminRouteGuard,
+  TeacherRouteGuard,
 } from '../components/auth/ProtectedRoute';
 import { AppShell } from '../components/shell/AppShell';
 import PublicLayout from '../layouts/PublicLayout';
@@ -68,6 +70,10 @@ export const AppRouter = () => {
       el = <ParentRouteGuard>{el}</ParentRouteGuard>;
     } else if (route.guardType === 'admin') {
       el = <AdminRouteGuard>{el}</AdminRouteGuard>;
+    } else if (route.guardType === 'super_admin') {
+      el = <SuperAdminRouteGuard>{el}</SuperAdminRouteGuard>;
+    } else if (route.guardType === 'teacher') {
+      el = <TeacherRouteGuard>{el}</TeacherRouteGuard>;
     } else if (route.guardType === 'admission_inquiry') {
       el = <AdmissionInquiryGuard>{el}</AdmissionInquiryGuard>;
     } else if (route.guardType === 'admission_application') {
