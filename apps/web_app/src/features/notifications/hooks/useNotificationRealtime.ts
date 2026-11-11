@@ -13,6 +13,9 @@ export interface RealtimeNotificationMessage {
   timestamp?: string;
 }
 
+export const MAX_REALTIME_RECONNECT_ATTEMPTS = 5;
+export const MAX_INITIAL_HANDSHAKE_ATTEMPTS = 3;
+
 export function getWebSocketBaseUrl(): string {
   try {
     const defaultHost =
@@ -49,6 +52,7 @@ export function useNotificationRealtime() {
   const dispatch = useAppDispatch();
   const authState = useAppSelector((state) => state.auth);
   const isAuthenticated = authState.isAuthenticated;
+  const isInitializing = authState.isInitializing;
   const accessToken =
     authState.accessToken ||
     (() => {
@@ -61,23 +65,53 @@ export function useNotificationRealtime() {
 
   const [status, setStatus] = useState<RealtimeStatus>('DISCONNECTED');
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cancelledSocketsRef = useRef<WeakSet<WebSocket>>(new WeakSet());
+  const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef<number>(0);
+  const hasConnectedRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const activeTokenRef = useRef<string | null>(null);
+
+  const safeTeardownSocket = useCallback((ws: WebSocket | null, reason: string) => {
+    if (!ws) return;
+    if (ws.readyState === WebSocket.CONNECTING) {
+      // Never abort a CONNECTING WebSocket synchronously; let onopen close it gracefully
+      // to avoid browser "Connection interrupted while page is loading" errors under StrictMode.
+      cancelledSocketsRef.current.add(ws);
+      return;
+    }
+    if (ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.close(1000, reason);
+      } catch {
+        // Ignore close errors during teardown
+      }
+    }
+  }, []);
 
   const connect = useCallback(() => {
-    if (!isAuthenticated || !accessToken) {
+    if (!isAuthenticated || isInitializing || !accessToken) {
       if (socketRef.current) {
-        socketRef.current.close();
+        safeTeardownSocket(socketRef.current, 'User logged out');
         socketRef.current = null;
       }
+      activeTokenRef.current = null;
       setStatus('DISCONNECTED');
       return;
     }
 
-    // Clean up any existing connection
-    if (socketRef.current) {
-      socketRef.current.close();
+    const existing = socketRef.current;
+    if (
+      existing &&
+      activeTokenRef.current === accessToken &&
+      (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
+    if (existing) {
+      safeTeardownSocket(existing, 'Replacing connection');
       socketRef.current = null;
     }
 
@@ -87,9 +121,22 @@ export function useNotificationRealtime() {
       const wsEndpoint = `${wsUrl}?token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsEndpoint);
       socketRef.current = ws;
+      activeTokenRef.current = accessToken;
 
       ws.onopen = () => {
-        if (!isMountedRef.current) return;
+        if (
+          !isMountedRef.current ||
+          cancelledSocketsRef.current.has(ws) ||
+          socketRef.current !== ws
+        ) {
+          try {
+            ws.close(1000, 'Cancelled after handshake');
+          } catch {
+            // Ignore close errors
+          }
+          return;
+        }
+        hasConnectedRef.current = true;
         setStatus('CONNECTED');
         attemptsRef.current = 0;
         // Invalidate tags on connect/reconnect so missed notifications while offline are loaded from DB
@@ -97,7 +144,7 @@ export function useNotificationRealtime() {
       };
 
       ws.onmessage = (event) => {
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || cancelledSocketsRef.current.has(ws)) return;
         try {
           const payload: RealtimeNotificationMessage = JSON.parse(event.data);
           const type = payload?.type;
@@ -157,16 +204,34 @@ export function useNotificationRealtime() {
       };
 
       ws.onclose = (event) => {
-        if (!isMountedRef.current) return;
+        if (cancelledSocketsRef.current.has(ws) || socketRef.current !== ws) {
+          return;
+        }
         socketRef.current = null;
+        if (!isMountedRef.current) return;
         setStatus('DISCONNECTED');
 
-        // Do not auto-reconnect if closed normally or unauthorized
-        if (event.code === 1000 || event.code === 4401 || !isAuthenticated) {
+        // Do not auto-reconnect if closed normally, unauthorized/policy-rejected, or unauthenticated
+        if (
+          event.code === 1000 ||
+          event.code === 1008 ||
+          event.code === 4401 ||
+          event.code === 4403 ||
+          !isAuthenticated ||
+          isInitializing ||
+          !accessToken
+        ) {
           return;
         }
 
-        // Exponential backoff reconnect: 1s, 2s, 4s, up to 15s max
+        const maxAttempts = hasConnectedRef.current
+          ? MAX_REALTIME_RECONNECT_ATTEMPTS
+          : MAX_INITIAL_HANDSHAKE_ATTEMPTS;
+        if (attemptsRef.current >= maxAttempts) {
+          return;
+        }
+
+        // Exponential backoff reconnect: 1s, 1.5s, 2.25s, ... up to 15s max
         const backoffMs = Math.min(1000 * Math.pow(1.5, attemptsRef.current), 15000);
         attemptsRef.current += 1;
 
@@ -174,44 +239,64 @@ export function useNotificationRealtime() {
           clearTimeout(reconnectTimeoutRef.current);
         }
         reconnectTimeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current && isAuthenticated) {
+          if (isMountedRef.current && isAuthenticated && !isInitializing && accessToken) {
             connect();
           }
         }, backoffMs);
       };
 
       ws.onerror = () => {
-        // Silently handle errors, onclose will trigger backoff retry
+        // Handled cleanly in onclose with bounded backoff
       };
     } catch {
       setStatus('DISCONNECTED');
     }
-  }, [isAuthenticated, accessToken, dispatch]);
+  }, [isAuthenticated, isInitializing, accessToken, dispatch, safeTeardownSocket]);
 
   useEffect(() => {
     isMountedRef.current = true;
-    if (isAuthenticated && accessToken) {
-      connect();
+    attemptsRef.current = 0;
+    hasConnectedRef.current = false;
+
+    if (startupTimeoutRef.current) {
+      clearTimeout(startupTimeoutRef.current);
+      startupTimeoutRef.current = null;
+    }
+
+    if (isAuthenticated && !isInitializing && accessToken) {
+      // Short startup debounce avoids aborting initial handshake on React StrictMode mount/unmount cycles.
+      startupTimeoutRef.current = setTimeout(() => {
+        startupTimeoutRef.current = null;
+        if (isMountedRef.current) {
+          connect();
+        }
+      }, 60);
     } else {
       if (socketRef.current) {
-        socketRef.current.close(1000, 'User logged out');
+        safeTeardownSocket(socketRef.current, 'User logged out');
         socketRef.current = null;
       }
+      activeTokenRef.current = null;
       setStatus('DISCONNECTED');
     }
 
     return () => {
       isMountedRef.current = false;
+      if (startupTimeoutRef.current) {
+        clearTimeout(startupTimeoutRef.current);
+        startupTimeoutRef.current = null;
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
       if (socketRef.current) {
-        socketRef.current.close(1000, 'Component unmounted');
+        safeTeardownSocket(socketRef.current, 'Component unmounted');
         socketRef.current = null;
       }
+      activeTokenRef.current = null;
     };
-  }, [isAuthenticated, accessToken, connect]);
+  }, [isAuthenticated, isInitializing, accessToken, connect, safeTeardownSocket]);
 
   return { status };
 }

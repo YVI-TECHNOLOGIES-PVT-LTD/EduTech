@@ -80,11 +80,9 @@ dashboardRouter.get(
   '/admin/overview',
   checkPermission(PERMISSIONS.DASHBOARD_VIEW_ADMIN),
   async (req: Request, res: Response) => {
-    const orgId =
-      req.context?.user?.org_id ||
-      req.context?.user?.school_id ||
-      (req as any).user?.org_id ||
-      (req as any).user?.school_id;
+    // Strictly derive tenant identity from authenticated context (ignore client query/header overrides)
+    const authenticatedUser = req.context?.user;
+    const orgId = authenticatedUser?.org_id || authenticatedUser?.school_id;
 
     if (!orgId) {
       return res.status(403).json({
@@ -94,35 +92,56 @@ dashboardRouter.get(
     }
 
     try {
-      const [studentsCount, sectionsCount, pendingAdmissionsCount, totalApplicationsCount, feeAgg] =
-        await Promise.all([
-          prisma.students.count({
-            where: { org_id: orgId, status: 'active' },
-          }),
-          prisma.sections.count({
-            where: { academic_year_grades: { academic_years: { org_id: orgId } } },
-          }),
-          prisma.admissions_applications.count({
-            where: {
-              org_id: orgId,
-              status: { in: ['submitted', 'under_review', 'documents_pending'] },
-            },
-          }),
-          prisma.admissions_applications.count({
-            where: { org_id: orgId },
-          }),
-          prisma.payment_transactions.aggregate({
-            where: {
-              payment_orders: {
-                students: {
-                  org_id: orgId,
-                },
+      const results = await Promise.allSettled([
+        prisma.students.count({
+          where: { org_id: orgId, status: 'active' },
+        }),
+        prisma.sections.count({
+          where: { academic_year_grades: { academic_years: { org_id: orgId } } },
+        }),
+        prisma.admissions_applications.count({
+          where: {
+            org_id: orgId,
+            status: { in: ['submitted', 'under_review', 'documents_pending'] },
+          },
+        }),
+        prisma.admissions_applications.count({
+          where: { org_id: orgId },
+        }),
+        prisma.payment_transactions.aggregate({
+          where: {
+            payment_orders: {
+              students: {
+                org_id: orgId,
               },
-              status: 'success',
             },
-            _sum: { amount: true },
-          }),
-        ]);
+            status: 'success',
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const [studentsRes, sectionsRes, pendingAdmissionsRes, totalApplicationsRes, feeAggRes] =
+        results;
+
+      if (results.every((r) => r.status === 'rejected')) {
+        const firstErr = (results[0] as PromiseRejectedResult).reason;
+        throw firstErr;
+      }
+
+      const safeValue = <T>(result: PromiseSettledResult<T>, label: string, fallback: T): T => {
+        if (result.status === 'fulfilled') return result.value;
+        console.warn(`[DashboardRouter] Optional metric "${label}" failed on /admin/overview:`, {
+          message: result.reason?.message || String(result.reason),
+        });
+        return fallback;
+      };
+
+      const studentsCount = safeValue(studentsRes, 'students', 0);
+      const sectionsCount = safeValue(sectionsRes, 'sections', 0);
+      const pendingAdmissionsCount = safeValue(pendingAdmissionsRes, 'pendingAdmissions', 0);
+      const totalApplicationsCount = safeValue(totalApplicationsRes, 'totalApplications', 0);
+      const feeAgg = safeValue(feeAggRes, 'feeCollection', { _sum: { amount: null } });
 
       const feeCollection = Number(feeAgg?._sum?.amount || 0);
       const attendanceRate = '0 Sessions Today';
@@ -138,7 +157,7 @@ dashboardRouter.get(
       });
     } catch (err: any) {
       console.error('[DASHBOARD ERROR]', err);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: err?.message || 'Failed to load admin dashboard overview' });
     }
   },
 );

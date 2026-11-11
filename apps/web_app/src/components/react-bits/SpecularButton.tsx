@@ -128,7 +128,17 @@ export const SpecularButton = React.forwardRef<HTMLButtonElement, SpecularButton
     const containerRef = useRef<HTMLButtonElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
+    const [webglFailed, setWebglFailed] = useState(false);
+
+    const isHoveredRef = useRef(false);
+    const autoAnimateRef = useRef(autoAnimate);
+    const speedRef = useRef(speed);
+    const mouseRef = useRef<[number, number] | null>(null);
+    const uniformsRef = useRef<Record<string, { value: any }> | null>(null);
+    const startLoopRef = useRef<(() => void) | null>(null);
+
+    autoAnimateRef.current = autoAnimate;
+    speedRef.current = speed;
 
     // Merge forwarded ref
     useEffect(() => {
@@ -150,16 +160,53 @@ export const SpecularButton = React.forwardRef<HTMLButtonElement, SpecularButton
       return () => mediaQuery.removeEventListener('change', listener);
     }, []);
 
-    // WebGL Renderer Lifecycle using OGL
+    // Sync shader uniforms cleanly without recreating the WebGL context
+    useEffect(() => {
+      const uniforms = uniformsRef.current;
+      if (!uniforms) return;
+      uniforms.uBaseColor.value = parseColorToRGB(baseColor, [0.02, 0.25, 0.25]);
+      uniforms.uLineColor.value = parseColorToRGB(lineColor, [0.37, 0.92, 0.83]);
+      uniforms.uTint.value = parseColorToRGB(tint, [0.08, 0.72, 0.65]);
+      uniforms.uTintOpacity.value = tintOpacity;
+      uniforms.uIntensity.value = intensity;
+      uniforms.uShineSize.value = shineSize;
+      uniforms.uThickness.value = thickness;
+      if (autoAnimate) {
+        startLoopRef.current?.();
+      }
+    }, [baseColor, lineColor, tint, tintOpacity, intensity, shineSize, thickness, autoAnimate]);
+
+    // WebGL Renderer Lifecycle using OGL (created once per active mount; never torn down on hover)
     useEffect(() => {
       const button = containerRef.current;
       const canvas = canvasRef.current;
-      if (!button || !canvas || prefersReducedMotion || disabled) return;
+      if (!button || !canvas || prefersReducedMotion || disabled || webglFailed) return;
 
       let renderer: Renderer | null = null;
       let animationFrameId: number | null = null;
       let mesh: Mesh | null = null;
       let program: Program | null = null;
+      let resizeObserver: ResizeObserver | null = null;
+      let isDisposed = false;
+      let isContextLost = false;
+
+      const handleContextLost = (e: Event) => {
+        e.preventDefault();
+        isContextLost = true;
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        setWebglFailed(true);
+      };
+
+      const handleContextRestored = () => {
+        isContextLost = false;
+        setWebglFailed(false);
+      };
+
+      canvas.addEventListener('webglcontextlost', handleContextLost, false);
+      canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
       try {
         renderer = new Renderer({
@@ -170,11 +217,20 @@ export const SpecularButton = React.forwardRef<HTMLButtonElement, SpecularButton
         });
 
         const gl = renderer.gl;
+        if (!gl || gl.isContextLost()) {
+          setWebglFailed(true);
+          canvas.removeEventListener('webglcontextlost', handleContextLost);
+          canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+          return;
+        }
+
         const geometry = new Triangle(gl);
+        const initW = Math.max(button.clientWidth, 1);
+        const initH = Math.max(button.clientHeight, 1);
 
         const uniforms = {
-          uResolution: { value: [button.clientWidth, button.clientHeight] },
-          uMouse: { value: [button.clientWidth * 0.5, button.clientHeight * 0.5] },
+          uResolution: { value: [initW, initH] },
+          uMouse: { value: mouseRef.current ?? [initW * 0.5, initH * 0.5] },
           uTime: { value: 0 },
           uBaseColor: { value: parseColorToRGB(baseColor, [0.02, 0.25, 0.25]) },
           uLineColor: { value: parseColorToRGB(lineColor, [0.37, 0.92, 0.83]) },
@@ -183,8 +239,9 @@ export const SpecularButton = React.forwardRef<HTMLButtonElement, SpecularButton
           uIntensity: { value: intensity },
           uShineSize: { value: shineSize },
           uThickness: { value: thickness },
-          uHover: { value: autoAnimate ? 1.0 : 0.0 },
+          uHover: { value: autoAnimateRef.current ? 1.0 : 0.0 },
         };
+        uniformsRef.current = uniforms;
 
         program = new Program(gl, {
           vertex: vert,
@@ -195,95 +252,130 @@ export const SpecularButton = React.forwardRef<HTMLButtonElement, SpecularButton
 
         mesh = new Mesh(gl, { geometry, program });
 
+        const renderFrame = () => {
+          if (isDisposed || isContextLost || !renderer || !mesh || gl.isContextLost()) {
+            return false;
+          }
+          try {
+            renderer.render({ scene: mesh });
+            return true;
+          } catch {
+            setWebglFailed(true);
+            return false;
+          }
+        };
+
         const resize = () => {
-          if (!button || !renderer) return;
+          if (isDisposed || isContextLost || !button || !renderer || gl.isContextLost()) return;
           const width = button.clientWidth;
           const height = button.clientHeight;
           if (width === 0 || height === 0) return;
           renderer.setSize(width, height);
           uniforms.uResolution.value = [width, height];
+          if (!mouseRef.current) {
+            uniforms.uMouse.value = [width * 0.5, height * 0.5];
+          }
+          renderFrame();
         };
 
         resize();
 
-        const resizeObserver = new ResizeObserver(resize);
+        resizeObserver = new ResizeObserver(resize);
         resizeObserver.observe(button);
 
-        let startTime = performance.now();
+        const startTime = performance.now();
 
         const renderLoop = (time: number) => {
-          if (!renderer || !mesh) return;
-          uniforms.uTime.value = (time - startTime) * 0.001 * speed;
+          animationFrameId = null;
+          if (isDisposed || isContextLost || !renderer || !mesh || gl.isContextLost()) return;
 
-          // Smooth target hover value interpolation
-          const targetHover = isHovered || autoAnimate ? 1.0 : 0.0;
+          uniforms.uTime.value = (time - startTime) * 0.001 * speedRef.current;
+          if (mouseRef.current) {
+            uniforms.uMouse.value = mouseRef.current;
+          }
+
+          const hoveredOrAuto = isHoveredRef.current || autoAnimateRef.current;
+          const targetHover = hoveredOrAuto ? 1.0 : 0.0;
           uniforms.uHover.value += (targetHover - uniforms.uHover.value) * 0.1;
 
-          renderer.render({ scene: mesh });
+          if (!renderFrame()) return;
 
-          // Only continue loop if active/hovered or autoAnimate to conserve GPU
-          if (isHovered || autoAnimate || uniforms.uHover.value > 0.01) {
+          if (hoveredOrAuto || uniforms.uHover.value > 0.01) {
             animationFrameId = requestAnimationFrame(renderLoop);
-          } else {
-            animationFrameId = null;
           }
         };
 
-        // Trigger initial render
-        renderer.render({ scene: mesh });
-
-        if (isHovered || autoAnimate) {
+        const startLoop = () => {
+          if (isDisposed || isContextLost || animationFrameId !== null) return;
           animationFrameId = requestAnimationFrame(renderLoop);
+        };
+        startLoopRef.current = startLoop;
+
+        renderFrame();
+        if (isHoveredRef.current || autoAnimateRef.current) {
+          startLoop();
         }
 
         return () => {
-          if (animationFrameId) cancelAnimationFrame(animationFrameId);
-          resizeObserver.disconnect();
+          isDisposed = true;
+          startLoopRef.current = null;
+          uniformsRef.current = null;
+          if (animationFrameId !== null) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+          if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver = null;
+          }
+          canvas.removeEventListener('webglcontextlost', handleContextLost);
+          canvas.removeEventListener('webglcontextrestored', handleContextRestored);
           try {
-            const ext = gl.getExtension('WEBGL_lose_context');
-            if (ext) ext.loseContext();
+            if (program && !gl.isContextLost()) {
+              gl.deleteProgram(program.program);
+            }
           } catch {
-            // Context loss fallback
+            // Safe cleanup when WebGL context is unavailable
           }
         };
       } catch {
-        // Fallback gracefully if WebGL is unavailable
+        // Fallback gracefully to CSS surface if WebGL initialization fails
+        setWebglFailed(true);
+        canvas.removeEventListener('webglcontextlost', handleContextLost);
+        canvas.removeEventListener('webglcontextrestored', handleContextRestored);
         return () => {
-          if (animationFrameId) cancelAnimationFrame(animationFrameId);
+          isDisposed = true;
+          startLoopRef.current = null;
+          uniformsRef.current = null;
+          if (animationFrameId !== null) {
+            cancelAnimationFrame(animationFrameId);
+          }
         };
       }
-    }, [
-      baseColor,
-      lineColor,
-      tint,
-      tintOpacity,
-      intensity,
-      shineSize,
-      thickness,
-      speed,
-      autoAnimate,
-      isHovered,
-      prefersReducedMotion,
-      disabled,
-    ]);
+    }, [prefersReducedMotion, disabled, webglFailed]);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!followMouse || disabled || prefersReducedMotion || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      if (followMouse && !disabled && !prefersReducedMotion && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = rect.height - (e.clientY - rect.top);
+        mouseRef.current = [x, y];
+        startLoopRef.current?.();
+      }
       props.onMouseMove?.(e);
     };
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!disabled && !prefersReducedMotion) {
-        setIsHovered(true);
+        isHoveredRef.current = true;
+        startLoopRef.current?.();
       }
       props.onMouseEnter?.(e);
     };
 
     const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
+      isHoveredRef.current = false;
+      startLoopRef.current?.();
       props.onMouseLeave?.(e);
     };
 
@@ -303,7 +395,7 @@ export const SpecularButton = React.forwardRef<HTMLButtonElement, SpecularButton
         )}
         {...props}
       >
-        {!prefersReducedMotion && !disabled && (
+        {!prefersReducedMotion && !disabled && !webglFailed && (
           <canvas ref={canvasRef} aria-hidden="true" className="specular-button__canvas" />
         )}
         <span className={cn('specular-button__content', textColor)}>{children}</span>

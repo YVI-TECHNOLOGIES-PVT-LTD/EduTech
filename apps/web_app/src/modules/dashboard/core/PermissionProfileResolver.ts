@@ -16,7 +16,7 @@ export class PermissionProfileResolver {
     // Determine rendering profile based on positive permission checks
     let profile = DASHBOARD_CONSTANTS.ROLES.FACULTY; // Safe fallback
 
-    if (permsSet.has('admin.dashboard.view')) {
+    if (permsSet.has('admin.dashboard.view') || permsSet.has('DASHBOARD_VIEW_ADMIN')) {
       // Principal/HOI has additional approval capabilities
       if (permsSet.has('admission.approve') || permsSet.has('fees.waiver.approve')) {
         profile = DASHBOARD_CONSTANTS.ROLES.PRINCIPAL;
@@ -37,7 +37,11 @@ export class PermissionProfileResolver {
       profile = DASHBOARD_CONSTANTS.ROLES.PARENT;
     } else if (permsSet.has('student.dashboard.view') || permsSet.has('STUDENT_VIEW_SELF')) {
       profile = DASHBOARD_CONSTANTS.ROLES.STUDENT;
-    } else if (permsSet.has('faculty.dashboard.view') || permsSet.has('exam.marks.enter')) {
+    } else if (
+      permsSet.has('faculty.dashboard.view') ||
+      permsSet.has('DASHBOARD_VIEW_FACULTY') ||
+      permsSet.has('exam.marks.enter')
+    ) {
       profile = DASHBOARD_CONSTANTS.ROLES.FACULTY;
     }
 

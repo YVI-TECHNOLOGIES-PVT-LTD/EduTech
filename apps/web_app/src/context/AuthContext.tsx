@@ -20,6 +20,7 @@ import {
   getCurrentSessionGeneration,
   getNextSessionGeneration,
 } from '../lib/auth/sessionReset';
+import { LandingResolver } from '../services/LandingResolver';
 
 export type AuthBoundaryState = 'initializing' | 'stable' | 'switching' | 'signed_out';
 
@@ -89,7 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (res.data?.user) {
           const enrichedUser: EnrichedUser = res.data.user;
-          const userRoles = [...(enrichedUser.roles || [])];
+          const userRoles = Array.from(
+            new Set(
+              (enrichedUser.roles || [])
+                .map((r: string) => LandingResolver.normalizeRole(r))
+                .filter(Boolean),
+            ),
+          );
+          enrichedUser.roles = userRoles;
           const isParent = userRoles.some((r) =>
             ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
           );
@@ -316,46 +324,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = useCallback(
     (code: string): boolean => {
+      const rawPermissions =
+        userPermissions && userPermissions.length > 0 ? userPermissions : user?.permissions || [];
+      if (rawPermissions.includes(code)) {
+        return true;
+      }
+
       const rawRoles =
         userRoles && userRoles.length > 0
           ? userRoles
           : user?.roles || ((user as any)?.role ? [(user as any).role] : []);
-      const normalized = rawRoles.map((r: string) =>
-        String(r)
-          .toUpperCase()
-          .replace(/[\s_-]+/g, '_'),
-      );
+      const normalized = rawRoles
+        .map((r: string) => LandingResolver.normalizeRole(r))
+        .filter(Boolean);
+
+      // Strictly scope wildcard access to institutional admin leadership only
       if (
-        normalized.includes('ADMIN') ||
-        normalized.includes('SUPERADMIN') ||
-        normalized.includes('SUPER_ADMIN') ||
-        normalized.includes('ORG_ADMIN') ||
-        normalized.includes('EXAM_CELL_ADMIN')
-      )
-        return true;
-      if (
-        normalized.includes('FRONT_OFFICE') ||
-        normalized.includes('FO') ||
-        normalized.includes('RECEPTIONIST') ||
-        normalized.includes('FRONT_OFFICE_STAFF') ||
-        normalized.includes('STAFF') ||
-        normalized.includes('FACULTY') ||
-        normalized.includes('ADMISSION_OFFICER') ||
-        normalized.includes('ADMISSIONS_OFFICER') ||
-        normalized.includes('COUNSELLOR') ||
-        normalized.includes('COUNSELOR') ||
-        normalized.includes('HOI') ||
-        normalized.includes('HEAD_OF_INSTITUTE') ||
-        normalized.includes('PRINCIPAL')
+        normalized.some((r: string) =>
+          [
+            'ADMIN',
+            'SUPERADMIN',
+            'SUPER_ADMIN',
+            'ORG_ADMIN',
+            'HOI',
+            'PRINCIPAL',
+            'HEAD_OF_INSTITUTE',
+          ].includes(r),
+        )
       ) {
         return true;
       }
+
+      if (normalized.some((r: string) => ['TEACHER', 'FACULTY'].includes(r))) {
+        const teacherPermissions = [
+          'DASHBOARD_VIEW_FACULTY',
+          'faculty.dashboard.view',
+          'ACADEMIC_VIEW',
+          'CLASS_VIEW',
+          'SECTION_VIEW',
+          'TIMETABLE_VIEW',
+        ];
+        if (teacherPermissions.includes(code)) return true;
+      }
+
       if (
-        normalized.includes('FINANCE') ||
-        normalized.includes('FINANCE_OFFICER') ||
-        normalized.includes('ACCOUNTANT') ||
-        normalized.includes('FINANCE_MANAGER') ||
-        normalized.includes('BURSAR')
+        normalized.some((r: string) =>
+          ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+        )
       ) {
         const financePermissions = [
           'fees.dashboard.view',
@@ -372,6 +387,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ];
         if (financePermissions.includes(code) || code.startsWith('fees.')) return true;
       }
+
       if (normalized.includes('PARENT') || normalized.includes('GUARDIAN')) {
         const parentPermissions = [
           'admission.view_own',
@@ -385,28 +401,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ];
         if (parentPermissions.includes(code)) return true;
       }
-      const rawPermissions =
-        userPermissions && userPermissions.length > 0 ? userPermissions : user?.permissions || [];
-      return rawPermissions.includes(code) ?? false;
+
+      return false;
     },
     [userPermissions, userRoles, user],
   );
 
   const hasRole = useCallback(
     (role: string): boolean => {
-      const searchNorm = role.toUpperCase().replace(/[\s_-]+/g, '_');
+      const searchNorm = LandingResolver.normalizeRole(role);
       const rawRoles =
         userRoles && userRoles.length > 0
           ? userRoles
           : user?.roles || ((user as any)?.role ? [(user as any).role] : []);
-      return (
-        rawRoles.some(
-          (r: string) =>
-            String(r)
-              .toUpperCase()
-              .replace(/[\s_-]+/g, '_') === searchNorm,
-        ) ?? false
-      );
+      return rawRoles.some((r: string) => LandingResolver.normalizeRole(r) === searchNorm);
     },
     [userRoles, user],
   );

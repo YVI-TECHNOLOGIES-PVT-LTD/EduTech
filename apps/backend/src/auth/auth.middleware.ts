@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { sessionService } from './session.service';
+import { normalizeRoles } from '../rbac/role-normalization';
 
 declare global {
   namespace Express {
@@ -102,7 +103,24 @@ export const checkLoginApproval = (req: Request, res: Response, next: NextFuncti
   if (!user) return next();
 
   // Admins and Faculty are always approved bypass (Staff)
-  if (user.roles.some((r) => ['ADMIN', 'FACULTY', 'HEAD_OF_INSTITUTE'].includes(r))) return next();
+  const canonicalRoles = normalizeRoles(user.roles);
+  if (
+    canonicalRoles.some((r) =>
+      [
+        'SUPERADMIN',
+        'SUPER_ADMIN',
+        'ADMIN',
+        'ORG_ADMIN',
+        'HOI',
+        'HEAD_OF_INSTITUTE',
+        'PRINCIPAL',
+        'FACULTY',
+        'TEACHER',
+      ].includes(r),
+    )
+  ) {
+    return next();
+  }
 
   if (user.login_status !== 'APPROVED') {
     const allowedPaths = [

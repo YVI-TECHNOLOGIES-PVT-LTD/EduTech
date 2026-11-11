@@ -4,6 +4,7 @@ import { NativePassword, NativeJwt } from './crypto.utils';
 import prisma from '../lib/prismaClient';
 import { logger } from '../utils/logger';
 import { sessionService } from './session.service';
+import { normalizeRoleName, normalizeRoles } from '../rbac/role-normalization';
 import {
   normalizePhoneNumber as sharedNormalizePhone,
   normalizeEmail as sharedNormalizeEmail,
@@ -101,7 +102,10 @@ export class AuthService {
         userRolesData.forEach((ur: any) => {
           const roleObj = ur.roles;
           if (roleObj) {
-            roles.push(roleObj.role_name || roleObj.name);
+            const canonical = normalizeRoleName(roleObj.role_name || roleObj.name);
+            if (canonical && !roles.includes(canonical)) {
+              roles.push(canonical);
+            }
             roleObj.role_permissions?.forEach((rp: any) => {
               if (rp.permissions?.code) {
                 permissionsSet.add(rp.permissions.code);
@@ -126,7 +130,10 @@ export class AuthService {
 
         userRolesPrisma.forEach((ur: any) => {
           if (ur.roles) {
-            roles.push(ur.roles.role_name || ur.roles.name);
+            const canonical = normalizeRoleName(ur.roles.role_name || ur.roles.name);
+            if (canonical && !roles.includes(canonical)) {
+              roles.push(canonical);
+            }
           }
         });
       } catch (e) {
@@ -234,11 +241,17 @@ export class AuthService {
         throw new Error('Invalid or revoked session');
       }
 
+      const canonicalRoles = normalizeRoles(
+        isValidSession.roles && isValidSession.roles.length > 0
+          ? isValidSession.roles
+          : decoded.roles,
+      );
+
       const payload: TokenPayload = {
         userId: user.user_id,
         email: user.email,
         orgId: user.org_id,
-        roles: decoded.roles,
+        roles: canonicalRoles,
       };
 
       const accessToken = NativeJwt.sign(payload, JWT_SECRET, JWT_EXPIRES_IN_SECONDS);

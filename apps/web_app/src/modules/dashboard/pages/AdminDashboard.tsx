@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../lib/api-client';
 import {
   Users,
   GraduationCap,
@@ -22,10 +21,13 @@ import {
   Sparkles,
   CalendarDays,
   ShieldCheck,
+  ShieldAlert,
+  RefreshCw,
 } from 'lucide-react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
+import { LandingResolver } from '../../../services/LandingResolver';
+import { useGetAdminOverviewQuery } from '@/shared/api/dashboard.api';
 import { useMasterData } from '../../admission/context/MasterDataContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
@@ -72,47 +74,30 @@ const AdminDashboardInner = () => {
   const navigate = useNavigate();
   const { user, hasPermission, isAuthenticated } = useAuth();
   const { activeSchool, activeAcademicYear } = useMasterData();
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const canViewAdminDashboard =
+    hasPermission('DASHBOARD_VIEW_ADMIN') || hasPermission('admin.dashboard.view');
+
+  const {
+    data: stats,
+    isLoading: overviewLoading,
+    error: overviewError,
+    refetch: refetchOverview,
+  } = useGetAdminOverviewQuery(undefined, {
+    skip: !isAuthenticated || !user || !canViewAdminDashboard,
+    refetchOnMountOrArgChange: false,
+  });
+
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setStats(null);
-      setLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-    const requestGen = getCurrentSessionGeneration();
-    setLoading(true);
-    setStats(null);
-
-    apiClient
-      .get('/dashboard/admin/overview')
-      .then((res) => {
-        if (isMounted && requestGen === getCurrentSessionGeneration()) setStats(res.data);
-      })
-      .catch((err) => {
-        if (isMounted && requestGen === getCurrentSessionGeneration())
-          console.error('Dashboard load failed', err);
-      })
-      .finally(() => {
-        if (isMounted && requestGen === getCurrentSessionGeneration()) setLoading(false);
-      });
-
-    // Set timer for greeting context
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
-    return () => {
-      isMounted = false;
-      clearInterval(timer);
-    };
-  }, [user?.id, user?.school_id, isAuthenticated]);
+  const { kpis, charts } = useDashboard();
 
-  const isFullAdmin = hasPermission('admin.dashboard.view');
-
-  const { kpis, charts, loading: dashboardLoading, error: dashboardError } = useDashboard();
+  const overviewStatus = (overviewError as any)?.status;
+  const isForbidden = !canViewAdminDashboard || overviewStatus === 403;
 
   const getKPIValue = (id: string, fallback: number) => {
     const item = kpis.find((k: any) => k.id === id);
@@ -134,7 +119,7 @@ const AdminDashboardInner = () => {
     year: 'numeric',
   });
 
-  if (loading)
+  if (overviewLoading)
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -143,6 +128,56 @@ const AdminDashboardInner = () => {
         </p>
       </div>
     );
+
+  if (isForbidden) {
+    const fallbackRoute = LandingResolver.resolveLandingRoute(user?.roles || [], [], user);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <div className="space-y-1 max-w-md">
+          <h2 className="text-lg font-black text-foreground">Access Denied</h2>
+          <p className="text-sm text-muted-foreground">
+            Your account does not have permission to view the Admin Dashboard overview.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate(fallbackRoute, { replace: true })}
+          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+        >
+          Go to My Workspace
+        </button>
+      </div>
+    );
+  }
+
+  if (overviewError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-500/20">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <div className="space-y-1 max-w-md">
+          <h2 className="text-lg font-black text-foreground">Unable to Load Dashboard Overview</h2>
+          <p className="text-sm text-muted-foreground">
+            {(overviewError as any)?.mapped?.message ||
+              (overviewError as any)?.data?.message ||
+              'Could not load institutional overview metrics. Please retry.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void refetchOverview()}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   // Modern sparkline trend data
   const sparklineData = [
@@ -157,38 +192,35 @@ const AdminDashboardInner = () => {
   const cards = [
     {
       label: 'Total Students',
-      value: getKPIValue('admin.kpi.students', stats?.students || 0),
+      value: stats?.students ?? getKPIValue('admin.kpi.students', 0),
       icon: Users,
       color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
-      trend: '+12% this term',
+      trend: 'Active enrollment',
       sparkColor: '#3B82F6',
     },
     {
       label: 'Pending Admissions',
-      value: getKPIValue('admin.kpi.admissions', stats?.pendingAdmissions || 0),
+      value: stats?.pendingAdmissions ?? getKPIValue('admin.kpi.admissions', 0),
       icon: ClipboardList,
       color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-      trend: '14 actions required',
+      trend: 'Actions awaiting review',
       link: '/app/admissions/review',
       sparkColor: '#F59E0B',
     },
     {
       label: 'Admissions Funnel',
-      value: getKPIValue('admin.kpi.exams', stats?.totalApplications || 0),
+      value: stats?.totalApplications ?? getKPIValue('admin.kpi.exams', 0),
       icon: BookOpen,
       color: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
       trend: 'Active applications',
       sparkColor: '#8B5CF6',
     },
     {
-      label: 'Outstanding Fees',
-      value: getKPIValue(
-        'admin.kpi.outstanding_fees',
-        stats?.feeCollection ? parseInt(stats.feeCollection) : 230000,
-      ),
+      label: 'Fee Collection',
+      value: Number(stats?.feeCollection ?? getKPIValue('admin.kpi.outstanding_fees', 0)),
       icon: Coins,
       color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-      trend: '96% collection rate',
+      trend: 'Recorded collections',
       format: '₹',
       sparkColor: '#10B981',
     },
@@ -233,12 +265,12 @@ const AdminDashboardInner = () => {
     },
   ];
 
+  const totalApps = stats?.totalApplications ?? 0;
   const funnelChart = charts.find((c: any) => c.id === 'admin.chart.funnel');
   const admissionsFunnelData = funnelChart?.data || [
-    { name: 'Submitted', value: stats?.totalApplications || 150 },
-    { name: 'Reviewed', value: Math.round((stats?.totalApplications || 150) * 0.8) },
-    { name: 'Invited', value: Math.round((stats?.totalApplications || 150) * 0.6) },
-    { name: 'Enrolled', value: Math.round((stats?.totalApplications || 150) * 0.45) },
+    { name: 'Submitted', value: totalApps },
+    { name: 'Pending', value: stats?.pendingAdmissions ?? 0 },
+    { name: 'Enrolled', value: stats?.students ?? 0 },
   ];
 
   const revenueChart = charts.find((c: any) => c.id === 'admin.chart.revenue');

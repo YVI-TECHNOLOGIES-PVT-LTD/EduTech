@@ -40,12 +40,13 @@ export const LoginApprovalGate = ({ children }: { children: React.ReactNode }) =
   // Resolve user roles canonically
   const rawRoles =
     user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const normalizedRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
 
   // Institutional Staff and Admin roles always bypass the Parent Login Approval Gate
   const isStaffOrAdmin = normalizedRoles.some((r: string) =>
     [
       'ADMIN',
+      'ORG_ADMIN',
       'SUPERADMIN',
       'SUPER_ADMIN',
       'FRONT_OFFICE',
@@ -53,14 +54,18 @@ export const LoginApprovalGate = ({ children }: { children: React.ReactNode }) =
       'FRONT_OFFICE_STAFF',
       'STAFF',
       'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
       'HOI',
       'PRINCIPAL',
       'HEAD_OF_INSTITUTE',
       'TEACHER',
+      'FACULTY',
       'FINANCE',
       'FINANCE_OFFICER',
+      'FINANCE_MANAGER',
+      'ACCOUNTANT',
       'EXAM_CELL_ADMIN',
       'EXAM_CELL',
     ].includes(r),
@@ -408,8 +413,81 @@ export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => 
     return <Navigate to="/app/parent/dashboard" replace />;
   }
 
+  const isTeacher = normalizedRoles.some((r: string) => ['TEACHER', 'FACULTY'].includes(r));
+
+  if (isTeacher) {
+    return <Navigate to="/app/teacher/dashboard" replace />;
+  }
+
   if (normalizedRoles.includes('STUDENT')) {
     return <Navigate to="/app/student/dashboard" replace />;
+  }
+
+  return <Navigate to="/app/unauthorized" replace />;
+};
+
+export const SuperAdminRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loading message="Validating Super Admin authorization..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const rawRoles = user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || ''];
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+
+  const isSuperAdmin = normalizedRoles.some((r: string) =>
+    ['SUPERADMIN', 'SUPER_ADMIN'].includes(r),
+  );
+
+  if (isSuperAdmin) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/app/unauthorized" replace />;
+};
+
+export const TeacherRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loading message="Loading Teacher workspace..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const rawRoles = user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || ''];
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+
+  const isTeacherOrAdmin = normalizedRoles.some((r: string) =>
+    [
+      'TEACHER',
+      'FACULTY',
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+    ].includes(r),
+  );
+
+  if (isTeacherOrAdmin) {
+    return <>{children}</>;
   }
 
   return <Navigate to="/app/unauthorized" replace />;

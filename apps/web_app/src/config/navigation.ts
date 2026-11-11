@@ -1,3 +1,4 @@
+import { LandingResolver } from '@/services/LandingResolver';
 import {
   LayoutDashboard,
   FileText,
@@ -32,6 +33,7 @@ import {
   TrendingUp,
   Compass,
   LifeBuoy,
+  Building2,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -533,6 +535,80 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
       { id: 'adm_students', title: 'Students', url: '/app/people/students', icon: GraduationCap },
       { id: 'adm_staff', title: 'Staff Directory', url: '/app/people/staff', icon: UserCheck },
       {
+        id: 'adm_academic_group',
+        title: 'Academic Management',
+        icon: GraduationCap,
+        url: '/app/academic/dashboard',
+        items: [
+          {
+            id: 'adm_acad_dash',
+            title: 'Academic Overview',
+            url: '/app/academic/dashboard',
+            icon: LayoutDashboard,
+          },
+          {
+            id: 'adm_acad_structure',
+            title: 'Years & Structure',
+            url: '/app/academic/structure',
+            icon: Calendar,
+          },
+          {
+            id: 'adm_acad_classes',
+            title: 'Grades & Sections',
+            url: '/app/academic/classes',
+            icon: Layers,
+          },
+          {
+            id: 'adm_acad_subjects',
+            title: 'Subjects & Catalog',
+            url: '/app/academic/subjects',
+            icon: BookOpen,
+          },
+          {
+            id: 'adm_acad_faculty',
+            title: 'Faculty Scheduling & Workload',
+            url: '/app/academic/faculty',
+            icon: UserCheck,
+          },
+          {
+            id: 'adm_acad_timetable',
+            title: 'Timetable Master',
+            url: '/app/academic/timetable',
+            icon: Clock,
+          },
+          {
+            id: 'adm_acad_calendar',
+            title: 'Academic Calendar & Terms',
+            url: '/app/academic/calendar',
+            icon: Calendar,
+          },
+          {
+            id: 'adm_acad_curriculum',
+            title: 'Curriculum & Syllabus',
+            url: '/app/academic/curriculum',
+            icon: FileText,
+          },
+          {
+            id: 'adm_acad_lesson_planning',
+            title: 'AI Lesson Planning',
+            url: '/app/academic/lesson-planning',
+            icon: Sparkles,
+          },
+          {
+            id: 'adm_acad_resources',
+            title: 'Digital Resource Library',
+            url: '/app/academic/resources',
+            icon: FolderCheck,
+          },
+          {
+            id: 'adm_acad_readiness',
+            title: 'Readiness & Publishing',
+            url: '/app/academic/readiness',
+            icon: CheckCircle2,
+          },
+        ],
+      },
+      {
         id: 'adm_finance',
         title: 'Finance Command Center',
         url: '/app/finance/dashboard',
@@ -676,16 +752,119 @@ export const GENERAL_NAVIGATION: NavigationGroup[] = [
   },
 ];
 
+export const SUPER_ADMIN_NAVIGATION: NavigationGroup[] = [
+  {
+    id: 'super_admin_main',
+    title: 'Super Administrator',
+    contextLabel: 'SYSTEM COMMAND',
+    items: [
+      {
+        id: 'sa_dashboard',
+        title: 'Enterprise Dashboard',
+        url: '/app/super-admin/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        id: 'sa_organizations',
+        title: 'Multi-Campus Directory',
+        url: '/app/super-admin/organizations',
+        icon: Building2,
+      },
+      {
+        id: 'sa_academic_overview',
+        title: 'Academic Oversight',
+        url: '/app/super-admin/academic-overview',
+        icon: GraduationCap,
+      },
+      {
+        id: 'sa_audit_logs',
+        title: 'Security & Audit Logs',
+        url: '/app/super-admin/audit',
+        icon: ShieldCheck,
+      },
+      {
+        id: 'sa_settings',
+        title: 'System Settings',
+        url: '/app/super-admin/settings',
+        icon: Settings,
+      },
+    ],
+  },
+];
+
+export const TEACHER_NAVIGATION: NavigationGroup[] = [
+  {
+    id: 'teacher_main',
+    title: 'Teacher Workspace',
+    contextLabel: 'TEACHING & LEARNING',
+    items: [
+      {
+        id: 't_dashboard',
+        title: 'Teacher Dashboard',
+        url: '/app/teacher/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        id: 't_classes',
+        title: 'My Classes & Sections',
+        url: '/app/teacher/classes',
+        icon: Users,
+      },
+      {
+        id: 't_timetable',
+        title: 'My Schedule / Timetable',
+        url: '/app/teacher/timetable',
+        icon: Clock,
+      },
+      {
+        id: 't_subjects',
+        title: 'My Subjects',
+        url: '/app/teacher/subjects',
+        icon: BookOpen,
+      },
+      {
+        id: 't_curriculum',
+        title: 'Curriculum & Syllabus',
+        url: '/app/teacher/curriculum',
+        icon: FileText,
+      },
+      {
+        id: 't_lesson_plans',
+        title: 'My Lesson Plans',
+        url: '/app/teacher/lesson-plans',
+        icon: Sparkles,
+      },
+      {
+        id: 't_workload',
+        title: 'Teaching Workload',
+        url: '/app/teacher/workload',
+        icon: BarChart3,
+      },
+      {
+        id: 't_resources',
+        title: 'Digital Resources',
+        url: '/app/academic/resources',
+        icon: FolderCheck,
+      },
+    ],
+  },
+];
+
 export function getNavigationForUser(
   roles: string[] = [],
   isPostAdmission: boolean = false,
 ): NavigationGroup[] {
-  const normalizedRoles = roles.map((r) =>
-    String(r)
-      .trim()
-      .toUpperCase()
-      .replace(/[\s-]+/g, '_'),
-  );
+  const normalizedRoles = roles.map((r) => LandingResolver.normalizeRole(r)).filter(Boolean);
+
+  // 1. Super Admin Priority
+  if (normalizedRoles.includes('SUPERADMIN') || normalizedRoles.includes('SUPER_ADMIN')) {
+    return SUPER_ADMIN_NAVIGATION;
+  }
+
+  // 2. Teacher Priority
+  if (normalizedRoles.includes('TEACHER') || normalizedRoles.includes('FACULTY')) {
+    return TEACHER_NAVIGATION;
+  }
 
   if (
     normalizedRoles.includes('FINANCE') ||
@@ -713,8 +892,6 @@ export function getNavigationForUser(
 
   if (
     normalizedRoles.includes('ADMIN') ||
-    normalizedRoles.includes('SUPERADMIN') ||
-    normalizedRoles.includes('SUPER_ADMIN') ||
     normalizedRoles.includes('ORG_ADMIN') ||
     normalizedRoles.includes('HOI') ||
     normalizedRoles.includes('PRINCIPAL') ||

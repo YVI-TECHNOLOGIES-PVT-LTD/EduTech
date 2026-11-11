@@ -40,6 +40,11 @@ export class RealtimeNotificationServer {
     this.wss = new WebSocketServer({ noServer: true });
 
     server.on('upgrade', async (req: IncomingMessage, socket: Socket, head: Buffer) => {
+      // Prevent ECONNRESET / aborted client handshakes from causing unhandled socket errors
+      socket.on('error', () => {
+        if (!socket.destroyed) socket.destroy();
+      });
+
       try {
         const reqUrl = req.url || '';
         const parsedUrl = new URL(reqUrl, 'http://127.0.0.1');
@@ -47,6 +52,12 @@ export class RealtimeNotificationServer {
 
         // Only handle notification websocket paths
         if (pathname !== '/ws/notifications' && pathname !== '/api/v1/notifications/ws') {
+          return;
+        }
+
+        if (!this.wss) {
+          socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');
+          socket.destroy();
           return;
         }
 
@@ -60,8 +71,10 @@ export class RealtimeNotificationServer {
         }
 
         if (!token) {
-          logger.warn('[RealtimeNotifications] WebSocket connection rejected: Missing token');
-          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+          logger.warn(
+            `[RealtimeNotifications] WebSocket connection rejected (${pathname}): Missing token`,
+          );
+          socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
           socket.destroy();
           return;
         }
@@ -69,22 +82,28 @@ export class RealtimeNotificationServer {
         const userProfile = await sessionService.validateSession(token);
         if (!userProfile || !userProfile.id || !userProfile.org_id) {
           logger.warn(
-            '[RealtimeNotifications] WebSocket connection rejected: Invalid or expired session token',
+            `[RealtimeNotifications] WebSocket connection rejected (${pathname}): Invalid or expired session token`,
           );
-          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+          socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
           socket.destroy();
           return;
         }
 
-        this.wss?.handleUpgrade(req, socket, head, (ws: WebSocket) => {
+        if (socket.destroyed) {
+          return;
+        }
+
+        this.wss.handleUpgrade(req, socket, head, (ws: WebSocket) => {
           this.handleConnection(ws, userProfile);
         });
       } catch (err: any) {
         logger.error('[RealtimeNotifications] Upgrade error:', {
           error: err?.message || String(err),
         });
-        socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
-        socket.destroy();
+        if (!socket.destroyed) {
+          socket.write('HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n');
+          socket.destroy();
+        }
       }
     });
 

@@ -1,6 +1,7 @@
 import prisma from '../lib/prismaClient';
 import { AuthService, TokenPayload } from './auth.service';
 import { logger } from '../utils/logger';
+import { ADMIN_DASHBOARD_ROLES, normalizeRoleName } from '../rbac/role-normalization';
 
 export interface UserProfile {
   id: string;
@@ -34,60 +35,7 @@ export class SessionService {
    * Maps raw database role strings or user-assigned strings to canonical runtime roles.
    */
   public static normalizeRoleName(rawRole?: string | null): string {
-    if (!rawRole || typeof rawRole !== 'string') return '';
-    const trimmed = rawRole.trim();
-    const lower = trimmed.toLowerCase().replace(/[\s\-_]+/g, '');
-
-    if (
-      lower === 'frontoffice' ||
-      lower === 'receptionist' ||
-      lower === 'admissionofficer' ||
-      lower === 'admissionsofficer' ||
-      lower === 'frontofficeexecutive' ||
-      lower === 'frontofficestaff' ||
-      lower === 'admissionsdesk'
-    ) {
-      return 'FRONT_OFFICE';
-    }
-    if (lower === 'parent' || lower === 'guardian') {
-      return 'PARENT';
-    }
-    if (lower === 'superadmin' || lower === 'superadministrator' || lower === 'super_admin') {
-      return 'SUPERADMIN';
-    }
-    if (
-      lower === 'admin' ||
-      lower === 'administrator' ||
-      lower === 'orgadmin' ||
-      lower === 'org_admin'
-    ) {
-      return 'ADMIN';
-    }
-    if (lower === 'counselor' || lower === 'counsellor') {
-      return 'COUNSELLOR';
-    }
-    if (lower === 'hoi' || lower === 'headofinstitute' || lower === 'principal') {
-      return 'HOI';
-    }
-    if (lower === 'financemanager' || lower === 'financehead' || lower === 'financeadmin') {
-      return 'FINANCE_MANAGER';
-    }
-    if (lower === 'finance' || lower === 'financeofficer' || lower === 'bursar') {
-      return 'FINANCE_OFFICER';
-    }
-    if (
-      lower === 'accountant' ||
-      lower === 'cashier' ||
-      lower === 'accountsclerk' ||
-      lower === 'bookkeeper'
-    ) {
-      return 'ACCOUNTANT';
-    }
-    if (lower === 'staff' || lower === 'faculty') {
-      return 'STAFF';
-    }
-
-    return trimmed.toUpperCase().replace(/\s+/g, '_');
+    return normalizeRoleName(rawRole);
   }
 
   async validateSession(token: string): Promise<UserProfile | null> {
@@ -207,6 +155,38 @@ export class SessionService {
         }
       }
 
+      // Admin Leadership Dashboard & Administrative Control Permissions
+      if (roles.some((r) => (ADMIN_DASHBOARD_ROLES as readonly string[]).includes(r))) {
+        permissions.add('DASHBOARD_VIEW_ADMIN');
+        permissions.add('admin.dashboard.view');
+      }
+
+      // Faculty / Teacher Portal Permissions
+      if (
+        roles.some((r) =>
+          ['TEACHER', 'FACULTY', ...(ADMIN_DASHBOARD_ROLES as readonly string[])].includes(r),
+        )
+      ) {
+        permissions.add('DASHBOARD_VIEW_FACULTY');
+        permissions.add('faculty.dashboard.view');
+      }
+
+      // Front Office / Admissions Desk Dashboard View
+      if (
+        roles.some((r) =>
+          [
+            'FRONT_OFFICE',
+            'RECEPTIONIST',
+            'ADMISSION_OFFICER',
+            'ADMISSIONS_OFFICER',
+            'COUNSELLOR',
+            'COUNSELOR',
+          ].includes(r),
+        )
+      ) {
+        permissions.add('admission.dashboard.view');
+      }
+
       if (
         roles.some((r) =>
           [
@@ -253,7 +233,6 @@ export class SessionService {
         permissions.add('STUDENT_VIEW');
         permissions.add('STUDENT_UPDATE');
         permissions.add('STUDENT_ASSIGN_SECTION');
-        permissions.add('admin.dashboard.view');
         permissions.add('fees.view');
         permissions.add('fees.payment.collect');
         permissions.add('fees.receipt.generate');
