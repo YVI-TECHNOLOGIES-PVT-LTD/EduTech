@@ -52,16 +52,22 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
   'admission-history': 'Admission History',
 
   // Academic
-  academic: 'Academic',
-  classes: 'Classes',
+  academic: 'Academic Management',
+  structure: 'Years & Structure',
+  classes: 'Grades & Sections',
   sections: 'Sections',
   departments: 'Departments',
   assignments: 'Assignments',
   'my-assignments': 'My Assignments',
   'my-students': 'My Students',
-  subjects: 'Subjects',
+  subjects: 'Subjects & Catalog',
   'academic-years': 'Academic Years',
-  faculty: 'Faculty',
+  faculty: 'Faculty Scheduling & Workload',
+  calendar: 'Academic Calendar & Terms',
+  curriculum: 'Curriculum & Syllabus',
+  'lesson-planning': 'AI Lesson Planning',
+  resources: 'Digital Resource Library',
+  readiness: 'Readiness & Publishing',
   staff: 'Staff',
 
   // Attendance
@@ -111,7 +117,15 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
   'my-timetable': 'My Timetable',
   'timetable-builder': 'Timetable Builder',
 
-  // Profile & Settings
+  // Parent Portal
+  parent: 'Parent Portal',
+  children: 'My Children',
+  'academic-progress': 'Academic Progress',
+  'learning-resources': 'Learning Resources',
+  'academic-calendar': 'Academic Calendar',
+  documents: 'Documents Centre',
+
+  // Profile & Notifications
   profile: 'Profile',
   notifications: 'Notifications',
 
@@ -130,6 +144,64 @@ export interface BreadcrumbItem {
  * Skips 'app' as it's the root wrapper segment.
  */
 export const parseBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
+  if (pathname === '/app/academic' || pathname.startsWith('/app/academic/')) {
+    const academicSegmentLabels: Record<string, string> = {
+      dashboard: 'Academic Overview',
+      structure: 'Years & Structure',
+      classes: 'Grades & Sections',
+      subjects: 'Subjects & Catalog',
+      faculty: 'Faculty Scheduling & Workload',
+      timetable: 'Timetable Master',
+      calendar: 'Academic Calendar & Terms',
+      curriculum: 'Curriculum & Syllabus',
+      'lesson-planning': 'AI Lesson Planning',
+      resources: 'Digital Resource Library',
+      readiness: 'Readiness & Publishing',
+    };
+
+    const academicSegments = pathname
+      .replace(/^\/app\/academic\/?/, '')
+      .split('/')
+      .filter(Boolean);
+    if (academicSegments.length === 0) {
+      return [
+        { label: 'Academic Management', path: '/app/academic/dashboard', isLast: false },
+        { label: 'Academic Overview', path: '/app/academic/dashboard', isLast: true },
+      ];
+    }
+
+    const section = academicSegments[0];
+    const sectionLabel =
+      academicSegmentLabels[section] ||
+      ROUTE_LABEL_MAP[section] ||
+      section.charAt(0).toUpperCase() + section.slice(1);
+    const sectionPath = `/app/academic/${section}`;
+
+    const items: BreadcrumbItem[] = [
+      { label: 'Academic Management', path: '/app/academic/dashboard', isLast: false },
+      {
+        label: sectionLabel,
+        path: sectionPath,
+        isLast: academicSegments.length === 1,
+      },
+    ];
+
+    if (academicSegments.length > 1) {
+      items.push({
+        label:
+          section === 'curriculum'
+            ? 'Plan Details'
+            : section === 'readiness'
+              ? 'Year Readiness'
+              : 'Details',
+        path: pathname,
+        isLast: true,
+      });
+    }
+
+    return items;
+  }
+
   const isAssessmentPath =
     pathname.includes('/assessment') ||
     pathname.includes('/questions') ||

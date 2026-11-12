@@ -30,6 +30,7 @@ import { AdmissionController as AdmissionManagementController } from './modules/
 
 import { studentRouter as studentManagementRouter } from './modules/student-management/routes/student.routes';
 import { parentRouter as parentManagementRouter } from './modules/parent-management/routes/parent.routes';
+import parentPortalRouter from './modules/parent-management/routes/parent-portal.routes';
 import { academicRouter as academicManagementRouter } from './modules/academic-management/routes/academic.routes';
 import { staffRouter as staffManagementRouter } from './modules/staff-management/routes/staff.routes';
 import { userRouter as userManagementRouter } from './modules/user-management/routes/user.routes';
@@ -850,3 +851,7 @@ router.get(
   resolveTenantMiddleware,
   CommunicationController.getChildrenForParent,
 );
+
+// Parent Portal Stage 2 Academic Endpoints (Strictly Role & Ownership Scoped)
+router.use('/v1/parent', authenticate, parentPortalRouter);
+router.use('/parent', authenticate, parentPortalRouter);

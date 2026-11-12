@@ -185,7 +185,9 @@ export const LandingResolver = {
       ['EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r),
     );
     if (isExamCell) {
-      const destination = '/app/exam-admin/dashboard';
+      // /app/exam-admin/* is currently not mounted in route_registry (EXAM_ADMIN_ROUTES = []).
+      // FrontOfficeRouteGuard explicitly authorizes EXAM_CELL and EXAM_CELL_ADMIN on the operations workspace.
+      const destination = '/app/front-office/dashboard';
       logResolutionOnce(normalizedRoles, destination, 'Exam Cell resolved');
       return destination;
     }
@@ -208,9 +210,161 @@ export const LandingResolver = {
       return destination;
     }
 
-    // Fallback: Default to Parent dashboard (Safe default, never silently classify unknown as Front Office)
-    const fallbackDestination = '/app/parent/dashboard';
+    // Fallback: Route unmapped authenticated roles (e.g. HR or custom roles) to a universally
+    // accessible authenticated route rather than /app/parent/dashboard (which rejects non-parents).
+    const fallbackDestination = '/app/profile';
     logResolutionOnce(normalizedRoles, fallbackDestination, 'Fallback resolved');
     return fallbackDestination;
+  },
+
+  /**
+   * Validates whether a post-login redirect target (location.state.from) is safe
+   * and authorized for the authenticated user's roles, preventing cross-role or
+   * /app/unauthorized bounce-backs on sign-in.
+   */
+  isRouteAllowedForRoles(routePath: string | undefined, rawRoles: string[]): boolean {
+    if (!routePath || !routePath.startsWith('/app/')) {
+      return false;
+    }
+
+    const matchesPrefix = (prefix: string) =>
+      routePath === prefix || routePath.startsWith(`${prefix}/`);
+
+    if (
+      routePath === '/app/' ||
+      routePath === '/app/dashboard' ||
+      matchesPrefix('/app/unauthorized')
+    ) {
+      return false;
+    }
+
+    const normalizedRoles = (rawRoles || [])
+      .map((r: string) => LandingResolver.normalizeRole(r))
+      .filter(Boolean);
+
+    if (normalizedRoles.length === 0) {
+      return false;
+    }
+
+    const hasAny = (allowed: string[]) => normalizedRoles.some((r) => allowed.includes(r));
+
+    const isSuperAdmin = hasAny(['SUPERADMIN', 'SUPER_ADMIN']);
+    const isAdmin = hasAny([
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
+    ]);
+    const isTeacher = isAdmin || hasAny(['TEACHER', 'FACULTY']);
+    const isFinance = hasAny([
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'ACCOUNTANT',
+      'FINANCE_MANAGER',
+      'BURSAR',
+    ]);
+    const isFrontOffice = hasAny([
+      'FRONT_OFFICE',
+      'FO',
+      'RECEPTIONIST',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+      'FRONT_OFFICE_STAFF',
+      'EXAM_CELL',
+      'EXAM_CELL_ADMIN',
+    ]);
+    const isParent = hasAny(['PARENT', 'GUARDIAN', 'ENROLLED_PARENT']);
+    const isStudent = hasAny(['STUDENT']);
+    const hasStaffOrOperationsRole = isAdmin || isTeacher || isFinance || isFrontOffice;
+
+    if (matchesPrefix('/app/super-admin')) {
+      return isSuperAdmin;
+    }
+
+    if (
+      matchesPrefix('/app/admin') ||
+      matchesPrefix('/app/executive') ||
+      matchesPrefix('/app/import')
+    ) {
+      return isAdmin;
+    }
+
+    if (matchesPrefix('/app/academic/resources') || matchesPrefix('/app/academic/lesson-plans')) {
+      return isTeacher;
+    }
+
+    if (matchesPrefix('/app/academic')) {
+      return isAdmin;
+    }
+
+    if (matchesPrefix('/app/teacher') || matchesPrefix('/app/faculty')) {
+      return isTeacher;
+    }
+
+    if (matchesPrefix('/app/finance')) {
+      return isAdmin || isFinance;
+    }
+
+    if (
+      matchesPrefix('/app/front-office') ||
+      matchesPrefix('/app/workspace') ||
+      matchesPrefix('/app/school') ||
+      matchesPrefix('/app/people')
+    ) {
+      return hasStaffOrOperationsRole;
+    }
+
+    if (matchesPrefix('/app/student')) {
+      return isStudent;
+    }
+
+    if (
+      matchesPrefix('/app/parent') ||
+      matchesPrefix('/app/admissions/dashboard') ||
+      matchesPrefix('/app/admissions/my') ||
+      matchesPrefix('/app/admissions/wizard') ||
+      matchesPrefix('/app/admissions/view') ||
+      matchesPrefix('/app/admissions/documents') ||
+      matchesPrefix('/app/admissions/fees') ||
+      matchesPrefix('/app/admissions/payments') ||
+      matchesPrefix('/app/admissions/status')
+    ) {
+      return isParent && !hasStaffOrOperationsRole && !isStudent;
+    }
+
+    if (matchesPrefix('/app/admissions/application') || matchesPrefix('/app/admissions/timeline')) {
+      return (hasStaffOrOperationsRole || isParent) && !isStudent;
+    }
+
+    if (
+      matchesPrefix('/app/admissions/inquiries') ||
+      matchesPrefix('/app/admissions/counselling') ||
+      matchesPrefix('/app/admissions/applications') ||
+      matchesPrefix('/app/admissions/review') ||
+      matchesPrefix('/app/admissions/verification') ||
+      matchesPrefix('/app/admissions/verify') ||
+      matchesPrefix('/app/admissions/monitor') ||
+      matchesPrefix('/app/admissions/decisions') ||
+      matchesPrefix('/app/admissions/visits') ||
+      matchesPrefix('/app/admissions/evaluation') ||
+      matchesPrefix('/app/admissions/exam') ||
+      matchesPrefix('/app/admissions/assessment') ||
+      matchesPrefix('/app/admissions/enrol') ||
+      matchesPrefix('/app/admissions/workspace')
+    ) {
+      return hasStaffOrOperationsRole;
+    }
+
+    if (matchesPrefix('/app/admissions')) {
+      return isParent && !hasStaffOrOperationsRole && !isStudent;
+    }
+
+    return true;
   },
 };

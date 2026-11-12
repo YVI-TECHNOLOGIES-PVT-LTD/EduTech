@@ -90,4 +90,20 @@ export const ENDPOINTS = {
     MARK_ALL_READ: '/v1/notifications/mark-all-read',
     BY_ID: (id: string) => `/v1/notifications/${id}`,
   },
+  PARENT_PORTAL: {
+    DASHBOARD_OVERVIEW: '/v1/parent/dashboard/overview',
+    CHILDREN: '/v1/parent/children',
+    CHILD_BY_ID: (childId: string) => `/v1/parent/children/${childId}`,
+    TIMETABLE_TODAY: (childId: string) => `/v1/parent/children/${childId}/timetable/today`,
+    TIMETABLE_WEEKLY: (childId: string) => `/v1/parent/children/${childId}/timetable/weekly`,
+    SUBJECTS: (childId: string) => `/v1/parent/children/${childId}/subjects`,
+    CURRICULUM: (childId: string) => `/v1/parent/children/${childId}/curriculum`,
+    ACADEMIC_PROGRESS: (childId: string) => `/v1/parent/children/${childId}/academic-progress`,
+    RESOURCES: (childId: string) => `/v1/parent/children/${childId}/resources`,
+    RESOURCE_PREVIEW: (childId: string, resourceId: string) =>
+      `/v1/parent/children/${childId}/resources/${resourceId}/preview`,
+    RESOURCE_DOWNLOAD: (childId: string, resourceId: string) =>
+      `/v1/parent/children/${childId}/resources/${resourceId}/download`,
+    CALENDAR: (childId: string) => `/v1/parent/children/${childId}/calendar`,
+  },
 } as const;

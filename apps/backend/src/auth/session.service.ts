@@ -265,6 +265,12 @@ export class SessionService {
         permissions.add('fees.receipt.generate');
       }
 
+      // Student Persona Permissions
+      if (roles.includes('STUDENT')) {
+        permissions.add('student.dashboard.view');
+        permissions.add('STUDENT_VIEW_SELF');
+      }
+
       const profile: UserProfile = {
         id: user.user_id,
         email: user.email,

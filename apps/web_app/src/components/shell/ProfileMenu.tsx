@@ -120,7 +120,7 @@ export const ProfileMenu: React.FC = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-slate-100" />
         <DropdownMenuItem
-          onClick={() => navigate('/app/profile')}
+          onClick={() => navigate(isParent ? '/app/parent/profile' : '/app/profile')}
           className="text-xs font-semibold cursor-pointer rounded-xl"
         >
           <User className="w-4 h-4 mr-2 text-slate-400" />
@@ -154,7 +154,7 @@ export const ProfileMenu: React.FC = () => {
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
-          onClick={() => navigate('/app/settings')}
+          onClick={() => navigate(isParent ? '/app/parent/settings' : '/app/settings')}
           className="text-xs font-semibold cursor-pointer rounded-xl"
         >
           <Settings className="w-4 h-4 mr-2 text-slate-400" />

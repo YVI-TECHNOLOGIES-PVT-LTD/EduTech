@@ -90,8 +90,8 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
 
 export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
   {
-    id: 'parent_enrolled_main',
-    title: 'Parent Portal',
+    id: 'parent_main_menu',
+    title: 'MAIN MENU',
     contextLabel: 'PARENT PORTAL',
     items: [
       {
@@ -101,40 +101,100 @@ export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
         icon: LayoutDashboard,
       },
       {
-        id: 'p_enrolled_my_child',
-        title: 'My Child',
-        url: '/app/parent/my-child',
-        icon: GraduationCap,
+        id: 'parent_children',
+        title: 'My Children',
+        url: '/app/parent/children',
+        icon: Users,
       },
       {
-        id: 'p_enrolled_fees',
+        id: 'parent_timetable',
+        title: 'Timetable',
+        url: '/app/parent/timetable',
+        icon: Clock,
+      },
+      {
+        id: 'parent_academic_progress',
+        title: 'Academic Progress',
+        url: '/app/parent/academic-progress',
+        icon: TrendingUp,
+      },
+      {
+        id: 'parent_subjects',
+        title: 'Subjects & Curriculum',
+        url: '/app/parent/subjects',
+        icon: BookOpen,
+      },
+      {
+        id: 'parent_learning_resources',
+        title: 'Learning Resources',
+        url: '/app/parent/learning-resources',
+        icon: Layers,
+      },
+      {
+        id: 'parent_academic_calendar',
+        title: 'Academic Calendar',
+        url: '/app/parent/academic-calendar',
+        icon: Calendar,
+      },
+    ],
+  },
+  {
+    id: 'parent_student_info',
+    title: 'STUDENT INFORMATION',
+    items: [
+      {
+        id: 'parent_documents',
+        title: 'Documents Centre',
+        url: '/app/parent/documents',
+        icon: FolderCheck,
+      },
+      {
+        id: 'parent_notifications',
+        title: 'Notifications',
+        url: '/app/parent/notifications',
+        icon: Bell,
+      },
+      {
+        id: 'parent_communication',
+        title: 'Communication',
+        url: '/app/parent/communication',
+        icon: MessageSquare,
+      },
+    ],
+  },
+  {
+    id: 'parent_finance_admissions',
+    title: 'FINANCE & ADMISSIONS',
+    items: [
+      {
+        id: 'parent_fees',
         title: 'Fees & Payments',
         url: '/app/fees/my',
         icon: CreditCard,
       },
       {
-        id: 'p_enrolled_comm_feeds',
-        title: 'School Feeds',
-        url: '/app/communication/feeds',
-        icon: MessageSquare,
-      },
-      {
-        id: 'p_enrolled_comm_helpdesk',
-        title: 'Helpdesk & Support',
-        url: '/app/communication/helpdesk',
-        icon: HelpCircle,
-      },
-      {
-        id: 'p_enrolled_docs',
-        title: 'Documents',
-        url: '/app/parent/documents',
-        icon: FolderCheck,
-      },
-      {
-        id: 'p_enrolled_admissions',
+        id: 'parent_admissions',
         title: 'Admissions Desk',
         url: '/app/admissions/my',
         icon: ClipboardList,
+      },
+    ],
+  },
+  {
+    id: 'parent_account',
+    title: 'ACCOUNT',
+    items: [
+      {
+        id: 'parent_profile',
+        title: 'My Profile',
+        url: '/app/parent/profile',
+        icon: User,
+      },
+      {
+        id: 'parent_settings',
+        title: 'Settings',
+        url: '/app/parent/settings',
+        icon: Settings,
       },
     ],
   },
@@ -538,7 +598,7 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
         id: 'adm_academic_group',
         title: 'Academic Management',
         icon: GraduationCap,
-        url: '/app/academic/dashboard',
+        url: '#',
         items: [
           {
             id: 'adm_acad_dash',
@@ -966,15 +1026,17 @@ export function searchNavigationItems(
   const flatItems: FlatNavigationItem[] = [];
 
   const traverse = (item: NavigationItem, category: string, parentTitle?: string) => {
-    flatItems.push({
-      id: item.id,
-      title: item.title,
-      subtitle: parentTitle ? `${parentTitle} • ${category}` : category,
-      url: item.url,
-      icon: item.icon,
-      category,
-      parentTitle,
-    });
+    if (item.url && item.url !== '#') {
+      flatItems.push({
+        id: item.id,
+        title: item.title,
+        subtitle: parentTitle ? `${parentTitle} • ${category}` : category,
+        url: item.url,
+        icon: item.icon,
+        category,
+        parentTitle,
+      });
+    }
 
     const children = item.items || item.children;
     if (children && children.length > 0) {

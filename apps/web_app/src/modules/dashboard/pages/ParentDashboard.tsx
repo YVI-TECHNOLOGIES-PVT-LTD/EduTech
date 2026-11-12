@@ -1,843 +1,933 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
-import { Link } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  FileText,
-  Bell,
-  Clock,
-  CheckCircle2,
-  Circle,
   ArrowRight,
-  CreditCard,
-  Calendar,
-  GraduationCap,
-  BookOpen,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Activity,
   Award,
-  TrendingUp,
-  HelpCircle,
-  ChevronRight,
-  ClipboardList,
-  DollarSign,
-  AlertTriangle,
+  Bell,
+  BookOpen,
+  Calendar,
+  CalendarDays,
+  Clock,
+  CreditCard,
+  Download,
+  ExternalLink,
+  Eye,
+  FileText,
   FolderCheck,
+  GraduationCap,
+  Layers,
+  MessageSquare,
+  School,
+  TrendingUp,
+  User,
+  UserCheck,
+  Users,
 } from 'lucide-react';
-import { Badge } from '../../../components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
-import { PageWrapper } from '../../../components/layout/PageWrapper';
-import { PageSkeleton } from '@/components/common/LoadingSkeleton';
+import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { useAppDispatch, useAppSelector } from '@/app/store';
+import { setSelectedChildId } from '@/shared/store/parentPortalSlice';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PageContainer } from '@/components/layout/PageLayout';
+import { cn, getInitials } from '@/lib/utils';
+import {
+  ChildResourceDto,
+  ParentChildDto,
+  useGetParentDashboardOverviewQuery,
+  useLazyGetChildResourceDownloadQuery,
+  useLazyGetChildResourcePreviewQuery,
+} from '@/shared/api/parentPortal.api';
+import { useGetNotificationsQuery } from '@/shared/api/notification.api';
+import {
+  formatRelativeTime,
+  getCategoryConfig,
+  normalizeNotifications,
+} from '@/features/notifications/utils/notification.utils';
+import {
+  ParentErrorState,
+  ParentLoadingSkeleton,
+  ParentNoChildrenState,
+} from '@/modules/parent/components/ParentStates';
+import {
+  TodayScheduleWidget,
+  WeeklyTimetableMatrix,
+} from '@/modules/parent/components/ParentTimetableWidgets';
 
-type FeeTrackerState = 'DUE' | 'VERIFYING' | 'VERIFIED' | 'HIDDEN';
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
 
-// ─── Sparkline Graph Component ──────────────────────────────────────────────────
-const Sparkline = ({ points, color = 'text-primary' }: { points: number[]; color?: string }) => {
-  const width = 100;
-  const height = 30;
-  const maxVal = Math.max(...points);
-  const minVal = Math.min(...points);
-  const range = maxVal - minVal || 1;
+function formatReadableDate(isoOrDate?: Date | string): string {
+  const d = isoOrDate ? new Date(isoOrDate) : new Date();
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
-  const coordinates = points
-    .map((p, idx) => {
-      const x = (idx / (points.length - 1)) * width;
-      const y = height - ((p - minVal) / range) * height;
-      return `${x},${y}`;
-    })
-    .join(' ');
-
-  return (
-    <svg className={`w-14 h-5 ${color}`} viewBox={`0 0 ${width} ${height}`}>
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={coordinates}
-      />
-    </svg>
-  );
-};
-
-import { CountUp } from '../../../components/react-bits/CountUp';
-import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
-
-import { DashboardProvider } from '../core/DashboardProvider';
-import { useDashboard } from '../hooks/useDashboard';
-
-import { ParentDashboardService } from '../services/ParentDashboardService';
-import { DashboardMapper } from '../utils/dashboard.mapper';
-
-export const ParentDashboard = () => {
-  return (
-    <DashboardProvider>
-      <ParentDashboardInner />
-    </DashboardProvider>
-  );
-};
-
-const ParentDashboardInner = () => {
+export const ParentDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
-  const [children, setChildren] = useState<any[]>([]);
-  const [admissions, setAdmissions] = useState<any[]>([]);
-  const [feeData, setFeeData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Non-blocking prefetch of secondary parent routes during browser idle time
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        import('../../student/pages/MyChildren');
-        import('../../admission/pages/parent/ParentDocumentCenterPage');
-        import('../../fees/pages/MyFees');
-      });
-    }
-  }, []);
+  const urlChildId = searchParams.get('childId');
+  const reduxChildId = useAppSelector((state) => state.parentPortal.selectedChildId);
+  const requestedChildId = urlChildId || reduxChildId || undefined;
 
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setChildren([]);
-      setAdmissions([]);
-      setFeeData([]);
-      setLoading(false);
+  const {
+    data: overview,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetParentDashboardOverviewQuery(requestedChildId, {
+    skip: !isAuthenticated,
+  });
+
+  const { data: notifRaw } = useGetNotificationsQuery({ limit: 5 }, { skip: !isAuthenticated });
+
+  const [triggerPreview] = useLazyGetChildResourcePreviewQuery();
+  const [triggerDownload] = useLazyGetChildResourceDownloadQuery();
+
+  const recentNotifications = useMemo(
+    () => normalizeNotifications(notifRaw).slice(0, 5),
+    [notifRaw],
+  );
+
+  const effectiveChildId = overview?.selected_child_id || null;
+  const children = overview?.children || [];
+  const selectedAcademic = overview?.selected_child_academic || null;
+
+  const handleSelectChild = (childId: string) => {
+    dispatch(setSelectedChildId(childId));
+    const next = new URLSearchParams(searchParams);
+    next.set('childId', childId);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handlePreviewResource = async (resource: ChildResourceDto) => {
+    if (!effectiveChildId) return;
+    if (resource.resource_type === 'external_link' && resource.external_url) {
+      window.open(resource.external_url, '_blank', 'noopener,noreferrer');
       return;
     }
-
-    const requestGen = getCurrentSessionGeneration();
-    setLoading(true);
-
-    const load = async () => {
-      try {
-        const [childData, feeDataRes] = await Promise.all([
-          ParentDashboardService.getOverview(),
-          ParentDashboardService.getMyFees(),
-        ]);
-
-        if (requestGen !== getCurrentSessionGeneration()) return;
-
-        setChildren(childData.children || []);
-        setAdmissions(childData.admissions || []);
-        const feeList = Array.isArray(feeDataRes)
-          ? feeDataRes
-          : feeDataRes?.children || feeDataRes?.data || [];
-        setFeeData(feeList);
-      } catch (err) {
-        if (requestGen === getCurrentSessionGeneration()) {
-          console.error(err);
-        }
-      } finally {
-        if (requestGen === getCurrentSessionGeneration()) {
-          setLoading(false);
-        }
+    try {
+      const res: any = await triggerPreview({
+        childId: effectiveChildId,
+        resourceId: resource.resource_id,
+      }).unwrap();
+      const targetUrl = res?.signedUrl || res?.signed_url || res?.url || res?.external_url;
+      if (!targetUrl) {
+        toast.error('Preview URL unavailable for this resource.');
+        return;
       }
-    };
-    load();
-  }, [user?.id, user?.school_id, isAuthenticated]);
-
-  const getStatusMessage = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'Application draft is initiated and in progress.';
-      case 'submitted':
-        return 'Your application has been received and is waiting for initial review.';
-      case 'under_review':
-        return 'An Admission Officer is currently reviewing your documents.';
-      case 'docs_verified':
-        return 'Documents verified! The school will soon enable the fee payment option for you.';
-      case 'payment_pending':
-        return 'ACTION REQUIRED: Please submit your admission fee to proceed.';
-      case 'payment_submitted':
-        return 'Payment details received. Our finance team is verifying your transaction.';
-      case 'payment_verified':
-        return 'Payment verified! Your application is now moving for final school approval.';
-      case 'recommended':
-        return 'Recommended for admission! Waiting for final approval from the Head of Institution.';
-      case 'approved':
-        return 'CONGRATULATIONS! Your admission is approved. You will be enrolled soon.';
-      case 'enrolled':
-        return 'Enrolled successfully. Welcome to the student master registry!';
-      default:
-        return 'Monitoring your application progress...';
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Unable to preview resource.');
     }
   };
 
-  const getFeeBalance = (studentId: string) => {
-    const list = Array.isArray(feeData) ? feeData : (feeData as any)?.children || [];
-    const record = list.find((f: any) => f.student?.id === studentId || f.student_id === studentId);
-    return record?.summary?.outstanding_balance ?? record?.summary?.balance ?? 0;
-  };
-
-  // Tracker State Derivation
-  const getTrackerState = (app: any): FeeTrackerState => {
-    if (!app?.payment_enabled) return 'HIDDEN';
-    if (
-      app.payment_reference &&
-      app.status !== 'payment_verified' &&
-      !['recommended', 'approved', 'enrolled'].includes(app.status)
-    ) {
-      return 'VERIFYING';
+  const handleDownloadResource = async (resource: ChildResourceDto) => {
+    if (!effectiveChildId) return;
+    try {
+      const res: any = await triggerDownload({
+        childId: effectiveChildId,
+        resourceId: resource.resource_id,
+      }).unwrap();
+      const targetUrl = res?.signedUrl || res?.signed_url || res?.url;
+      if (!targetUrl) {
+        toast.error('Download URL unavailable for this resource.');
+        return;
+      }
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Downloads are restricted for this resource.');
     }
-    if (['payment_verified', 'recommended', 'approved', 'enrolled'].includes(app.status)) {
-      return 'VERIFIED';
-    }
-    return 'DUE';
   };
 
-  const { kpis: engineKPIs } = useDashboard();
-
-  const getKPIValue = (id: string, fallback: number) => {
-    const item = engineKPIs.find((k: any) => k.id === id);
-    return item ? DashboardMapper.safeNumber(item.value) : fallback;
-  };
-
-  const trackerContext = useMemo(() => {
-    const activeApps = (admissions || []).filter((a) => getTrackerState(a) !== 'HIDDEN');
-    const hasDue = activeApps.some((a) => getTrackerState(a) === 'DUE');
-    const isVerifying = activeApps.some((a) => getTrackerState(a) === 'VERIFYING');
-    const totalAmount = activeApps.reduce((sum, a) => sum + Number(a.payment_amount), 0);
-    const stateKey = activeApps.map((a) => getTrackerState(a)).join('-');
-
-    return { activeApps, hasDue, isVerifying, totalAmount, stateKey };
-  }, [admissions]);
-
-  if (loading) return <PageSkeleton />;
-
-  const totalStudents = children.length;
-  // Dynamic admission fee due calculation based on whether fee payment is active
-  const totalAdmissionFeesPending = admissions
-    .filter((a) => a.payment_enabled && a.status === 'payment_pending')
-    .reduce((sum, a) => sum + Number(a.payment_amount || 0), 0);
-  const calculatedDue =
-    feeData.reduce((sum, f) => sum + (f.summary?.balance || 0), 0) + totalAdmissionFeesPending;
-  const totalDue = getKPIValue('student.kpi.fees_due', calculatedDue);
-
-  // Dynamically calculate the active admissions status tag
-  const activeAdmissionsCount = admissions.filter(
-    (a) => a.status !== 'enrolled' && a.status !== 'rejected',
-  ).length;
-  const admissionSubLabel =
-    activeAdmissionsCount > 0 ? `${activeAdmissionsCount} In Progress` : 'All Clear';
-
-  // Overall attendance rate calculation across registered children
-  const avgAttendance =
-    children.length > 0
-      ? Math.round(
-          children.reduce((acc, c) => {
-            const s = c.student || c;
-            const rate = s.attendance?.[0]?.attendance_percentage ?? 95;
-            return acc + rate;
-          }, 0) / children.length,
-        )
-      : 95;
-
-  // Pending action banners check
-  const pendingDocsCount = children.reduce((sum, c) => sum + (c.document_stats?.pending || 0), 0);
-
-  const actionAlerts: { label: string; actionText: string; url: string }[] = [];
-  if (totalDue > 0) {
-    actionAlerts.push({
-      label: `You have outstanding fee obligations of ₹${totalDue.toLocaleString()}.`,
-      actionText: 'Pay Fees',
-      url: '/app/fees/my',
-    });
-  }
-  if (pendingDocsCount > 0) {
-    actionAlerts.push({
-      label: `${pendingDocsCount} required student document(s) pending verification or upload.`,
-      actionText: 'Document Center',
-      url: '/app/parent/documents',
-    });
-  }
-  if (totalAdmissionFeesPending > 0) {
-    actionAlerts.push({
-      label: `Admission fee payment of ₹${totalAdmissionFeesPending.toLocaleString()} is ready for processing.`,
-      actionText: 'Complete Payment',
-      url: '/app/parent/payments',
-    });
+  if (isLoading) {
+    return (
+      <PageContainer data-testid="parent-dashboard-page">
+        <ParentLoadingSkeleton cards={3} />
+      </PageContainer>
+    );
   }
 
-  const kpis = [
-    {
-      label: 'My Children',
-      value: totalStudents,
-      icon: GraduationCap,
-      color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
-      sub: 'Active profiles',
-      points: [0, 1, totalStudents],
-    },
-    {
-      label: 'Avg Attendance',
-      value: avgAttendance,
-      icon: Activity,
-      color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-      suffix: '%',
-      sub: avgAttendance >= 85 ? 'On Track' : 'Needs Attention',
-      points: [80, 90, avgAttendance],
-    },
-    {
-      label: 'Admissions Progress',
-      value: activeAdmissionsCount,
-      icon: ClipboardList,
-      color:
-        activeAdmissionsCount > 0
-          ? 'text-amber-500 bg-amber-500/10 border-amber-500/20'
-          : 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-      sub: admissionSubLabel,
-      points: [0, activeAdmissionsCount],
-    },
-    {
-      label: 'Fees Pending',
-      value: totalDue,
-      icon: DollarSign,
-      color:
-        totalDue > 0
-          ? 'text-rose-500 bg-rose-500/10 border-rose-500/20'
-          : 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-      format: '₹',
-      sub: totalDue > 0 ? 'Payment Required' : 'All Clear',
-      points: [0, totalDue],
-    },
-  ];
+  if (isError || !overview) {
+    return (
+      <PageContainer data-testid="parent-dashboard-page">
+        <ParentErrorState
+          title="Unable to Load Parent Dashboard"
+          message="We could not retrieve your linked children and academic overview. Please retry."
+          onRetry={refetch}
+        />
+      </PageContainer>
+    );
+  }
 
-  const kpiElements = kpis.map((c, i) => (
-    <SpotlightCard
-      key={i}
-      spotlightColor="rgba(6, 63, 64, 0.08)"
-      className="group relative bg-white dark:bg-card p-6 border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
-    >
-      <div className="flex items-start justify-between">
-        <div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${c.color}`}
-        >
-          <c.icon className="w-6 h-6" />
-        </div>
-        <Sparkline points={c.points} color={c.color.split(' ')[0]} />
-      </div>
-
-      <div className="mt-5 space-y-1">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">
-          {c.label}
-        </p>
-        <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-navy dark:text-white tracking-tight">
-            {c.format}
-            <CountUp to={c.value} />
-            {c.suffix}
-          </span>
-          <span className="text-[10px] font-bold text-muted-foreground ml-1">{c.sub}</span>
-        </div>
-      </div>
-    </SpotlightCard>
-  ));
+  const parentDisplayName = user?.full_name?.trim() || user?.email?.split('@')[0] || 'Parent';
+  const summary = overview.summary;
 
   return (
-    <PageWrapper
-      title="Parent Dashboard"
-      description="Track your child's academic cycles, grade logs, and fee ledger obligations."
-      icon={Sparkles}
-      kpis={<>{kpiElements}</>}
-      timeline={
-        <div className="space-y-6 lg:space-y-8">
-          {/* Quick actions links */}
-          <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
-            <h3 className="text-xs font-black text-navy dark:text-white mb-6 uppercase tracking-wider pb-4 border-b border-border/45 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-primary" />
-              Shortcut Actions
-            </h3>
-            <div className="space-y-2 font-bold">
-              <Link
-                to="/app/parent/my-child"
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                    <GraduationCap className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
-                    My Children Hub
+    <PageContainer data-testid="parent-dashboard-page">
+      <div className="space-y-6">
+        {/* 5.1 Dashboard Header */}
+        <Card className="p-6 rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.04] shadow-xs">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                {overview.organization?.org_name && (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                    <School className="w-3.5 h-3.5 text-primary" />
+                    {overview.organization.org_name}
                   </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                )}
+                {overview.current_academic_year?.academic_year_name && (
+                  <Badge variant="info" className="text-[10px] font-bold">
+                    AY {overview.current_academic_year.academic_year_name}
+                  </Badge>
+                )}
+                {overview.organization?.board_affiliation && (
+                  <Badge variant="outline" className="text-[10px] font-semibold">
+                    {overview.organization.board_affiliation}
+                  </Badge>
+                )}
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {formatReadableDate()}
+                </span>
+              </div>
 
-              <Link
-                to="/app/fees/my"
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
-                    Pay Fees Portal
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+                {getTimeGreeting()}, {parentDisplayName}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Here is your children&apos;s academic overview.
+              </p>
+            </div>
 
-              <Link
-                to="/app/parent/documents"
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/parent/notifications')}
+                className="rounded-xl gap-2"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                    <FolderCheck className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
-                    Documents Centre
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-
-              <Link
-                to="/app/communication/feeds"
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
+                <Bell className="w-4 h-4 text-primary" />
+                <span>Notifications</span>
+                {summary.unread_notifications_count > 0 && (
+                  <Badge className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0">
+                    {summary.unread_notifications_count}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/parent/profile')}
+                className="rounded-xl gap-2"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
-                    <Bell className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
-                    School Feeds & Announcements
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-
-              <Link
-                to="/app/communication/helpdesk"
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                    <HelpCircle className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
-                    Parent Support & Helpdesk
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <User className="w-4 h-4 text-primary" />
+                <span>My Profile</span>
+              </Button>
             </div>
           </div>
+        </Card>
 
-          <div className="bg-gradient-to-br from-navy via-blue-900 to-indigo-950 p-6 rounded-3xl text-white shadow-premium-lg relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-            <h3 className="font-black text-sm mb-1 text-gold">Portal Assistance</h3>
-            <p className="text-white/80 text-xs mb-4">
-              Need help regarding admissions, document processing, or fees? Contact school desk.
-            </p>
-            <Link
-              to="/app/communication/helpdesk"
-              className="inline-block bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-sm transition-all"
-            >
-              Submit Inquiry
-            </Link>
-          </div>
-        </div>
-      }
-    >
-      <div className="space-y-6 lg:space-y-8">
-        {/* Visual Cover Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-navy via-blue-900 to-indigo-950 p-8 rounded-3xl text-white shadow-xl border border-white/10">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-          <span className="bg-gold text-navy text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-            Parent Dashboard
-          </span>
-          <h1 className="text-3xl font-black mt-2 tracking-tight">Welcome Back</h1>
-          <p className="text-white/70 text-xs mt-1 max-w-md leading-relaxed">
-            Quickly monitor your family's academic standing, notice bulletins, and pending
-            administrative balances.
-          </p>
-        </div>
-
-        {/* Pending Actions Alert Banner */}
-        {actionAlerts.length > 0 && (
-          <div className="space-y-3">
-            {actionAlerts.map((alert, idx) => (
-              <div
-                key={idx}
-                className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+        {/* 5.3 Academic Summary Cards (Strict Verified Data Only) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+          {[
+            {
+              label: 'Linked Children',
+              value: summary.total_children,
+              icon: Users,
+              accent: 'text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-400',
+              to: '/app/parent/children',
+            },
+            {
+              label: 'Active Enrollments',
+              value: summary.active_enrollments,
+              icon: GraduationCap,
+              accent: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400',
+              to: '/app/parent/children',
+            },
+            {
+              label: "Today's Classes",
+              value: summary.today_classes_count,
+              icon: Clock,
+              accent: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-400',
+              to: '/app/parent/timetable',
+            },
+            {
+              label: 'Upcoming Events',
+              value: summary.upcoming_events_count,
+              icon: CalendarDays,
+              accent: 'text-purple-600 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-400',
+              to: '/app/parent/academic-calendar',
+            },
+            {
+              label: 'Learning Resources',
+              value: summary.available_resources_count,
+              icon: Layers,
+              accent: 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400',
+              to: '/app/parent/learning-resources',
+            },
+            {
+              label: 'Unread Updates',
+              value: summary.unread_notifications_count,
+              icon: Bell,
+              accent: 'text-rose-600 bg-rose-50 dark:bg-rose-950/50 dark:text-rose-400',
+              to: '/app/parent/notifications',
+            },
+          ].map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <button
+                key={stat.label}
+                type="button"
+                onClick={() => navigate(stat.to)}
+                className="text-left p-4 rounded-2xl border border-border bg-card hover:border-primary/40 transition-all cursor-pointer group"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-4 h-4" />
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-xl flex items-center justify-center',
+                      stat.accent,
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
                   </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="text-2xl font-black text-foreground">{stat.value}</div>
+                <div className="text-[11px] font-semibold text-muted-foreground mt-0.5 truncate">
+                  {stat.label}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 5.2 Children Overview Cards */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-extrabold text-foreground">My Children</h2>
+              <p className="text-xs text-muted-foreground">
+                Select a child card to update timetable, subjects, curriculum, resources, and
+                calendar views below.
+              </p>
+            </div>
+            {children.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/app/parent/children')}
+                className="text-xs gap-1"
+              >
+                <span>All Details</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+
+          {children.length === 0 ? (
+            <ParentNoChildrenState
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button onClick={() => navigate('/app/admissions/my')}>Admissions Desk</Button>
+                  <Button variant="outline" onClick={() => navigate('/app/parent/documents')}>
+                    Documents Centre
+                  </Button>
+                </div>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {children.map((child: ParentChildDto) => {
+                const isSelected = child.student_id === effectiveChildId;
+                const enr = child.current_enrollment;
+                return (
+                  <Card
+                    key={child.student_id}
+                    onClick={() => handleSelectChild(child.student_id)}
+                    className={cn(
+                      'p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-4',
+                      isSelected
+                        ? 'border-primary ring-2 ring-primary/15 bg-primary/[0.02]'
+                        : 'border-border bg-card hover:border-primary/40',
+                    )}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <Avatar className="w-12 h-12 border border-border shrink-0">
+                        {child.photo_url && (
+                          <AvatarImage src={child.photo_url} alt={child.full_name} />
+                        )}
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                          {getInitials(child.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-sm font-extrabold text-foreground truncate">
+                            {child.full_name}
+                          </h3>
+                          {isSelected && (
+                            <Badge variant="info" className="text-[10px] font-bold shrink-0">
+                              Active View
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                          {child.admission_no && (
+                            <span className="font-mono font-semibold text-foreground/80">
+                              {child.admission_no}
+                            </span>
+                          )}
+                          <Badge
+                            variant={enr ? 'secondary' : 'outline'}
+                            className="text-[10px] font-semibold capitalize"
+                          >
+                            {enr?.enrollment_status || 'Placement Pending'}
+                          </Badge>
+                        </div>
+
+                        {enr ? (
+                          <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
+                            <div className="font-semibold text-foreground">
+                              {enr.grade_name}
+                              {enr.section_name ? ` • Section ${enr.section_name}` : ''}
+                            </div>
+                            <div className="text-[11px]">{enr.academic_year_name}</div>
+                            {enr.class_teacher && (
+                              <div className="text-[11px] flex items-center gap-1">
+                                <UserCheck className="w-3 h-3 text-primary shrink-0" />
+                                <span className="truncate">
+                                  Class Teacher: {enr.class_teacher.name}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground pt-1">
+                            Current grade placement pending.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div
+                      className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/app/parent/children?childId=${child.student_id}`)}
+                        className="flex-1 text-xs rounded-xl"
+                      >
+                        View Profile
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={isSelected ? 'default' : 'outline'}
+                        onClick={() =>
+                          navigate(`/app/parent/timetable?childId=${child.student_id}`)
+                        }
+                        className="flex-1 text-xs rounded-xl"
+                      >
+                        View Timetable
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Child-Scoped Stage 2 Sections */}
+        {selectedAcademic && (
+          <>
+            {/* 5.4 Today's Timetable & 5.6 Academic Overview */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2 space-y-3">
+                <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
-                      Pending Action
-                    </span>
-                    <p className="text-xs font-bold text-gray-900 dark:text-white mt-0.5">
-                      {alert.label}
+                    <h2 className="text-base font-extrabold text-foreground">
+                      Today&apos;s Timetable — {selectedAcademic.child.full_name}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Published period schedule including current, upcoming, completed classes, and
+                      breaks.
                     </p>
                   </div>
                 </div>
-                <Link
-                  to={alert.url}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all shrink-0"
-                >
-                  {alert.actionText}
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+
+                <TodayScheduleWidget
+                  timetable={selectedAcademic.today_timetable}
+                  compact
+                  onViewFullTimetable={() =>
+                    navigate(`/app/parent/timetable?childId=${selectedAcademic.child.student_id}`)
+                  }
+                />
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Active Fee Obligations Tracker Roadmap */}
-        <AnimatePresence mode="wait">
-          {trackerContext.activeApps.length > 0 && (
-            <motion.div
-              key={trackerContext.stateKey}
-              className="bg-white dark:bg-card p-6 rounded-3xl border border-border/40 shadow-premium-sm relative overflow-hidden"
-            >
-              <h3 className="text-xs font-black text-navy dark:text-white uppercase tracking-wider mb-6 pb-4 border-b border-border/45">
-                Financial Roadmap Tracker
-              </h3>
+              {/* 5.6 Academic Overview */}
+              <div className="space-y-3">
+                <h2 className="text-base font-extrabold text-foreground">Academic Overview</h2>
+                <Card className="p-5 rounded-2xl border-border bg-card space-y-4">
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Grade &amp; Section</span>
+                      <span className="font-bold text-foreground">
+                        {selectedAcademic.child.current_enrollment
+                          ? `${selectedAcademic.child.current_enrollment.grade_name}${
+                              selectedAcademic.child.current_enrollment.section_name
+                                ? ` - ${selectedAcademic.child.current_enrollment.section_name}`
+                                : ''
+                            }`
+                          : 'Placement Pending'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Academic Year</span>
+                      <span className="font-bold text-foreground">
+                        {selectedAcademic.child.current_enrollment?.academic_year_name ||
+                          overview.current_academic_year?.academic_year_name ||
+                          'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Board Affiliation</span>
+                      <span className="font-bold text-foreground">
+                        {selectedAcademic.board_affiliation || 'Not Configured'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Class Teacher</span>
+                      <span className="font-bold text-foreground">
+                        {selectedAcademic.child.current_enrollment?.class_teacher?.name ||
+                          'Not Assigned'}
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="space-y-4">
-                {trackerContext.activeApps.map((a) => {
-                  const state = getTrackerState(a);
-                  const isDue = state === 'DUE';
-                  const isVerifying = state === 'VERIFYING';
+                  {/* Published Curriculum Pacing */}
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 text-primary" />
+                        Published Curriculum
+                      </span>
+                      <Badge variant="outline" className="text-[10px] font-bold">
+                        {selectedAcademic.curriculum_pacing.published_subjects_count} Plans
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                      <div className="p-2 rounded-lg bg-card border border-border/50">
+                        <div className="text-sm font-black text-foreground">
+                          {selectedAcademic.subjects.length}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Subjects</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-card border border-border/50">
+                        <div className="text-sm font-black text-foreground">
+                          {selectedAcademic.curriculum_pacing.total_units}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Units</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-card border border-border/50">
+                        <div className="text-sm font-black text-foreground">
+                          {selectedAcademic.curriculum_pacing.total_outcomes}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Outcomes</div>
+                      </div>
+                    </div>
+                  </div>
 
-                  return (
-                    <div
-                      key={a.id}
-                      className="p-5 rounded-2xl border border-border/40 bg-gray-50/20 dark:bg-muted/5 flex flex-col md:flex-row md:items-center justify-between gap-6"
-                    >
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-black text-primary uppercase tracking-widest">
-                          {a.student_name}
-                        </span>
-                        <div className="text-2xl font-black text-navy dark:text-white">
-                          ₹{Number(a.payment_amount).toLocaleString()}
+                  {/* Enrolled Subjects Chips */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">Enrolled Subjects</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          navigate(
+                            `/app/parent/subjects?childId=${selectedAcademic.child.student_id}`,
+                          )
+                        }
+                        className="h-7 px-2 text-[11px]"
+                      >
+                        View Curriculum
+                      </Button>
+                    </div>
+                    {selectedAcademic.subjects.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No grade subjects assigned yet.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedAcademic.subjects.slice(0, 8).map((subj) => (
+                          <Badge
+                            key={subj.academic_year_grade_subject_id}
+                            variant="secondary"
+                            className="text-[11px] font-semibold"
+                          >
+                            {subj.subject_name}
+                          </Badge>
+                        ))}
+                        {selectedAcademic.subjects.length > 8 && (
+                          <Badge variant="outline" className="text-[11px]">
+                            +{selectedAcademic.subjects.length - 8} more
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 5.5 Weekly Timetable Preview */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-base font-extrabold text-foreground">
+                    Weekly Timetable Preview
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Configured working days, period timings, faculty, classrooms, and breaks.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/app/parent/timetable?childId=${selectedAcademic.child.student_id}`)
+                  }
+                  className="rounded-xl text-xs gap-1.5"
+                >
+                  <span>Full Weekly Grid</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              <WeeklyTimetableMatrix weekly={selectedAcademic.weekly_timetable} compact />
+            </section>
+
+            {/* 5.7 Learning Resources & 5.8 Academic Calendar Preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Learning Resources Preview */}
+              <Card className="p-5 rounded-2xl border-border bg-card space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-primary" />
+                      <span>Learning Resources</span>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Published materials shared for your child&apos;s grade, section, or subjects.
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      navigate(
+                        `/app/parent/learning-resources?childId=${selectedAcademic.child.student_id}`,
+                      )
+                    }
+                    className="text-xs gap-1"
+                  >
+                    <span>Browse All</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+
+                {selectedAcademic.recent_resources.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4">
+                    No published learning resources are available for this student yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {selectedAcademic.recent_resources.slice(0, 4).map((res) => (
+                      <div
+                        key={res.resource_id}
+                        className="p-3.5 rounded-xl bg-muted/40 border border-border/70 flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-xs font-bold text-foreground truncate">
+                              {res.title}
+                            </span>
+                            {res.category_name && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {res.category_name}
+                              </Badge>
+                            )}
+                            <Badge variant="secondary" className="text-[10px]">
+                              {res.resource_type === 'external_link' ? 'Link' : 'File'}
+                            </Badge>
+                          </div>
+                          {res.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-1">
+                              {res.description}
+                            </p>
+                          )}
+                          {res.subjects.length > 0 && (
+                            <div className="text-[10px] text-muted-foreground">
+                              {res.subjects.map((s) => s.subject_name).join(', ')}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePreviewResource(res)}
+                            className="h-7 px-2 text-[11px] rounded-lg gap-1"
+                          >
+                            {res.resource_type === 'external_link' ? (
+                              <ExternalLink className="w-3 h-3" />
+                            ) : (
+                              <Eye className="w-3 h-3" />
+                            )}
+                            <span>Open</span>
+                          </Button>
+                          {res.resource_type === 'file' && res.allow_download && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDownloadResource(res)}
+                              className="h-7 px-2 text-[11px] rounded-lg"
+                              aria-label="Download resource"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
 
-                      <div className="flex gap-4 items-center">
-                        <div
-                          className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase border ${
-                            isDue
-                              ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                              : isVerifying
-                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                          }`}
-                        >
-                          {isDue ? 'Due' : isVerifying ? 'Verifying' : 'Complete'}
+              {/* Academic Calendar Preview */}
+              <Card className="p-5 rounded-2xl border-border bg-card space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4 text-primary" />
+                      <span>Academic Calendar</span>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Upcoming holidays, terms, and school events applicable to your child.
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      navigate(
+                        `/app/parent/academic-calendar?childId=${selectedAcademic.child.student_id}`,
+                      )
+                    }
+                    className="text-xs gap-1"
+                  >
+                    <span>Full Calendar</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+
+                {selectedAcademic.calendar_terms.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedAcademic.calendar_terms.map((t) => (
+                      <Badge key={t.academic_term_id} variant="outline" className="text-[10px]">
+                        {t.term_name}: {formatReadableDate(t.start_date)} –{' '}
+                        {formatReadableDate(t.end_date)}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {selectedAcademic.upcoming_calendar_entries.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4">
+                    No upcoming published calendar events found.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {selectedAcademic.upcoming_calendar_entries.slice(0, 5).map((ev) => (
+                      <div
+                        key={ev.academic_calendar_entry_id}
+                        className="p-3 rounded-xl bg-muted/40 border border-border/70 flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-foreground truncate">
+                              {ev.entry_name}
+                            </span>
+                            <Badge variant="secondary" className="text-[10px] capitalize">
+                              {ev.entry_type.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          {ev.term_name && (
+                            <div className="text-[10px] text-muted-foreground">{ev.term_name}</div>
+                          )}
                         </div>
-                        <Link
-                          to={`/app/admissions/${a.id}`}
-                          className="text-[10px] font-black text-indigo-500 uppercase hover:underline"
-                        >
-                          Manage →
-                        </Link>
+                        <span className="text-[11px] font-semibold text-foreground shrink-0">
+                          {new Date(ev.start_date).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* 5.9 Notifications & 5.10 Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-5 rounded-2xl border-border bg-card space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-primary" />
+                  <span>Recent Notifications</span>
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Account alerts, school updates, and reminders.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/app/parent/notifications')}
+                className="text-xs gap-1"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            {recentNotifications.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                You have no recent notifications.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {recentNotifications.map((notif) => {
+                  const cfg = getCategoryConfig(notif.category);
+                  const CatIcon = cfg.icon;
+                  return (
+                    <div
+                      key={notif.notification_id}
+                      onClick={() => navigate('/app/parent/notifications')}
+                      className={cn(
+                        'p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-colors hover:border-primary/40',
+                        !notif.is_read
+                          ? 'bg-primary/[0.03] border-primary/30'
+                          : 'bg-muted/30 border-border/70',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-lg border flex items-center justify-center shrink-0',
+                          cfg.bgClass,
+                        )}
+                      >
+                        <CatIcon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-foreground truncate">
+                            {notif.title}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {formatRelativeTime(notif.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                          {notif.message}
+                        </p>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </Card>
 
-        {/* Active Admission Applications Timelines */}
-        {admissions.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xs font-black text-navy dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              Admission Status Timeline
-            </h2>
-            {admissions.map((app) => {
-              const steps = [
-                { key: 'draft', label: 'Draft Started' },
-                { key: 'submitted', label: 'Submitted' },
-                { key: 'under_review', label: 'Under Review' },
-                { key: 'docs_verified', label: 'Docs Verified' },
-                { key: 'payment_pending', label: 'Payment Pending' },
-                { key: 'payment_submitted', label: 'Payment Submitted' },
-                { key: 'payment_verified', label: 'Payment Verified' },
-                { key: 'recommended', label: 'Recommended' },
-                { key: 'approved', label: 'Approved' },
-                { key: 'enrolled', label: 'Enrolled' },
-              ];
-              const currentIdx = steps.findIndex((s) => s.key === app.status);
-              return (
-                <div
-                  key={app.id}
-                  className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm space-y-4"
-                >
-                  <div className="flex justify-between items-center pb-3 border-b border-border/45">
-                    <div>
-                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">
-                        Applicant: {app.student_name}
-                      </span>
-                      <h3 className="font-black text-sm text-navy dark:text-white mt-0.5">
-                        Grade Applied: {app.grade_applied_for}
-                      </h3>
-                      <p className="text-[10px] text-gray-500 font-medium mt-1">
-                        {getStatusMessage(app.status)}
-                      </p>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-gold/15 text-gold-dark border border-gold/30">
-                      Stage {currentIdx + 1}: {app.status?.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  {/* Stepper block wrapper */}
-                  <div className="relative flex justify-between items-center gap-2 pt-2 overflow-x-auto pb-4 scrollbar-hide">
-                    {steps.map((step, idx) => {
-                      const isCompleted = idx < currentIdx;
-                      const isActive = idx === currentIdx;
-                      return (
-                        <div
-                          key={idx}
-                          className="flex flex-col items-center text-center flex-1 min-w-[70px] relative z-10"
-                        >
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] transition-all ${
-                              isCompleted
-                                ? 'bg-emerald-500 text-white shadow-sm'
-                                : isActive
-                                  ? 'bg-primary text-white ring-4 ring-primary/20 animate-pulse'
-                                  : 'bg-gray-200 text-gray-400 dark:bg-muted/20'
-                            }`}
-                          >
-                            {isCompleted ? '✓' : idx + 1}
-                          </div>
-                          <p
-                            className={`text-[8px] font-black mt-2 leading-tight ${isActive ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`}
-                          >
-                            {step.label}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Streamlined Registered Children Quick-Access Cards */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-black text-navy dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" />
-              Registered Children
-            </h2>
-            <Link
-              to="/app/parent/my-child"
-              className="text-xs font-black text-primary hover:underline flex items-center gap-1"
-            >
-              Open My Children Hub <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {children.length === 0 && admissions.length === 0 ? (
-            <div className="bg-white dark:bg-card p-12 rounded-3xl border border-dashed border-border/60 text-center">
-              <GraduationCap className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3 animate-bounce" />
-              <h3 className="text-sm font-black text-gray-900 dark:text-white">
-                No active profiles mapped
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Contact school administrators to link student registries.
+          {/* 5.10 Quick Actions */}
+          <Card className="p-5 rounded-2xl border-border bg-card space-y-4">
+            <div>
+              <h2 className="text-base font-extrabold text-foreground">Quick Actions</h2>
+              <p className="text-xs text-muted-foreground">
+                Navigate directly to student records, schedules, resources, and school services.
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Enrolled Student Quick-Access Cards */}
-              {children.map((child) => {
-                const s = child.student || child;
-                const attendancePercent = s.attendance?.[0]?.attendance_percentage ?? 95;
-                const fullName =
-                  s.full_name ||
-                  child.full_name ||
-                  `${s.first_name || child.first_name || ''} ${s.last_name || child.last_name || ''}`.trim() ||
-                  'Student';
-                const admissionNo =
-                  s.admission_no || s.student_code || child.admission_no || 'Pending';
-                const academicYear = s.academic_year_name || child.academic_year_name || null;
-                const gradeName = s.grade_name || child.grade_name || null;
-                const sectionName = s.section_name || child.section_name || null;
-                const rollNumber = s.roll_number || child.roll_number || null;
-                const balance = getFeeBalance(child.student_id);
 
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[
+                { label: 'My Children', icon: Users, path: '/app/parent/children' },
+                { label: 'Full Timetable', icon: Clock, path: '/app/parent/timetable' },
+                {
+                  label: 'Academic Progress',
+                  icon: TrendingUp,
+                  path: '/app/parent/academic-progress',
+                },
+                { label: 'Subjects & Syllabus', icon: BookOpen, path: '/app/parent/subjects' },
+                {
+                  label: 'Learning Resources',
+                  icon: FileText,
+                  path: '/app/parent/learning-resources',
+                },
+                {
+                  label: 'Academic Calendar',
+                  icon: CalendarDays,
+                  path: '/app/parent/academic-calendar',
+                },
+                { label: 'Documents Centre', icon: FolderCheck, path: '/app/parent/documents' },
+                { label: 'Communication', icon: MessageSquare, path: '/app/parent/communication' },
+                { label: 'Fees & Payments', icon: CreditCard, path: '/app/fees/my' },
+              ].map((action) => {
+                const Icon = action.icon;
                 return (
-                  <div
-                    key={child.student_id}
-                    className="bg-white dark:bg-card border border-border/50 rounded-3xl p-6 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex flex-col justify-between gap-5"
+                  <button
+                    key={action.path}
+                    type="button"
+                    onClick={() => navigate(action.path)}
+                    className="p-3 rounded-xl border border-border/80 bg-muted/30 hover:bg-muted/70 hover:border-primary/40 transition-all text-left flex items-center gap-2.5 cursor-pointer"
                   >
-                    <div>
-                      {/* Top identity bar */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-navy to-blue-900 text-white flex items-center justify-center text-base font-black shadow-sm shrink-0">
-                            {fullName.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="font-black text-base text-navy dark:text-white leading-tight">
-                              {fullName}
-                            </h3>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                              ID: {admissionNo}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
-                          {s.status || 'Enrolled'}
-                        </span>
-                      </div>
-
-                      {/* Academic Placement Tags */}
-                      <div className="mt-4 flex flex-wrap gap-1.5">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-navy dark:text-white border border-border/40">
-                          <GraduationCap className="w-3 h-3 text-indigo-500" />
-                          {gradeName || 'Grade Pending'}
-                        </span>
-                        {sectionName && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-navy dark:text-white border border-border/40">
-                            <Users className="w-3 h-3 text-teal-600" />
-                            Sec {sectionName}
-                          </span>
-                        )}
-                        {rollNumber && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-navy dark:text-white border border-border/40">
-                            <ClipboardList className="w-3 h-3 text-purple-500" />
-                            Roll #{rollNumber}
-                          </span>
-                        )}
-                        {academicYear && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-muted/30 text-muted-foreground border border-border/40">
-                            <Calendar className="w-3 h-3 text-primary" />
-                            {academicYear}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Snapshot Metrics */}
-                      <div className="grid grid-cols-2 gap-3 mt-4">
-                        <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                            Attendance
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                            <span className="text-sm font-black text-navy dark:text-white">
-                              {attendancePercent}%
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                            Fee Balance
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <CreditCard className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-sm font-black text-navy dark:text-white">
-                              {balance > 0 ? `₹${balance.toLocaleString()}` : 'Cleared'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Navigation CTA: Deep link to My Children */}
-                    <div className="pt-2 border-t border-border/30 flex items-center justify-between gap-3">
-                      <Link
-                        to={`/app/parent/documents`}
-                        className="text-[10px] font-black text-muted-foreground hover:text-navy dark:hover:text-white transition-colors"
-                      >
-                        Documents
-                      </Link>
-                      <Link
-                        to={`/app/fees/my`}
-                        className="text-[10px] font-black text-muted-foreground hover:text-navy dark:hover:text-white transition-colors"
-                      >
-                        Invoices
-                      </Link>
-                      <Link
-                        to={`/app/parent/my-child?childId=${child.student_id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-navy hover:bg-navy/90 text-white shadow-xs transition-all ml-auto"
-                      >
-                        View Profile & Records
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  </div>
+                    <Icon className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {action.label}
+                    </span>
+                  </button>
                 );
               })}
-
-              {/* Render Admission Applicant Cards */}
-              {admissions.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white dark:bg-card border border-border/50 rounded-3xl p-6 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex flex-col justify-between gap-5"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center text-base font-black shadow-sm shrink-0">
-                          {app.student_name?.charAt(0)}
-                        </div>
-                        <div>
-                          <h3 className="font-black text-base text-navy dark:text-white leading-tight">
-                            {app.student_name}
-                          </h3>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                            Applied Grade: {app.grade_applied_for}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-600 border border-amber-500/30 shrink-0">
-                        {app.status?.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 mt-4">
-                      <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                          Stage
-                        </p>
-                        <p className="text-xs font-bold text-navy dark:text-white capitalize mt-1">
-                          {app.status?.replace('_', ' ')}
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-gray-50/70 dark:bg-muted/10 rounded-2xl border border-border/30">
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                          Admission Fee
-                        </p>
-                        <p className="text-xs font-bold text-navy dark:text-white mt-1">
-                          ₹{Number(app.payment_amount || 0).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-border/30 flex justify-end">
-                    <Link
-                      to={`/app/admissions/${app.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all"
-                    >
-                      View Application Timeline
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
             </div>
-          )}
+          </Card>
         </div>
       </div>
-    </PageWrapper>
+    </PageContainer>
   );
 };
+
+export default ParentDashboard;

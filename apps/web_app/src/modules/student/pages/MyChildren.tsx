@@ -176,8 +176,8 @@ export const MyChildren: React.FC = () => {
       selectedChild.academic_year_name || s.academic_year_name || 'Academic Year';
     const rollNumber = selectedChild.roll_number || s.roll_number || '—';
     const feeBalance = getChildFeeBalance(selectedChild.student_id);
-    const attendancePct = s.attendance?.[0]?.attendance_percentage ?? 95;
-    const examPct = s.exam_stats?.[0]?.percentage ?? 88;
+    const attendancePct = s.attendance?.[0]?.attendance_percentage ?? null;
+    const examPct = s.exam_stats?.[0]?.percentage ?? null;
     const docStats = selectedChild.document_stats || {
       total_required: 0,
       submitted: 0,
@@ -342,7 +342,9 @@ export const MyChildren: React.FC = () => {
                   <span>Attendance</span>
                   <Activity className="w-4 h-4 text-emerald-500" />
                 </div>
-                <div className="text-2xl font-black text-foreground">{attendancePct}%</div>
+                <div className="text-2xl font-black text-foreground">
+                  {attendancePct !== null ? `${attendancePct}%` : 'N/A'}
+                </div>
                 <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Good Standing</span>
@@ -371,7 +373,9 @@ export const MyChildren: React.FC = () => {
                   <span>Exam Performance</span>
                   <Award className="w-4 h-4 text-indigo-500" />
                 </div>
-                <div className="text-2xl font-black text-foreground">{examPct}%</div>
+                <div className="text-2xl font-black text-foreground">
+                  {examPct !== null ? `${examPct}%` : 'N/A'}
+                </div>
                 <div className="text-[11px] text-muted-foreground font-semibold">
                   Latest Assessment Average
                 </div>
@@ -559,7 +563,9 @@ export const MyChildren: React.FC = () => {
                 <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
                   Curriculum
                 </span>
-                <p className="text-base font-black text-foreground">CBSE Standards</p>
+                <p className="text-base font-black text-foreground">
+                  {s.board_affiliation || selectedChild.board_affiliation || 'Not Configured'}
+                </p>
               </div>
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-border/60 space-y-1">
                 <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
@@ -575,17 +581,17 @@ export const MyChildren: React.FC = () => {
 
         {/* Tab 4: Attendance */}
         {activeTab === 'attendance' && (
-          <Card className="p-6 rounded-2xl border-border bg-card shadow-xs space-y-6">
+          <Card className="p-6 rounded-2xl border-border bg-card shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-emerald-500" />
                 <h3 className="text-sm font-extrabold text-foreground">Attendance Records</h3>
               </div>
-              <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200">
-                {attendancePct}% Overall
+              <Badge variant="outline">
+                {attendancePct !== null ? `${attendancePct}% Overall` : 'Unavailable'}
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {attendancePct !== null ? (
               <div className="p-6 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex flex-col items-center justify-center text-center space-y-2">
                 <div className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
                   {attendancePct}%
@@ -593,30 +599,12 @@ export const MyChildren: React.FC = () => {
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Cumulative Academic Attendance
                 </p>
-                <span className="text-[10px] text-muted-foreground">
-                  Above the 75% school threshold
-                </span>
               </div>
-              <div className="md:col-span-2 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Recent Month Performance
-                </h4>
-                <div className="space-y-2 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-border/60 flex items-center justify-between">
-                    <span className="font-semibold text-foreground">Present Days</span>
-                    <span className="font-bold text-emerald-600">22 Days</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-border/60 flex items-center justify-between">
-                    <span className="font-semibold text-foreground">Approved Leaves</span>
-                    <span className="font-bold text-blue-600">1 Day</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-border/60 flex items-center justify-between">
-                    <span className="font-semibold text-foreground">Unexcused Absences</span>
-                    <span className="font-bold text-slate-400">0 Days</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Student attendance tracking records are not yet supported in the Stage-1 database.
+              </p>
+            )}
           </Card>
         )}
 
@@ -730,26 +718,29 @@ export const MyChildren: React.FC = () => {
 
         {/* Tab 7: Performance */}
         {activeTab === 'performance' && (
-          <Card className="p-6 rounded-2xl border-border bg-card shadow-xs space-y-6">
+          <Card className="p-6 rounded-2xl border-border bg-card shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-sm font-extrabold text-foreground">Examination & Grade Card</h3>
               </div>
-              <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200">
-                Score: {examPct}%
+              <Badge variant="outline">
+                {examPct !== null ? `Score: ${examPct}%` : 'Unavailable'}
               </Badge>
             </div>
-            <div className="p-6 rounded-2xl bg-indigo-50/30 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 space-y-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                Academic Grade Assessment
-              </span>
-              <div className="text-3xl font-black text-foreground">Grade A+ (Exemplary)</div>
+            {examPct !== null ? (
+              <div className="p-6 rounded-2xl bg-indigo-50/30 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 space-y-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  Academic Assessment
+                </span>
+                <div className="text-3xl font-black text-foreground">{examPct}%</div>
+              </div>
+            ) : (
               <p className="text-xs text-muted-foreground">
-                Consolidated assessment for active term exams. For full subject marksheet breakdown,
-                visit the student marksheet center.
+                Published examination marks and grade cards are not yet supported in the Stage-1
+                database.
               </p>
-            </div>
+            )}
           </Card>
         )}
 
@@ -891,7 +882,7 @@ export const MyChildren: React.FC = () => {
           const sectionName = child.section_name || s.section_name || null;
           const academicYear = child.academic_year_name || s.academic_year_name || 'Academic Year';
           const feeBalance = getChildFeeBalance(child.student_id);
-          const attendancePct = s.attendance?.[0]?.attendance_percentage ?? 95;
+          const attendancePct = s.attendance?.[0]?.attendance_percentage ?? null;
           const docStats = child.document_stats || {
             total_required: 0,
             submitted: 0,
@@ -958,7 +949,7 @@ export const MyChildren: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2 pt-1 text-center">
                   <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-border/60">
                     <span className="block text-xs font-black text-emerald-600 dark:text-emerald-400">
-                      {attendancePct}%
+                      {attendancePct !== null ? `${attendancePct}%` : 'N/A'}
                     </span>
                     <span className="text-[9px] text-muted-foreground font-semibold">
                       Attendance

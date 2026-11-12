@@ -143,6 +143,109 @@ export function runLandingResolverAndFrontendRbacTests() {
     assertEqual(teacher.profile, DASHBOARD_CONSTANTS.ROLES.FACULTY, 'Teacher profile');
   });
 
+  test('5. Unmapped roles (e.g. HR) and Exam Cell resolve to safe accessible routes without bouncing to /app/unauthorized', () => {
+    assertEqual(
+      LandingResolver.resolveLandingRoute(['HR']),
+      '/app/profile',
+      'HR must resolve to /app/profile instead of /app/parent/dashboard',
+    );
+    assertEqual(
+      LandingResolver.resolveLandingRoute(['Librarian']),
+      '/app/profile',
+      'Unknown role fallback must resolve to /app/profile',
+    );
+    assertEqual(
+      LandingResolver.resolveLandingRoute(['EXAM_CELL']),
+      '/app/front-office/dashboard',
+      'EXAM_CELL landing',
+    );
+    assertEqual(
+      LandingResolver.resolveLandingRoute(['EXAM_CELL_ADMIN']),
+      '/app/front-office/dashboard',
+      'EXAM_CELL_ADMIN landing',
+    );
+  });
+
+  test('6. LandingResolver.isRouteAllowedForRoles rejects /app/unauthorized and cross-role post-login redirects', () => {
+    for (const roles of [
+      ['SUPERADMIN'],
+      ['ADMIN'],
+      ['TEACHER'],
+      ['FRONT_OFFICE'],
+      ['FINANCE_OFFICER'],
+      ['PARENT'],
+      ['STUDENT'],
+      ['HR'],
+    ]) {
+      assertEqual(
+        LandingResolver.isRouteAllowedForRoles('/app/unauthorized', roles),
+        false,
+        `${roles.join(',')} must never preserve /app/unauthorized as from redirect`,
+      );
+      assertEqual(
+        LandingResolver.isRouteAllowedForRoles('/app/dashboard', roles),
+        false,
+        `${roles.join(',')} must not preserve /app/dashboard as from redirect`,
+      );
+      assertEqual(
+        LandingResolver.isRouteAllowedForRoles('/app/profile', roles),
+        true,
+        `${roles.join(',')} can access shared /app/profile`,
+      );
+    }
+
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/super-admin/dashboard', ['ADMIN']),
+      false,
+      'ADMIN must not be bounced to /app/super-admin/dashboard on login',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/super-admin/dashboard', ['SUPER_ADMIN']),
+      true,
+      'SUPER_ADMIN retains /app/super-admin/dashboard redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/academic/structure', ['TEACHER']),
+      false,
+      'TEACHER must not retain /app/academic/structure redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/academic/resources', ['TEACHER']),
+      true,
+      'TEACHER retains shared /app/academic/resources redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/teacher/dashboard', ['PARENT']),
+      false,
+      'PARENT must not retain /app/teacher/dashboard redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/student/dashboard', ['PARENT']),
+      false,
+      'PARENT must not retain /app/student/dashboard redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/admissions/app-123', ['PARENT']),
+      true,
+      'PARENT retains /app/admissions/:id redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/parent/dashboard', ['STUDENT']),
+      false,
+      'STUDENT must not retain /app/parent/dashboard redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/student/dashboard', ['STUDENT']),
+      true,
+      'STUDENT retains /app/student/dashboard redirect',
+    );
+    assertEqual(
+      LandingResolver.isRouteAllowedForRoles('/app/parent/dashboard', ['HR']),
+      false,
+      'HR must not retain /app/parent/dashboard redirect',
+    );
+  });
+
   console.log(`\n[LandingResolver Frontend Suite] ${passed} passed, ${failed} failed.\n`);
   if (failed > 0) {
     throw new Error(`${failed} frontend regression test(s) failed`);

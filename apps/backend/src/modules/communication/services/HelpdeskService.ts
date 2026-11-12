@@ -960,7 +960,12 @@ export class HelpdeskService {
         OR: [
           { user_id: userId },
           ...(user?.email
-            ? [{ email: { equals: user.email.trim(), mode: 'insensitive' as const } }]
+            ? [
+                {
+                  user_id: null,
+                  email: { equals: user.email.trim(), mode: 'insensitive' as const },
+                },
+              ]
             : []),
         ],
       },

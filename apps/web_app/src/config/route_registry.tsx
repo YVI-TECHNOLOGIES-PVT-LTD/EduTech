@@ -1,5 +1,17 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import Dashboard from '../pages/Dashboard';
+import { AcademicOverviewPage } from '../modules/academic/pages/AcademicOverviewPage';
+import { AcademicStructurePage } from '../modules/academic/pages/AcademicStructurePage';
+import { GradesAndSectionsPage } from '../modules/academic/pages/GradesAndSectionsPage';
+import { SubjectsCatalogPage } from '../modules/academic/pages/SubjectsCatalogPage';
+import { FacultyWorkloadPage } from '../modules/academic/pages/FacultyWorkloadPage';
+import { TimetableMasterPage } from '../modules/academic/pages/TimetableMasterPage';
+import { AcademicCalendarPage } from '../modules/academic/pages/AcademicCalendarPage';
+import { CurriculumSyllabusPage } from '../modules/academic/pages/CurriculumSyllabusPage';
+import { LessonPlanningPage } from '../modules/academic/pages/LessonPlanningPage';
+import { DigitalResourcesPage } from '../modules/academic/pages/DigitalResourcesPage';
+import { AcademicReadinessPage } from '../modules/academic/pages/AcademicReadinessPage';
 import { Profile } from '../pages/Profile';
 import { Settings } from '../pages/Settings';
 import { BulkOperations } from '../modules/admin/pages/BulkOperations';
@@ -35,9 +47,6 @@ const ParentDashboard = React.lazy(() =>
     default: m.ParentDashboard,
   })),
 );
-const MyChildren = React.lazy(() =>
-  import('../modules/student/pages/MyChildren').then((m) => ({ default: m.MyChildren })),
-);
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
 import { ParentFeesRouter } from '../pages/ParentFeesRouter';
@@ -49,6 +58,51 @@ const ParentDocumentCenterPage = React.lazy(() =>
 const ParentFeePaymentPage = React.lazy(() =>
   import('../modules/admission/pages/parent/ParentFeePaymentPage').then((m) => ({
     default: m.ParentFeePaymentPage,
+  })),
+);
+const ParentChildrenPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentChildrenPage').then((m) => ({
+    default: m.ParentChildrenPage,
+  })),
+);
+const ParentTimetablePage = React.lazy(() =>
+  import('../modules/parent/pages/ParentTimetablePage').then((m) => ({
+    default: m.ParentTimetablePage,
+  })),
+);
+const ParentAcademicProgressPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentAcademicProgressPage').then((m) => ({
+    default: m.ParentAcademicProgressPage,
+  })),
+);
+const ParentSubjectsCurriculumPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentSubjectsCurriculumPage').then((m) => ({
+    default: m.ParentSubjectsCurriculumPage,
+  })),
+);
+const ParentLearningResourcesPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentLearningResourcesPage').then((m) => ({
+    default: m.ParentLearningResourcesPage,
+  })),
+);
+const ParentAcademicCalendarPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentAcademicCalendarPage').then((m) => ({
+    default: m.ParentAcademicCalendarPage,
+  })),
+);
+const ParentNotificationsPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentNotificationsPage').then((m) => ({
+    default: m.ParentNotificationsPage,
+  })),
+);
+const ParentCommunicationPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentCommunicationPage').then((m) => ({
+    default: m.ParentCommunicationPage,
+  })),
+);
+const ParentSettingsPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentSettingsPage').then((m) => ({
+    default: m.ParentSettingsPage,
   })),
 );
 const ParentAdmissionStatusPage = React.lazy(() =>
@@ -328,8 +382,62 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
 
   // Post-Admission Enrolled Parent Routes
   {
+    path: 'parent/children',
+    element: <ParentChildrenPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
     path: 'parent/my-child',
-    element: <MyChildren />,
+    element: <Navigate to="/app/parent/children" replace />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/timetable',
+    element: <ParentTimetablePage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/academic-progress',
+    element: <ParentAcademicProgressPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/subjects',
+    element: <ParentSubjectsCurriculumPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/learning-resources',
+    element: <ParentLearningResourcesPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/academic-calendar',
+    element: <ParentAcademicCalendarPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/communication',
+    element: <ParentCommunicationPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/profile',
+    element: <Profile />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/settings',
+    element: <ParentSettingsPage />,
     layout: 'dashboard',
     guardType: 'parent',
   },
@@ -383,8 +491,8 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'parent/notifications',
-    element: <MyApplications />,
-    layout: 'parent_admission',
+    element: <ParentNotificationsPage />,
+    layout: 'dashboard',
     guardType: 'parent',
   },
 
@@ -683,6 +791,106 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <BulkOperations />,
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+
+  // ─── 5A. ADMIN ACADEMIC MANAGEMENT ROUTES ──────────────────────────────────
+  {
+    path: 'academic',
+    element: <Navigate to="/app/academic/dashboard" replace />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/dashboard',
+    element: <AcademicOverviewPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/structure',
+    element: <AcademicStructurePage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_SETUP',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/classes',
+    element: <GradesAndSectionsPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/subjects',
+    element: <SubjectsCatalogPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/faculty',
+    element: <FacultyWorkloadPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/timetable',
+    element: <TimetableMasterPage />,
+    layout: 'dashboard',
+    permission: 'TIMETABLE_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/calendar',
+    element: <AcademicCalendarPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/curriculum',
+    element: <CurriculumSyllabusPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/curriculum/:id',
+    element: <CurriculumSyllabusPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/lesson-planning',
+    element: <LessonPlanningPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'teacher',
+  },
+  {
+    path: 'academic/resources',
+    element: <DigitalResourcesPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'teacher',
+  },
+  {
+    path: 'academic/readiness',
+    element: <AcademicReadinessPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/readiness/:academicYearId',
+    element: <AcademicReadinessPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
     guardType: 'admin',
   },
 

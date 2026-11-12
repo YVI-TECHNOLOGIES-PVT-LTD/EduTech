@@ -428,8 +428,8 @@ export class ParentOverviewService {
           roll_number: rollNumber,
           enrollment_id: activeEnrollment?.enrollment_id || null,
           enrollment_status: enrollmentStatus,
-          attendance: [{ attendance_percentage: 95 }],
-          exam_stats: [{ percentage: 88 }],
+          attendance: [],
+          exam_stats: [],
           faculty_assignments: [],
         },
       };

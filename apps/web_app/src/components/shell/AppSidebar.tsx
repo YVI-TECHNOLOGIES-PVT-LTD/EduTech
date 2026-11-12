@@ -43,12 +43,12 @@ const EXPANDED_STORAGE_KEY = 'edutrack.sidebar.expanded';
 /**
  * Check if a path matches an item's url directly or with query params
  */
-function isItemDirectlyActive(
+export function isItemDirectlyActive(
   item: NavigationItem,
   currentPath: string,
   currentSearch: string = '',
 ): boolean {
-  if (!item.url) return false;
+  if (!item.url || item.url === '#') return false;
   const fullCurrentUrl = currentPath + currentSearch;
 
   // Exact match with query params if item.url specifies query params
@@ -101,7 +101,7 @@ function isItemOrDescendantActive(
 /**
  * Collect all ancestor IDs for an active item based on current URL
  */
-function findActiveAncestorIds(
+export function findActiveAncestorIds(
   items: NavigationItem[],
   currentPath: string,
   currentSearch: string = '',
@@ -191,19 +191,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
   const homeUrl = LandingResolver.resolveLandingRoute(normalizedRoles, [], user);
   const contextLabel = navGroups[0]?.contextLabel || 'EDUTRACK ERP';
 
-  // Expanded state loaded from localStorage
+  // Expanded state loaded from localStorage, pre-seeded with ancestors of the active URL
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>(['fo_admissions']);
     try {
       const stored = localStorage.getItem(EXPANDED_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return new Set<string>(parsed);
+          initial.clear();
+          for (const id of parsed) initial.add(id);
         }
       }
     } catch {}
-    // Default: 'fo_admissions' expanded initially for front office
-    return new Set<string>(['fo_admissions']);
+    const activeAncestors = findActiveAncestorIds(
+      navGroups.flatMap((g) => g.items),
+      currentPath,
+      location.search,
+    );
+    for (const id of activeAncestors) initial.add(id);
+    return initial;
   });
 
   // Auto-expand all ancestors of the currently active route
@@ -330,11 +337,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           {/* Left Action: Navigate or Toggle */}
           <Link
             to={item.url}
+            data-nav-id={item.id}
             onClick={(e) => {
-              handleLinkClick();
               if (!item.url || item.url === '#') {
                 e.preventDefault();
                 toggleExpanded(item.id);
+              } else {
+                handleLinkClick();
               }
             }}
             className="flex-1 flex items-center gap-2.5 min-w-0 group-data-[collapsible=icon]:justify-center cursor-pointer"
@@ -423,6 +432,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
     const leafNode = (
       <Link
         to={item.url}
+        data-nav-id={item.id}
+        data-active={isDirectActive ? 'true' : 'false'}
+        aria-current={isDirectActive ? 'page' : undefined}
         onClick={handleLinkClick}
         className={`w-full flex items-center gap-2.5 rounded-xl transition-all group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:p-0 cursor-pointer ${
           depth === 0

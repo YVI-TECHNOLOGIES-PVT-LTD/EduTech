@@ -38,7 +38,7 @@ export interface AuthContextType {
   systemMode: 'UAT' | 'PRODUCTION';
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -214,12 +214,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Initial Supabase Session Sync or Native JWT restoration
-      const storedToken = localStorage.getItem('edutrack_access_token');
       const {
         data: { session: initSession },
       } = await supabase.auth.getSession();
 
       if (!isMounted) return;
+
+      // Re-read native token AFTER async network/session awaits so a concurrent
+      // native login is never clobbered back to 'signed_out'.
+      const storedToken = localStorage.getItem('edutrack_access_token');
 
       if (initSession?.access_token) {
         setSession(initSession);
@@ -402,6 +405,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (parentPermissions.includes(code)) return true;
       }
 
+      if (normalized.includes('STUDENT')) {
+        const studentPermissions = ['student.dashboard.view', 'STUDENT_VIEW_SELF'];
+        if (studentPermissions.includes(code)) return true;
+      }
+
       return false;
     },
     [userPermissions, userRoles, user],
@@ -419,12 +427,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [userRoles, user],
   );
 
+  const hasNativeAuthenticatedSession = Boolean(reduxIsAuthenticated && user && accessToken);
+  const effectiveBoundaryState: AuthBoundaryState =
+    boundaryState === 'switching'
+      ? 'switching'
+      : hasNativeAuthenticatedSession &&
+          (boundaryState === 'signed_out' || initialSessionResolvedRef.current)
+        ? 'stable'
+        : boundaryState;
+  const effectiveLoading = effectiveBoundaryState === 'stable' ? false : isInitializing;
+
   const value: AuthContextType = {
     session,
     user,
     accessToken,
-    loading: isInitializing,
-    boundaryState,
+    loading: effectiveLoading,
+    boundaryState: effectiveBoundaryState,
     isAuthenticated: Boolean((session || accessToken) && user && reduxIsAuthenticated),
     signOut,
     hasPermission,

@@ -28,6 +28,7 @@ export const apiSlice = createApi({
     'ChatbotSession',
     'Notification',
     'NotificationCount',
+    'ParentPortal',
   ],
   endpoints: () => ({}),
 });
