@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useAppSelector } from '@/app/store';
 import { useApplicationList } from '../../hooks/useApplication';
 import ParentDashboardService from '@/modules/dashboard/services/ParentDashboardService';
 import {
@@ -68,12 +69,19 @@ export interface UnifiedStudentCard {
 
 export function ParentDocumentCenterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const params = useParams<{ applicationId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
+  const reduxChildId = useAppSelector((state) => state.parentPortal.selectedChildId);
+  const isParentRoute = location.pathname.startsWith('/app/parent');
   const queryAppId =
-    searchParams.get('applicationId') || searchParams.get('id') || searchParams.get('studentId');
-  const activeParamAppId = params.applicationId || params.id || queryAppId;
+    searchParams.get('applicationId') ||
+    searchParams.get('id') ||
+    searchParams.get('studentId') ||
+    searchParams.get('childId');
+  const activeParamAppId =
+    params.applicationId || params.id || queryAppId || (isParentRoute ? reduxChildId : null);
 
   // 1. Fetch parent overview containing registered students and in-progress applications
   const [parentOverview, setParentOverview] = useState<{
@@ -243,7 +251,8 @@ export function ParentDocumentCenterPage() {
 
   // Selected student resolution (support both URL parameter and inline selection)
   const [selectedStudentStateId, setSelectedStudentStateId] = useState<string | null>(null);
-  const activeSelectedId = activeParamAppId || selectedStudentStateId;
+  const activeSelectedId =
+    selectedStudentStateId === 'SHOW_ALL' ? null : activeParamAppId || selectedStudentStateId;
 
   const selectedStudent = useMemo(() => {
     if (!activeSelectedId || studentCards.length === 0) return null;
@@ -494,9 +503,9 @@ export function ParentDocumentCenterPage() {
     });
 
     const handleBackToList = () => {
-      setSelectedStudentStateId(null);
+      setSelectedStudentStateId('SHOW_ALL');
       if (activeParamAppId) {
-        navigate('/app/admissions/documents');
+        navigate(isParentRoute ? '/app/parent/documents' : '/app/admissions/documents');
       }
     };
 

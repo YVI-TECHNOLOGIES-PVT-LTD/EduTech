@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useParentSelectedChild } from '@/modules/parent/hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '@/modules/parent/components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -135,16 +134,6 @@ export const ParentLearningActivitiesPage: React.FC = () => {
             </Button>
           </div>
         }
-      />
-
-      <ParentChildSelectorBar
-        childrenList={children}
-        selectedChildId={selectedChildId}
-        onSelectChild={(id) => {
-          selectChild(id);
-          setSelectedActivityId(null);
-          setPage(1);
-        }}
       />
 
       {/* Per-Child KPI Summary */}

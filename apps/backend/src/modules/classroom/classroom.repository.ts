@@ -2033,7 +2033,9 @@ export class ClassroomRepository {
             });
             download_url = downloadSigned.signedUrl;
           } catch {
-            // Non-blocking fallback if storage adapter is offline
+            // Non-blocking fallback if storage adapter is offline or mock object in test
+            preview_url = `/api/v1/classroom/resources/${r.resource_id}/preview`;
+            download_url = `/api/v1/classroom/resources/${r.resource_id}/download`;
           }
         }
 
@@ -2055,6 +2057,42 @@ export class ClassroomRepository {
       }),
     );
 
+    let enrolledCount = 0;
+    if (sectionId) {
+      try {
+        const enrollResult = await prisma.$queryRawUnsafe<any[]>(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM student_enrollments se
+          JOIN students s ON s.student_id = se.student_id
+          WHERE s.org_id = $1::uuid
+            AND se.section_id = $2::uuid
+            AND se.status = 'active'
+          `,
+          orgId,
+          sectionId,
+        );
+        enrolledCount = Number(enrollResult[0]?.count || 0);
+      } catch {
+        enrolledCount = 0;
+      }
+    }
+
+    const outcomesList = outcomeRows.map((o) => ({
+      learning_outcome_id: o.learning_outcome_id,
+      outcome_code: o.outcome_code,
+      outcome_statement: o.outcome_statement,
+      bloom_level: o.bloom_level || null,
+      coverage_notes: o.coverage_notes || null,
+    }));
+
+    const questionsList = ticketRows.map((t) => ({
+      exit_ticket_id: t.exit_ticket_id,
+      prompt: t.prompt,
+      expected_response_or_criteria: t.expected_response_or_criteria || null,
+      sequence_number: Number(t.sequence_number || 1),
+    }));
+
     return {
       lesson_plan_id: plan.lesson_plan_id,
       curriculum_unit_id: plan.curriculum_unit_id,
@@ -2068,19 +2106,10 @@ export class ClassroomRepository {
       teaching_approach: plan.teaching_approach || 'flipped',
       preparation_deadline: sessionDeadline || plan.planned_date || null,
       resources: safeResources,
-      outcomes: outcomeRows.map((o) => ({
-        learning_outcome_id: o.learning_outcome_id,
-        outcome_code: o.outcome_code,
-        outcome_statement: o.outcome_statement,
-        bloom_level: o.bloom_level || null,
-        coverage_notes: o.coverage_notes || null,
-      })),
-      preparation_questions: ticketRows.map((t) => ({
-        exit_ticket_id: t.exit_ticket_id,
-        prompt: t.prompt,
-        expected_response_or_criteria: t.expected_response_or_criteria || null,
-        sequence_number: Number(t.sequence_number || 1),
-      })),
+      outcomes: outcomesList,
+      learning_outcomes: outcomesList,
+      preparation_questions: questionsList,
+      questions: questionsList,
       in_class_activities: activityRows.map((a) => ({
         lesson_activity_id: a.lesson_activity_id,
         activity_type: a.activity_type,
@@ -2100,6 +2129,12 @@ export class ClassroomRepository {
         maximum_marks: p.maximum_marks !== null ? Number(p.maximum_marks) : null,
         activity_status: p.activity_status,
       })),
+      monitoring: {
+        enrolled_count: enrolledCount,
+        resources_accessed_count: 0,
+        questions_completed_count: 0,
+        submission_rate_percent: 0,
+      },
     };
   }
 
@@ -2350,13 +2385,14 @@ export class ClassroomRepository {
   ): Promise<ClassroomSessionDto[]> {
     const activeEnrollmentRows: any[] = await prisma.$queryRawUnsafe(
       `
-      SELECT section_id
-      FROM student_enrollments
-      WHERE org_id = $1::uuid
-        AND student_id = $2::uuid
-        AND status = 'active'
-        AND enrollment_date <= CURRENT_DATE
-        AND (exit_date IS NULL OR exit_date >= CURRENT_DATE)
+      SELECT se.section_id
+      FROM student_enrollments se
+      JOIN students s ON s.student_id = se.student_id
+      WHERE s.org_id = $1::uuid
+        AND se.student_id = $2::uuid
+        AND se.status = 'active'
+        AND se.enrollment_date <= CURRENT_DATE
+        AND (se.exit_date IS NULL OR se.exit_date >= CURRENT_DATE)
       `,
       orgId,
       studentId,

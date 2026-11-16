@@ -9,7 +9,6 @@ import {
   useGetChildWeeklyTimetableQuery,
 } from '@/shared/api/parentPortal.api';
 import { useParentSelectedChild } from '../hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '../components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -130,12 +129,6 @@ export const ParentTimetablePage: React.FC = () => {
         <ParentNoChildrenState />
       ) : (
         <>
-          <ParentChildSelectorBar
-            childrenList={children}
-            selectedChildId={selectedChildId}
-            onSelectChild={selectChild}
-          />
-
           {(isWeeklyLoading || isDailyLoading) && !weekly && !daily ? (
             <ParentLoadingSkeleton cards={2} />
           ) : isWeeklyError || isDailyError ? (

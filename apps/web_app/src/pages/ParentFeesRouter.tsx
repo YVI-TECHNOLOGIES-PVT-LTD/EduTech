@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { MyFees } from '../modules/fees/pages/MyFees';
-import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
+import { PageSkeleton } from '@/components/common/LoadingSkeleton';
+
+const MyFees = React.lazy(() =>
+  import('../modules/fees/pages/MyFees').then((m) => ({ default: m.MyFees })),
+);
+const ParentFeePaymentPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentFeePaymentPage').then((m) => ({
+    default: m.ParentFeePaymentPage,
+  })),
+);
 
 /**
  * Parent Fees Lifecycle Router
@@ -19,10 +27,18 @@ export const ParentFeesRouter: React.FC = () => {
   );
 
   if (isPostAdmission) {
-    return <MyFees />;
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <MyFees />
+      </Suspense>
+    );
   }
 
-  return <ParentFeePaymentPage />;
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <ParentFeePaymentPage />
+    </Suspense>
+  );
 };
 
 export default ParentFeesRouter;

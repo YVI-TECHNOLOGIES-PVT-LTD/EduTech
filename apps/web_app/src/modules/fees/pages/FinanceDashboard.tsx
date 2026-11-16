@@ -1,11 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../../lib/api-client';
 import {
   Coins,
   TrendingUp,
   AlertCircle,
-  FileText,
   RefreshCw,
   DollarSign,
   Percent,
@@ -17,12 +16,8 @@ import {
   BarChart2,
   Receipt,
   PlusCircle,
-  MessageSquare,
-  ArrowRight,
   CreditCard,
-  Building,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import {
   AreaChart,
   Area,
@@ -43,13 +38,11 @@ import {
   DashboardKpiCard,
   DashboardSection,
   DashboardChartCard,
-  DashboardEmptyState,
   DashboardErrorState,
   DashboardQuickActions,
   QuickActionItem,
 } from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 const fmt = (n: number) =>
   n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : `₹${n.toLocaleString('en-IN')}`;
@@ -58,50 +51,65 @@ const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b
 
 export const FinanceDashboard = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [kpis, setKpis] = useState<any>({});
-  const [trend, setTrend] = useState<any[]>([]);
-  const [modes, setModes] = useState<any[]>([]);
-  const [byClass, setByClass] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  // Demand-driven queries with independent staleTime and caching
+  const kpisQuery = useQuery({
+    queryKey: ['finance', 'dashboard', 'kpis'],
+    queryFn: async () => {
+      const res = await apiClient.get('/fees/dashboard/kpis');
+      return res.data || {};
+    },
+    staleTime: 60_000,
+  });
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [kpiRes, trendRes, modeRes, classRes, feedsRes] = await Promise.all([
-        apiClient.get('/fees/dashboard/kpis'),
-        apiClient.get('/fees/dashboard/collection-trend'),
-        apiClient.get('/fees/dashboard/payment-modes'),
-        apiClient.get('/fees/dashboard/outstanding-by-class'),
-        apiClient.get('/communication/feeds').catch(() => ({ data: [] })),
-      ]);
-      setKpis(kpiRes.data || {});
-      setTrend(trendRes.data || []);
-      setModes(modeRes.data || []);
-      setByClass((classRes.data || []).slice(0, 8));
-      const postList = Array.isArray(feedsRes.data?.posts)
-        ? feedsRes.data.posts
-        : Array.isArray(feedsRes.data?.data?.posts)
-          ? feedsRes.data.data.posts
-          : Array.isArray(feedsRes.data?.data)
-            ? feedsRes.data.data
-            : Array.isArray(feedsRes.data)
-              ? feedsRes.data
-              : [];
-      setPosts(postList);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load finance dashboard');
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
+  const trendQuery = useQuery({
+    queryKey: ['finance', 'dashboard', 'trend'],
+    queryFn: async () => {
+      const res = await apiClient.get('/fees/dashboard/collection-trend');
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 120_000,
+  });
+
+  const modesQuery = useQuery({
+    queryKey: ['finance', 'dashboard', 'modes'],
+    queryFn: async () => {
+      const res = await apiClient.get('/fees/dashboard/payment-modes');
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 120_000,
+  });
+
+  const byClassQuery = useQuery({
+    queryKey: ['finance', 'dashboard', 'by-class'],
+    queryFn: async () => {
+      const res = await apiClient.get('/fees/dashboard/outstanding-by-class');
+      const list = Array.isArray(res.data) ? res.data : [];
+      return list.slice(0, 8);
+    },
+    staleTime: 120_000,
+  });
+
+  const isRefreshing =
+    kpisQuery.isFetching ||
+    trendQuery.isFetching ||
+    modesQuery.isFetching ||
+    byClassQuery.isFetching;
+
+  const handleRefresh = () => {
+    kpisQuery.refetch();
+    trendQuery.refetch();
+    modesQuery.refetch();
+    byClassQuery.refetch();
   };
+
+  const kpis = kpisQuery.data || {};
+  const trend = trendQuery.data || [];
+  const modes = modesQuery.data || [];
+  const byClass = byClassQuery.data || [];
+
+  const error = kpisQuery.error || trendQuery.error || modesQuery.error || byClassQuery.error;
+  const errorMessage = error instanceof Error ? error.message : null;
 
   const quickActions: QuickActionItem[] = [
     {
@@ -170,11 +178,11 @@ export const FinanceDashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchAll}
-              disabled={loading}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
               className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm gap-2 text-xs font-semibold"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button
@@ -189,7 +197,7 @@ export const FinanceDashboard = () => {
         }
       />
 
-      {error && <DashboardErrorState message={error} onRetry={fetchAll} />}
+      {errorMessage && <DashboardErrorState message={errorMessage} onRetry={handleRefresh} />}
 
       {/* 2. Collection & Outstanding KPIs */}
       <DashboardSection
@@ -203,7 +211,7 @@ export const FinanceDashboard = () => {
             subtitle="Collections recorded today"
             icon={DollarSign}
             variant="success"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="This Month Collection"
@@ -211,7 +219,7 @@ export const FinanceDashboard = () => {
             subtitle="Current calendar month"
             icon={TrendingUp}
             variant="primary"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="Collection Rate"
@@ -219,7 +227,7 @@ export const FinanceDashboard = () => {
             subtitle="Of total billed demands"
             icon={Percent}
             variant="info"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="Total Outstanding"
@@ -227,7 +235,7 @@ export const FinanceDashboard = () => {
             subtitle={`${kpis.pendingCount ?? 0} demands pending`}
             icon={AlertCircle}
             variant="warning"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="Overdue Fees"
@@ -235,7 +243,7 @@ export const FinanceDashboard = () => {
             subtitle="Past due payment date"
             icon={AlertTriangle}
             variant="danger"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="Pending Demands"
@@ -243,7 +251,7 @@ export const FinanceDashboard = () => {
             subtitle="Unpaid student demands"
             icon={Clock}
             variant="warning"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="Receipts Today"
@@ -251,7 +259,7 @@ export const FinanceDashboard = () => {
             subtitle="Official vouchers generated"
             icon={Receipt}
             variant="purple"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
           <DashboardKpiCard
             title="Fee Templates"
@@ -259,7 +267,7 @@ export const FinanceDashboard = () => {
             subtitle="Active billing structures"
             icon={Layers}
             variant="neutral"
-            loading={loading}
+            loading={kpisQuery.isLoading}
           />
         </div>
       </DashboardSection>
@@ -271,7 +279,7 @@ export const FinanceDashboard = () => {
             title="30-Day Fee Collection Velocity"
             subtitle="Daily realization timeline across cash, bank, and online channels"
             icon={TrendingUp}
-            loading={loading}
+            loading={trendQuery.isLoading}
             isEmpty={!trend.length}
             emptyTitle="No Trend Records"
             emptyMessage="No fee payments logged during the past 30 days."
@@ -330,7 +338,7 @@ export const FinanceDashboard = () => {
             title="Payment Modes"
             subtitle="Channel breakdown this month"
             icon={CreditCard}
-            loading={loading}
+            loading={modesQuery.isLoading}
             isEmpty={!modes.length}
             emptyTitle="No Payment Modes"
             emptyMessage="No payments recorded this month."
@@ -349,7 +357,7 @@ export const FinanceDashboard = () => {
                     outerRadius={68}
                     paddingAngle={3}
                   >
-                    {modes.map((_, i) => (
+                    {modes.map((_: any, i: number) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
@@ -377,7 +385,7 @@ export const FinanceDashboard = () => {
           title="Outstanding Demands by Class"
           subtitle="Collected vs unpaid receivables across academic grades"
           icon={BarChart2}
-          loading={loading}
+          loading={byClassQuery.isLoading}
           minHeight={240}
         >
           <div className="h-60 w-full pt-2">
@@ -436,87 +444,6 @@ export const FinanceDashboard = () => {
       >
         <DashboardQuickActions actions={quickActions} columns={3} />
       </DashboardSection>
-
-      {/* 6. Communication Feeds & Bulletins */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-bold text-foreground">
-              Institutional Communications & Feeds
-            </h3>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/app/communication/feeds')}
-            className="text-xs font-bold text-primary gap-1"
-          >
-            <span>View All Feeds</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-
-        {posts.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">
-            No published posts or announcements found.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {posts.slice(0, 6).map((post: any) => {
-              const id = post.feed_post_id || post.feedPostId;
-              const type = post.feed_type || post.feedType || 'general';
-              const scope = post.audience_scope || post.audienceScope || 'organization';
-              const authorName =
-                post.author?.name ||
-                `${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() ||
-                'Staff';
-              const dateStr =
-                post.published_at || post.publishedAt || post.created_at || post.createdAt;
-              const displayDate = dateStr
-                ? new Date(dateStr).toLocaleDateString('en-IN', {
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                : '';
-
-              return (
-                <div
-                  key={id}
-                  onClick={() => navigate('/app/communication/feeds')}
-                  className="p-4 rounded-xl border border-border/60 hover:border-primary/40 bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer flex flex-col justify-between gap-3 group"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                        {type} • {scope}
-                      </span>
-                      {displayDate && (
-                        <span className="text-[11px] text-muted-foreground">{displayDate}</span>
-                      )}
-                    </div>
-                    {post.title && (
-                      <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                        {post.title}
-                      </h4>
-                    )}
-                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                      {post.content}
-                    </p>
-                  </div>
-                  <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>By {authorName}</span>
-                    <span>
-                      {post.reactionCount ?? post.reactionSummary?.length ?? 0} reactions •{' '}
-                      {post.commentCount ?? 0} comments
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 };

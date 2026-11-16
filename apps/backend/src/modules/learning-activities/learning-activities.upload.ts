@@ -208,6 +208,19 @@ export function validateLearningActivityFileBufferSignature(file: Express.Multer
       `Corrupted or unsupported binary signature for "${file.originalname}". Allowed formats: PDF, Images (PNG, JPG, WEBP), Audio (MP3, WAV, M4A, WEBM), Video (MP4, WEBM up to 10MB), and Source Code files.`,
     );
   }
+
+  // Cross-verify declared file extension against detected magic bytes
+  const ext = file.originalname?.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf' && detected !== 'application/pdf') {
+    throw new LearningActivityValidationError(
+      `File "${file.originalname}" is corrupted or contains spoofed PDF magic bytes.`,
+    );
+  }
+  if (['png', 'jpg', 'jpeg', 'webp'].includes(ext || '') && !detected.startsWith('image/')) {
+    throw new LearningActivityValidationError(
+      `File "${file.originalname}" is corrupted or contains spoofed image magic bytes.`,
+    );
+  }
 }
 
 export const learningActivitiesUploadMiddleware = multer({

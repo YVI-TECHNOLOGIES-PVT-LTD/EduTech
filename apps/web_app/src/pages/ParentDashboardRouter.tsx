@@ -1,7 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
-import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
+const ParentDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/ParentDashboard').then((m) => ({
+    default: m.ParentDashboard,
+  })),
+);
+const ParentDashboardPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentDashboardPage').then((m) => ({
+    default: m.ParentDashboardPage,
+  })),
+);
 import { ParentDashboardService } from '../modules/dashboard/services/ParentDashboardService';
 import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 
@@ -48,14 +56,22 @@ export const ParentDashboardRouter: React.FC = () => {
   }, [user?.id, isPostAdmission, hasEnrolledKids]);
 
   if (isPostAdmission) {
-    return <ParentDashboard />;
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <ParentDashboard />
+      </Suspense>
+    );
   }
 
   if (checkingOverview && hasEnrolledKids === null) {
     return <PageSkeleton />;
   }
 
-  return <ParentDashboardPage />;
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <ParentDashboardPage />
+    </Suspense>
+  );
 };
 
 export default ParentDashboardRouter;

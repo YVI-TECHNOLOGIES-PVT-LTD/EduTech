@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
-import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 import { apiClient } from '../../../lib/api-client';
 import {
   CalendarCheck,
@@ -49,39 +49,24 @@ export function StudentDashboard() {
 
 function StudentDashboardInner() {
   const { user, isAuthenticated } = useAuth();
-  const [admissions, setAdmissions] = useState<any[]>([]);
-  const [loadingAdmissions, setLoadingAdmissions] = useState(false);
 
-  const fetchAdmissions = async () => {
-    if (!isAuthenticated || !user) {
-      setAdmissions([]);
-      return;
-    }
-    const requestGen = getCurrentSessionGeneration();
-    setLoadingAdmissions(true);
-    try {
+  const {
+    data: admissions = [],
+    isLoading: loadingAdmissions,
+    refetch: refetchAdmissions,
+  } = useQuery({
+    queryKey: ['student', 'admissions', user?.id, user?.school_id],
+    queryFn: async () => {
       const res = await apiClient.get('/v1/admission/my');
-      if (requestGen !== getCurrentSessionGeneration()) return;
       const list = res.data?.data || res.data || [];
-      const active = list.filter((a: any) => {
+      return list.filter((a: any) => {
         const status = (a.status ?? '').toLowerCase();
         return status !== 'enrolled' && status !== 'rejected';
       });
-      setAdmissions(active);
-    } catch (err) {
-      if (requestGen === getCurrentSessionGeneration()) {
-        console.error('Failed to load admissions', err);
-      }
-    } finally {
-      if (requestGen === getCurrentSessionGeneration()) {
-        setLoadingAdmissions(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchAdmissions();
-  }, [user?.id, user?.school_id, isAuthenticated]);
+    },
+    enabled: Boolean(isAuthenticated && user?.id),
+    staleTime: 300_000,
+  });
 
   const {
     kpis: engineKPIs,
@@ -194,11 +179,13 @@ function StudentDashboardInner() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchAdmissions}
-            disabled={dashboardLoading}
+            onClick={() => refetchAdmissions()}
+            disabled={dashboardLoading || loadingAdmissions}
             className="rounded-xl border-border/80 gap-1.5 text-xs font-semibold"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${dashboardLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${dashboardLoading || loadingAdmissions ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           <Link
@@ -285,7 +272,7 @@ function StudentDashboardInner() {
               <Clock className="w-4 h-4 text-primary" />
               Admission Application Tracker
             </h3>
-            {admissions.map((app) => {
+            {admissions.map((app: any) => {
               const steps = [
                 { key: 'draft', label: 'Draft' },
                 { key: 'submitted', label: 'Submitted' },

@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useParentSelectedChild } from '@/modules/parent/hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '@/modules/parent/components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -117,15 +116,6 @@ export const ParentClassroomPage: React.FC = () => {
             Refresh
           </Button>
         }
-      />
-
-      <ParentChildSelectorBar
-        childrenList={children}
-        selectedChildId={selectedChildId}
-        onSelectChild={(id) => {
-          selectChild(id);
-          setPage(1);
-        }}
       />
 
       {overviewLoading || !overview ? (

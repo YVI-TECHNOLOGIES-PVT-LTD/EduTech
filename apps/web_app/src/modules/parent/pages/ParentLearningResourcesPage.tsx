@@ -14,7 +14,6 @@ import {
   ChildResourceDto,
 } from '@/shared/api/parentPortal.api';
 import { useParentSelectedChild } from '../hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '../components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -129,16 +128,6 @@ export const ParentLearningResourcesPage: React.FC = () => {
         <ParentNoChildrenState />
       ) : (
         <>
-          <ParentChildSelectorBar
-            childrenList={children}
-            selectedChildId={selectedChildId}
-            onSelectChild={(id) => {
-              setSubjectId('');
-              setPage(1);
-              selectChild(id);
-            }}
-          />
-
           {/* Filters */}
           <Card className="p-4 rounded-2xl border-border bg-card">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api-client';
 import { useAuth } from '../../../context/AuthContext';
+import { useAppSelector } from '@/app/store';
 import { Modal } from '../../../components/ui/modal';
 import {
   Printer,
@@ -30,6 +32,11 @@ import { PageSkeleton } from '@/components/common/LoadingSkeleton';
 
 export const MyFees: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const reduxChildId = useAppSelector((state) => state.parentPortal.selectedChildId);
+  const urlChildId = searchParams.get('childId');
+  const effectiveChildId = urlChildId || reduxChildId;
+
   const [structures, setStructures] = useState<any[]>([]);
   const [childrenRecords, setChildrenRecords] = useState<any[]>([]);
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0);
@@ -116,8 +123,30 @@ export const MyFees: React.FC = () => {
     setIsCheckoutModalOpen(true);
   };
 
-  const safeChildIndex =
-    selectedChildIndex >= 0 && selectedChildIndex < childrenRecords.length ? selectedChildIndex : 0;
+  useEffect(() => {
+    if (effectiveChildId && childrenRecords.length > 0) {
+      const idx = childrenRecords.findIndex(
+        (c) => c.student_id === effectiveChildId || c.id === effectiveChildId,
+      );
+      if (idx !== -1) {
+        setSelectedChildIndex(idx);
+      }
+    }
+  }, [effectiveChildId, childrenRecords]);
+
+  const safeChildIndex = useMemo(() => {
+    if (!childrenRecords.length) return 0;
+    if (effectiveChildId) {
+      const idx = childrenRecords.findIndex(
+        (c) => c.student_id === effectiveChildId || c.id === effectiveChildId,
+      );
+      if (idx !== -1) return idx;
+    }
+    return selectedChildIndex >= 0 && selectedChildIndex < childrenRecords.length
+      ? selectedChildIndex
+      : 0;
+  }, [childrenRecords, effectiveChildId, selectedChildIndex]);
+
   const activeRecord = childrenRecords[safeChildIndex] || null;
 
   if (loading) {
@@ -139,7 +168,17 @@ export const MyFees: React.FC = () => {
             Official Fee Center & Ledger
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Track student fee obligations, installment schedules, and confirmed payment receipts.
+            {activeRecord ? (
+              <span>
+                Viewing fee ledger and payment history for{' '}
+                <strong className="text-slate-700 dark:text-slate-200">
+                  {activeRecord.full_name}
+                </strong>
+                {activeRecord.grade_name ? ` (${activeRecord.grade_name})` : ''}.
+              </span>
+            ) : (
+              'Track student fee obligations, installment schedules, and confirmed payment receipts.'
+            )}
           </p>
         </div>
 
@@ -161,40 +200,6 @@ export const MyFees: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* ── MULTI-CHILD SELECTION TABS ─────────────────────────────────── */}
-      {childrenRecords.length > 1 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {childrenRecords.map((c, idx) => {
-            const isSelected = idx === selectedChildIndex;
-            return (
-              <button
-                key={c.student_id || idx}
-                onClick={() => setSelectedChildIndex(idx)}
-                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2.5 whitespace-nowrap border ${
-                  isSelected
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20'
-                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-                }`}
-              >
-                <div
-                  className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {c.full_name?.charAt(0) || 'S'}
-                </div>
-                <span>{c.full_name}</span>
-                <span
-                  className={`text-[10px] font-mono ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}
-                >
-                  ({c.grade_name || 'Enrolled'})
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* ── EMPTY STATE ───────────────────────────────────────────────── */}
       {childrenRecords.length === 0 ? (

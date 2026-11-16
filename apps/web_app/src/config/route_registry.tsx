@@ -2,56 +2,194 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LandingResolver } from '../services/LandingResolver';
-import Dashboard from '../pages/Dashboard';
-import { AcademicOverviewPage } from '../modules/academic/pages/AcademicOverviewPage';
-import { AcademicStructurePage } from '../modules/academic/pages/AcademicStructurePage';
-import { GradesAndSectionsPage } from '../modules/academic/pages/GradesAndSectionsPage';
-import { SubjectsCatalogPage } from '../modules/academic/pages/SubjectsCatalogPage';
-import { FacultyWorkloadPage } from '../modules/academic/pages/FacultyWorkloadPage';
-import { TimetableMasterPage } from '../modules/academic/pages/TimetableMasterPage';
-import { AcademicCalendarPage } from '../modules/academic/pages/AcademicCalendarPage';
-import { CurriculumSyllabusPage } from '../modules/academic/pages/CurriculumSyllabusPage';
-import { LessonPlanningPage } from '../modules/academic/pages/LessonPlanningPage';
-import { DigitalResourcesPage } from '../modules/academic/pages/DigitalResourcesPage';
-import { AcademicReadinessPage } from '../modules/academic/pages/AcademicReadinessPage';
-import { Profile } from '../pages/Profile';
-import { Settings } from '../pages/Settings';
-import { BulkOperations } from '../modules/admin/pages/BulkOperations';
-import { ExecutiveOverview } from '../modules/common/executive/ExecutiveOverview';
-import { ImportHistoryPage } from '../modules/import/pages/ImportHistory';
-import { StudentDashboard } from '../modules/dashboard/pages/StudentDashboard';
-import { AdminDashboard } from '../modules/dashboard/pages/AdminDashboard';
-import { FacultyDashboard } from '../modules/dashboard/pages/FacultyDashboard';
-import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
-import { MyApplications } from '../modules/admission/pages/MyApplications';
-import { InstructionsPage } from '../modules/admission/pages/InstructionsPage';
-import { TestPortal } from '../modules/admission/pages/TestPortal';
-import { SuccessPage } from '../modules/admission/pages/SuccessPage';
-import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashboard';
-import WorkspaceDashboard from '../modules/admission/pages/Workspace';
-import Applicant360Page from '../modules/admission/pages/Applicant360';
-import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
+const Dashboard = React.lazy(() => import('../pages/Dashboard'));
+const AcademicOverviewPage = React.lazy(() =>
+  import('../modules/academic/pages/AcademicOverviewPage').then((m) => ({
+    default: m.AcademicOverviewPage,
+  })),
+);
+const AcademicStructurePage = React.lazy(() =>
+  import('../modules/academic/pages/AcademicStructurePage').then((m) => ({
+    default: m.AcademicStructurePage,
+  })),
+);
+const GradesAndSectionsPage = React.lazy(() =>
+  import('../modules/academic/pages/GradesAndSectionsPage').then((m) => ({
+    default: m.GradesAndSectionsPage,
+  })),
+);
+const SubjectsCatalogPage = React.lazy(() =>
+  import('../modules/academic/pages/SubjectsCatalogPage').then((m) => ({
+    default: m.SubjectsCatalogPage,
+  })),
+);
+const FacultyWorkloadPage = React.lazy(() =>
+  import('../modules/academic/pages/FacultyWorkloadPage').then((m) => ({
+    default: m.FacultyWorkloadPage,
+  })),
+);
+const TimetableMasterPage = React.lazy(() =>
+  import('../modules/academic/pages/TimetableMasterPage').then((m) => ({
+    default: m.TimetableMasterPage,
+  })),
+);
+const AcademicCalendarPage = React.lazy(() =>
+  import('../modules/academic/pages/AcademicCalendarPage').then((m) => ({
+    default: m.AcademicCalendarPage,
+  })),
+);
+const CurriculumSyllabusPage = React.lazy(() =>
+  import('../modules/academic/pages/CurriculumSyllabusPage').then((m) => ({
+    default: m.CurriculumSyllabusPage,
+  })),
+);
+const LessonPlanningPage = React.lazy(() =>
+  import('../modules/academic/pages/LessonPlanningPage').then((m) => ({
+    default: m.LessonPlanningPage,
+  })),
+);
+const DigitalResourcesPage = React.lazy(() =>
+  import('../modules/academic/pages/DigitalResourcesPage').then((m) => ({
+    default: m.DigitalResourcesPage,
+  })),
+);
+const AcademicReadinessPage = React.lazy(() =>
+  import('../modules/academic/pages/AcademicReadinessPage').then((m) => ({
+    default: m.AcademicReadinessPage,
+  })),
+);
+const Profile = React.lazy(() => import('../pages/Profile').then((m) => ({ default: m.Profile })));
+const Settings = React.lazy(() =>
+  import('../pages/Settings').then((m) => ({ default: m.Settings })),
+);
+const BulkOperations = React.lazy(() =>
+  import('../modules/admin/pages/BulkOperations').then((m) => ({
+    default: m.BulkOperations,
+  })),
+);
+const ExecutiveOverview = React.lazy(() =>
+  import('../modules/common/executive/ExecutiveOverview').then((m) => ({
+    default: m.ExecutiveOverview,
+  })),
+);
+const ImportHistoryPage = React.lazy(() =>
+  import('../modules/import/pages/ImportHistory').then((m) => ({
+    default: m.ImportHistoryPage,
+  })),
+);
+const StudentDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/StudentDashboard').then((m) => ({
+    default: m.StudentDashboard,
+  })),
+);
+const AdminDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/AdminDashboard').then((m) => ({
+    default: m.AdminDashboard,
+  })),
+);
+const FacultyDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/FacultyDashboard').then((m) => ({
+    default: m.FacultyDashboard,
+  })),
+);
+const AdmissionForm = React.lazy(() =>
+  import('../modules/admission/pages/AdmissionForm').then((m) => ({
+    default: m.AdmissionForm,
+  })),
+);
+const MyApplications = React.lazy(() =>
+  import('../modules/admission/pages/MyApplications').then((m) => ({
+    default: m.MyApplications,
+  })),
+);
+const InstructionsPage = React.lazy(() =>
+  import('../modules/admission/pages/InstructionsPage').then((m) => ({
+    default: m.InstructionsPage,
+  })),
+);
+const TestPortal = React.lazy(() =>
+  import('../modules/admission/pages/TestPortal').then((m) => ({
+    default: m.TestPortal,
+  })),
+);
+const SuccessPage = React.lazy(() =>
+  import('../modules/admission/pages/SuccessPage').then((m) => ({
+    default: m.SuccessPage,
+  })),
+);
+const MonitoringDashboard = React.lazy(() =>
+  import('../modules/admission/pages/MonitoringDashboard').then((m) => ({
+    default: m.MonitoringDashboard,
+  })),
+);
+const WorkspaceDashboard = React.lazy(() => import('../modules/admission/pages/Workspace'));
+const Applicant360Page = React.lazy(() => import('../modules/admission/pages/Applicant360'));
+const InquiryListPage = React.lazy(() =>
+  import('../modules/admission/pages/InquiryListPage').then((m) => ({
+    default: m.InquiryListPage,
+  })),
+);
 const ApplicationsManagementPage = React.lazy(() =>
   import('../modules/admission/pages/front-office/ApplicationsManagementPage').then((m) => ({
     default: m.ApplicationsManagementPage,
   })),
 );
-import { CounsellingPage } from '../modules/admission/pages/front-office/CounsellingPage';
-import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
-import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
-import { CampusVisitsPage } from '../modules/admission/pages/front-office/CampusVisitsPage';
-import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
-import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
-import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
+const CounsellingPage = React.lazy(() =>
+  import('../modules/admission/pages/front-office/CounsellingPage').then((m) => ({
+    default: m.CounsellingPage,
+  })),
+);
+const DocumentVerificationPage = React.lazy(() =>
+  import('../modules/admission/pages/front-office/DocumentVerificationPage').then((m) => ({
+    default: m.DocumentVerificationPage,
+  })),
+);
+const FeeCollectionPage = React.lazy(() =>
+  import('../modules/admission/pages/front-office/FeeCollectionPage').then((m) => ({
+    default: m.FeeCollectionPage,
+  })),
+);
+const CampusVisitsPage = React.lazy(() =>
+  import('../modules/admission/pages/front-office/CampusVisitsPage').then((m) => ({
+    default: m.CampusVisitsPage,
+  })),
+);
+const ApplicationWizardPage = React.lazy(() =>
+  import('../modules/admission/pages/ApplicationWizardPage').then((m) => ({
+    default: m.ApplicationWizardPage,
+  })),
+);
+const EntranceExamPage = React.lazy(() =>
+  import('../modules/admission/pages/EntranceExamPage').then((m) => ({
+    default: m.EntranceExamPage,
+  })),
+);
+const AdmissionDecisionPage = React.lazy(() =>
+  import('../modules/admission/pages/AdmissionDecisionPage').then((m) => ({
+    default: m.AdmissionDecisionPage,
+  })),
+);
 
 const ParentDashboard = React.lazy(() =>
   import('../modules/dashboard/pages/ParentDashboard').then((m) => ({
     default: m.ParentDashboard,
   })),
 );
-import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
-import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
-import { ParentFeesRouter } from '../pages/ParentFeesRouter';
+const ParentDashboardPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentDashboardPage').then((m) => ({
+    default: m.ParentDashboardPage,
+  })),
+);
+const ParentDashboardRouter = React.lazy(() =>
+  import('../pages/ParentDashboardRouter').then((m) => ({
+    default: m.ParentDashboardRouter,
+  })),
+);
+const ParentFeesRouter = React.lazy(() =>
+  import('../pages/ParentFeesRouter').then((m) => ({
+    default: m.ParentFeesRouter,
+  })),
+);
 const ParentDocumentCenterPage = React.lazy(() =>
   import('../modules/admission/pages/parent/ParentDocumentCenterPage').then((m) => ({
     default: m.ParentDocumentCenterPage,
@@ -118,23 +256,91 @@ const ParentSubmittedApplicationPage = React.lazy(() =>
   })),
 );
 
-import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
-import { FinanceConfigurationPage } from '../modules/fees/pages/FinanceConfiguration';
-import { FinanceDashboard } from '../modules/fees/pages/FinanceDashboard';
-import { FeeStructureManagement } from '../modules/fees/pages/FeeStructureManagement';
-import { DemandManagement } from '../modules/fees/pages/DemandManagement';
-import { PaymentEntry } from '../modules/fees/pages/PaymentEntry';
-import { AdminFeeLedger } from '../modules/fees/pages/AdminFeeLedger';
-import { FinanceReports } from '../modules/fees/pages/FinanceReports';
-import { ReceiptCenter } from '../modules/fees/pages/ReceiptCenter';
-import { ScholarshipsConcessions } from '../modules/fees/pages/ScholarshipsConcessions';
-import { ReceivablesCollections } from '../modules/fees/pages/ReceivablesCollections';
-import { FinanceNotificationCenter } from '../modules/fees/pages/FinanceNotificationCenter';
-import { FinanceReconciliation } from '../modules/fees/pages/FinanceReconciliation';
-import { FinanceAccounting } from '../modules/fees/pages/FinanceAccounting';
-import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
-import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
-import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
+const SchoolOperationsWorkspace = React.lazy(() =>
+  import('../pages/SchoolOperationsWorkspace').then((m) => ({
+    default: m.SchoolOperationsWorkspace,
+  })),
+);
+const FinanceConfigurationPage = React.lazy(() =>
+  import('../modules/fees/pages/FinanceConfiguration').then((m) => ({
+    default: m.FinanceConfigurationPage,
+  })),
+);
+const FinanceDashboard = React.lazy(() =>
+  import('../modules/fees/pages/FinanceDashboard').then((m) => ({
+    default: m.FinanceDashboard,
+  })),
+);
+const FeeStructureManagement = React.lazy(() =>
+  import('../modules/fees/pages/FeeStructureManagement').then((m) => ({
+    default: m.FeeStructureManagement,
+  })),
+);
+const DemandManagement = React.lazy(() =>
+  import('../modules/fees/pages/DemandManagement').then((m) => ({
+    default: m.DemandManagement,
+  })),
+);
+const PaymentEntry = React.lazy(() =>
+  import('../modules/fees/pages/PaymentEntry').then((m) => ({
+    default: m.PaymentEntry,
+  })),
+);
+const AdminFeeLedger = React.lazy(() =>
+  import('../modules/fees/pages/AdminFeeLedger').then((m) => ({
+    default: m.AdminFeeLedger,
+  })),
+);
+const FinanceReports = React.lazy(() =>
+  import('../modules/fees/pages/FinanceReports').then((m) => ({
+    default: m.FinanceReports,
+  })),
+);
+const ReceiptCenter = React.lazy(() =>
+  import('../modules/fees/pages/ReceiptCenter').then((m) => ({
+    default: m.ReceiptCenter,
+  })),
+);
+const ScholarshipsConcessions = React.lazy(() =>
+  import('../modules/fees/pages/ScholarshipsConcessions').then((m) => ({
+    default: m.ScholarshipsConcessions,
+  })),
+);
+const ReceivablesCollections = React.lazy(() =>
+  import('../modules/fees/pages/ReceivablesCollections').then((m) => ({
+    default: m.ReceivablesCollections,
+  })),
+);
+const FinanceNotificationCenter = React.lazy(() =>
+  import('../modules/fees/pages/FinanceNotificationCenter').then((m) => ({
+    default: m.FinanceNotificationCenter,
+  })),
+);
+const FinanceReconciliation = React.lazy(() =>
+  import('../modules/fees/pages/FinanceReconciliation').then((m) => ({
+    default: m.FinanceReconciliation,
+  })),
+);
+const FinanceAccounting = React.lazy(() =>
+  import('../modules/fees/pages/FinanceAccounting').then((m) => ({
+    default: m.FinanceAccounting,
+  })),
+);
+const FinancePlanning = React.lazy(() =>
+  import('../modules/fees/pages/FinancePlanning').then((m) => ({
+    default: m.FinancePlanning,
+  })),
+);
+const FinanceAudit = React.lazy(() =>
+  import('../modules/fees/pages/FinanceAudit').then((m) => ({
+    default: m.FinanceAudit,
+  })),
+);
+const FinanceOperations = React.lazy(() =>
+  import('../modules/fees/pages/FinanceOperations').then((m) => ({
+    default: m.FinanceOperations,
+  })),
+);
 const FinanceCommunicationFeeds = React.lazy(() =>
   import('../modules/fees/pages/FinanceCommunicationFeeds').then((m) => ({
     default: m.FinanceCommunicationFeeds,
@@ -145,9 +351,21 @@ const FinanceCommunicationHelpdesk = React.lazy(() =>
     default: m.FinanceCommunicationHelpdesk,
   })),
 );
-import { FinanceCommunicationEscalation } from '../modules/fees/pages/FinanceCommunicationEscalation';
-import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
-import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
+const FinanceCommunicationEscalation = React.lazy(() =>
+  import('../modules/fees/pages/FinanceCommunicationEscalation').then((m) => ({
+    default: m.FinanceCommunicationEscalation,
+  })),
+);
+const RazorpayCheckoutDemo = React.lazy(() =>
+  import('../modules/fees/pages/RazorpayCheckoutDemo').then((m) => ({
+    default: m.RazorpayCheckoutDemo,
+  })),
+);
+const StudentFeeAssignment = React.lazy(() =>
+  import('../modules/fees/pages/StudentFeeAssignment').then((m) => ({
+    default: m.StudentFeeAssignment,
+  })),
+);
 const MyFees = React.lazy(() =>
   import('../modules/fees/pages/MyFees').then((m) => ({ default: m.MyFees })),
 );
