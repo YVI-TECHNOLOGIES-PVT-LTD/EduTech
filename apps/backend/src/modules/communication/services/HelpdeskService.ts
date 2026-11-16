@@ -36,6 +36,16 @@ export interface AddMessageDto {
   }[];
 }
 
+export const FINANCE_HELPDESK_CATEGORIES = [
+  'Fees & Payments',
+  'Fees',
+  'Finance',
+  'Fee Management',
+  'Billing & Collections',
+  'Billing',
+  'Payments',
+];
+
 export class HelpdeskService {
   // ─── CATEGORIES ───────────────────────────────────────────────────────────
 
@@ -309,6 +319,8 @@ export class HelpdeskService {
       status?: concern_status;
       category_id?: string;
       priority?: helpdesk_priority;
+      module?: string;
+      search?: string;
       page?: number;
       limit?: number;
     } = {},
@@ -323,6 +335,9 @@ export class HelpdeskService {
       ...(query.category_id ? { category_id: query.category_id } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
     };
+
+    const isExplicitFinanceModule =
+      query.module?.toLowerCase() === 'finance' || query.module?.toLowerCase() === 'fees';
 
     if (!userContext.isStaff) {
       if (userContext.isStudent) {
@@ -374,7 +389,20 @@ export class HelpdeskService {
       }
     } else if (userContext.isManagement) {
       // 2. Management (Administrator, Super Admin, Principal):
-      // Full institutional oversight across the school organization.
+      // Full institutional oversight across the school organization,
+      // or scoped to finance tickets when module=finance is specified.
+      if (isExplicitFinanceModule) {
+        where.helpdesk_categories = {
+          category_name: { in: FINANCE_HELPDESK_CATEGORIES },
+        };
+      }
+    } else if (userContext.isFinance || isExplicitFinanceModule) {
+      // 4. Finance Role or explicit Finance Helpdesk view:
+      // Strictly scoped to finance & fee-related categories (Fees & Payments, Billing, etc.).
+      // Under no circumstances should non-finance categories (Academics, Admissions, HR, etc.) appear in Finance Helpdesk.
+      where.helpdesk_categories = {
+        category_name: { in: FINANCE_HELPDESK_CATEGORIES },
+      };
     } else if (userContext.isTeacher) {
       // 3. Teachers:
       // Scope to class/section/academic tickets + tickets assigned to/created by them
@@ -410,10 +438,6 @@ export class HelpdeskService {
         teacherOrConditions.push({ student_id: { in: sectionStudentIds } });
       }
       where.OR = teacherOrConditions;
-    } else if (userContext.isFinance) {
-      // 4. Finance:
-      // Authorized to view all organization tickets without category restrictions (fees, communication, academics, helpdesk)
-      // Preserves optional query filters (query.status, query.category_id, query.priority)
     } else if (userContext.isFrontOffice) {
       // 5. Front Office:
       // Scope to general inquiries, admissions, documents, tickets raised on behalf of parents
@@ -444,7 +468,47 @@ export class HelpdeskService {
       ];
     }
 
-    const [total, rawTickets] = await Promise.all([
+    // Apply search filter if supplied
+    if (query.search && query.search.trim()) {
+      const term = query.search.trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term);
+      const searchOrClauses: any[] = [
+        {
+          helpdesk_messages: {
+            some: {
+              content: { contains: term, mode: 'insensitive' as const },
+            },
+          },
+        },
+        {
+          students: {
+            OR: [
+              { first_name: { contains: term, mode: 'insensitive' as const } },
+              { last_name: { contains: term, mode: 'insensitive' as const } },
+              { admission_no: { contains: term, mode: 'insensitive' as const } },
+            ],
+          },
+        },
+      ];
+      if (isUuid) {
+        searchOrClauses.push({ ticket_id: term });
+      }
+
+      const searchClause = { OR: searchOrClauses };
+
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, searchClause];
+        delete where.OR;
+      } else {
+        where.AND = searchClause;
+      }
+    }
+
+    // Calculate status counts within the exact scoped boundary (excluding the specific status filter)
+    const countsWhere = { ...where };
+    delete countsWhere.status;
+
+    const [total, rawTickets, statusCountsGroup] = await Promise.all([
       prisma.helpdesk_tickets.count({ where }),
       prisma.helpdesk_tickets.findMany({
         where,
@@ -468,7 +532,26 @@ export class HelpdeskService {
           },
         },
       }),
+      prisma.helpdesk_tickets.groupBy({
+        by: ['status'],
+        where: countsWhere,
+        _count: true,
+      }),
     ]);
+
+    const counts: Record<string, number> = {
+      total: 0,
+      open: 0,
+      in_progress: 0,
+      waiting_for_parent: 0,
+      escalated: 0,
+      resolved: 0,
+      closed: 0,
+    };
+    for (const item of statusCountsGroup) {
+      counts[item.status] = item._count;
+      counts.total += item._count;
+    }
 
     const formattedTickets = rawTickets.map((t) => {
       const initialContent = t.helpdesk_messages?.[0]?.content || '';
@@ -485,6 +568,8 @@ export class HelpdeskService {
 
     return {
       tickets: formattedTickets,
+      counts,
+      statusCounts: counts,
       pagination: {
         page,
         limit,
@@ -582,12 +667,25 @@ export class HelpdeskService {
       const isRequester = ticket.requester_user_id === userContext.userId;
       const categoryName = ticket.helpdesk_categories?.category_name || '';
 
+      // Finance role strictly bounded to finance & fee categories
+      if (userContext.isFinance && !userContext.isManagement) {
+        if (!FINANCE_HELPDESK_CATEGORIES.includes(categoryName)) {
+          const err: any = new Error(
+            'Unauthorized to access this ticket. Finance users may only view tickets related to finance and billing.',
+          );
+          err.status = 403;
+          err.code = 'FORBIDDEN';
+          throw err;
+        }
+      }
+
       let isRoleAuthorized = false;
       if (userContext.isTeacher) {
         if (['Academics', 'Attendance'].includes(categoryName)) isRoleAuthorized = true;
       } else if (userContext.isFinance) {
-        // Finance staff is authorized for all organization helpdesk tickets without category restriction
-        isRoleAuthorized = true;
+        if (FINANCE_HELPDESK_CATEGORIES.includes(categoryName)) {
+          isRoleAuthorized = true;
+        }
       } else if (userContext.isFrontOffice) {
         if (
           ticket.ticket_type === 'staff_on_behalf' ||

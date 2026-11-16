@@ -76,10 +76,9 @@ exports.dashboardRouter.get('/summary', async (req, res) => {
 // ADMIN OVERVIEW
 // ======================================
 exports.dashboardRouter.get('/admin/overview', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.DASHBOARD_VIEW_ADMIN), async (req, res) => {
-    const orgId = req.context?.user?.org_id ||
-        req.context?.user?.school_id ||
-        req.user?.org_id ||
-        req.user?.school_id;
+    // Strictly derive tenant identity from authenticated context (ignore client query/header overrides)
+    const authenticatedUser = req.context?.user;
+    const orgId = authenticatedUser?.org_id || authenticatedUser?.school_id;
     if (!orgId) {
         return res.status(403).json({
             error: 'UNAUTHORIZED_TENANT',
@@ -87,7 +86,7 @@ exports.dashboardRouter.get('/admin/overview', (0, rbac_middleware_1.checkPermis
         });
     }
     try {
-        const [studentsCount, sectionsCount, pendingAdmissionsCount, totalApplicationsCount, feeAgg] = await Promise.all([
+        const results = await Promise.allSettled([
             prismaClient_1.default.students.count({
                 where: { org_id: orgId, status: 'active' },
             }),
@@ -115,6 +114,24 @@ exports.dashboardRouter.get('/admin/overview', (0, rbac_middleware_1.checkPermis
                 _sum: { amount: true },
             }),
         ]);
+        const [studentsRes, sectionsRes, pendingAdmissionsRes, totalApplicationsRes, feeAggRes] = results;
+        if (results.every((r) => r.status === 'rejected')) {
+            const firstErr = results[0].reason;
+            throw firstErr;
+        }
+        const safeValue = (result, label, fallback) => {
+            if (result.status === 'fulfilled')
+                return result.value;
+            console.warn(`[DashboardRouter] Optional metric "${label}" failed on /admin/overview:`, {
+                message: result.reason?.message || String(result.reason),
+            });
+            return fallback;
+        };
+        const studentsCount = safeValue(studentsRes, 'students', 0);
+        const sectionsCount = safeValue(sectionsRes, 'sections', 0);
+        const pendingAdmissionsCount = safeValue(pendingAdmissionsRes, 'pendingAdmissions', 0);
+        const totalApplicationsCount = safeValue(totalApplicationsRes, 'totalApplications', 0);
+        const feeAgg = safeValue(feeAggRes, 'feeCollection', { _sum: { amount: null } });
         const feeCollection = Number(feeAgg?._sum?.amount || 0);
         const attendanceRate = '0 Sessions Today';
         res.json({
@@ -129,7 +146,7 @@ exports.dashboardRouter.get('/admin/overview', (0, rbac_middleware_1.checkPermis
     }
     catch (err) {
         console.error('[DASHBOARD ERROR]', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: err?.message || 'Failed to load admin dashboard overview' });
     }
 });
 // ======================================

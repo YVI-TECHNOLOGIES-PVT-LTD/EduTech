@@ -79,7 +79,7 @@ export const AdminCrossModulePanel = memo(() => {
       value: getKPI('students', '—'),
       subtext: 'Enrolled this session',
       icon: Users,
-      link: '/app/students',
+      link: '/app/people/students',
       accentClass:
         'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/20',
     },
@@ -98,7 +98,7 @@ export const AdminCrossModulePanel = memo(() => {
       value: getKPI('revenue', '—'),
       subtext: 'Outstanding dues this month',
       icon: CreditCard,
-      link: '/app/fees/payments',
+      link: '/app/finance/payments',
       accentClass:
         'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-900/20',
       alertCount: pendingFinance,
@@ -260,7 +260,7 @@ export const AdmissionsCrossModulePanel = memo(() => {
       value: getKPI('students', '—'),
       subtext: 'Admitted this cycle',
       icon: Users,
-      link: '/app/students',
+      link: '/app/people/students',
       accentClass: 'bg-blue-50 text-blue-600 border-blue-100',
     },
   ];

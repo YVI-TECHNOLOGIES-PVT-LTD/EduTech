@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkLoginApproval = exports.authenticateOptional = exports.authenticate = void 0;
 const session_service_1 = require("./session.service");
+const role_normalization_1 = require("../rbac/role-normalization");
 const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     console.log(`[AuthMiddleware] Header present: ${!!authHeader}, StartsWithBearer: ${authHeader?.startsWith('Bearer ')}`);
@@ -25,6 +26,10 @@ const authenticate = async (req, res, next) => {
                 login_status: userProfile.login_status,
                 hasEnrolledStudent: userProfile.hasEnrolledStudent,
                 isPostAdmission: userProfile.isPostAdmission,
+                staff_id: userProfile.staff_id,
+                student_id: userProfile.student_id,
+                parent_id: userProfile.parent_id,
+                parent_student_ids: userProfile.parent_student_ids,
             },
             token,
         };
@@ -56,6 +61,10 @@ const authenticateOptional = async (req, res, next) => {
                     login_status: userProfile.login_status,
                     hasEnrolledStudent: userProfile.hasEnrolledStudent,
                     isPostAdmission: userProfile.isPostAdmission,
+                    staff_id: userProfile.staff_id,
+                    student_id: userProfile.student_id,
+                    parent_id: userProfile.parent_id,
+                    parent_student_ids: userProfile.parent_student_ids,
                 },
                 token,
             };
@@ -73,8 +82,20 @@ const checkLoginApproval = (req, res, next) => {
     if (!user)
         return next();
     // Admins and Faculty are always approved bypass (Staff)
-    if (user.roles.some((r) => ['ADMIN', 'FACULTY', 'HEAD_OF_INSTITUTE'].includes(r)))
+    const canonicalRoles = (0, role_normalization_1.normalizeRoles)(user.roles);
+    if (canonicalRoles.some((r) => [
+        'SUPERADMIN',
+        'SUPER_ADMIN',
+        'ADMIN',
+        'ORG_ADMIN',
+        'HOI',
+        'HEAD_OF_INSTITUTE',
+        'PRINCIPAL',
+        'FACULTY',
+        'TEACHER',
+    ].includes(r))) {
         return next();
+    }
     if (user.login_status !== 'APPROVED') {
         const allowedPaths = [
             '/me',

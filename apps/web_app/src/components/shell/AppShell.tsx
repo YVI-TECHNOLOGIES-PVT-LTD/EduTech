@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/shell/AppSidebar';
 import { AppNavbar } from '@/components/shell/AppNavbar';
+import { RouteErrorBoundary } from '@/components/common/ErrorBoundary';
 
 export const AppShell: React.FC = () => {
   return (
@@ -21,7 +22,9 @@ export const AppShell: React.FC = () => {
         {/* Main Application Page Outlet */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 overflow-x-hidden animate-page-entrance">
           <div className="max-w-7xl mx-auto w-full">
-            <Outlet />
+            <RouteErrorBoundary>
+              <Outlet />
+            </RouteErrorBoundary>
           </div>
         </main>
       </SidebarInset>

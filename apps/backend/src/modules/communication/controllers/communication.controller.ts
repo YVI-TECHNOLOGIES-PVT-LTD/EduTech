@@ -452,12 +452,14 @@ export class CommunicationController {
     try {
       const orgId = CommunicationController.extractOrgId(req);
       const userContext = CommunicationController.extractUserContext(req);
-      const { category_id, priority, status, page, limit } = req.query;
+      const { category_id, priority, status, page, limit, module: moduleParam, search } = req.query;
 
       const result = await HelpdeskService.listTickets(orgId, userContext, {
         category_id: category_id as string,
         priority: priority as any,
         status: status as any,
+        module: moduleParam as string,
+        search: search as string,
         page: page ? parseInt(page as string, 10) : undefined,
         limit: limit ? parseInt(limit as string, 10) : undefined,
       });

@@ -13,9 +13,12 @@ import {
   CheckCircle2,
   ArrowRight,
   AlertCircle,
+  RefreshCw,
+  BarChart3,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import {
   AcademicManagementService,
   AcademicOverviewMetrics,
@@ -25,12 +28,13 @@ import {
   ReadinessTenantYearItem,
   extractAcademicApiError,
 } from '../services/academic.service';
+import { formatShortDate, getAcademicStatusBadgeClass } from '../components/AcademicPageHeader';
 import {
-  AcademicPageHeader,
-  AcademicStatusBanner,
-  formatShortDate,
-  getAcademicStatusBadgeClass,
-} from '../components/AcademicPageHeader';
+  DashboardPageHeader,
+  DashboardKpiCard,
+  DashboardSection,
+  DashboardErrorState,
+} from '@/components/dashboard';
 
 export const AcademicOverviewPage: React.FC = () => {
   const [overview, setOverview] = useState<AcademicOverviewMetrics | null>(null);
@@ -114,173 +118,189 @@ export const AcademicOverviewPage: React.FC = () => {
       title: 'Years & Structure',
       href: '/app/academic/structure',
       icon: Calendar,
-      desc: 'Academic sessions, boards & full hierarchy',
+      desc: 'Academic sessions, boards & hierarchy',
     },
     {
       title: 'Grades & Sections',
       href: '/app/academic/classes',
       icon: Layers,
-      desc: 'Master grades, intakes & section teachers',
+      desc: 'Master grades, offerings & sections',
     },
     {
       title: 'Subjects & Catalog',
       href: '/app/academic/subjects',
       icon: BookOpen,
-      desc: 'Institutional subject catalog & allocations',
+      desc: 'Subject catalog & syllabus units',
     },
     {
-      title: 'Faculty Scheduling & Workload',
+      title: 'Faculty Workload',
       href: '/app/academic/faculty',
       icon: UserCheck,
-      desc: 'Weekly periods, load balance & daily grid',
+      desc: 'Period allocation & workload balance',
     },
     {
       title: 'Timetable Master',
       href: '/app/academic/timetable',
       icon: Clock,
-      desc: 'Versions, section matrices, rooms & conflicts',
+      desc: 'Versions, room allocations & matrices',
     },
     {
-      title: 'Academic Calendar & Terms',
+      title: 'Academic Calendar',
       href: '/app/academic/calendar',
       icon: Calendar,
-      desc: 'Terms, working days & event schedule',
+      desc: 'Terms, working days & schedules',
     },
     {
-      title: 'Curriculum & Syllabus',
+      title: 'Curriculum Plans',
       href: '/app/academic/curriculum',
       icon: FileText,
-      desc: 'Plans, units, outcomes & coverage tracking',
+      desc: 'Curricula, units & coverage tracking',
     },
     {
       title: 'AI Lesson Planning',
       href: '/app/academic/lesson-planning',
       icon: Sparkles,
-      desc: 'AI plan generator, refinement & library',
+      desc: 'Structured plans & lesson generator',
     },
     {
-      title: 'Digital Resource Library',
+      title: 'Digital Resources',
       href: '/app/academic/resources',
       icon: FolderCheck,
-      desc: 'Uploaded files, links & grade bindings',
+      desc: 'Uploaded assets & grade bindings',
     },
     {
-      title: 'Readiness & Publishing',
+      title: 'Readiness Audit',
       href: '/app/academic/readiness',
       icon: CheckCircle2,
-      desc: '12-domain validation scorecard & dependencies',
+      desc: '12-domain validation scorecard',
     },
   ];
 
   return (
-    <div data-testid="academic-overview-page" className="p-6 max-w-7xl mx-auto space-y-6">
-      <AcademicPageHeader
-        title="Academic Overview"
-        subtitle="Institutional academic structure, curriculum progress, scheduling coverage, and readiness telemetry."
-        icon={LayoutDashboard}
-        onRefresh={loadData}
-        loading={loading}
-        badgeText={currentYear ? `Active: ${currentYear.academic_year_name}` : undefined}
+    <div
+      data-testid="academic-overview-page"
+      className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6"
+    >
+      {/* 1. Header Banner */}
+      <DashboardPageHeader
+        title="Academic Operations Overview"
+        description="Institutional academic hierarchy, curriculum milestones, faculty workload distribution, and readiness scorecard."
+        badge={{
+          text: currentYear ? `Session: ${currentYear.academic_year_name}` : 'Academic Operations',
+          variant: 'primary',
+          icon: BookOpen,
+        }}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            disabled={loading}
+            className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm gap-2 text-xs font-semibold"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Overview
+          </Button>
+        }
       />
 
-      <AcademicStatusBanner error={error} />
+      {error && <DashboardErrorState message={error} onRetry={loadData} />}
 
-      {/* Top KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Academic Years</CardDescription>
-            <CardTitle className="text-3xl font-black">
-              {overview?.academic_years?.total ?? metrics?.total_academic_years ?? 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {currentYear
-              ? `Current: ${currentYear.academic_year_name} (${formatShortDate(currentYear.start_date)} – ${formatShortDate(currentYear.end_date)})`
-              : 'No active teaching academic year selected'}
-          </CardContent>
-        </Card>
+      {/* 2. Primary KPI Overview */}
+      <DashboardSection
+        title="Institutional Academic KPIs"
+        description="Live aggregate metrics across current academic configurations."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <DashboardKpiCard
+            title="Academic Years"
+            value={overview?.academic_years?.total ?? metrics?.total_academic_years ?? 0}
+            subtitle={
+              currentYear
+                ? `Active: ${currentYear.academic_year_name}`
+                : 'No active session configured'
+            }
+            icon={Calendar}
+            variant="primary"
+            loading={loading}
+          />
+          <DashboardKpiCard
+            title="Grades & Offerings"
+            value={overview?.grades?.total ?? metrics?.total_grades ?? 0}
+            subtitle={`${overview?.grade_offerings?.total ?? metrics?.total_academic_year_grades ?? 0} year-grade offerings`}
+            icon={Layers}
+            variant="info"
+            loading={loading}
+          />
+          <DashboardKpiCard
+            title="Sections & Classes"
+            value={overview?.sections?.total ?? metrics?.total_sections ?? 0}
+            subtitle={`${overview?.teacher_assignments?.assigned ?? 0} teachers assigned`}
+            icon={UserCheck}
+            variant="success"
+            loading={loading}
+          />
+          <DashboardKpiCard
+            title="Subjects & Curriculum"
+            value={curriculumOverview?.subjects?.total ?? 0}
+            subtitle={`${curriculumOverview?.curriculum?.published_plans ?? 0} published plans`}
+            icon={BookOpen}
+            variant="purple"
+            loading={loading}
+          />
+        </div>
+      </DashboardSection>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Grades & Offerings</CardDescription>
-            <CardTitle className="text-3xl font-black">
-              {overview?.grades?.total ?? metrics?.total_grades ?? 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {overview?.grade_offerings?.total ?? metrics?.total_academic_year_grades ?? 0} active
-            year-grade offerings
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Sections & Mentorship</CardDescription>
-            <CardTitle className="text-3xl font-black">
-              {overview?.sections?.total ?? metrics?.total_sections ?? 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {overview?.teacher_assignments?.assigned ?? 0} assigned ·{' '}
-            {overview?.teacher_assignments?.unassigned ?? 0} unassigned class teachers
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Subjects & Curriculum</CardDescription>
-            <CardTitle className="text-3xl font-black">
-              {curriculumOverview?.subjects?.total ?? 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {curriculumOverview?.curriculum?.published_plans ?? 0} published /{' '}
-            {curriculumOverview?.curriculum?.total_plans ?? 0} total plans
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Setup Readiness Checklist + Timetable & Year Status */}
+      {/* 3. Readiness Checklist & Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base font-bold">
-              Core Structure Readiness Checklist
-            </CardTitle>
-            <CardDescription>
-              Live structural prerequisites derived from academic years, grades, sections, and
-              faculty assignments.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="lg:col-span-2 bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                Core Structure Readiness Checklist
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Prerequisites verified from academic years, grade tiers, sections, and class
+                mentorship.
+              </p>
+            </div>
+            <Link
+              to="/app/academic/readiness"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0"
+            >
+              Full Audit <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="space-y-3">
             {readinessChecks.map((check) => (
               <div
                 key={check.label}
-                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border/60 bg-muted/20"
+                className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors"
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   {check.done ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                   )}
-                  <span className="text-sm font-semibold">{check.label}</span>
+                  <span className="text-xs sm:text-sm font-semibold text-foreground">
+                    {check.label}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Badge
                     variant="outline"
-                    className={
+                    className={`text-[10px] font-bold ${
                       check.done
                         ? getAcademicStatusBadgeClass('ready')
                         : getAcademicStatusBadgeClass('warning')
-                    }
+                    }`}
                   >
                     {check.done ? 'Configured' : 'Pending'}
                   </Badge>
                   <Link
                     to={check.href}
-                    className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                   >
                     {check.cta}
                     <ArrowRight className="w-3 h-3" />
@@ -288,85 +308,121 @@ export const AcademicOverviewPage: React.FC = () => {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-bold">Timetable & Session Snapshot</CardTitle>
-            <CardDescription>Live scheduling and academic year statuses</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="p-3 rounded-xl bg-muted/40 border border-border/50">
-                <div className="text-xs text-muted-foreground">Timetable Coverage</div>
-                <div className="text-xl font-black mt-0.5">
-                  {timetableOverview?.coverage_percentage ?? 0}%
+        {/* Timetable & Session Snapshot Card */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="border-b border-border/60 pb-3">
+              <h3 className="text-sm font-bold text-foreground">Timetable & Session Snapshot</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Real-time scheduling and academic status
+              </p>
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground font-semibold">Timetable Coverage</span>
+                  <span className="font-bold text-foreground">
+                    {timetableOverview?.coverage_percentage ?? 0}%
+                  </span>
                 </div>
+                <Progress
+                  value={timetableOverview?.coverage_percentage ?? 0}
+                  className="h-2 rounded-full"
+                />
               </div>
-              <div className="p-3 rounded-xl bg-muted/40 border border-border/50">
-                <div className="text-xs text-muted-foreground">Published Versions</div>
-                <div className="text-xl font-black mt-0.5">
-                  {timetableOverview?.published_timetables ?? 0}
+
+              <div className="grid grid-cols-2 gap-3 text-xs pt-2">
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="text-[11px] text-muted-foreground font-medium">
+                    Published Versions
+                  </div>
+                  <div className="text-lg font-black text-foreground mt-0.5">
+                    {timetableOverview?.published_timetables ?? 0}
+                  </div>
                 </div>
-              </div>
-              <div className="p-3 rounded-xl bg-muted/40 border border-border/50">
-                <div className="text-xs text-muted-foreground">Active Terms</div>
-                <div className="text-xl font-black mt-0.5">
-                  {curriculumOverview?.terms?.active ?? 0}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="text-[11px] text-muted-foreground font-medium">Active Terms</div>
+                  <div className="text-lg font-black text-foreground mt-0.5">
+                    {curriculumOverview?.terms?.active ?? 0}
+                  </div>
                 </div>
-              </div>
-              <div className="p-3 rounded-xl bg-muted/40 border border-border/50">
-                <div className="text-xs text-muted-foreground">Scheduled Teachers</div>
-                <div className="text-xl font-black mt-0.5">
-                  {timetableOverview?.total_teachers_scheduled ?? 0}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="text-[11px] text-muted-foreground font-medium">
+                    Scheduled Teachers
+                  </div>
+                  <div className="text-lg font-black text-foreground mt-0.5">
+                    {timetableOverview?.total_teachers_scheduled ?? 0}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="text-[11px] text-muted-foreground font-medium">
+                    Published Plans
+                  </div>
+                  <div className="text-lg font-black text-foreground mt-0.5">
+                    {curriculumOverview?.curriculum?.published_plans ?? 0}
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {readinessYears.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-border/60">
-                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Academic Sessions
-                </div>
+          {readinessYears.length > 0 && (
+            <div className="space-y-2 pt-3 border-t border-border/60">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Configured Academic Years
+              </div>
+              <div className="space-y-1.5">
                 {readinessYears.slice(0, 3).map((yr) => (
                   <Link
                     key={yr.academic_year_id}
                     to={`/app/academic/readiness/${yr.academic_year_id}`}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/60 text-xs transition"
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/50 text-xs transition border border-transparent hover:border-border/60"
                   >
-                    <span className="font-semibold truncate">{yr.academic_year_name}</span>
-                    <Badge variant="outline" className={getAcademicStatusBadgeClass(yr.status)}>
+                    <span className="font-semibold text-foreground truncate">
+                      {yr.academic_year_name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] ${getAcademicStatusBadgeClass(yr.status)}`}
+                    >
                       {yr.status}
                     </Badge>
                   </Link>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Quick Module Directory */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          Academic Management Modules
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      {/* 4. Quick Module Directory */}
+      <DashboardSection
+        title="Academic Workspaces"
+        description="Direct navigation into instructional workflows, syllabus management, and timetable matrices."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {moduleShortcuts.map((mod) => {
             const ModIcon = mod.icon;
             return (
               <Link
                 key={mod.href}
                 to={mod.href}
-                className="group p-4 rounded-xl border border-border/70 bg-card hover:border-indigo-500/60 hover:shadow-sm transition flex flex-col justify-between gap-2"
+                className="group p-4 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3"
               >
                 <div className="flex items-center justify-between">
-                  <ModIcon className="w-4 h-4 text-indigo-600" />
-                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-0.5 transition" />
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <ModIcon className="w-4 h-4" />
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-foreground">{mod.title}</div>
+                  <div className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                    {mod.title}
+                  </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
                     {mod.desc}
                   </div>
@@ -375,7 +431,7 @@ export const AcademicOverviewPage: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      </DashboardSection>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { apiClient } from '../../../lib/api-client';
 import {
   Users,
@@ -8,12 +8,37 @@ import {
   Calendar,
   Layers,
   ArrowRight,
-  AlertTriangle,
   RefreshCw,
   FolderCheck,
   BarChart3,
+  Bot,
+  GraduationCap,
+  MapPin,
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  CartesianGrid,
+} from 'recharts';
+import {
+  DashboardPageHeader,
+  DashboardKpiCard,
+  DashboardSection,
+  DashboardChartCard,
+  DashboardEmptyState,
+  DashboardErrorState,
+  DashboardQuickActions,
+  QuickActionItem,
+} from '@/components/dashboard';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TodayScheduleEntry {
   entry_id: string;
@@ -85,137 +110,229 @@ export const TeacherDashboard: React.FC = () => {
 
   const weekdayName = data?.current_weekday ? WEEKDAYS[data.current_weekday] : 'Today';
 
+  // Workload distribution chart data
+  const workloadChartData = useMemo(() => {
+    if (!data?.workload_summary?.weekday_distribution) return [];
+    const dist = data.workload_summary.weekday_distribution;
+    const days = [
+      { name: 'Mon', dayNum: 1 },
+      { name: 'Tue', dayNum: 2 },
+      { name: 'Wed', dayNum: 3 },
+      { name: 'Thu', dayNum: 4 },
+      { name: 'Fri', dayNum: 5 },
+    ];
+    return days.map((d) => ({
+      name: d.name,
+      periods: dist[d.dayNum] ?? 0,
+      isToday: data.current_weekday === d.dayNum,
+    }));
+  }, [data]);
+
+  const quickActions: QuickActionItem[] = [
+    {
+      title: 'AI Teacher Copilot',
+      description: 'Generate instructional content, quiz questions, and automated rubrics.',
+      icon: Bot,
+      to: '/app/teacher/ai-copilot',
+      iconBg: 'bg-indigo-50 dark:bg-indigo-950/50',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+    },
+    {
+      title: 'Lesson Planning Studio',
+      description: 'Structured unit plans, curriculum goals, and lesson progress.',
+      icon: Sparkles,
+      to: '/app/teacher/lesson-plans',
+      iconBg: 'bg-fuchsia-50 dark:bg-fuchsia-950/50',
+      iconColor: 'text-fuchsia-600 dark:text-fuchsia-400',
+    },
+    {
+      title: 'Classroom Management',
+      description: 'Mark attendance, check student roster, and record class notes.',
+      icon: GraduationCap,
+      to: '/app/teacher/classroom',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-950/50',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+    },
+    {
+      title: 'Timetable & Class Schedule',
+      description: 'View full weekly matrix, room assignments, and period slots.',
+      icon: Clock,
+      to: '/app/teacher/timetable',
+      iconBg: 'bg-sky-50 dark:bg-sky-950/50',
+      iconColor: 'text-sky-600 dark:text-sky-400',
+    },
+    {
+      title: 'Teaching Workload Analysis',
+      description: 'Audit instructional hours and period allocation per weekday.',
+      icon: BarChart3,
+      to: '/app/teacher/workload',
+      iconBg: 'bg-amber-50 dark:bg-amber-950/50',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+    },
+    {
+      title: 'Digital Resource Library',
+      description: 'Uploaded subject materials, presentations, and study assets.',
+      icon: FolderCheck,
+      to: '/app/academic/resources',
+      iconBg: 'bg-purple-50 dark:bg-purple-950/50',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+    },
+  ];
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-teal-900 via-cyan-950 to-slate-900 text-white rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-teal-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <Users className="w-4 h-4" />
-            Faculty & Teaching Workspace
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Teacher Dashboard</h1>
-          <p className="text-teal-100 text-sm mt-1">
-            Overview of your daily teaching schedule, assigned classes, and curriculum preparation.
-          </p>
-        </div>
-        <button
-          onClick={fetchDashboard}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-lg text-sm font-semibold transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      {/* 1. Page Header */}
+      <DashboardPageHeader
+        title="Teacher Dashboard"
+        description="Daily teaching timetable, assigned classrooms, curriculum lesson preparation, and AI teaching tools."
+        badge={{
+          text: `Schedule: ${weekdayName}`,
+          variant: 'info',
+          icon: Clock,
+        }}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchDashboard}
+            disabled={loading}
+            className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm gap-2 text-xs font-semibold"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Schedule
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <div className="text-sm">{error}</div>
-        </div>
-      )}
+      {error && <DashboardErrorState message={error} onRetry={fetchDashboard} />}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-2">
-            <span>TODAY'S TEACHING PERIODS</span>
-            <Clock className="w-4 h-4 text-teal-500" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {loading ? '-' : (data?.today_periods_count ?? 0)}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">{weekdayName}'s scheduled classes</div>
+      {/* 2. KPI Cards */}
+      <DashboardSection
+        title="Instructional Metrics"
+        description="Daily period schedule, active classroom sections, and prepared lesson plans."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <DashboardKpiCard
+            title="Today's Periods"
+            value={data?.today_periods_count ?? 0}
+            subtitle={`${weekdayName}'s scheduled classes`}
+            icon={Clock}
+            variant="info"
+            loading={loading}
+          />
+          <DashboardKpiCard
+            title="Assigned Sections"
+            value={data?.assigned_sections_count ?? 0}
+            subtitle="Classroom section divisions"
+            icon={Layers}
+            variant="primary"
+            loading={loading}
+          />
+          <DashboardKpiCard
+            title="Assigned Subjects"
+            value={data?.assigned_subjects_count ?? 0}
+            subtitle="Curriculum subjects taught"
+            icon={BookOpen}
+            variant="purple"
+            loading={loading}
+          />
+          <DashboardKpiCard
+            title="Lesson Plans"
+            value={data?.authored_lesson_plans_count ?? 0}
+            subtitle="Prepared & AI structured plans"
+            icon={Sparkles}
+            variant="success"
+            loading={loading}
+          />
         </div>
+      </DashboardSection>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-2">
-            <span>ASSIGNED SECTIONS</span>
-            <Layers className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {loading ? '-' : (data?.assigned_sections_count ?? 0)}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">Class divisions assigned to you</div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-2">
-            <span>ASSIGNED SUBJECTS</span>
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {loading ? '-' : (data?.assigned_subjects_count ?? 0)}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">Subjects across grades</div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-2">
-            <span>MY LESSON PLANS</span>
-            <Sparkles className="w-4 h-4 text-fuchsia-500" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {loading ? '-' : (data?.authored_lesson_plans_count ?? 0)}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">Authored curriculum plans</div>
-        </div>
-      </div>
-
+      {/* 3. Schedule & My Classes Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Today's Schedule Column */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-2 bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-teal-600" />
-              <h2 className="font-bold text-slate-900">Today's Class Schedule ({weekdayName})</h2>
+              <Calendar className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">
+                Today's Class Schedule ({weekdayName})
+              </h3>
             </div>
             <Link
               to="/app/teacher/timetable"
-              className="text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
             >
               Full Timetable <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-slate-400 text-sm">Loading schedule...</div>
-          ) : !data?.today_schedule || data.today_schedule.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm">
-              No scheduled teaching periods for today. Enjoy your preparation time!
+            <div className="space-y-3 py-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-4 rounded-xl border border-border/40 space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              ))}
             </div>
+          ) : !data?.today_schedule || data.today_schedule.length === 0 ? (
+            <DashboardEmptyState
+              icon={Calendar}
+              title="No Teaching Periods Today"
+              message={`No classroom periods scheduled for ${weekdayName}. You can utilize this time for lesson prep and curriculum planning.`}
+              action={{
+                label: 'View Weekly Timetable',
+                onClick: () => (window.location.href = '/app/teacher/timetable'),
+              }}
+              compact
+            />
           ) : (
             <div className="space-y-3">
               {data.today_schedule.map((entry) => (
                 <div
                   key={entry.entry_id}
-                  className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:border-teal-200 transition"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-muted/20 border border-border/60 rounded-xl hover:border-primary/40 hover:bg-muted/40 transition-all duration-200"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 text-center">
-                      <div className="text-xs font-bold text-slate-700">{entry.period_name}</div>
-                      <div className="text-[10px] text-slate-400">
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="w-16 text-center shrink-0 bg-background/80 p-2 rounded-lg border border-border/40">
+                      <div className="text-xs font-bold text-foreground">{entry.period_name}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
                         {entry.start_time ? entry.start_time.substring(0, 5) : ''}
                       </div>
                     </div>
-                    <div className="border-l border-slate-200 pl-4">
-                      <div className="font-bold text-slate-900 text-sm">
-                        {entry.subject_name} ({entry.subject_code})
+                    <div className="min-w-0">
+                      <div className="font-bold text-foreground text-sm truncate">
+                        {entry.subject_name}
+                        {entry.subject_code && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1.5">
+                            ({entry.subject_code})
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-slate-500">
-                        {entry.grade_name} — Section {entry.section_name}
-                        {entry.classroom ? ` • Room ${entry.classroom}` : ''}
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span>
+                          {entry.grade_name} • Section {entry.section_name}
+                        </span>
+                        {entry.classroom && (
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
+                            <MapPin className="w-3 h-3 text-primary" />
+                            Room {entry.classroom}
+                          </span>
+                        )}
                       </div>
                       {entry.topic && (
-                        <div className="text-xs text-teal-700 font-medium mt-1">
+                        <div className="text-xs text-primary font-medium mt-1">
                           Topic: {entry.topic}
                         </div>
                       )}
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 text-xs rounded-md font-semibold uppercase">
-                    {entry.lesson_type}
+                  <span className="self-start sm:self-center px-2.5 py-1 bg-background border border-border/80 text-foreground text-[10px] rounded-lg font-bold uppercase tracking-wider shrink-0">
+                    {entry.lesson_type || 'LECTURE'}
                   </span>
                 </div>
               ))}
@@ -223,85 +340,120 @@ export const TeacherDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Assigned Classes Quick List */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-600" />
-              <h2 className="font-bold text-slate-900">My Classes</h2>
+        {/* Right Column: Assigned Classes & Weekly Workload */}
+        <div className="space-y-6">
+          <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-bold text-foreground">My Assigned Classes</h3>
+              </div>
+              <Link
+                to="/app/teacher/classes"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+              >
+                View All <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
-            <Link
-              to="/app/teacher/classes"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              View All <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
 
-          {loading ? (
-            <div className="py-8 text-center text-slate-400 text-sm">Loading classes...</div>
-          ) : !data?.sections_summary || data.sections_summary.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-sm">No classes assigned yet.</div>
-          ) : (
-            <div className="space-y-2">
-              {data.sections_summary.map((sec) => (
-                <div
-                  key={sec.section_id}
-                  className="p-3 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between"
-                >
-                  <div>
-                    <div className="font-semibold text-slate-900 text-sm">
-                      {sec.grade_name} - {sec.section_name}
+            {loading ? (
+              <div className="space-y-2 py-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : !data?.sections_summary || data.sections_summary.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">
+                No classes assigned yet.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {data.sections_summary.map((sec) => (
+                  <div
+                    key={sec.section_id}
+                    className="p-3 bg-muted/20 border border-border/60 rounded-xl flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-bold text-foreground text-xs">
+                        {sec.grade_name} - {sec.section_name}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {sec.subjects?.map((s) => s.subject_name).join(', ') || 'No subject'}
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      {sec.subjects?.map((s) => s.subject_name).join(', ') || 'No subject'}
-                    </div>
+                    <Badge variant="outline" className="text-[10px] font-bold shrink-0 uppercase">
+                      {sec.assignment_role.replace('_', ' ')}
+                    </Badge>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                    {sec.assignment_role.replace('_', ' ')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Quick Shortcuts */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <Link
-              to="/app/teacher/lesson-plans"
-              className="w-full flex items-center justify-between p-3 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg text-xs font-bold transition"
-            >
-              <span className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-teal-600" />
-                Lesson Planning Assistant
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              to="/app/teacher/workload"
-              className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-lg text-xs font-bold transition"
-            >
-              <span className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-slate-600" />
-                Teaching Workload Analysis
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              to="/app/academic/resources"
-              className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-lg text-xs font-bold transition"
-            >
-              <span className="flex items-center gap-2">
-                <FolderCheck className="w-4 h-4 text-slate-600" />
-                Digital Resource Library
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* Weekly Workload Distribution Mini-Chart */}
+          {workloadChartData.length > 0 && (
+            <DashboardChartCard
+              title="Weekly Workload"
+              subtitle={`Total: ${data?.workload_summary?.total_weekly_periods ?? 0} periods / week`}
+              icon={BarChart3}
+              loading={loading}
+              minHeight={180}
+            >
+              <div className="h-36 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={workloadChartData}
+                    margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 10, fill: 'currentColor' }}
+                      className="text-muted-foreground"
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: 'currentColor' }}
+                      className="text-muted-foreground"
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '0.75rem',
+                        color: 'hsl(var(--card-foreground))',
+                        fontSize: '11px',
+                      }}
+                    />
+                    <Bar dataKey="periods" radius={[4, 4, 0, 0]}>
+                      {workloadChartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.isToday ? 'hsl(var(--primary))' : '#94a3b8'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </DashboardChartCard>
+          )}
         </div>
       </div>
+
+      {/* 4. Strategic Teaching Actions */}
+      <DashboardSection
+        title="Teaching & Classroom Toolkit"
+        description="Quick access to AI lesson authoring, timetable matrices, and student activity logs."
+      >
+        <DashboardQuickActions actions={quickActions} columns={3} />
+      </DashboardSection>
     </div>
   );
 };
+
+export default TeacherDashboard;

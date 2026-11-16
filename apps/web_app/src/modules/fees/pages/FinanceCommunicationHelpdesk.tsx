@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { apiClient } from '../../../lib/api-client';
 import { useAuth } from '../../../context/AuthContext';
 import { Modal } from '../../../components/ui/modal';
@@ -18,6 +19,9 @@ import {
   ShieldAlert,
   ShieldCheck,
   Paperclip,
+  Search,
+  X,
+  Receipt,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -67,10 +71,32 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
   const isParent = rawRoles.some((r) => ['PARENT', 'GUARDIAN'].includes(r));
   const isStudent = rawRoles.some((r) => ['STUDENT'].includes(r));
 
+  const location = useLocation();
+  const isFinanceRoute = location.pathname.includes('/finance');
+  const shouldScopeFinance = isFinance || isFinanceRoute;
+
   const [tickets, setTickets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [counts, setCounts] = useState<{
+    total: number;
+    open: number;
+    in_progress: number;
+    waiting_for_parent: number;
+    escalated: number;
+    resolved: number;
+    closed: number;
+  }>({
+    total: 0,
+    open: 0,
+    in_progress: 0,
+    waiting_for_parent: 0,
+    escalated: 0,
+    resolved: 0,
+    closed: 0,
+  });
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [ticketDetails, setTicketDetails] = useState<any | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
@@ -108,8 +134,18 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
   const fetchTickets = useCallback(async () => {
     try {
       setLoading(true);
-      const query = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-      const res: any = await apiClient.get(`/communication/helpdesk/tickets${query}`);
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') {
+        params.set('status', statusFilter);
+      }
+      if (shouldScopeFinance) {
+        params.set('module', 'finance');
+      }
+      if (searchTerm.trim()) {
+        params.set('search', searchTerm.trim());
+      }
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const res: any = await apiClient.get(`/communication/helpdesk/tickets${queryString}`);
       const tix = Array.isArray(res.data?.tickets)
         ? res.data.tickets
         : Array.isArray(res.data?.data?.tickets)
@@ -120,6 +156,19 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
               ? res.data
               : [];
       setTickets(tix);
+
+      const rawCounts = res.data?.counts || res.data?.data?.counts || res.data?.statusCounts;
+      if (rawCounts) {
+        setCounts({
+          total: Number(rawCounts.total || 0),
+          open: Number(rawCounts.open || 0),
+          in_progress: Number(rawCounts.in_progress || 0),
+          waiting_for_parent: Number(rawCounts.waiting_for_parent || 0),
+          escalated: Number(rawCounts.escalated || 0),
+          resolved: Number(rawCounts.resolved || 0),
+          closed: Number(rawCounts.closed || 0),
+        });
+      }
     } catch (err) {
       console.error('Failed to fetch tickets:', err);
       toast.error('Failed to load helpdesk tickets');
@@ -127,7 +176,7 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, shouldScopeFinance, searchTerm]);
 
   useEffect(() => {
     fetchCategories();
@@ -256,22 +305,35 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
 
   useEffect(() => {
     if (categories.length > 0 && !newCategoryId) {
-      if (isFinance) {
-        const feeCat = categories.find((c) => c.category_name.toLowerCase().includes('fee'));
+      if (shouldScopeFinance) {
+        const feeCat = categories.find((c) => {
+          const name = (c.category_name || '').toLowerCase();
+          return name.includes('fee') || name.includes('payment') || name.includes('finance');
+        });
         if (feeCat) setNewCategoryId(feeCat.category_id);
       } else if (isTeacher) {
-        const acadCat = categories.find((c) => c.category_name.toLowerCase().includes('academic'));
+        const acadCat = categories.find((c) =>
+          (c.category_name || '').toLowerCase().includes('academic'),
+        );
         if (acadCat) setNewCategoryId(acadCat.category_id);
       } else if (isFrontOffice) {
         const admCat = categories.find(
           (c) =>
-            c.category_name.toLowerCase().includes('admission') ||
-            c.category_name.toLowerCase().includes('other'),
+            (c.category_name || '').toLowerCase().includes('admission') ||
+            (c.category_name || '').toLowerCase().includes('other'),
         );
         if (admCat) setNewCategoryId(admCat.category_id);
       }
     }
-  }, [categories, isFinance, isTeacher, isFrontOffice, newCategoryId]);
+  }, [categories, shouldScopeFinance, isTeacher, isFrontOffice, newCategoryId]);
+
+  const availableCategories = shouldScopeFinance
+    ? categories.filter((c) => {
+        const name = (c.category_name || '').toLowerCase();
+        return name.includes('fee') || name.includes('payment') || name.includes('finance');
+      })
+    : categories;
+  const filteredCategories = availableCategories.length > 0 ? availableCategories : categories;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -281,7 +343,9 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <HelpCircle className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Helpdesk & Support Tickets
+              {shouldScopeFinance
+                ? 'Finance Helpdesk & Support Tickets'
+                : 'Helpdesk & Support Tickets'}
             </h1>
             {isManagement && (
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200">
@@ -315,7 +379,9 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
             )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Track inquiries, communicate with support staff, and review resolution history.
+            {shouldScopeFinance
+              ? 'Manage and resolve fee payment inquiries, billing questions, receipt verification, and financial disputes.'
+              : 'Track inquiries, communicate with support staff, and review resolution history.'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -335,29 +401,132 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-white/10 pb-2">
-        {[
-          'all',
-          'open',
-          'in_progress',
-          'escalated',
-          'waiting_for_parent',
-          'resolved',
-          'closed',
-        ].map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all ${
-              statusFilter === s
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            {s.replace(/_/g, ' ')}
-          </button>
-        ))}
+      {/* Scope-Aware KPI Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={`${GLASS_CARD} p-4 flex items-center justify-between`}>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {shouldScopeFinance ? 'Total Finance Tickets' : 'Total Tickets'}
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+              {counts.total}
+            </h3>
+          </div>
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+            {shouldScopeFinance ? (
+              <Receipt className="w-5 h-5" />
+            ) : (
+              <HelpCircle className="w-5 h-5" />
+            )}
+          </div>
+        </div>
+
+        <div className={`${GLASS_CARD} p-4 flex items-center justify-between`}>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Open
+            </p>
+            <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+              {counts.open}
+            </h3>
+          </div>
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-xl">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className={`${GLASS_CARD} p-4 flex items-center justify-between`}>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              In Progress / Pending
+            </p>
+            <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+              {counts.in_progress + counts.waiting_for_parent + counts.escalated}
+            </h3>
+          </div>
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className={`${GLASS_CARD} p-4 flex items-center justify-between`}>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Resolved & Closed
+            </p>
+            <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+              {counts.resolved + counts.closed}
+            </h3>
+          </div>
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+            <CheckCircle className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Search Bar & Filter Tabs */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        {/* Search Bar */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={
+              shouldScopeFinance
+                ? 'Search fee tickets, receipt numbers, student name...'
+                : 'Search tickets, subject, requester...'
+            }
+            className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex gap-1.5 flex-wrap items-center">
+          {[
+            { id: 'all', label: 'All', count: counts.total },
+            { id: 'open', label: 'Open', count: counts.open },
+            { id: 'in_progress', label: 'In Progress', count: counts.in_progress },
+            { id: 'escalated', label: 'Escalated', count: counts.escalated },
+            {
+              id: 'waiting_for_parent',
+              label: 'Pending Response',
+              count: counts.waiting_for_parent,
+            },
+            { id: 'resolved', label: 'Resolved', count: counts.resolved },
+            { id: 'closed', label: 'Closed', count: counts.closed },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setStatusFilter(tab.id)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all ${
+                statusFilter === tab.id
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  statusFilter === tab.id
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tickets List */}
@@ -367,9 +536,20 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
             <div className="text-center py-12 text-slate-500">Loading tickets...</div>
           ) : !Array.isArray(tickets) || tickets.length === 0 ? (
             <div className={`${GLASS_CARD} p-8 text-center`}>
-              <HelpCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                No tickets found
+              {shouldScopeFinance ? (
+                <Receipt className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+              ) : (
+                <HelpCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+              )}
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {shouldScopeFinance
+                  ? 'No Finance-related support tickets found.'
+                  : 'No tickets found'}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {shouldScopeFinance
+                  ? 'There are currently no tickets logged under fee payments, billing, or financial collections.'
+                  : 'There are currently no support tickets in this view.'}
               </p>
             </div>
           ) : (
@@ -685,9 +865,19 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         size="md"
-        title="Create New Ticket"
-        description="Submit a support inquiry or request assistance from institutional desk staff."
-        icon={<HelpCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+        title={shouldScopeFinance ? 'Create Finance Support Ticket' : 'Create New Ticket'}
+        description={
+          shouldScopeFinance
+            ? 'Submit a fee, receipt, payment dispute, or billing support inquiry.'
+            : 'Submit a support inquiry or request assistance from institutional desk staff.'
+        }
+        icon={
+          shouldScopeFinance ? (
+            <Receipt className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          ) : (
+            <HelpCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          )
+        }
       >
         <form onSubmit={handleCreateTicket} className="space-y-4">
           <div>
@@ -744,8 +934,8 @@ export const FinanceCommunicationHelpdesk: React.FC = () => {
                 className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               >
                 <option value="">Select Category</option>
-                {Array.isArray(categories) &&
-                  categories.map((c) => (
+                {Array.isArray(filteredCategories) &&
+                  filteredCategories.map((c) => (
                     <option key={c.category_id} value={c.category_id}>
                       {c.category_name}
                     </option>

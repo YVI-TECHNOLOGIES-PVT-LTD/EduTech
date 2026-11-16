@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Users,
   GraduationCap,
   BookOpen,
   FileCheck,
-  ArrowUpRight,
   Calendar,
   Settings,
   Bell,
@@ -14,15 +13,12 @@ import {
   Coins,
   CreditCard,
   Database,
-  HelpCircle,
   UserCheck,
-  FileText,
-  Percent,
   Sparkles,
-  CalendarDays,
   ShieldCheck,
   ShieldAlert,
   RefreshCw,
+  ArrowRight,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -31,7 +27,6 @@ import { useGetAdminOverviewQuery } from '@/shared/api/dashboard.api';
 import { useMasterData } from '../../admission/context/MasterDataContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
-import { useSettingsStore } from '../../../store/settings.store';
 import {
   AreaChart,
   Area,
@@ -48,10 +43,8 @@ import {
   Legend,
 } from 'recharts';
 
-import { CountUp } from '../../../components/react-bits/CountUp';
-import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
-import { SpecularButton } from '../../../components/react-bits/SpecularButton';
-
+import { DashboardKpiCard } from '@/components/dashboard/DashboardKpiCard';
+import { DashboardChartCard } from '@/components/dashboard/DashboardChartCard';
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardMapper } from '../utils/dashboard.mapper';
@@ -61,6 +54,8 @@ import { QuickActions } from '../components/actions/QuickActions';
 import { AdminCrossModulePanel } from '../components/widgets/CrossModulePanels';
 import { RoleDashboardInsights } from '../components/analytics/RoleDashboardInsights';
 import { HealthPanel } from '../components/health/HealthPanel';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const AdminDashboard = () => {
   return (
@@ -119,16 +114,6 @@ const AdminDashboardInner = () => {
     year: 'numeric',
   });
 
-  if (overviewLoading)
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-          Loading Institutional Intelligence...
-        </p>
-      </div>
-    );
-
   if (isForbidden) {
     const fallbackRoute = LandingResolver.resolveLandingRoute(user?.roles || [], [], user);
     return (
@@ -142,18 +127,18 @@ const AdminDashboardInner = () => {
             Your account does not have permission to view the Admin Dashboard overview.
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={() => navigate(fallbackRoute, { replace: true })}
-          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+          className="rounded-xl font-bold text-xs"
         >
           Go to My Workspace
-        </button>
+        </Button>
       </div>
     );
   }
 
-  if (overviewError) {
+  if (overviewError && !stats) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
         <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-500/20">
@@ -167,109 +152,23 @@ const AdminDashboardInner = () => {
               'Could not load institutional overview metrics. Please retry.'}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={() => void refetchOverview()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-2 rounded-xl font-bold text-xs"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
-
-  // Modern sparkline trend data
-  const sparklineData = [
-    { name: 'W1', value: 30 },
-    { name: 'W2', value: 45 },
-    { name: 'W3', value: 35 },
-    { name: 'W4', value: 60 },
-    { name: 'W5', value: 50 },
-    { name: 'W6', value: 75 },
-  ];
-
-  const cards = [
-    {
-      label: 'Total Students',
-      value: stats?.students ?? getKPIValue('admin.kpi.students', 0),
-      icon: Users,
-      color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
-      trend: 'Active enrollment',
-      sparkColor: '#3B82F6',
-    },
-    {
-      label: 'Pending Admissions',
-      value: stats?.pendingAdmissions ?? getKPIValue('admin.kpi.admissions', 0),
-      icon: ClipboardList,
-      color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-      trend: 'Actions awaiting review',
-      link: '/app/admissions/review',
-      sparkColor: '#F59E0B',
-    },
-    {
-      label: 'Admissions Funnel',
-      value: stats?.totalApplications ?? getKPIValue('admin.kpi.exams', 0),
-      icon: BookOpen,
-      color: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
-      trend: 'Active applications',
-      sparkColor: '#8B5CF6',
-    },
-    {
-      label: 'Fee Collection',
-      value: Number(stats?.feeCollection ?? getKPIValue('admin.kpi.outstanding_fees', 0)),
-      icon: Coins,
-      color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-      trend: 'Recorded collections',
-      format: '₹',
-      sparkColor: '#10B981',
-    },
-  ];
-
-  const quickActions = [
-    {
-      label: 'Review Admissions',
-      icon: FileCheck,
-      link: '/app/admissions/review',
-      desc: `${stats?.pendingAdmissions || 0} applications pending`,
-    },
-    {
-      label: 'Admissions Desk',
-      icon: GraduationCap,
-      link: '/app/workspace',
-      desc: 'Workspace & Pipeline',
-    },
-    {
-      label: 'Admission Fees',
-      icon: Coins,
-      link: '/app/admissions/fees',
-      desc: 'Billing & Collection',
-    },
-    {
-      label: 'Bulk Operations',
-      icon: Database,
-      link: '/app/admin/bulk',
-      desc: 'System Operations',
-    },
-    {
-      label: 'Import History',
-      icon: Database,
-      link: '/app/import/history',
-      desc: 'Data Upload Logs',
-    },
-    {
-      label: 'System Settings',
-      icon: Settings,
-      link: '/app/settings',
-      desc: 'Global configuration',
-    },
-  ];
 
   const totalApps = stats?.totalApplications ?? 0;
   const funnelChart = charts.find((c: any) => c.id === 'admin.chart.funnel');
   const admissionsFunnelData = funnelChart?.data || [
     { name: 'Submitted', value: totalApps },
-    { name: 'Pending', value: stats?.pendingAdmissions ?? 0 },
+    { name: 'Pending Review', value: stats?.pendingAdmissions ?? 0 },
     { name: 'Enrolled', value: stats?.students ?? 0 },
   ];
 
@@ -295,90 +194,122 @@ const AdminDashboardInner = () => {
     { name: 'Secondary (Grade 9-10)', value: 100, color: '#10B981' },
   ];
 
-  // Layout customizer KPI cards
-  const kpiElements = cards.map((c, i) => (
-    <SpotlightCard
-      key={i}
-      spotlightColor="rgba(6, 63, 64, 0.08)"
-      className="group relative bg-card p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-    >
-      <div className="flex items-start justify-between">
-        <div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${c.color}`}
-        >
-          <c.icon className="w-6 h-6" />
-        </div>
-        {/* Mini Sparkline Chart utilizing Recharts */}
-        <div className="w-20 h-10 overflow-hidden opacity-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparklineData}>
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={c.sparkColor}
-                strokeWidth={1.5}
-                fill={c.sparkColor}
-                fillOpacity={0.05}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+  const quickActionsList = [
+    {
+      label: 'Review Admissions',
+      icon: FileCheck,
+      link: '/app/admissions/review',
+      desc: `${stats?.pendingAdmissions || 0} applications pending review`,
+    },
+    {
+      label: 'Admissions Desk',
+      icon: GraduationCap,
+      link: '/app/admissions/applications',
+      desc: 'Applicant Workspace & Pipeline',
+    },
+    {
+      label: 'Admission Fees',
+      icon: Coins,
+      link: '/app/front-office/fees',
+      desc: 'Fee Billing & Collections',
+    },
+    {
+      label: 'Bulk Operations',
+      icon: Database,
+      link: '/app/admin/bulk',
+      desc: 'System Batch Operations',
+    },
+    {
+      label: 'Import History',
+      icon: Database,
+      link: '/app/import/history',
+      desc: 'Data Upload Logs & Audit',
+    },
+    {
+      label: 'System Settings',
+      icon: Settings,
+      link: '/app/settings',
+      desc: 'Global School Configuration',
+    },
+  ];
 
-      <div className="mt-5 space-y-1">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none">
-          {c.label}
-        </p>
-        <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-foreground tracking-tight">
-            {c.format}
-            <CountUp to={c.value} />
-          </span>
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1">
-            {c.trend}
-          </span>
-        </div>
-      </div>
-
-      {c.link && (
-        <Link
-          to={c.link}
-          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-muted hover:bg-primary hover:text-white rounded-lg text-muted-foreground"
-        >
-          <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
-      )}
-    </SpotlightCard>
-  ));
+  const formattedFee = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(stats?.feeCollection ?? getKPIValue('admin.kpi.outstanding_fees', 0)));
 
   return (
     <PageWrapper
       title={`${getGreeting()}, ${user?.full_name || 'Administrator'}`}
-      description={`Academic Year ${activeAcademicYear?.year_label || 'No Academic Year'} | Active Campus: ${activeSchool?.name || 'No Campus'} | Dashboard overview`}
+      description={`Academic Year: ${activeAcademicYear?.year_label || 'Current Session'} | Campus: ${activeSchool?.name || 'Main Campus'} | Administrative Operations`}
       icon={Sparkles}
       actions={
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 p-2.5 bg-card border border-border/80 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm">
-            <Bell className="w-4 h-4" />
-          </button>
-          <SpecularButton
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void refetchOverview()}
+            disabled={overviewLoading}
+            className="rounded-xl border-border/80 gap-1.5 text-xs font-semibold"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${overviewLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button
             size="sm"
             onClick={() => navigate('/app/admissions/review')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
+            className="rounded-xl font-bold text-xs gap-1.5 shadow-sm"
           >
             <ShieldCheck className="w-4 h-4" />
-            Admin Panel Actions
-          </SpecularButton>
+            Admissions Desk
+          </Button>
         </div>
       }
-      kpis={<>{kpiElements}</>}
+      kpis={
+        <>
+          <DashboardKpiCard
+            title="Total Students"
+            value={stats?.students ?? getKPIValue('admin.kpi.students', 0)}
+            subtitle="Active student enrollment"
+            icon={Users}
+            variant="info"
+            loading={overviewLoading}
+          />
+          <DashboardKpiCard
+            title="Pending Admissions"
+            value={stats?.pendingAdmissions ?? getKPIValue('admin.kpi.admissions', 0)}
+            subtitle="Applications awaiting review"
+            icon={ClipboardList}
+            variant="warning"
+            loading={overviewLoading}
+            onClick={() => navigate('/app/admissions/review')}
+          />
+          <DashboardKpiCard
+            title="Total Applications"
+            value={stats?.totalApplications ?? getKPIValue('admin.kpi.exams', 0)}
+            subtitle="Intake applications submitted"
+            icon={BookOpen}
+            variant="purple"
+            loading={overviewLoading}
+          />
+          <DashboardKpiCard
+            title="Fee Collection"
+            value={formattedFee}
+            subtitle="Total collections recorded"
+            icon={Coins}
+            variant="success"
+            loading={overviewLoading}
+          />
+        </>
+      }
       timeline={
-        <div className="space-y-6 lg:space-y-8">
+        <div className="space-y-6">
           {/* Live timeline activities feed */}
-          <div className="bg-white dark:bg-card rounded-3xl p-6 border border-border/40 shadow-premium-sm">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/40">
-              <h3 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
-                <TrendingUp className="text-primary w-4.5 h-4.5" />
+          <div className="bg-card rounded-2xl p-5 sm:p-6 border border-border/80 shadow-sm">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <TrendingUp className="text-primary w-4 h-4" />
                 Live School Activities
               </h3>
             </div>
@@ -386,57 +317,63 @@ const AdminDashboardInner = () => {
           </div>
 
           {/* System Vitality Panel */}
-          <div className="bg-gradient-to-br from-gray-950 to-slate-900 rounded-3xl p-6 text-white shadow-premium-xl border border-white/5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-bl-full filter blur-xl"></div>
-            <h3 className="text-sm font-black mb-6 flex items-center gap-2 uppercase tracking-wider">
-              <CheckCircle className="text-primary w-4.5 h-4.5" />
-              Security & Health
-            </h3>
-            <div className="space-y-4 relative z-10">
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
-                    Server Response
+          <div className="bg-card rounded-2xl p-5 sm:p-6 border border-border/80 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <CheckCircle className="text-emerald-500 w-4 h-4" />
+                System Health & Status
+              </h3>
+            </div>
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                    API Gateway
                   </span>
-                  <p className="text-xs font-black">API Gateway Active</p>
+                  <p className="text-xs font-bold text-foreground">Cluster Status: Healthy</p>
                 </div>
-                <span className="text-[9px] font-black uppercase py-0.5 px-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg">
-                  Healthy
+                <span className="text-[10px] font-bold uppercase py-0.5 px-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full">
+                  Online
                 </span>
               </div>
 
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
-                    Active Database Connections
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                    Database Connections
                   </span>
-                  <p className="text-xs font-black">Postgres Pool Stable</p>
+                  <p className="text-xs font-bold text-foreground">Primary Connection Pool</p>
                 </div>
-                <span className="text-[9px] font-black uppercase py-0.5 px-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg">
+                <span className="text-[10px] font-bold uppercase py-0.5 px-2 bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200 dark:border-sky-800 rounded-full">
                   Optimal
                 </span>
               </div>
 
-              <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 rounded-xl transition-all shadow-premium-md hover:scale-[1.01] text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/settings')}
+                className="w-full rounded-xl text-xs font-semibold"
+              >
                 Manage System Parameters
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       }
     >
-      <div className="space-y-6 lg:space-y-8">
+      <div className="space-y-6">
         {/* Visual Analytics Charts Panel */}
-        <div className="bg-white dark:bg-card rounded-3xl p-6 border border-border/40 shadow-premium-sm grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recharts Area Chart: Admissions Funnel Trend */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
-                Admissions Conversion Funnel
-              </h4>
-              <span className="text-[10px] font-bold text-muted-foreground">{formattedDate}</span>
-            </div>
-            <div className="h-64">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Admissions Conversion Funnel */}
+          <DashboardChartCard
+            title="Admissions Funnel"
+            subtitle={`Pipeline volume as of ${formattedDate}`}
+            icon={TrendingUp}
+            loading={overviewLoading}
+            minHeight={260}
+          >
+            <div className="h-60 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={admissionsFunnelData}
@@ -444,27 +381,32 @@ const AdminDashboardInner = () => {
                 >
                   <defs>
                     <linearGradient id="colorFunnel" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(226, 232, 240, 0.3)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                   <XAxis
                     dataKey="name"
-                    stroke="#888888"
-                    fontSize={10}
-                    tickLine={false}
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
                     axisLine={false}
+                    tickLine={false}
                   />
-                  <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
                     contentStyle={{
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '16px',
-                      border: '1px solid #E2E8F0',
-                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
+                      backgroundColor: 'hsl(var(--card))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: '0.75rem',
+                      color: 'hsl(var(--card-foreground))',
+                      fontSize: '12px',
                     }}
-                    labelClassName="font-bold text-xs"
                   />
                   <Area
                     type="monotone"
@@ -477,135 +419,142 @@ const AdminDashboardInner = () => {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </DashboardChartCard>
 
-          {/* Recharts Bar Chart: Fee Collections Ledger */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
-                Revenue Collection Forecast
-              </h4>
-              <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                Active collection session
-              </span>
-            </div>
-            <div className="h-64">
+          {/* Revenue Collection Trend */}
+          <DashboardChartCard
+            title="Revenue Collection Forecast"
+            subtitle="Monthly collection vs target milestones"
+            icon={Coins}
+            loading={overviewLoading}
+            minHeight={260}
+          >
+            <div className="h-60 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={revenueTrendData as any}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(226, 232, 240, 0.3)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                   <XAxis
                     dataKey="month"
-                    stroke="#888888"
-                    fontSize={10}
-                    tickLine={false}
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
                     axisLine={false}
+                    tickLine={false}
                   />
-                  <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
                     contentStyle={{
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '16px',
-                      border: '1px solid #E2E8F0',
-                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
+                      backgroundColor: 'hsl(var(--card))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: '0.75rem',
+                      color: 'hsl(var(--card-foreground))',
+                      fontSize: '12px',
                     }}
-                    labelClassName="font-bold text-xs"
                   />
-                  <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                   <Bar
                     dataKey="collected"
                     fill="hsl(var(--primary))"
                     radius={[4, 4, 0, 0]}
-                    name="Collected (₹)"
+                    name="Collected"
                   />
-                  <Bar dataKey="target" fill="#94A3B8" radius={[4, 4, 0, 0]} name="Target (₹)" />
+                  <Bar dataKey="target" fill="#94A3B8" radius={[4, 4, 0, 0]} name="Target" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </DashboardChartCard>
         </div>
 
-        {/* Dashboard layout lower grid: quick actions and category chart */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {/* Recharts Pie Chart: Students Division distribution */}
-          <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-3 border-b border-border/40">
-              <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
-                Class Distribution
-              </h4>
-            </div>
-            <div className="h-44 flex items-center justify-center mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={classDistributionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {classDistributionData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '12px',
-                      border: '1px solid #E2E8F0',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-2 mt-4">
-              {classDistributionData.map((d: any, i: number) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: d.color }}
-                    ></span>
-                    <span className="font-semibold text-muted-foreground">{d.name}</span>
+        {/* Lower Grid: Class Distribution & Operations Toolkit */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Class Distribution Donut */}
+          <DashboardChartCard
+            title="Class Distribution"
+            subtitle="Students grouped by educational tier"
+            icon={GraduationCap}
+            loading={overviewLoading}
+            minHeight={260}
+          >
+            <div className="flex flex-col items-center justify-between">
+              <div className="h-44 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={classDistributionData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={68}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {classDistributionData.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '0.75rem',
+                        color: 'hsl(var(--card-foreground))',
+                        fontSize: '12px',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full space-y-1.5 pt-2 border-t border-border/60">
+                {classDistributionData.map((d: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: d.color }}
+                      />
+                      <span className="text-muted-foreground font-medium">{d.name}</span>
+                    </div>
+                    <span className="font-bold text-foreground">{d.value}</span>
                   </div>
-                  <span className="font-black text-gray-900 dark:text-white">{d.value}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          </DashboardChartCard>
 
           {/* Quick actions panel */}
-          <div className="md:col-span-2 bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/40">
-              <h3 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
-                <ClipboardList className="text-primary w-4.5 h-4.5" />
-                Operations Toolkit
+          <div className="lg:col-span-2 bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <ClipboardList className="text-primary w-4 h-4" />
+                Administrative Operations Toolkit
               </h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {quickActions.map((action, i) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {quickActionsList.map((action, i) => (
                 <Link
                   key={i}
                   to={action.link}
-                  className="flex items-center gap-4 p-4 rounded-2xl border border-border/40 bg-gray-50/20 dark:bg-muted/5 transition-all duration-200 group hover:bg-white dark:hover:bg-card hover:border-primary/20 hover:shadow-premium-md hover:scale-[1.01]"
+                  className="flex items-center gap-3.5 p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/50 hover:border-primary/30 transition-all duration-200 group"
                 >
-                  <div className="w-10 h-10 bg-white dark:bg-muted/15 rounded-xl flex items-center justify-center border border-border/40 shadow-premium-sm group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-transparent transition-colors">
-                    <action.icon className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <action.icon className="w-4 h-4" />
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-bold text-xs text-gray-900 dark:text-white truncate">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-xs text-foreground group-hover:text-primary transition-colors truncate">
                       {action.label}
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-semibold truncate mt-0.5">
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
                       {action.desc}
                     </div>
                   </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors shrink-0" />
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
               ))}
             </div>
@@ -614,20 +563,22 @@ const AdminDashboardInner = () => {
       </div>
 
       {/* ─── Phase 3.3 Enterprise Workspace Panels ───────────────────── */}
-      {/* Sprint 3.3.7 — Operational Insights */}
+      {/* Operational Insights */}
       <RoleDashboardInsights />
 
-      {/* Sprint 3.3.10 — Cross-Module Workspace */}
+      {/* Cross-Module Workspace */}
       <AdminCrossModulePanel />
 
-      {/* Sprint 3.3.1 — Universal Work Queue */}
+      {/* Universal Work Queue */}
       <WorkQueue />
 
-      {/* Sprint 3.3.2 — Quick Actions Engine */}
+      {/* Quick Actions Engine */}
       <QuickActions />
 
-      {/* Sprint 3.3.5 — Health Panel */}
+      {/* Health Panel */}
       <HealthPanel />
     </PageWrapper>
   );
 };
+
+export default AdminDashboard;

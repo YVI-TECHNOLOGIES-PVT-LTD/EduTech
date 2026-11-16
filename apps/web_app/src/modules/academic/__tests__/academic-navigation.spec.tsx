@@ -15,6 +15,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRoutes, RoleBasedDefaultRedirect } from '@/app/router';
 import { AppSidebar } from '@/components/shell/AppSidebar';
+import { AppNavbar } from '@/components/shell/AppNavbar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ADMIN_NAVIGATION, getNavigationForUser, searchNavigationItems } from '@/config/navigation';
 import { ROUTE_REGISTRY } from '@/config/route_registry';
@@ -710,6 +711,103 @@ export async function runAcademicNavigationTests(renderHtml: HtmlRenderer): Prom
     );
   }
   record('HR default landing and cross-role route guards avoid 403 Unauthorized Access');
+
+  // 14. Verify deterministic active sidebar link matching: People Directory vs Students isolation
+  const studentsHtml = await renderAppAtRoute(['/app/people/students'], adminUser, renderHtml);
+  assert(
+    studentsHtml.includes('data-nav-id="adm_students"') &&
+      studentsHtml.includes('data-nav-id="adm_students" data-active="true"'),
+    'Students route must activate adm_students with data-active="true"',
+  );
+  assert(
+    studentsHtml.includes('data-nav-id="adm_people"') &&
+      studentsHtml.includes('data-nav-id="adm_people" data-active="false"'),
+    'Students route must keep adm_people inactive with data-active="false"',
+  );
+
+  const peopleHtml = await renderAppAtRoute(['/app/people'], adminUser, renderHtml);
+  assert(
+    peopleHtml.includes('data-nav-id="adm_people"') &&
+      peopleHtml.includes('data-nav-id="adm_people" data-active="true"'),
+    'People Directory route must activate adm_people with data-active="true"',
+  );
+  assert(
+    peopleHtml.includes('data-nav-id="adm_students"') &&
+      peopleHtml.includes('data-nav-id="adm_students" data-active="false"'),
+    'People Directory route must keep adm_students inactive with data-active="false"',
+  );
+  record('Deterministic single active link isolation: People Directory vs Students');
+
+  // 15. Verify Skeleton Loading States & Glassmorphic Navigation Render Invariants
+  const loadingAuthValue: AuthContextType = {
+    session: null,
+    user: null,
+    accessToken: null,
+    loading: true,
+    boundaryState: 'initializing',
+    isAuthenticated: false,
+    signOut: async () => {},
+    hasPermission: () => false,
+    hasRole: () => false,
+    refreshProfile: async () => {},
+    systemMode: 'UAT',
+  };
+
+  const loadingSidebarTree = (
+    <ThemeProvider defaultTheme="light">
+      <LanguageProvider>
+        <Provider store={store}>
+          <AuthContext.Provider value={loadingAuthValue}>
+            <MemoryRouter initialEntries={['/app/academic/dashboard']}>
+              <SidebarProvider>
+                <AppSidebar />
+              </SidebarProvider>
+            </MemoryRouter>
+          </AuthContext.Provider>
+        </Provider>
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+
+  const loadingSidebarHtml = await renderHtml(loadingSidebarTree);
+  assert(
+    loadingSidebarHtml.includes('aria-label="Loading navigation"'),
+    'AppSidebar must render SidebarSkeleton when auth is loading and user is null',
+  );
+  assert(
+    loadingSidebarHtml.includes('animate-nav-shimmer'),
+    'SidebarSkeleton must apply shimmer animation keyframes',
+  );
+
+  const loadingTopbarTree = (
+    <ThemeProvider defaultTheme="light">
+      <LanguageProvider>
+        <Provider store={store}>
+          <AuthContext.Provider value={loadingAuthValue}>
+            <MemoryRouter initialEntries={['/app/academic/dashboard']}>
+              <SidebarProvider>
+                <AppNavbar />
+              </SidebarProvider>
+            </MemoryRouter>
+          </AuthContext.Provider>
+        </Provider>
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+
+  const loadingTopbarHtml = await renderHtml(loadingTopbarTree);
+  assert(
+    loadingTopbarHtml.includes('aria-label="Loading topbar"'),
+    'AppNavbar must render TopbarSkeleton when auth is loading and user is null',
+  );
+
+  // Assert that authenticated render NEVER renders skeletons
+  assert(
+    !studentsHtml.includes('aria-label="Loading navigation"') &&
+      !studentsHtml.includes('aria-label="Loading topbar"'),
+    'Authenticated route transitions must not flash skeletons',
+  );
+  record('Skeleton loading states & glassmorphic navigation render invariants verified');
 
   return {
     total: results.length,

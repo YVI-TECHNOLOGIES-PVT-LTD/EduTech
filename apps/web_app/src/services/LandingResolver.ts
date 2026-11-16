@@ -326,19 +326,22 @@ export const LandingResolver = {
 
     if (
       matchesPrefix('/app/parent') ||
-      matchesPrefix('/app/admissions/dashboard') ||
       matchesPrefix('/app/admissions/my') ||
       matchesPrefix('/app/admissions/wizard') ||
       matchesPrefix('/app/admissions/view') ||
       matchesPrefix('/app/admissions/documents') ||
-      matchesPrefix('/app/admissions/fees') ||
       matchesPrefix('/app/admissions/payments') ||
       matchesPrefix('/app/admissions/status')
     ) {
       return isParent && !hasStaffOrOperationsRole && !isStudent;
     }
 
-    if (matchesPrefix('/app/admissions/application') || matchesPrefix('/app/admissions/timeline')) {
+    if (
+      matchesPrefix('/app/admissions/dashboard') ||
+      matchesPrefix('/app/admissions/fees') ||
+      matchesPrefix('/app/admissions/application') ||
+      matchesPrefix('/app/admissions/timeline')
+    ) {
       return (hasStaffOrOperationsRole || isParent) && !isStudent;
     }
 
@@ -362,7 +365,7 @@ export const LandingResolver = {
     }
 
     if (matchesPrefix('/app/admissions')) {
-      return isParent && !hasStaffOrOperationsRole && !isStudent;
+      return (hasStaffOrOperationsRole || isParent) && !isStudent;
     }
 
     return true;

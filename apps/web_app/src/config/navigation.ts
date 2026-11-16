@@ -13,7 +13,12 @@ import {
   Settings,
   PhoneCall,
   Calendar,
+  CalendarCheck,
+  CalendarDays,
   UserCheck,
+  UserRoundCog,
+  UsersRound,
+  Presentation,
   BarChart3,
   Sparkles,
   Receipt,
@@ -21,11 +26,14 @@ import {
   Clock,
   CheckSquare,
   BookOpen,
+  NotebookPen,
   Activity,
   Award,
   HelpCircle,
   UserPlus,
   MessageSquare,
+  MessagesSquare,
+  Megaphone,
   ShieldCheck,
   Layers,
   Coins,
@@ -34,6 +42,8 @@ import {
   Compass,
   LifeBuoy,
   Building2,
+  Wallet,
+  Files,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -215,18 +225,24 @@ export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
 export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
   {
     id: 'front_office_main',
-    title: 'Front Office Workspace',
-    contextLabel: 'FRONT OFFICE',
+    title: 'OVERVIEW',
+    contextLabel: 'FRONT OFFICE DESK',
     items: [
       {
         id: 'fo_dashboard',
-        title: 'Dashboard',
+        title: 'Front Office Dashboard',
         url: '/app/front-office/dashboard',
         icon: LayoutDashboard,
       },
+    ],
+  },
+  {
+    id: 'front_office_admissions',
+    title: 'ADMISSION LIFECYCLE',
+    items: [
       {
         id: 'fo_admissions',
-        title: 'Admissions',
+        title: 'Admissions Desk',
         icon: ClipboardList,
         url: '/app/admissions/applications',
         items: [
@@ -238,7 +254,7 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
             items: [
               {
                 id: 'fo_enq_sub',
-                title: 'Enquiries',
+                title: 'Enquiries Desk',
                 url: '/app/admissions/inquiries',
                 icon: HelpCircle,
               },
@@ -400,18 +416,35 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
           },
         ],
       },
-      { id: 'fo_students', title: 'Students', url: '/app/people/students', icon: Users },
+    ],
+  },
+  {
+    id: 'front_office_people',
+    title: 'PEOPLE & ENROLLMENT',
+    items: [
+      {
+        id: 'fo_students',
+        title: 'Students Directory',
+        url: '/app/people/students',
+        icon: GraduationCap,
+      },
+    ],
+  },
+  {
+    id: 'front_office_comm',
+    title: 'COMMUNICATION & TICKETS',
+    items: [
       {
         id: 'fo_communication_group',
         title: 'Communication',
-        icon: MessageSquare,
+        icon: MessagesSquare,
         url: '/app/communication/feeds',
         items: [
           {
             id: 'fo_comm_feeds',
             title: 'Feeds & Announcements',
             url: '/app/communication/feeds',
-            icon: MessageSquare,
+            icon: MessagesSquare,
           },
         ],
       },
@@ -428,8 +461,8 @@ export const FRONT_OFFICE_NAVIGATION: NavigationGroup[] = [
 
 export const FINANCE_NAVIGATION: NavigationGroup[] = [
   {
-    id: 'finance_main',
-    title: 'Finance & Accounts',
+    id: 'finance_overview',
+    title: 'OVERVIEW',
     contextLabel: 'ERP FINANCE',
     items: [
       {
@@ -438,151 +471,125 @@ export const FINANCE_NAVIGATION: NavigationGroup[] = [
         url: '/app/finance/dashboard',
         icon: LayoutDashboard,
       },
+    ],
+  },
+  {
+    id: 'finance_operations',
+    title: 'FINANCE OPERATIONS',
+    items: [
       {
-        id: 'fin_structures_group',
-        title: 'Fee Management',
-        icon: Layers,
+        id: 'fin_structures',
+        title: 'Fee Structure Management',
         url: '/app/finance/structures',
-        items: [
-          {
-            id: 'fin_structures',
-            title: 'Fee Structure Management',
-            url: '/app/finance/structures',
-            icon: Layers,
-          },
-          {
-            id: 'fin_configuration',
-            title: 'Finance Configuration',
-            url: '/app/finance/configuration',
-            icon: ShieldCheck,
-          },
-          {
-            id: 'fin_assignments',
-            title: 'Student Fee Assignments',
-            url: '/app/finance/assignments',
-            icon: UserCheck,
-          },
-          {
-            id: 'fin_demands',
-            title: 'Demand Management',
-            url: '/app/finance/demands',
-            icon: FileText,
-          },
-        ],
+        icon: Layers,
       },
       {
-        id: 'fin_collections_group',
-        title: 'Billing & Collections',
-        icon: Receipt,
+        id: 'fin_configuration',
+        title: 'Finance Configuration',
+        url: '/app/finance/configuration',
+        icon: ShieldCheck,
+      },
+      {
+        id: 'fin_assignments',
+        title: 'Student Fee Assignments',
+        url: '/app/finance/assignments',
+        icon: UserCheck,
+      },
+      {
+        id: 'fin_demands',
+        title: 'Demand Management',
+        url: '/app/finance/demands',
+        icon: FileText,
+      },
+      {
+        id: 'fin_ledger',
+        title: 'Student Fee Ledger',
         url: '/app/finance/ledger',
-        items: [
-          {
-            id: 'fin_ledger',
-            title: 'Student Fee Ledger',
-            url: '/app/finance/ledger',
-            icon: BookOpen,
-          },
-          {
-            id: 'fin_payments',
-            title: 'Payment Entry & Verification',
-            url: '/app/finance/payments',
-            icon: CreditCard,
-          },
-          {
-            id: 'fin_receipts',
-            title: 'Receipt Center',
-            url: '/app/finance/receipts',
-            icon: Receipt,
-          },
-          {
-            id: 'fin_scholarships',
-            title: 'Scholarships & Concessions',
-            url: '/app/finance/scholarships',
-            icon: Award,
-          },
-          {
-            id: 'fin_receivables',
-            title: 'Receivables & Collections',
-            url: '/app/finance/receivables',
-            icon: Coins,
-          },
-        ],
+        icon: BookOpen,
       },
       {
-        id: 'fin_accounting_group',
-        title: 'Accounting & Audit',
-        icon: Scale,
+        id: 'fin_payments',
+        title: 'Payment Entry & Verification',
+        url: '/app/finance/payments',
+        icon: CreditCard,
+      },
+      {
+        id: 'fin_receipts',
+        title: 'Receipt Center',
+        url: '/app/finance/receipts',
+        icon: Receipt,
+      },
+      {
+        id: 'fin_scholarships',
+        title: 'Scholarships & Concessions',
+        url: '/app/finance/scholarships',
+        icon: Award,
+      },
+      {
+        id: 'fin_receivables',
+        title: 'Receivables & Collections',
+        url: '/app/finance/receivables',
+        icon: Coins,
+      },
+      {
+        id: 'fin_accounting',
+        title: 'General Ledger & Accounting',
         url: '/app/finance/accounting',
-        items: [
-          {
-            id: 'fin_accounting',
-            title: 'General Ledger & Accounting',
-            url: '/app/finance/accounting',
-            icon: BookOpen,
-          },
-          {
-            id: 'fin_reconciliation',
-            title: 'Payment Reconciliation',
-            url: '/app/finance/reconciliation',
-            icon: Scale,
-          },
-          {
-            id: 'fin_reports',
-            title: 'Finance Reports & Intelligence',
-            url: '/app/finance/reports',
-            icon: BarChart3,
-          },
-          {
-            id: 'fin_planning',
-            title: 'Budgeting & Financial Planning',
-            url: '/app/finance/planning',
-            icon: TrendingUp,
-          },
-          {
-            id: 'fin_audit',
-            title: 'Finance Audit & Compliance',
-            url: '/app/finance/audit',
-            icon: ShieldCheck,
-          },
-          {
-            id: 'fin_operations',
-            title: 'Operations & Insights',
-            url: '/app/finance/operations',
-            icon: Compass,
-          },
-        ],
+        icon: BookOpen,
+      },
+      {
+        id: 'fin_reconciliation',
+        title: 'Payment Reconciliation',
+        url: '/app/finance/reconciliation',
+        icon: Scale,
+      },
+      {
+        id: 'fin_planning',
+        title: 'Budgeting & Financial Planning',
+        url: '/app/finance/planning',
+        icon: TrendingUp,
+      },
+      {
+        id: 'fin_operations',
+        title: 'Operations & Insights',
+        url: '/app/finance/operations',
+        icon: Compass,
+      },
+    ],
+  },
+  {
+    id: 'finance_reports_group',
+    title: 'REPORTS',
+    items: [
+      {
+        id: 'fin_reports',
+        title: 'Finance Reports & Intelligence',
+        url: '/app/finance/reports',
+        icon: BarChart3,
+      },
+      {
+        id: 'fin_audit',
+        title: 'Finance Audit & Compliance',
+        url: '/app/finance/audit',
+        icon: ShieldCheck,
+      },
+    ],
+  },
+  {
+    id: 'finance_support',
+    title: 'SUPPORT',
+    items: [
+      {
+        id: 'fin_helpdesk',
+        title: 'Helpdesk Tickets',
+        url: '/app/communication/helpdesk',
+        icon: LifeBuoy,
       },
       {
         id: 'fin_notifications',
         title: 'Finance Notifications',
         url: '/app/finance/notifications',
         icon: Bell,
-      },
-      {
-        id: 'fin_communication_group',
-        title: 'Communication',
-        icon: MessageSquare,
-        url: '/app/communication/feeds',
-        items: [
-          {
-            id: 'fin_comm_feeds',
-            title: 'Feeds & Announcements',
-            url: '/app/communication/feeds',
-            icon: MessageSquare,
-          },
-          {
-            id: 'fin_comm_escalation',
-            title: 'Ticket Escalation Rules',
-            url: '/app/communication/escalation',
-            icon: ShieldCheck,
-          },
-        ],
-      },
-      {
-        id: 'fin_helpdesk',
-        title: 'Helpdesk Tickets',
-        url: '/app/communication/helpdesk',
-        icon: LifeBuoy,
       },
       { id: 'fin_profile', title: 'My Profile', url: '/app/profile', icon: User },
       { id: 'fin_settings', title: 'Settings', url: '/app/settings', icon: Settings },
@@ -592,8 +599,8 @@ export const FINANCE_NAVIGATION: NavigationGroup[] = [
 
 export const ADMIN_NAVIGATION: NavigationGroup[] = [
   {
-    id: 'admin_main',
-    title: 'Administration',
+    id: 'admin_overview',
+    title: 'OVERVIEW',
     contextLabel: 'ENTERPRISE ERP',
     items: [
       {
@@ -603,9 +610,95 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
         icon: LayoutDashboard,
       },
       { id: 'adm_exec', title: 'Executive Overview', url: '/app/executive', icon: BarChart3 },
+    ],
+  },
+  {
+    id: 'admin_admissions',
+    title: 'ADMISSION LIFECYCLE',
+    items: [
+      {
+        id: 'adm_admissions_desk',
+        title: 'Admissions Desk',
+        icon: ClipboardList,
+        url: '/app/admissions/applications',
+        items: [
+          {
+            id: 'adm_adm_applications',
+            title: 'Applications Management',
+            url: '/app/admissions/applications',
+            icon: FileText,
+          },
+          {
+            id: 'adm_adm_inquiries',
+            title: 'Inquiries & Leads',
+            url: '/app/admissions/inquiries',
+            icon: PhoneCall,
+          },
+          {
+            id: 'adm_adm_counselling',
+            title: 'Counselling Desk',
+            url: '/app/admissions/counselling',
+            icon: MessageSquare,
+          },
+          {
+            id: 'adm_adm_review',
+            title: 'Application Review',
+            url: '/app/admissions/review',
+            icon: CheckSquare,
+          },
+          {
+            id: 'adm_adm_verification',
+            title: 'Document Verification',
+            url: '/app/admissions/verification',
+            icon: ShieldCheck,
+          },
+          {
+            id: 'adm_adm_exams',
+            title: 'Entrance Assessment',
+            url: '/app/admissions/exams',
+            icon: GraduationCap,
+          },
+          {
+            id: 'adm_adm_decisions',
+            title: 'Admission Decisions',
+            url: '/app/admissions/decisions',
+            icon: CheckCircle2,
+          },
+          {
+            id: 'adm_adm_offers',
+            title: 'Offer Letters & Merit',
+            url: '/app/admissions/offers',
+            icon: Award,
+          },
+          {
+            id: 'adm_adm_enrollment',
+            title: 'Enrollment Conversion',
+            url: '/app/admissions/enrollment',
+            icon: UserPlus,
+          },
+          {
+            id: 'adm_adm_reports',
+            title: 'Admissions Intelligence',
+            url: '/app/admissions/reports',
+            icon: BarChart3,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'admin_people',
+    title: 'PEOPLE MANAGEMENT',
+    items: [
       { id: 'adm_people', title: 'People Directory', url: '/app/people', icon: Users },
       { id: 'adm_students', title: 'Students', url: '/app/people/students', icon: GraduationCap },
-      { id: 'adm_staff', title: 'Staff Directory', url: '/app/people/staff', icon: UserCheck },
+      { id: 'adm_staff', title: 'Staff Directory', url: '/app/people/staff', icon: UserRoundCog },
+    ],
+  },
+  {
+    id: 'admin_academic',
+    title: 'ACADEMIC MANAGEMENT',
+    items: [
       {
         id: 'adm_academic_group',
         title: 'Academic Management',
@@ -698,6 +791,12 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
         url: '/app/admin/ai-oversight',
         icon: Sparkles,
       },
+    ],
+  },
+  {
+    id: 'admin_finance',
+    title: 'FINANCE OPERATIONS',
+    items: [
       {
         id: 'adm_finance',
         title: 'Finance Command Center',
@@ -776,19 +875,25 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
         url: '/app/finance/operations',
         icon: Compass,
       },
+    ],
+  },
+  {
+    id: 'admin_system',
+    title: 'SYSTEM & OPERATIONS',
+    items: [
       { id: 'adm_bulk', title: 'Bulk Operations', url: '/app/admin/bulk', icon: Settings },
       { id: 'adm_import', title: 'Import History', url: '/app/import/history', icon: FileText },
       {
         id: 'adm_communication_group',
         title: 'Communication',
-        icon: MessageSquare,
+        icon: MessagesSquare,
         url: '/app/communication/feeds',
         items: [
           {
             id: 'adm_comm_feeds',
             title: 'Feeds & Announcements',
             url: '/app/communication/feeds',
-            icon: MessageSquare,
+            icon: MessagesSquare,
           },
           {
             id: 'adm_comm_escalation',
@@ -805,6 +910,76 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
         icon: LifeBuoy,
       },
       { id: 'adm_settings', title: 'Settings', url: '/app/settings', icon: Settings },
+    ],
+  },
+];
+
+export const HR_NAVIGATION: NavigationGroup[] = [
+  {
+    id: 'hr_main',
+    title: 'HR & PERSONNEL',
+    contextLabel: 'HUMAN RESOURCES',
+    items: [
+      {
+        id: 'hr_dashboard',
+        title: 'HR Dashboard',
+        url: '/app/people/staff',
+        icon: LayoutDashboard,
+      },
+      {
+        id: 'hr_people',
+        title: 'People Directory',
+        url: '/app/people',
+        icon: Users,
+      },
+      {
+        id: 'hr_staff',
+        title: 'Staff Directory',
+        url: '/app/people/staff',
+        icon: UserRoundCog,
+      },
+      {
+        id: 'hr_students',
+        title: 'Students Directory',
+        url: '/app/people/students',
+        icon: GraduationCap,
+      },
+    ],
+  },
+  {
+    id: 'hr_communication',
+    title: 'COMMUNICATION & TICKETS',
+    items: [
+      {
+        id: 'hr_comm_feeds',
+        title: 'Feeds & Announcements',
+        url: '/app/communication/feeds',
+        icon: MessagesSquare,
+      },
+      {
+        id: 'hr_helpdesk',
+        title: 'Helpdesk Tickets',
+        url: '/app/communication/helpdesk',
+        icon: LifeBuoy,
+      },
+    ],
+  },
+  {
+    id: 'hr_account',
+    title: 'ACCOUNT',
+    items: [
+      {
+        id: 'hr_profile',
+        title: 'My Profile',
+        url: '/app/profile',
+        icon: User,
+      },
+      {
+        id: 'hr_settings',
+        title: 'Settings',
+        url: '/app/settings',
+        icon: Settings,
+      },
     ],
   },
 ];
@@ -844,8 +1019,8 @@ export const GENERAL_NAVIGATION: NavigationGroup[] = [
 
 export const SUPER_ADMIN_NAVIGATION: NavigationGroup[] = [
   {
-    id: 'super_admin_main',
-    title: 'Super Administrator',
+    id: 'super_admin_overview',
+    title: 'OVERVIEW',
     contextLabel: 'SYSTEM COMMAND',
     items: [
       {
@@ -854,6 +1029,12 @@ export const SUPER_ADMIN_NAVIGATION: NavigationGroup[] = [
         url: '/app/super-admin/dashboard',
         icon: LayoutDashboard,
       },
+    ],
+  },
+  {
+    id: 'super_admin_institutions',
+    title: 'INSTITUTIONS & ACADEMICS',
+    items: [
       {
         id: 'sa_organizations',
         title: 'Multi-Campus Directory',
@@ -866,6 +1047,12 @@ export const SUPER_ADMIN_NAVIGATION: NavigationGroup[] = [
         url: '/app/super-admin/academic-overview',
         icon: GraduationCap,
       },
+    ],
+  },
+  {
+    id: 'super_admin_governance',
+    title: 'SECURITY & SETTINGS',
+    items: [
       {
         id: 'sa_audit_logs',
         title: 'Security & Audit Logs',
@@ -884,8 +1071,8 @@ export const SUPER_ADMIN_NAVIGATION: NavigationGroup[] = [
 
 export const STUDENT_NAVIGATION: NavigationGroup[] = [
   {
-    id: 'student_main',
-    title: 'Student Workspace',
+    id: 'student_workspace',
+    title: 'STUDENT WORKSPACE',
     contextLabel: 'STUDENT PORTAL',
     items: [
       {
@@ -912,6 +1099,12 @@ export const STUDENT_NAVIGATION: NavigationGroup[] = [
         url: '/app/student/ai-study-assistant',
         icon: Sparkles,
       },
+    ],
+  },
+  {
+    id: 'student_account',
+    title: 'ACCOUNT',
+    items: [
       {
         id: 'stu_profile',
         title: 'My Profile',
@@ -924,8 +1117,8 @@ export const STUDENT_NAVIGATION: NavigationGroup[] = [
 
 export const TEACHER_NAVIGATION: NavigationGroup[] = [
   {
-    id: 'teacher_main',
-    title: 'Teacher Workspace',
+    id: 'teacher_instruction',
+    title: 'TEACHING WORKSPACE',
     contextLabel: 'TEACHING & LEARNING',
     items: [
       {
@@ -952,17 +1145,23 @@ export const TEACHER_NAVIGATION: NavigationGroup[] = [
         url: '/app/teacher/ai-copilot',
         icon: Sparkles,
       },
+    ],
+  },
+  {
+    id: 'teacher_classroom_group',
+    title: 'CLASSES & CURRICULUM',
+    items: [
       {
         id: 't_classes',
         title: 'My Classes & Sections',
         url: '/app/teacher/classes',
-        icon: Users,
+        icon: Presentation,
       },
       {
         id: 't_timetable',
         title: 'My Schedule / Timetable',
         url: '/app/teacher/timetable',
-        icon: Clock,
+        icon: CalendarDays,
       },
       {
         id: 't_subjects',
@@ -980,8 +1179,14 @@ export const TEACHER_NAVIGATION: NavigationGroup[] = [
         id: 't_lesson_plans',
         title: 'My Lesson Plans',
         url: '/app/teacher/lesson-plans',
-        icon: Sparkles,
+        icon: NotebookPen,
       },
+    ],
+  },
+  {
+    id: 'teacher_resources_group',
+    title: 'WORKLOAD & RESOURCES',
+    items: [
       {
         id: 't_workload',
         title: 'Teaching Workload',
@@ -1014,6 +1219,7 @@ export function getNavigationForUser(
     return TEACHER_NAVIGATION;
   }
 
+  // 3. Finance Priority
   if (
     normalizedRoles.includes('FINANCE') ||
     normalizedRoles.includes('FINANCE_OFFICER') ||
@@ -1024,6 +1230,7 @@ export function getNavigationForUser(
     return FINANCE_NAVIGATION;
   }
 
+  // 4. Front Office Priority
   if (
     normalizedRoles.includes('FRONT_OFFICE') ||
     normalizedRoles.includes('FO') ||
@@ -1033,11 +1240,14 @@ export function getNavigationForUser(
     normalizedRoles.includes('ADMISSIONS_OFFICER') ||
     normalizedRoles.includes('COUNSELLOR') ||
     normalizedRoles.includes('COUNSELOR') ||
-    normalizedRoles.includes('FRONT_OFFICE_STAFF')
+    normalizedRoles.includes('FRONT_OFFICE_STAFF') ||
+    normalizedRoles.includes('EXAM_CELL') ||
+    normalizedRoles.includes('EXAM_CELL_ADMIN')
   ) {
     return FRONT_OFFICE_NAVIGATION;
   }
 
+  // 5. Admin Priority
   if (
     normalizedRoles.includes('ADMIN') ||
     normalizedRoles.includes('ORG_ADMIN') ||
@@ -1048,6 +1258,18 @@ export function getNavigationForUser(
     return ADMIN_NAVIGATION;
   }
 
+  // 6. HR Persona Priority
+  if (
+    normalizedRoles.includes('HR') ||
+    normalizedRoles.includes('HR_MANAGER') ||
+    normalizedRoles.includes('HR_OFFICER') ||
+    normalizedRoles.includes('TALENT') ||
+    normalizedRoles.includes('PERSONNEL')
+  ) {
+    return HR_NAVIGATION;
+  }
+
+  // 7. Parent Priority
   if (normalizedRoles.includes('PARENT') || normalizedRoles.includes('GUARDIAN')) {
     if (isPostAdmission || normalizedRoles.includes('ENROLLED_PARENT')) {
       return POST_ADMISSION_PARENT_NAVIGATION;
@@ -1055,6 +1277,7 @@ export function getNavigationForUser(
     return PARENT_NAVIGATION;
   }
 
+  // 8. Student Priority
   if (normalizedRoles.includes('STUDENT')) {
     return STUDENT_NAVIGATION;
   }

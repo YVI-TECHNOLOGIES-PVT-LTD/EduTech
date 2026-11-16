@@ -28,7 +28,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className={`h-9 px-2.5 rounded-xl border border-border/80 hover:bg-muted text-muted-foreground hover:text-foreground font-bold text-xs gap-1.5 transition-colors cursor-pointer ${className}`}
+          className={`h-9 px-2.5 rounded-lg border border-border/80 hover:bg-muted text-muted-foreground hover:text-foreground font-bold text-xs gap-1.5 transition-colors cursor-pointer ${className}`}
           aria-label={`Current language: ${languageConfig.nativeName}. Click to change language`}
           title="Change language"
         >
@@ -41,12 +41,12 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 
       <DropdownMenuContent
         align="end"
-        className="w-52 bg-white dark:bg-black border border-border/80 dark:border-zinc-800 shadow-xl rounded-xl p-1 z-50 max-h-80 overflow-y-auto custom-scrollbar"
+        className="w-56 bg-popover/90 backdrop-blur-2xl border border-border/80 shadow-2xl rounded-[14px] p-1.5 z-50 max-h-80 overflow-y-auto custom-scrollbar animate-in fade-in-50 zoom-in-95 duration-150"
       >
         <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2.5 py-1.5">
           Select Language / భాష / भाषा
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-border/60 dark:bg-zinc-850" />
+        <DropdownMenuSeparator className="bg-border/60" />
 
         {Object.values(supportedLanguages).map((lang) => {
           const isActive = language === lang.code;
@@ -55,7 +55,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
               key={lang.code}
               onClick={() => setLanguage(lang.code)}
               translate="no"
-              className={`flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-bold cursor-pointer transition-colors notranslate ${
+              className={`flex items-center justify-between px-2.5 py-2 rounded-[10px] text-xs font-bold cursor-pointer transition-colors notranslate ${
                 isActive
                   ? 'bg-foreground text-background font-extrabold'
                   : 'hover:bg-muted text-foreground'

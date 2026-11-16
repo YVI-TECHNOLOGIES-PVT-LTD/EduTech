@@ -152,7 +152,7 @@ async function main() {
       `\nAll ${learningSummary.passed}/${learningSummary.total} Learning Activities frontend test groups passed.`,
     );
 
-    console.log('\n=== 5/5 Running AI Teacher Copilot Portal & Navigation Suite ===');
+    console.log('\n=== 5/6 Running AI Teacher Copilot Portal & Navigation Suite ===');
     const aiCopilotSpec = await vite.ssrLoadModule(
       '/src/modules/ai-teacher-copilot/__tests__/ai-copilot-portal.spec.tsx',
     );
@@ -165,12 +165,30 @@ async function main() {
     console.log(
       `\nAll ${aiCopilotSummary.passed}/${aiCopilotSummary.total} AI Teacher Copilot frontend test groups passed.`,
     );
+
+    console.log('\n=== 6/6 Running Parent Portal Navigation Suite ===');
+    const parentSpec = await vite.ssrLoadModule(
+      '/src/modules/parent/__tests__/parent-navigation.spec.tsx',
+    );
+    const parentSummary = await parentSpec.runParentNavigationTests(
+      renderElementToHtml,
+    );
+    for (const line of parentSummary.results) {
+      console.log(`  ${line}`);
+    }
+    console.log(
+      `\nAll ${parentSummary.passed}/${parentSummary.total} Parent navigation test groups passed.`,
+    );
   } finally {
     await vite.close();
   }
 }
 
-main().catch((err) => {
-  console.error('\nFAILED:', err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('\nFAILED:', err);
+    process.exit(1);
+  });

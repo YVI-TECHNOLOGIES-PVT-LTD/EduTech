@@ -59,6 +59,20 @@ const EXPECTED_PARENT_NAV: ExpectedParentRoute[] = [
   },
   {
     groupTitle: 'MAIN MENU',
+    navId: 'parent_classroom',
+    title: 'Hybrid Classroom',
+    url: '/app/parent/classroom',
+    registryPath: 'parent/classroom',
+  },
+  {
+    groupTitle: 'MAIN MENU',
+    navId: 'parent_learning_activities',
+    title: 'Learning Activities',
+    url: '/app/parent/learning-activities',
+    registryPath: 'parent/learning-activities',
+  },
+  {
+    groupTitle: 'MAIN MENU',
     navId: 'parent_academic_progress',
     title: 'Academic Progress',
     url: '/app/parent/academic-progress',
@@ -313,7 +327,7 @@ export async function runParentNavigationTests(renderHtml: HtmlRenderer): Promis
     seenUrls.add(act.url);
   }
   record(
-    'Parent Portal sidebar contains all 14 structured menu destinations with preserved Finance',
+    'Parent Portal sidebar contains all 16 structured menu destinations with preserved Finance',
   );
 
   // 2. Validate ROUTE_REGISTRY uniqueness & parent guard enforcement
@@ -393,7 +407,7 @@ export async function runParentNavigationTests(renderHtml: HtmlRenderer): Promis
     const crumbs = parseBreadcrumbs(item.url);
     assert(crumbs.length >= 2, `Expected non-empty breadcrumbs for ${item.url}`);
   }
-  record('All 14 Parent Portal URLs activate exact sidebar link and valid breadcrumbs');
+  record('All 16 Parent Portal URLs activate exact sidebar link and valid breadcrumbs');
 
   // 5. Render direct URL routes in full <AppRoutes /> and assert real page components + Parent guard segregation
   const renderedParentPages = EXPECTED_PARENT_NAV.filter((i) => i.testId);

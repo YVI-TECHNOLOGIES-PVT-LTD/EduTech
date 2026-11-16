@@ -348,14 +348,7 @@ exports.feesRouter.get('/structures/:id', (0, rbac_middleware_1.checkPermission)
 // GET /structures: List active & filterable fee structures
 exports.feesRouter.get('/structures', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_STRUCTURE_VIEW), async (req, res) => {
     try {
-        const tenantOrgId = req.tenantOrgId ||
-            req.context?.user?.org_id ||
-            req.context?.user?.school_id ||
-            req.query.org_id ||
-            req.query.school_id ||
-            req.headers['x-org-id'] ||
-            req.headers['x-tenant-id'] ||
-            req.headers['x-school-id'];
+        const tenantOrgId = req.tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
         if (!tenantOrgId) {
             return res.status(400).json({
                 success: false,
@@ -575,14 +568,7 @@ exports.feesRouter.get('/application/:applicationId/preview', (0, rbac_middlewar
 exports.feesRouter.get('/demands', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_DEMAND_VIEW), async (req, res) => {
     try {
         const { status, studentId } = req.query;
-        const tenantOrgId = req.tenantOrgId ||
-            req.context?.user?.org_id ||
-            req.context?.user?.school_id ||
-            req.query.org_id ||
-            req.query.school_id ||
-            req.headers['x-org-id'] ||
-            req.headers['x-tenant-id'] ||
-            req.headers['x-school-id'];
+        const tenantOrgId = req.tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
         const safeOrgId = (0, FeeStructureManagerService_1.toSafeUuid)(tenantOrgId);
         const safeStudentId = (0, FeeStructureManagerService_1.toSafeUuid)(studentId);
         const whereClause = {};
@@ -1735,14 +1721,7 @@ exports.feesRouter.get('/admin/ledger', (0, rbac_middleware_1.checkPermission)(p
 // ======================================
 exports.feesRouter.get('/dashboard/kpis', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_VIEW), async (req, res) => {
     try {
-        const tenantOrgId = req.tenantOrgId ||
-            req.context?.user?.org_id ||
-            req.context?.user?.school_id ||
-            req.query.org_id ||
-            req.query.school_id ||
-            req.headers['x-org-id'] ||
-            req.headers['x-tenant-id'] ||
-            req.headers['x-school-id'];
+        const tenantOrgId = req.tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
         const today = new Date().toISOString().split('T')[0];
         // 1. Today's collections
         const { data: todayTx } = await supabase_1.supabase

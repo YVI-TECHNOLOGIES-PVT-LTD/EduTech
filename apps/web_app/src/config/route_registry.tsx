@@ -1,5 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { LandingResolver } from '../services/LandingResolver';
 import Dashboard from '../pages/Dashboard';
 import { AcademicOverviewPage } from '../modules/academic/pages/AcademicOverviewPage';
 import { AcademicStructurePage } from '../modules/academic/pages/AcademicStructurePage';
@@ -282,6 +284,48 @@ export interface RouteConfig {
     | 'none';
 }
 
+const AdmissionsWorkspaceDispatcher: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalized = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const isParentOnly = normalized.every((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParentOnly) {
+    return <Navigate to="/app/admissions/dashboard" replace />;
+  }
+  return <ApplicationsManagementPage />;
+};
+
+const AdmissionsDashboardDispatcher: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalized = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const isParentOnly = normalized.every((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParentOnly) {
+    return <ParentDashboardPage />;
+  }
+  return <ApplicationsManagementPage />;
+};
+
+const AdmissionsFeesDispatcher: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalized = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const isParentOnly = normalized.every((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParentOnly) {
+    return <ParentFeePaymentPage />;
+  }
+  return <PaymentEntry />;
+};
+
 export const ROUTE_REGISTRY: RouteConfig[] = [
   // ─── 1. CANONICAL ROLE DASHBOARDS ──────────────────────────────────────────
   {
@@ -301,6 +345,13 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <ParentDashboardRouter />,
     layout: 'parent_admission',
     guardType: 'parent',
+  },
+  {
+    path: 'admin',
+    element: <Navigate to="/app/admin/dashboard" replace />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
   },
   {
     path: 'admin/dashboard',
@@ -333,6 +384,30 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   {
     path: 'super-admin/dashboard',
     element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/organizations',
+    element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/academic-overview',
+    element: <AcademicOverviewPage />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/audit',
+    element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/settings',
+    element: <Settings />,
     layout: 'dashboard',
     guardType: 'super_admin',
   },
@@ -441,12 +516,26 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     layout: 'dashboard',
   },
 
-  // ─── 3. PARENT & APPLICANT PORTAL ROUTES (GUARDED BY PARENT GUARD) ─────────
+  // ─── 3. ADMISSIONS & APPLICANT PORTAL ROUTES ───────────────────────────────
+  {
+    path: 'admissions',
+    element: <AdmissionsWorkspaceDispatcher />,
+    layout: 'admission_workspace',
+  },
+  {
+    path: 'students',
+    element: <Navigate to="/app/people/students" replace />,
+    layout: 'dashboard',
+  },
+  {
+    path: 'fees/payments',
+    element: <Navigate to="/app/finance/payments" replace />,
+    layout: 'dashboard',
+  },
   {
     path: 'admissions/dashboard',
-    element: <ParentDashboardPage />,
+    element: <AdmissionsDashboardDispatcher />,
     layout: 'parent_admission',
-    guardType: 'parent',
   },
   {
     path: 'admissions/my',
@@ -480,9 +569,8 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'admissions/fees',
-    element: <ParentFeePaymentPage />,
+    element: <AdmissionsFeesDispatcher />,
     layout: 'parent_admission',
-    guardType: 'parent',
   },
   {
     path: 'admissions/payments',

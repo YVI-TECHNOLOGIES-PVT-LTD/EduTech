@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceShell } from '../modules/common/workspace/WorkspaceShell';
 import { LoginPage } from '../modules/auth/pages/LoginPage';
 import UnauthorizedPage from '../pages/Unauthorized';
+import NotFoundPage from '../pages/NotFoundPage';
 import {
   ProtectedRoute,
   PermissionGuard,
@@ -144,13 +145,13 @@ export const AppRoutes: React.FC = () => {
             ))}
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="" element={<RoleBasedDefaultRedirect />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
 
         {/* Canonical Persona Redirects */}
         <Route path="/parent/*" element={<Navigate to="/app/parent/dashboard" replace />} />
-        <Route path="/app/*" element={<RoleBasedDefaultRedirect />} />
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

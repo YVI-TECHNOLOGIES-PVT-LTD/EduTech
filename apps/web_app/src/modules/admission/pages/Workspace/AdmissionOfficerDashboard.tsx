@@ -13,6 +13,7 @@ import { AdmissionWorkflowEngine } from '../../core/AdmissionWorkflowEngine';
 import { mapUIStatus } from '../../core/AdmissionStatusMapper';
 import Applicant360Profile from '../../components/profile360/Applicant360Profile';
 import { Button } from '@/components/ui/button';
+import { DashboardPageHeader } from '@/components/dashboard';
 
 export function AdmissionOfficerDashboard() {
   const { user } = useAuth();
@@ -133,28 +134,28 @@ export function AdmissionOfficerDashboard() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header Area */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> Enterprise Admission Desk
-            Console
-          </h2>
-          <p className="text-xs text-gray-400 font-bold uppercase">
-            Unified Dynamics CRM Pipeline, Work Queues, Live SLA Monitoring, & SIS Handoff
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            refetch();
-            toast.success('Workspace updated');
-          }}
-          className="text-xs gap-1.5 h-8 font-bold border-gray-300 bg-white"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh Workspace
-        </Button>
-      </div>
+      <DashboardPageHeader
+        title="Enterprise Admissions Desk"
+        description="Unified candidate pipeline, application audit queues, live SLA monitoring, document verification, and SIS handoff."
+        badge={{
+          text: 'Admissions Officer Console',
+          variant: 'primary',
+          icon: Sparkles,
+        }}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              refetch();
+              toast.success('Workspace updated');
+            }}
+            className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm gap-2 text-xs font-semibold"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh Workspace
+          </Button>
+        }
+      />
 
       {/* Sub-workspace viewport */}
       <div className="min-h-[500px]">

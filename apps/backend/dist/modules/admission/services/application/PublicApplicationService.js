@@ -11,6 +11,7 @@ const ValidationError_1 = require("../../errors/ValidationError");
 const BusinessRuleError_1 = require("../../errors/BusinessRuleError");
 const country_resolver_1 = require("../../../../utils/country-resolver");
 const lead_identity_resolver_service_1 = require("../../../lead-management/services/lead.identity-resolver.service");
+const application_number_util_1 = require("../../../../utils/application-number.util");
 class PublicApplicationService {
     constructor(enquiryService, counselorAssignmentService, applicationService, applicationRepository, auditService) {
         this.enquiryService = enquiryService;
@@ -322,44 +323,48 @@ class PublicApplicationService {
                 },
             });
             if (!application) {
-                // Create Admissions Application record with unique application_number check
+                // Create Admissions Application record with collision-resistant number and retry handling
                 const year = new Date().getFullYear();
-                const appCount = await tx.admissions_applications.count();
-                let appSeq = appCount + 1;
-                let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-                while (await tx.admissions_applications.findUnique({
-                    where: { application_number: applicationNumber },
-                })) {
-                    appSeq++;
-                    applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
-                }
-                try {
-                    application = await tx.admissions_applications.create({
-                        data: {
-                            lead_id: lead.lead_id,
-                            org_id: finalOrgId,
-                            academic_year_id: finalAcademicYearId,
-                            application_number: applicationNumber,
-                            application_date: new Date(),
-                            status: client_1.application_status.submitted,
-                            created_by: user.user_id,
-                        },
-                    });
-                }
-                catch (createErr) {
-                    if (createErr.code === 'P2002') {
-                        application = await tx.admissions_applications.findFirst({
-                            where: {
-                                org_id: finalOrgId,
+                const MAX_RETRIES = 3;
+                let lastCreateErr;
+                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    const applicationNumber = (0, application_number_util_1.generateApplicationNumber)(year);
+                    try {
+                        application = await tx.admissions_applications.create({
+                            data: {
                                 lead_id: lead.lead_id,
+                                org_id: finalOrgId,
+                                academic_year_id: finalAcademicYearId,
+                                application_number: applicationNumber,
+                                application_date: new Date(),
+                                status: client_1.application_status.submitted,
+                                created_by: user.user_id,
                             },
                         });
-                        if (!application)
-                            throw createErr;
+                        break;
                     }
-                    else {
+                    catch (createErr) {
+                        lastCreateErr = createErr;
+                        if (createErr?.code === 'P2002') {
+                            const existingLeadApp = await tx.admissions_applications.findFirst({
+                                where: {
+                                    org_id: finalOrgId,
+                                    lead_id: lead.lead_id,
+                                },
+                            });
+                            if (existingLeadApp) {
+                                application = existingLeadApp;
+                                break;
+                            }
+                            if ((0, application_number_util_1.isApplicationNumberUniqueConstraintError)(createErr) && attempt < MAX_RETRIES) {
+                                continue;
+                            }
+                        }
                         throw createErr;
                     }
+                }
+                if (!application) {
+                    throw lastCreateErr;
                 }
             }
             console.log(`[PUBLIC-APPLY] application ready: ${application.application_id} (${application.application_number})`);

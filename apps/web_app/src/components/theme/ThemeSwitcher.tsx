@@ -79,11 +79,11 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
       aria-label={label}
       title={label}
       className={cn(
-        'rounded-xl w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors cursor-pointer',
+        'rounded-lg w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors cursor-pointer',
         className,
       )}
     >
-      <CurrentIcon className="w-4 h-4 shrink-0 transition-transform duration-200 hover:rotate-12" />
+      <CurrentIcon className="w-4 h-4 shrink-0 transition-all duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:rotate-12 motion-reduce:transition-none" />
       <span className="sr-only">{label}</span>
     </Button>
   );

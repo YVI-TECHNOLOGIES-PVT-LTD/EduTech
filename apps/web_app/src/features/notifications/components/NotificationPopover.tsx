@@ -121,8 +121,8 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         sideOffset={8}
         className={cn(
           'w-[calc(100vw-2rem)] sm:w-[440px] md:w-[460px] p-0 overflow-hidden',
-          'rounded-2xl border border-border/80 bg-popover/95 backdrop-blur-xl',
-          'shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-50 animate-in fade-in-0 zoom-in-95',
+          'rounded-[14px] border border-border/80 bg-popover/90 backdrop-blur-2xl',
+          'shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-50 animate-in fade-in-0 zoom-in-95 duration-150',
         )}
       >
         {/* Header */}
@@ -192,7 +192,7 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
             type="button"
             onClick={handleOpenFullCenter}
             className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold text-primary',
+              'px-3 py-1.5 rounded-[10px] text-xs font-bold text-primary',
               'hover:bg-primary/10 transition-colors flex items-center gap-1.5 cursor-pointer',
             )}
           >
