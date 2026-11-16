@@ -1,23 +1,15 @@
-# EduTrack ERP — Docker Infrastructure
+# EduTrack Docker
 
-This directory contains containerization and service orchestration configurations for EduTrack ERP.
+Compose runs Postgres (`pgvector/pgvector:pg16`), the API (`apps/backend/Dockerfile`), and the web app (`apps/web_app/Dockerfile`). The mobile app is not containerized.
 
-## Services
-
-- **`edutrack-api`**: Express.js REST API service built from [`apps/backend/Dockerfile`](../apps/backend/Dockerfile).
-- **`edutrack-web`**: React / Vite SPA frontend web service served via Nginx from [`apps/web_app/Dockerfile`](../apps/web_app/Dockerfile).
-
-## Local Container Orchestration
-
-To run the containerized application stack locally:
+Host ports bind to `127.0.0.1` (Postgres 5432, API 3000, web 8080). The API container runs `prisma db push` on startup. There is no seed script.
 
 ```bash
-# Build and start services in detached mode
-docker-compose up --build -d
-
-# View service container logs
-docker-compose logs -f
-
-# Stop running services
-docker-compose down
+docker compose up --build -d
+docker compose logs -f backend web postgres
+docker compose run --rm backend ./node_modules/.bin/prisma db push --schema=prisma/schema.prisma --skip-generate --accept-data-loss
+docker compose down
+docker compose down -v
 ```
+
+See [docs/docker/CONTAINER_ARCHITECTURE.md](../docs/docker/CONTAINER_ARCHITECTURE.md) for the image layout, environment overrides, and health URLs.

@@ -1,43 +1,34 @@
-# Monorepo Dependencies & Package Store Caches
+# Keep the build context free of dependencies, secrets, and VCS metadata.
 node_modules
+**/node_modules
 .pnpm-store
 
-# Build Outputs & Monorepo Task Caches
-.turbo
-.next
-.nuxt
-dist
-build
-out
-
-# Version Control Systems & Editor Configuration
 .git
-.gitignore
 .github
+.husky
 .idea
 .vscode
+.expo
+.turbo
+**/.turbo
 
-# Testing Frameworks & Coverage Reports
+dist
+**/dist
+build
+**/build
 coverage
-*.lcov
-postman/reports
-
-# Logs, Diagnostics & Transient Files
+**/*.lcov
 logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+**/*.log
 tmp
 temp
 
-# Local Environment Overrides (DO NOT IGNORE .env.docker)
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Never send environment files (including examples) into an image build.
+.env
+.env.*
+**/.env
+**/.env.*
 
-# OS Metadata Files
-.DS_Store
-Thumbs.db
+EduTech
+*.md
+!docs/docker/CONTAINER_ARCHITECTURE.md

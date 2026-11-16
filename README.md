@@ -64,7 +64,7 @@ Comprehensive architecture and governance documents are available in the reposit
 # 1. Install workspace dependencies
 pnpm install
 
-# 2. Configure environment files
+# 2. Configure environment files (copy the templates; do not commit the copies)
 cp apps/backend/.env.example apps/backend/.env
 cp apps/web_app/.env.example apps/web_app/.env
 cp apps/mobile_app/.env.example apps/mobile_app/.env
@@ -72,6 +72,32 @@ cp apps/mobile_app/.env.example apps/mobile_app/.env
 # 3. Start development servers
 pnpm run dev
 ```
+
+## Docker
+
+`apps/mobile_app` is not part of the stack. Postgres, the API, and the web app are. Host ports bind to `127.0.0.1`. Details are in [`docs/docker/CONTAINER_ARCHITECTURE.md`](docs/docker/CONTAINER_ARCHITECTURE.md).
+
+```bash
+# Start Postgres, the API, and the web app. The API applies the Prisma schema on boot.
+docker compose up --build -d
+
+# Logs
+docker compose logs -f backend web postgres
+
+# Schema sync one-off (also runs automatically on backend startup)
+docker compose run --rm backend ./node_modules/.bin/prisma db push --schema=prisma/schema.prisma --skip-generate --accept-data-loss
+
+# There is no seed script.
+
+# Stop, and drop the database volume
+docker compose down
+docker compose down -v
+```
+
+- Login page: `http://127.0.0.1:8080/login`
+- API liveness: `http://127.0.0.1:3000/health/live`
+
+Optional overrides live in [`.env.docker.example`](.env.docker.example). Copy that file to `.env.docker` (gitignored) and run `docker compose --env-file .env.docker up --build -d`.
 
 ---
 

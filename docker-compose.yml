@@ -1,80 +1,107 @@
-# =======================================================
-# EduTrack Enterprise SaaS ERP — Docker Compose Specification
-# Architecture: 2 Containers (Backend API + Frontend SPA) -> Supabase Cloud
-# Target Environment: Enterprise Monorepo Docker Orchestration
-# =======================================================
+# Local EduTrack stack: Postgres, API, and the web app.
+# Host ports bind to 127.0.0.1. Override with EDUTRACK_* variables
+# (see .env.docker.example). A clean checkout needs no env file.
 
-name: edutrack-erp
+name: edutrack
 
 networks:
-  edutrack-network:
+  edutrack:
     name: edutrack-network
     driver: bridge
 
+volumes:
+  edutrack_pg:
+
 services:
-  # -------------------------------------------------------
-  # Container 1: Backend API Microservice (@edutrack/api)
-  # Express API + Prisma ORM + Worker + Scheduler + Puppeteer
-  # -------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: edutrack-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${EDUTRACK_POSTGRES_USER:-edutrack}
+      POSTGRES_PASSWORD: ${EDUTRACK_POSTGRES_PASSWORD:-edutrack}
+      POSTGRES_DB: ${EDUTRACK_POSTGRES_DB:-edutrack}
+    ports:
+      - "127.0.0.1:${EDUTRACK_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - edutrack_pg:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/00-extensions.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${EDUTRACK_POSTGRES_USER:-edutrack} -d ${EDUTRACK_POSTGRES_DB:-edutrack}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - edutrack
+
   backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+    image: edutrack-backend:local
     container_name: edutrack-backend
-    image: ghcr.io/edutrack/backend:2.12.0
-    ports:
-      - '3000:3000'
-    env_file:
-      - .env.docker
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
     restart: unless-stopped
-    networks:
-      edutrack-network:
-        aliases:
-          - api
-          - backend
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      SYSTEM_MODE: ${EDUTRACK_SYSTEM_MODE:-UAT}
+      DATABASE_URL: ${EDUTRACK_DATABASE_URL:-postgresql://edutrack:edutrack@postgres:5432/edutrack?schema=public}
+      DIRECT_URL: ${EDUTRACK_DIRECT_URL:-postgresql://edutrack:edutrack@postgres:5432/edutrack?schema=public}
+      SUPABASE_URL: ${EDUTRACK_SUPABASE_URL:-https://placeholder.supabase.co}
+      SUPABASE_KEY: ${EDUTRACK_SUPABASE_KEY:-placeholder-service-role-key}
+      FRONTEND_URL: ${EDUTRACK_FRONTEND_URL:-http://127.0.0.1:8080}
+      JWT_SECRET: ${EDUTRACK_JWT_SECRET:-local-dev-jwt-secret-change-me}
+      JWT_REFRESH_SECRET: ${EDUTRACK_JWT_REFRESH_SECRET:-local-dev-jwt-refresh-secret-change-me}
+      RUN_DB_PUSH: ${EDUTRACK_RUN_DB_PUSH:-true}
+    ports:
+      - "127.0.0.1:${EDUTRACK_BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:3000/health/live']
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 12
+      start_period: 180s
+    networks:
+      edutrack:
+        aliases:
+          - backend
+          - api
 
-  # -------------------------------------------------------
-  # Container 2: Frontend Web Application (@edutrack/web)
-  # React 18 + Vite SPA Build + Nginx 1.25 Runner
-  # -------------------------------------------------------
-  frontend:
+  web:
     build:
       context: .
       dockerfile: apps/web_app/Dockerfile
       args:
-        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://umvbyywkojuxnxgkuwbt.supabase.co}
-        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtdmJ5eXdrb2p1eG54Z2t1d2J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyOTkwNjQsImV4cCI6MjA5NTg3NTA2NH0.t9mzbmb3VVuvnKKeahH8aaalTGgoBR18TTsiVGd-cPc}
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
-    container_name: edutrack-frontend
-    image: ghcr.io/edutrack/frontend:2.12.0
-    ports:
-      - '80:80'
-    env_file:
-      - .env.docker
-    environment:
-      - NODE_ENV=production
+        VITE_API_URL: ${EDUTRACK_VITE_API_URL:-http://127.0.0.1:3000/api}
+        VITE_SUPABASE_URL: ${EDUTRACK_VITE_SUPABASE_URL:-https://placeholder.supabase.co}
+        VITE_SUPABASE_ANON_KEY: ${EDUTRACK_VITE_SUPABASE_ANON_KEY:-placeholder-anon-key}
+    image: edutrack-web:local
+    container_name: edutrack-web
     restart: unless-stopped
-    networks:
-      edutrack-network:
-        aliases:
-          - web
-          - frontend
+    ports:
+      - "127.0.0.1:${EDUTRACK_WEB_PORT:-8080}:8080"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:80/']
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 6
+      start_period: 15s
+    networks:
+      - edutrack
