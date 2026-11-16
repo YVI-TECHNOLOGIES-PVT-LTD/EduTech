@@ -296,3 +296,48 @@ CREATE TYPE scholarship_type AS ENUM (
     'government',
     'management'
 );
+
+
+CREATE TYPE chatbot_channel AS ENUM (
+    'web_widget',
+    'whatsapp',
+    'ivr',
+    'mobile_app'
+);
+
+CREATE TYPE chatbot_status AS ENUM (
+    'active',
+    'completed',
+    'escalated',
+    'abandoned'
+);
+
+CREATE TYPE chatbot_sender AS ENUM (
+    'user',
+    'bot',
+    'staff'
+);
+
+
+CREATE TYPE admission_payment_mode AS ENUM (
+    'cash',
+    'card',
+    'bank_transfer',
+    'upi'
+);
+
+CREATE TYPE public.notification_category AS ENUM (
+    'ADMISSION',
+    'ATTENDANCE',
+    'FEE',
+    'EXAM',
+    'SYSTEM'
+);
+
+CREATE TYPE public.notification_category AS ENUM (
+    'ADMISSION',
+    'ATTENDANCE',
+    'FEE',
+    'EXAM',
+    'SYSTEM'
+);

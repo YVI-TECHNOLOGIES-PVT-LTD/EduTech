@@ -1,34 +1,39 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '../context/AuthContext';
-import { Toaster } from '../components/ui/sonner';
-import { WorkspaceProvider } from '../modules/common/workspace/WorkspaceProvider';
-import { MasterDataProvider } from '../modules/admission/context/MasterDataContext';
-import { GlobalErrorBoundary } from '../components/common/ErrorBoundary';
+import { Provider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import { store } from './store';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { LanguageProvider } from '@/context/LanguageContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { MasterDataProvider } from '@/modules/admission/context/MasterDataContext';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { WorkspaceProvider } from '@/modules/common/workspace/WorkspaceProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
-export const Providers = ({ children }: { children: React.ReactNode }) => {
+export const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <GlobalErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <WorkspaceProvider>
-            <MasterDataProvider>
-              {children}
-              <Toaster position="top-right" richColors />
-            </MasterDataProvider>
-          </WorkspaceProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </GlobalErrorBoundary>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <Provider store={store}>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <MasterDataProvider>
+                  <WorkspaceProvider>
+                    <TooltipProvider delay={0}>
+                      {children}
+                      <Toaster position="top-right" richColors />
+                    </TooltipProvider>
+                  </WorkspaceProvider>
+                </MasterDataProvider>
+              </AuthProvider>
+            </QueryClientProvider>
+          </Provider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
+

@@ -45,6 +45,30 @@ export function Applicant360DocumentsPanel({
     isVerifying,
   } = useCrmDocuments(applicationId);
 
+  const [dynamicDocTypes, setDynamicDocTypes] = useState<
+    Array<{ code: string; label: string; mandatory: boolean }>
+  >([]);
+
+  React.useEffect(() => {
+    if (!applicationId) return;
+    admissionApi
+      .getDocumentTypes({ application_id: applicationId })
+      .then((res) => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((dt: any) => ({
+            code: dt.document_type_id,
+            label: dt.document_name,
+            mandatory: dt.is_mandatory,
+          }));
+          setDynamicDocTypes(mapped);
+          setSelectedType(mapped[0].code);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load org-scoped document types for application', err);
+      });
+  }, [applicationId]);
+
   const permCtx = { roles: user?.roles ?? [], hasPermission, hasRole };
   const canUpload =
     AdmissionPermissions.isCounselor(permCtx) ||
@@ -55,9 +79,11 @@ export function Applicant360DocumentsPanel({
     (AdmissionPermissions.canReviewApplications(permCtx) ||
       hasPermission('admission.document.verify'));
 
-  const documentTypeOptions = progress?.documentItems?.length
-    ? progress.documentItems.map((item) => ({ code: item.code, label: item.name }))
-    : DEFAULT_DOCUMENT_TYPES;
+  const documentTypeOptions = dynamicDocTypes.length
+    ? dynamicDocTypes
+    : progress?.documentItems?.length
+      ? progress.documentItems.map((item) => ({ code: item.code, label: item.name }))
+      : DEFAULT_DOCUMENT_TYPES;
 
   const checklistItems = progress?.documentItems?.length
     ? progress.documentItems
@@ -80,9 +106,7 @@ export function Applicant360DocumentsPanel({
 
   const handleDownload = async (documentId: string) => {
     const res = await admissionApi.getCrmDocumentDownloadUrl(documentId);
-    const url =
-      (res.data as { download_url?: string; url?: string })?.download_url ??
-      (res.data as { url?: string })?.url;
+    const url = res.data?.signed_url;
     if (url) window.open(url, '_blank');
   };
 

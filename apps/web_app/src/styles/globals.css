@@ -1,68 +1,203 @@
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/600.css";
+
 @import './theme.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  /* Typography Tokens (Primary: Plus Jakarta Sans with Arabic & Indic font fallbacks) */
+  --font-sans: "Plus Jakarta Sans", "Noto Sans Arabic", "Noto Sans Telugu", "Noto Sans Devanagari", "Noto Sans Tamil", "Noto Sans Kannada", "Noto Sans Malayalam", "Segoe UI", Roboto, Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
 
-  /* Core Brand Colors */
-  --navy: 213 50% 24%;
-  --navy-light: 213 45% 32%;
-  --navy-dark: 213 55% 16%;
-  --gold: 40 60% 58%;
-  --gold-light: 40 55% 72%;
-  --gold-dark: 40 65% 45%;
-  --cream: 45 40% 96%;
-  --cream-dark: 45 25% 90%;
+  /* Core Brand & Editorial Art Direction Tokens */
+  --navy: 190 70% 12%;
+  --navy-light: 190 60% 20%;
+  --navy-dark: 190 80% 8%;
+  --gold: 38 72% 66%;
+  --gold-light: 38 85% 75%;
+  --gold-dark: 38 80% 50%;
+  --cream: 40 33% 94%;
+  --cream-dark: 40 25% 88%;
+  --mist: 160 15% 93%;
+  --teal-deep: 181 83% 13.7%;
 
-  /* Semantic Colors */
-  --background: 45 40% 98%;
-  --foreground: 213 50% 16%;
+  /* Semantic Design Tokens (Light Theme Baseline — Pure #FFFFFF Base) */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
 
   --card: 0 0% 100%;
-  --card-foreground: 213 50% 16%;
+  --card-foreground: 0 0% 0%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 213 50% 16%;
+  --popover-foreground: 0 0% 0%;
 
-  --primary: 213 50% 24%;
-  --primary-foreground: 45 40% 98%;
+  --primary: 181 83% 13.7%; /* Deep EduTrack Teal #063F40 */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 40 60% 58%;
-  --secondary-foreground: 213 50% 16%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 0 0% 0%;
 
-  --muted: 45 25% 92%;
-  --muted-foreground: 213 30% 45%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 215 16% 45%;
 
-  --accent: 40 60% 58%;
-  --accent-foreground: 213 50% 16%;
+  --accent: 181 60% 25%;
+  --accent-foreground: 0 0% 100%;
+
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 48 96% 12%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 213 20% 85%;
-  --input: 213 20% 85%;
-  --ring: 40 60% 58%;
+  --info: 199 89% 48%;
+  --info-foreground: 0 0% 100%;
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 181 83% 13.7%;
 
   --radius: 0.75rem;
 
-  /* Sidebar */
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 240 5.3% 26.1%;
-  --sidebar-primary: 240 5.9% 10%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 240 4.8% 95.9%;
-  --sidebar-accent-foreground: 240 5.9% 10%;
+  /* Chart Color Tokens (8-category palette) */
+  --chart-1: 181 83% 28%;
+  --chart-2: 217 91% 53%;
+  --chart-3: 158 79% 36%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 262 83% 58%;
+  --chart-6: 346 84% 53%;
+  --chart-7: 192 95% 42%;
+  --chart-8: 24 94% 53%;
+
+  /* Sidebar Tokens (Light Mode — Pure #FFFFFF Background, Pure #000000 Text, Pure #000000 Active Bg / #FFFFFF Active Text) */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 0 0% 0%;
+  --sidebar-primary: 0 0% 0%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 95%;
+  --sidebar-accent-foreground: 0 0% 0%;
   --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar-ring: 0 0% 0%;
+
+  color-scheme: light;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: #f8fafc;
+/* Pure Black Dark Theme Surfaces (#000000 Base) */
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+
+  --card: 0 0% 0%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 173 80% 36%; /* Accessible bright teal in dark mode */
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 65%;
+
+  --accent: 0 0% 14%;
+  --accent-foreground: 0 0% 100%;
+
+  --success: 142 70% 50%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 55%;
+  --warning-foreground: 48 96% 12%;
+
+  --destructive: 0 72% 56%;
+  --destructive-foreground: 0 0% 100%;
+
+  --info: 199 89% 58%;
+  --info-foreground: 0 0% 100%;
+
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 173 80% 36%;
+
+  /* Chart Color Tokens (Dark Mode 8-category palette) */
+  --chart-1: 173 80% 45%;
+  --chart-2: 213 94% 68%;
+  --chart-3: 158 64% 52%;
+  --chart-4: 43 96% 56%;
+  --chart-5: 263 70% 66%;
+  --chart-6: 346 77% 62%;
+  --chart-7: 187 86% 53%;
+  --chart-8: 24 90% 62%;
+
+  /* Sidebar Tokens (Dark Mode — Pure #000000 Background, Pure #FFFFFF Text, Pure #FFFFFF Active Bg / #000000 Active Text) */
+  --sidebar-background: 0 0% 0%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 18%;
+  --sidebar-ring: 0 0% 100%;
+
+  color-scheme: dark;
+}
+
+/* Editorial Section Background Motifs */
+.bg-editorial-cream {
+  background-color: hsl(40 33% 94%);
+}
+.dark .bg-editorial-cream {
+  background-color: hsl(0 0% 6%);
+}
+
+.bg-editorial-mist {
+  background-color: hsl(160 15% 93%);
+}
+.dark .bg-editorial-mist {
+  background-color: hsl(0 0% 8%);
+}
+
+.bg-editorial-teal {
+  background-color: hsl(181 83% 13.7%);
+  color: #ffffff;
+}
+.dark .bg-editorial-teal {
+  background-color: hsl(181 83% 10%);
+  color: #ffffff;
+}
+
+html,
+body,
+#root {
+  font-family: var(--font-sans);
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* Premium Scrollbar */
@@ -75,30 +210,77 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: #cbd5e1;
   border-radius: 10px;
 }
 
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: #94a3b8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Animations */
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.animate-slide-up {
-  animation: slideUp 0.5s ease forwards;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-page-entrance {
+  animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease forwards;
+}
+
+/* Stagger Animation Delays */
+.stagger-1 {
+  animation-delay: 100ms;
+}
+.stagger-2 {
+  animation-delay: 200ms;
+}
+.stagger-3 {
+  animation-delay: 300ms;
+}
+
+/* Image Zoom Hover Micro-Interaction */
+.img-zoom-container {
+  overflow: hidden;
+}
+.img-zoom-target {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.img-zoom-container:hover .img-zoom-target {
+  transform: scale(1.04);
+}
+
 
 /* Hero Gradient & Pattern */
 .bg-hero-gradient {
@@ -177,6 +359,17 @@ body {
 }
 
 /* Accessibility: Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
+}
+
 [data-reduced-motion="true"] * {
   animation-delay: 0s !important;
   animation-duration: 0s !important;
@@ -185,3 +378,33 @@ body {
   scroll-behavior: auto !important;
   transform: none !important;
 }
+
+/* Fluid Page Container & Responsive Shell */
+.landing-container {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+}
+
+/* Mobile Safe-Area Padding Support */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+/* Localized RTL Text Handling for Arabic / Urdu Content (Within Strict LTR Shell) */
+.rtl-text,
+[dir="rtl"] {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+/* Technical Identifier & Numerical LTR Preserver (Always LTR) */
+.font-mono,
+.ltr-isolate,
+[data-ltr="true"],
+[dir="ltr"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}

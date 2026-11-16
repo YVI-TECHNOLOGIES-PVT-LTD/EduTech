@@ -1,17 +1,10 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Bell,
-  Menu,
-  X,
-  ChevronDown,
-  GraduationCap,
-  ExternalLink,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { NAV_STRUCTURE, NOTIFICATIONS, EXTERNAL_URLS, SCHOOL_INFO } from "@/lib/public-constants";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, Menu, X, ChevronDown, GraduationCap, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { NAV_STRUCTURE, NOTIFICATIONS, EXTERNAL_URLS, SCHOOL_INFO } from '@/lib/public-constants';
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -26,8 +19,8 @@ export function Navbar() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -36,12 +29,12 @@ export function Navbar() {
   }, [location.pathname]);
 
   const navLinks = [
-    { label: "Home", href: "/" },
-    { label: "About", href: "/about" },
-    { label: "Academics", href: "#", hasMenu: true, menuKey: "academics" },
-    { label: "Admissions", href: "#", hasMenu: true, menuKey: "admissions" },
-    { label: "Campus Life", href: "#", hasMenu: true, menuKey: "campusLife" },
-    { label: "Contact", href: "/contact" },
+    { label: 'Home', href: '/' },
+    { label: 'About', href: '/about' },
+    { label: 'Academics', href: '#', hasMenu: true, menuKey: 'academics' },
+    { label: 'Admissions', href: '#', hasMenu: true, menuKey: 'admissions' },
+    { label: 'Campus Life', href: '#', hasMenu: true, menuKey: 'campusLife' },
+    { label: 'Contact', href: '/contact' },
   ];
 
   const isActive = (href: string) => location.pathname === href;
@@ -50,47 +43,47 @@ export function Navbar() {
     <>
       <header
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-          // Force white background on form pages
-          location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/')
-            ? "bg-white shadow-md py-2"
+          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+          // Theme-aware surface on form pages or when scrolled
+          location.pathname.includes('/enquiry') || location.pathname.includes('/app/')
+            ? 'bg-card text-card-foreground shadow-md border-b border-border py-2'
             : isScrolled
-              ? "bg-white/95 backdrop-blur-md shadow-md py-2 lg:py-3 xl:py-4"
-              : "bg-transparent py-4 lg:py-3 xl:py-6"
+              ? 'bg-card/95 backdrop-blur-md text-card-foreground shadow-md border-b border-border py-2 lg:py-3 xl:py-4'
+              : 'bg-transparent py-4 lg:py-3 xl:py-6',
         )}
       >
         <div className="container-custom">
           <nav className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
-              <div className={cn(
-                "w-12 h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 rounded-xl flex items-center justify-center transition-all duration-300",
-                (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                  ? "bg-primary"
-                  : "bg-white/20 backdrop-blur-sm"
-              )}>
-                <GraduationCap className={cn(
-                  "w-7 h-7 lg:w-5 lg:h-5 xl:w-7 xl:h-7 transition-colors",
-                  (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                    ? "text-gold"
-                    : "text-white"
-                )} />
-              </div>
+              <img
+                src="/EduTrack_logo.png"
+                alt="EduTrack ERP"
+                className="w-12 h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 object-contain rounded-xl shadow-md transition-all duration-300 group-hover:scale-105"
+              />
               <div>
-                <span className={cn(
-                  "font-display text-xl lg:text-lg xl:text-xl font-bold block leading-tight transition-colors whitespace-nowrap",
-                  (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                    ? "text-primary"
-                    : "text-white"
-                )}>
+                <span
+                  className={cn(
+                    'font-display text-xl lg:text-lg xl:text-xl font-bold block leading-tight transition-colors whitespace-nowrap',
+                    location.pathname.includes('/enquiry') ||
+                      location.pathname.includes('/app/') ||
+                      isScrolled
+                      ? 'text-primary'
+                      : 'text-white',
+                  )}
+                >
                   {SCHOOL_INFO.name}
                 </span>
-                <span className={cn(
-                  "text-xs tracking-wide transition-colors",
-                  (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                    ? "text-muted-foreground"
-                    : "text-white/80"
-                )}>
+                <span
+                  className={cn(
+                    'text-xs tracking-wide transition-colors',
+                    location.pathname.includes('/enquiry') ||
+                      location.pathname.includes('/app/') ||
+                      isScrolled
+                      ? 'text-muted-foreground'
+                      : 'text-white/80',
+                  )}
+                >
                   Est. {SCHOOL_INFO.established}
                 </span>
               </div>
@@ -108,30 +101,38 @@ export function Navbar() {
                   {link.hasMenu ? (
                     <button
                       className={cn(
-                        "flex items-center gap-1 px-4 py-2 lg:px-2 lg:py-1.5 xl:px-4 xl:py-2 rounded-lg font-medium transition-all duration-200 lg:text-sm xl:text-base whitespace-nowrap",
-                        (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                          ? "text-foreground/80 hover:text-foreground hover:bg-muted/50"
-                          : "text-white/90 hover:text-white hover:bg-white/10"
+                        'flex items-center gap-1 px-4 py-2 lg:px-2 lg:py-1.5 xl:px-4 xl:py-2 rounded-lg font-medium transition-all duration-200 lg:text-sm xl:text-base whitespace-nowrap',
+                        location.pathname.includes('/enquiry') ||
+                          location.pathname.includes('/app/') ||
+                          isScrolled
+                          ? 'text-foreground/80 hover:text-foreground hover:bg-muted/50'
+                          : 'text-white/90 hover:text-white hover:bg-white/10',
                       )}
                     >
                       {link.label}
-                      <ChevronDown className={cn(
-                        "w-4 h-4 transition-transform duration-200",
-                        activeMenu === link.menuKey && "rotate-180"
-                      )} />
+                      <ChevronDown
+                        className={cn(
+                          'w-4 h-4 transition-transform duration-200',
+                          activeMenu === link.menuKey && 'rotate-180',
+                        )}
+                      />
                     </button>
                   ) : (
                     <Link
                       to={link.href}
                       className={cn(
-                        "px-4 py-2 lg:px-2 lg:py-1.5 xl:px-4 xl:py-2 rounded-lg font-medium transition-all duration-200 lg:text-sm xl:text-base whitespace-nowrap",
+                        'px-4 py-2 lg:px-2 lg:py-1.5 xl:px-4 xl:py-2 rounded-lg font-medium transition-all duration-200 lg:text-sm xl:text-base whitespace-nowrap',
                         isActive(link.href)
-                          ? (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                            ? "bg-muted text-primary"
-                            : "bg-white/20 text-white"
-                          : (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                            ? "text-foreground/80 hover:text-foreground hover:bg-muted/50"
-                            : "text-white/90 hover:text-white hover:bg-white/10"
+                          ? location.pathname.includes('/enquiry') ||
+                            location.pathname.includes('/app/') ||
+                            isScrolled
+                            ? 'bg-muted text-primary'
+                            : 'bg-white/20 text-white'
+                          : location.pathname.includes('/enquiry') ||
+                              location.pathname.includes('/app/') ||
+                              isScrolled
+                            ? 'text-foreground/80 hover:text-foreground hover:bg-muted/50'
+                            : 'text-white/90 hover:text-white hover:bg-white/10',
                       )}
                     >
                       {link.label}
@@ -155,8 +156,8 @@ export function Navbar() {
                                 <Link
                                   key={item.title}
                                   to={item.href}
-                                  target={(item as any).external ? "_blank" : undefined}
-                                  rel={(item as any).external ? "noopener noreferrer" : undefined}
+                                  target={(item as any).external ? '_blank' : undefined}
+                                  rel={(item as any).external ? 'noopener noreferrer' : undefined}
                                   className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
                                 >
                                   <div className="flex-1">
@@ -171,7 +172,7 @@ export function Navbar() {
                                     </p>
                                   </div>
                                 </Link>
-                              )
+                              ),
                             )}
                           </div>
                         </div>
@@ -188,30 +189,37 @@ export function Navbar() {
               <button
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                 className={cn(
-                  "relative p-2 rounded-lg transition-colors",
-                  (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                    ? "hover:bg-muted"
-                    : "hover:bg-white/10"
+                  'relative p-2 rounded-lg transition-colors',
+                  location.pathname.includes('/enquiry') ||
+                    location.pathname.includes('/app/') ||
+                    isScrolled
+                    ? 'hover:bg-muted'
+                    : 'hover:bg-white/10',
                 )}
               >
-                <Bell className={cn(
-                  "w-5 h-5",
-                  (location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled)
-                    ? "text-foreground"
-                    : "text-white"
-                )} />
-                {unreadCount > 0 && (
-                  <span className="notification-badge">{unreadCount}</span>
-                )}
+                <Bell
+                  className={cn(
+                    'w-5 h-5',
+                    location.pathname.includes('/enquiry') ||
+                      location.pathname.includes('/app/') ||
+                      isScrolled
+                      ? 'text-foreground'
+                      : 'text-white',
+                  )}
+                />
+                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
               </button>
 
               {/* Login Button */}
-              <Link
-                to={EXTERNAL_URLS.LOGIN}
-                className="hidden sm:block"
-              >
+              <Link to={EXTERNAL_URLS.LOGIN} className="hidden sm:block">
                 <Button
-                  variant={(location.pathname.includes('/admissions/apply') || location.pathname.includes('/app/') || isScrolled) ? "outline" : "heroOutline"}
+                  variant={
+                    location.pathname.includes('/enquiry') ||
+                    location.pathname.includes('/app/') ||
+                    isScrolled
+                      ? 'outline'
+                      : 'heroOutline'
+                  }
                   size="sm"
                 >
                   Login
@@ -219,10 +227,7 @@ export function Navbar() {
               </Link>
 
               {/* Apply Now CTA */}
-              <Link
-                to={EXTERNAL_URLS.ADMISSION_REGISTRATION}
-                className="hidden md:block"
-              >
+              <Link to={EXTERNAL_URLS.ADMISSION_REGISTRATION} className="hidden md:block">
                 <Button variant="cta" size="sm">
                   Apply Now
                 </Button>
@@ -232,16 +237,14 @@ export function Navbar() {
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className={cn(
-                  "lg:hidden p-2 rounded-lg transition-colors",
-                  isScrolled
-                    ? "hover:bg-muted"
-                    : "hover:bg-white/10"
+                  'lg:hidden p-2 rounded-lg transition-colors',
+                  isScrolled ? 'hover:bg-muted' : 'hover:bg-white/10',
                 )}
               >
                 {isMobileMenuOpen ? (
-                  <X className={cn("w-6 h-6", isScrolled ? "text-foreground" : "text-white")} />
+                  <X className={cn('w-6 h-6', isScrolled ? 'text-foreground' : 'text-white')} />
                 ) : (
-                  <Menu className={cn("w-6 h-6", isScrolled ? "text-foreground" : "text-white")} />
+                  <Menu className={cn('w-6 h-6', isScrolled ? 'text-foreground' : 'text-white')} />
                 )}
               </button>
             </div>
@@ -264,11 +267,11 @@ export function Navbar() {
               initial={{ opacity: 0, x: 300 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 300 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 overflow-hidden"
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-card text-card-foreground border-l border-border shadow-2xl z-50 overflow-hidden"
             >
               <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between p-6 border-b bg-primary text-primary-foreground">
+                <div className="flex items-center justify-between p-6 border-b border-border bg-primary text-primary-foreground">
                   <div>
                     <h2 className="font-display text-xl font-bold">Notifications</h2>
                     <p className="text-sm text-primary-foreground/80">
@@ -288,17 +291,15 @@ export function Navbar() {
                       <div
                         key={notification.id}
                         className={cn(
-                          "p-4 rounded-xl border transition-all hover:shadow-md",
-                          notification.isNew
-                            ? "bg-gold/5 border-gold/30"
-                            : "bg-white border-border"
+                          'p-4 rounded-xl border transition-all hover:shadow-md',
+                          notification.isNew ? 'bg-gold/5 border-gold/30' : 'bg-card border-border',
                         )}
                       >
                         <div className="flex items-start gap-3">
                           <div
                             className={cn(
-                              "w-2 h-2 rounded-full mt-2 flex-shrink-0",
-                              notification.isNew ? "bg-gold" : "bg-muted"
+                              'w-2 h-2 rounded-full mt-2 flex-shrink-0',
+                              notification.isNew ? 'bg-gold' : 'bg-muted',
                             )}
                           />
                           <div className="flex-1 min-w-0">
@@ -319,7 +320,7 @@ export function Navbar() {
                               <span className="text-xs text-muted-foreground">
                                 {notification.date}
                               </span>
-                              {"ctaText" in notification && "ctaLink" in notification && (
+                              {'ctaText' in notification && 'ctaLink' in notification && (
                                 <Link
                                   to={notification.ctaLink}
                                   onClick={() => setIsNotificationOpen(false)}
@@ -347,9 +348,9 @@ export function Navbar() {
         {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="fixed top-[72px] left-0 right-0 bg-white shadow-lg z-40 lg:hidden overflow-hidden"
+            className="fixed top-[72px] left-0 right-0 bg-card text-card-foreground border-b border-border shadow-lg z-40 lg:hidden overflow-hidden"
           >
             <div className="container-custom py-4">
               <div className="space-y-2">
@@ -359,17 +360,15 @@ export function Navbar() {
                       <div>
                         <button
                           onClick={() =>
-                            setActiveMenu(
-                              activeMenu === link.menuKey ? null : link.menuKey!
-                            )
+                            setActiveMenu(activeMenu === link.menuKey ? null : link.menuKey!)
                           }
                           className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted font-medium"
                         >
                           {link.label}
                           <ChevronDown
                             className={cn(
-                              "w-4 h-4 transition-transform",
-                              activeMenu === link.menuKey && "rotate-180"
+                              'w-4 h-4 transition-transform',
+                              activeMenu === link.menuKey && 'rotate-180',
                             )}
                           />
                         </button>
@@ -377,22 +376,22 @@ export function Navbar() {
                           {activeMenu === link.menuKey && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
+                              animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
                               className="pl-4 space-y-1 overflow-hidden"
                             >
-                              {NAV_STRUCTURE[
-                                link.menuKey as keyof typeof NAV_STRUCTURE
-                              ].items.map((item) => (
-                                <Link
-                                  key={item.title}
-                                  to={item.href}
-                                  target={(item as any).external ? "_blank" : undefined}
-                                  className="block px-4 py-2 rounded-lg hover:bg-muted text-sm"
-                                >
-                                  {item.title}
-                                </Link>
-                              ))}
+                              {NAV_STRUCTURE[link.menuKey as keyof typeof NAV_STRUCTURE].items.map(
+                                (item) => (
+                                  <Link
+                                    key={item.title}
+                                    to={item.href}
+                                    target={(item as any).external ? '_blank' : undefined}
+                                    className="block px-4 py-2 rounded-lg hover:bg-muted text-sm"
+                                  >
+                                    {item.title}
+                                  </Link>
+                                ),
+                              )}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -401,10 +400,8 @@ export function Navbar() {
                       <Link
                         to={link.href}
                         className={cn(
-                          "block px-4 py-3 rounded-lg font-medium transition-colors",
-                          isActive(link.href)
-                            ? "bg-muted text-primary"
-                            : "hover:bg-muted"
+                          'block px-4 py-3 rounded-lg font-medium transition-colors',
+                          isActive(link.href) ? 'bg-muted text-primary' : 'hover:bg-muted',
                         )}
                       >
                         {link.label}
@@ -414,18 +411,12 @@ export function Navbar() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t space-y-2">
-                <Link
-                  to={EXTERNAL_URLS.LOGIN}
-                  className="block"
-                >
+                <Link to={EXTERNAL_URLS.LOGIN} className="block">
                   <Button variant="outline" className="w-full">
                     Login
                   </Button>
                 </Link>
-                <Link
-                  to={EXTERNAL_URLS.ADMISSION_REGISTRATION}
-                  className="block"
-                >
+                <Link to={EXTERNAL_URLS.ADMISSION_REGISTRATION} className="block">
                   <Button variant="cta" className="w-full">
                     Apply Now
                   </Button>

@@ -1,6 +1,9 @@
 import { Calendar } from "lucide-react";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const events = [
   { title: "Open House 2026", date: "Feb 15, 2026", type: "Admissions", description: "Visit our campus and meet our faculty." },
@@ -14,34 +17,38 @@ const events = [
 export default function Events() {
   return (
     <div className="overflow-hidden">
-      <section className="relative pt-32 pb-20 bg-hero-gradient">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">Stay Updated</span>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-white mb-6">Events & <span className="text-gold">News</span></h1>
-            <p className="text-lg text-white/80">Stay connected with the latest happenings at our campus.</p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="EDUTRACK EVENTS"
+        title="Moments That Bring Our Learning Community Together"
+        accentText="Learning Community"
+        description="Stay connected with workshops, ceremonies, exhibitions, and campus activities."
+        backgroundImage="https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[55%_center]"
+        metadataItems={["Events", "Workshops", "Community"]}
+      />
 
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader subtitle="Upcoming" title="Events Calendar" />
           <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
               <StaggerItem key={event.title}>
-                <div className="bg-white rounded-2xl overflow-hidden shadow-md">
-                  <div className="bg-primary p-4 flex items-center gap-2 text-gold">
-                    <Calendar className="w-5 h-5" />
-                    <span className="font-medium">{event.date}</span>
+                <Card className="rounded-2xl bg-card border border-border/80 shadow-sm overflow-hidden h-full flex flex-col hover:shadow-md transition-all duration-300">
+                  <div className="bg-slate-950 p-4 flex items-center gap-2 text-amber-400 border-b border-slate-900">
+                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="font-extrabold text-xs tracking-wide">{event.date}</span>
                   </div>
-                  <div className="p-6">
-                    <span className="inline-block bg-gold/10 text-gold px-2 py-1 rounded text-xs font-medium mb-2">{event.type}</span>
-                    <h3 className="font-display text-xl font-bold text-primary mb-2">{event.title}</h3>
-                    <p className="text-muted-foreground text-sm">{event.description}</p>
+                  <div className="p-6 space-y-3 flex-1 flex flex-col">
+                    <div>
+                      <Badge variant="secondary" className="text-[10px] font-bold">
+                        {event.type}
+                      </Badge>
+                    </div>
+                    <h3 className="font-bold text-xl text-foreground">{event.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed mt-auto">{event.description}</p>
                   </div>
-                </div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -50,3 +57,4 @@ export default function Events() {
     </div>
   );
 }
+

@@ -4,6 +4,8 @@ import { ArrowRight, CheckCircle, FileText, Users, ClipboardCheck, CreditCard } 
 import { Button } from "@/components/ui/button";
 import { AnimatedSection } from "@/components/common/AnimatedSection";
 import { EXTERNAL_URLS } from "@/lib/public-constants";
+import { Card } from '@/components/ui/card';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const steps = [
   { icon: FileText, title: "Submit Application", description: "Complete the online application form with required documents." },
@@ -15,36 +17,45 @@ const steps = [
 export default function AdmissionProcess() {
   return (
     <div className="overflow-hidden">
-      <section className="relative pt-32 pb-20 bg-hero-gradient">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">Admissions</span>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-white mb-6">Admission <span className="text-gold">Process</span></h1>
-            <p className="text-lg text-white/80">A simple, transparent process to join our academic community.</p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="ADMISSION JOURNEY"
+        title="A Clearer, Simpler Path to Enrollment"
+        accentText="Path to Enrollment"
+        description="A simple, transparent process to join our academic community."
+        backgroundImage="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[55%_center]"
+        metadataItems={["Enquiry", "Application", "Verification", "Enrollment"]}
+        primaryAction={{
+          label: "Start Application",
+          href: EXTERNAL_URLS.ADMISSION_REGISTRATION,
+        }}
+      />
 
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             {steps.map((step, index) => (
               <AnimatedSection key={step.title} delay={index * 0.1} className="flex gap-6 mb-8">
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-gold font-bold">{index + 1}</div>
-                  {index < steps.length - 1 && <div className="w-0.5 h-full bg-gold/30 mt-2" />}
+                  <div className="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md shadow-indigo-900/40 shrink-0">
+                    {index + 1}
+                  </div>
+                  {index < steps.length - 1 && <div className="w-0.5 h-full bg-border mt-2" />}
                 </div>
-                <div className="bg-white rounded-xl p-6 shadow-md flex-1">
-                  <h3 className="font-display text-xl font-bold text-primary mb-2">{step.title}</h3>
-                  <p className="text-muted-foreground">{step.description}</p>
-                </div>
+                <Card className="p-6 rounded-2xl bg-card border border-border/80 shadow-sm flex-1 space-y-1.5">
+                  <h3 className="font-bold text-xl text-foreground">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                </Card>
               </AnimatedSection>
             ))}
           </div>
           <AnimatedSection className="text-center mt-12">
             <Link to={EXTERNAL_URLS.ADMISSION_REGISTRATION}>
-              <Button variant="cta" size="xl">Start Your Application <ArrowRight className="w-5 h-5" /></Button>
+              <Button size="xl" className="font-bold shadow-lg inline-flex items-center space-x-2">
+                <span>Start Your Application</span>
+                <ArrowRight className="w-5 h-5" />
+              </Button>
             </Link>
           </AnimatedSection>
         </div>
@@ -52,3 +63,4 @@ export default function AdmissionProcess() {
     </div>
   );
 }
+

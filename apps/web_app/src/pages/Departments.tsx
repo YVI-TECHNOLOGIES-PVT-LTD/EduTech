@@ -4,6 +4,8 @@ import { ArrowRight, BookOpen, Beaker, Calculator, Globe, Palette, Music, Monito
 import { Button } from "@/components/ui/button";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
+import { Card } from '@/components/ui/card';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const departments = [
   {
@@ -83,58 +85,47 @@ const departments = [
 export default function Departments() {
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              Departments
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Academic <span className="text-gold">Departments</span>
-            </h1>
-            <p className="text-lg text-white/80">
-              Our diverse academic departments are led by experienced educators 
-              dedicated to excellence in their respective fields.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="ACADEMIC DEPARTMENTS"
+        title="Specialized Learning Across Every Discipline"
+        accentText="Every Discipline"
+        description="Our diverse academic departments are led by experienced educators dedicated to excellence in their respective fields."
+        backgroundImage="https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[55%_center]"
+        metadataItems={["Departments", "Subjects", "Learning Spaces"]}
+      />
 
       {/* Departments Grid */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {departments.map((dept) => (
               <StaggerItem key={dept.name}>
-                <motion.div
-                  whileHover={{ y: -8 }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-md h-full flex flex-col"
-                >
-                  <div className="bg-primary p-6">
+                <Card className="rounded-2xl bg-card border border-border/80 shadow-sm overflow-hidden h-full flex flex-col hover:shadow-md transition-all duration-300">
+                  <div className="bg-slate-950 p-6 text-white border-b border-slate-900">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-gold/20 rounded-xl flex items-center justify-center">
-                        <dept.icon className="w-7 h-7 text-gold" />
+                      <div className="w-12 h-12 bg-indigo-600/30 text-amber-400 rounded-xl flex items-center justify-center border border-indigo-500/40 shrink-0">
+                        <dept.icon className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="font-display text-xl font-bold text-white">
+                        <h3 className="font-bold text-lg text-white">
                           {dept.name}
                         </h3>
-                        <p className="text-gold-light text-sm">{dept.head}</p>
+                        <p className="text-amber-400 text-xs font-bold">{dept.head}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <p className="text-muted-foreground mb-4">{dept.description}</p>
+                  <div className="p-6 flex-1 flex flex-col space-y-4">
+                    <p className="text-muted-foreground text-sm leading-relaxed">{dept.description}</p>
                     
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-primary mb-2">Key Courses</h4>
-                      <div className="flex flex-wrap gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">Key Courses</h4>
+                      <div className="flex flex-wrap gap-1.5">
                         {dept.courses.map((course) => (
                           <span
                             key={course}
-                            className="bg-muted px-3 py-1 rounded-full text-xs text-muted-foreground"
+                            className="bg-muted px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground"
                           >
                             {course}
                           </span>
@@ -142,14 +133,14 @@ export default function Departments() {
                       </div>
                     </div>
                     
-                    <div className="mt-auto pt-4 border-t border-muted">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gold">★</span>
-                        <span className="text-muted-foreground">{dept.achievements}</span>
+                    <div className="mt-auto pt-4 border-t border-border/80">
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
+                        <span>★</span>
+                        <span className="text-muted-foreground font-normal">{dept.achievements}</span>
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -157,25 +148,25 @@ export default function Departments() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-cream">
-        <div className="container-custom">
-          <AnimatedSection className="text-center">
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-primary mb-4">
+      <section className="py-20 bg-slate-950 text-white border-t border-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <AnimatedSection className="text-center space-y-6">
+            <h2 className="font-extrabold text-2xl md:text-3xl text-white tracking-tight">
               Interested in Learning More?
             </h2>
-            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-slate-300 max-w-2xl mx-auto leading-relaxed font-normal">
               Meet our faculty and discover how each department contributes to 
               our students' academic success.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-4 pt-2">
               <Link to="/faculty">
-                <Button variant="cta" size="lg">
-                  Meet Our Faculty
+                <Button size="lg" className="font-bold shadow-lg flex items-center space-x-2">
+                  <span>Meet Our Faculty</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
               <Link to="/academics">
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" className="font-bold border-slate-800 text-slate-200 hover:bg-slate-900">
                   View Curriculum
                 </Button>
               </Link>
@@ -186,3 +177,4 @@ export default function Departments() {
     </div>
   );
 }
+

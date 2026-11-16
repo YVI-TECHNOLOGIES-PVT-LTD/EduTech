@@ -1,29 +1,24 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { studentApi } from '../services/student.api';
+import {
+  useRequestStudentTransferMutation,
+  useApproveStudentTransferMutation,
+} from '@/shared/api/student.api';
 
 export function useTransfer() {
-    const queryClient = useQueryClient();
+  const [requestTrigger, requestState] = useRequestStudentTransferMutation();
+  const [approveTrigger, approveState] = useApproveStudentTransferMutation();
 
-    const requestTransferMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: { destination_school: string; reason: string } }) =>
-            studentApi.requestTransfer(id, data),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-            queryClient.invalidateQueries({ queryKey: ['student', variables.id] });
-        },
-    });
+  const requestTransfer = async ({ id, data }: { id: string; data: any }) => {
+    return requestTrigger({ id, data }).unwrap();
+  };
 
-    const approveTransferMutation = useMutation({
-        mutationFn: studentApi.approveTransfer,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-        },
-    });
+  const approveTransfer = async (requestId: string) => {
+    return approveTrigger(requestId).unwrap();
+  };
 
-    return {
-        requestTransfer: requestTransferMutation.mutateAsync,
-        isRequesting: requestTransferMutation.isPending,
-        approveTransfer: approveTransferMutation.mutateAsync,
-        isApproving: approveTransferMutation.isPending,
-    };
+  return {
+    requestTransfer,
+    isRequesting: requestState.isLoading,
+    approveTransfer,
+    isApproving: approveState.isLoading,
+  };
 }

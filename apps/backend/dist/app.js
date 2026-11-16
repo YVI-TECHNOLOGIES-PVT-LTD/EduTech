@@ -14,6 +14,7 @@ const rate_limit_middleware_1 = require("./middlewares/rate-limit.middleware");
 const error_middleware_1 = require("./middlewares/error.middleware");
 const health_routes_1 = require("./routes/health.routes");
 const routes_1 = require("./routes");
+const razorpay_routes_1 = require("./routes/razorpay.routes");
 const env_1 = require("./config/env");
 exports.app = (0, express_1.default)();
 // Trust Proxy (Required for Render/Heroku/Reverse Proxies)
@@ -30,27 +31,48 @@ exports.app.use((0, helmet_1.default)({
 const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'https://edutrackcom.netlify.app',
     'https://appsms.netlify.app',
+    'https://edutrack-backend-0fyq.onrender.com',
     'https://appsms-076a.onrender.com',
-    env_1.env.FRONTEND_URL || '',
+    ...(env_1.env.FRONTEND_URL
+        ? env_1.env.FRONTEND_URL.split(',').map((url) => url.trim().replace(/\/+$/, ''))
+        : []),
 ].filter(Boolean);
 exports.app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         if (!origin)
             return callback(null, true);
-        const isLocal = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
-        if (isLocal || allowedOrigins.includes(origin)) {
+        const normalized = origin.replace(/\/+$/, '');
+        const isLocal = normalized.startsWith('http://localhost:') || normalized.startsWith('http://127.0.0.1:');
+        const isNetlify = normalized.endsWith('.netlify.app');
+        const isOnRender = normalized.endsWith('.onrender.com');
+        if (isLocal || isNetlify || isOnRender || allowedOrigins.includes(normalized)) {
             callback(null, true);
         }
         else {
-            callback(new Error(`Not allowed by CORS: ${origin}`));
+            callback(null, false);
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'x-expected-updated-at',
+        'idempotency-key',
+        'x-tenant-id',
+    ],
 }));
-// Body Parser
-exports.app.use(express_1.default.json({ limit: '10mb' }));
+// Body Parser (with rawBody capture for cryptographic webhook signature verification)
+exports.app.use(express_1.default.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+        req.rawBody = buf;
+    },
+}));
 // 4. Rate Limiting
 exports.app.use('/api/auth/login', rate_limit_middleware_1.authRateLimiter);
 exports.app.use('/api', rate_limit_middleware_1.publicRateLimiter);
@@ -60,6 +82,7 @@ exports.app.use(logger_1.requestLoggerMiddleware);
 exports.app.use('/health', health_routes_1.healthRouter);
 // API Routes
 exports.app.use('/api', routes_1.router);
+exports.app.use(razorpay_routes_1.razorpayRouter);
 // 404 Handler
 exports.app.use((req, res) => {
     res.status(404).json({

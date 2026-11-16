@@ -2,50 +2,47 @@
 
 export { useAdmission } from './useAdmission';
 export {
-    useApplication,
-    useApplicationList,
-    useReviewQueue,
-    type ApplicationListParams,
+  useApplication,
+  useApplicationList,
+  useReviewQueue,
+  type ApplicationListParams,
 } from './useApplication';
+export { useActiveAdmissionApplication } from './useActiveAdmissionApplication';
 export {
-    useInquiries,
-    useInquiry,
-    useEnquiryDetails,
-    useCreateEnquiry,
-    useUpdateEnquiry,
-    useConvertEnquiry,
-    useLeads,
-    useLeadDetails,
-    useAssignLead,
-    useFollowups,
-    useCreateFollowup,
-    useVisitors,
-    useCreateVisitor,
+  useInquiries,
+  useInquiry,
+  useEnquiryDetails,
+  useCreateEnquiry,
+  useUpdateEnquiry,
+  useConvertEnquiry,
+  useLeads,
+  useLeadDetails,
+  useAssignLead,
+  useFollowups,
+  useCreateFollowup,
+  useVisitors,
+  useCreateVisitor,
 } from './useInquiry';
 export { useWorkflow, type WorkflowActionType } from './useWorkflow';
 export { useApplicant360 } from './useApplicant360';
 export {
-    useEnrollment,
-    useEnrollmentStatus,
-    useEnrollStudent,
-    useEnrollmentStatusQuery,
+  useEnrollment,
+  useEnrollmentStatus,
+  useEnrollStudent,
+  useEnrollmentStatusQuery,
 } from './useEnrollment';
 export { useDocuments, useDocumentVerificationQueue } from './useDocuments';
+export { usePayments, useFeesSummary, useCollectPayment } from './usePayments';
 export {
-    usePayments,
-    useFeesSummary,
-    useCollectPayment,
-} from './usePayments';
-export {
-    useOffers,
-    useMeritList,
-    useGenerateMeritList,
-    useExamResults,
-    useRecordExamMarks,
-    useInterviewSchedule,
-    useRecordInterviewScore,
-    useAcceptOffer,
-    useRejectOffer,
+  useOffers,
+  useMeritList,
+  useGenerateMeritList,
+  useExamResults,
+  useRecordExamMarks,
+  useInterviewSchedule,
+  useRecordInterviewScore,
+  useAcceptOffer,
+  useRejectOffer,
 } from './useOffers';
 export { useTimeline } from './useTimeline';
 export { usePipeline } from './usePipeline';

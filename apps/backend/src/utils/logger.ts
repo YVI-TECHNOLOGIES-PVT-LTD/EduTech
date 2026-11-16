@@ -1,7 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { CorrelatedRequest } from '../middlewares/request-id.middleware';
 
-const SENSITIVE_KEYS = ['password', 'token', 'secret', 'authorization', 'refreshtoken', 'creditcard'];
+const SENSITIVE_KEYS = [
+  'password',
+  'token',
+  'secret',
+  'authorization',
+  'refreshtoken',
+  'creditcard',
+];
 
 const maskSensitiveData = (obj: any): any => {
   if (!obj || typeof obj !== 'object') return obj;
@@ -9,7 +16,7 @@ const maskSensitiveData = (obj: any): any => {
 
   const masked: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (SENSITIVE_KEYS.some(sensitive => key.toLowerCase().includes(sensitive))) {
+    if (SENSITIVE_KEYS.some((sensitive) => key.toLowerCase().includes(sensitive))) {
       masked[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null) {
       masked[key] = maskSensitiveData(value);
@@ -50,9 +57,24 @@ export const logger = {
     };
     console.warn(JSON.stringify(logObject));
   },
+  debug: (message: string, meta?: Record<string, any>) => {
+    if (process.env.NODE_ENV !== 'production') {
+      const logObject = {
+        level: 'debug',
+        timestamp: new Date().toISOString(),
+        message,
+        ...(meta && { meta: maskSensitiveData(meta) }),
+      };
+      console.log(JSON.stringify(logObject));
+    }
+  },
 };
 
-export const requestLoggerMiddleware = (req: CorrelatedRequest, res: Response, next: NextFunction) => {
+export const requestLoggerMiddleware = (
+  req: CorrelatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   const startTime = Date.now();
 
   res.on('finish', () => {

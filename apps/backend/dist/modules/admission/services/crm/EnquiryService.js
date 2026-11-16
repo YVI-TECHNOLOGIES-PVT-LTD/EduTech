@@ -44,25 +44,63 @@ class EnquiryService extends BaseService_1.BaseService {
         this.applicationService = applicationService;
     }
     async createEnquiry(schoolId, academicYearId, payload, correlationId) {
-        const validated = this.validate(create_enquiry_dto_1.createEnquirySchema, payload);
+        console.log('[ENQUIRY-SERVICE-START]', {
+            requestId: correlationId,
+            schoolId,
+            academicYearId,
+            payloadKeys: Object.keys(payload || {}),
+        });
+        let validated;
+        try {
+            validated = this.validate(create_enquiry_dto_1.createEnquirySchema, payload);
+        }
+        catch (valErr) {
+            console.error('[ENQUIRY-DTO-VALIDATION-FAILED-400]', {
+                requestId: correlationId,
+                validationError: valErr?.message,
+                details: valErr?.errors,
+            });
+            throw valErr;
+        }
+        console.log('[ENQUIRY-DTO-VALIDATED-OK]', {
+            requestId: correlationId,
+            schoolId,
+            academicYearId,
+            gradeAppliedFor: validated.grade_applied_for,
+            source: validated.source,
+            hasParentEmail: !!validated.parent_email,
+            hasStudentName: !!validated.student_name,
+            contactConsent: validated.contact_consent,
+        });
         // Check for duplicates
         const dupCheck = await this.checkDuplicates({
             ...validated,
-            academic_year_id: academicYearId
+            academic_year_id: academicYearId,
         });
         if (dupCheck.status === 'exact_match' && !payload.ignore_duplicate) {
+            console.warn('[ENQUIRY-DUPLICATE-FOUND-409]', {
+                requestId: correlationId,
+                matchesCount: dupCheck.matches?.length,
+            });
             throw new ConflictError_1.ConflictError('Exact duplicate enquiry found', { matches: dupCheck.matches });
         }
         const id = crypto.randomUUID();
-        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, validated.student_name, validated.grade_applied_for, validated.parent_name, validated.parent_email, validated.parent_phone, validated.source, 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null);
-        const saved = await this.enquiryRepo.save(enquiry);
+        const studentName = validated.student_name && validated.student_name.trim()
+            ? validated.student_name.trim()
+            : 'Applicant';
+        const enquiry = new AdmissionEnquiry_1.AdmissionEnquiry(id, schoolId, academicYearId, studentName, validated.grade_applied_for, validated.parent_name, validated.parent_email || '', validated.parent_phone, 'website', 'new', new Date(), new Date(), null, validated.date_of_birth ? new Date(validated.date_of_birth) : null, validated.gender || null, validated.current_school || null, validated.address || null, validated.remarks || null, validated.query_type || null);
+        const saved = await this.enquiryRepo.save(enquiry, {
+            contact_consent: validated.contact_consent,
+            query_type: validated.query_type || undefined,
+            correlationId,
+        });
         await this.auditService.logAudit({
             userId: null,
             action: 'INSERT',
-            entityName: 'admission_enquiries',
+            entityName: 'leads',
             entityId: saved.id,
             afterState: saved,
-            correlationId
+            correlationId,
         });
         return saved;
     }
@@ -74,16 +112,22 @@ class EnquiryService extends BaseService_1.BaseService {
         }
         const beforeState = { ...existing };
         // Map values
-        const updated = new AdmissionEnquiry_1.AdmissionEnquiry(existing.id, existing.schoolId, existing.academicYearId, validated.student_name !== undefined ? validated.student_name : existing.studentName, validated.grade_applied_for !== undefined ? validated.grade_applied_for : existing.gradeAppliedFor, validated.parent_name !== undefined ? validated.parent_name : existing.parentName, validated.parent_email !== undefined ? validated.parent_email : existing.parentEmail, validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone, validated.source !== undefined ? validated.source : existing.source, existing.status, existing.createdAt, new Date(), existing.deletedAt, validated.date_of_birth !== undefined ? (validated.date_of_birth ? new Date(validated.date_of_birth) : null) : existing.dateOfBirth, validated.gender !== undefined ? validated.gender : existing.gender, validated.current_school !== undefined ? validated.current_school : existing.currentSchool, validated.address !== undefined ? validated.address : existing.address, validated.remarks !== undefined ? validated.remarks : existing.remarks);
+        const updated = new AdmissionEnquiry_1.AdmissionEnquiry(existing.id, existing.schoolId, existing.academicYearId, validated.student_name ? validated.student_name : existing.studentName || 'Applicant', validated.grade_applied_for !== undefined
+            ? validated.grade_applied_for
+            : existing.gradeAppliedFor, validated.parent_name !== undefined ? validated.parent_name : existing.parentName, validated.parent_email !== undefined ? validated.parent_email || '' : existing.parentEmail, validated.parent_phone !== undefined ? validated.parent_phone : existing.parentPhone, validated.source !== undefined ? validated.source : existing.source, existing.status, existing.createdAt, new Date(), existing.deletedAt, validated.date_of_birth !== undefined
+            ? validated.date_of_birth
+                ? new Date(validated.date_of_birth)
+                : null
+            : existing.dateOfBirth, validated.gender !== undefined ? validated.gender : existing.gender, validated.current_school !== undefined ? validated.current_school : existing.currentSchool, validated.address !== undefined ? validated.address : existing.address, validated.remarks !== undefined ? validated.remarks : existing.remarks, validated.query_type !== undefined ? validated.query_type : existing.queryType);
         const saved = await this.enquiryRepo.save(updated);
         await this.auditService.logAudit({
             userId: null,
             action: 'UPDATE',
-            entityName: 'admission_enquiries',
+            entityName: 'leads',
             entityId: saved.id,
             beforeState,
             afterState: saved,
-            correlationId
+            correlationId,
         });
         return saved;
     }
@@ -93,9 +137,11 @@ class EnquiryService extends BaseService_1.BaseService {
             throw new NotFoundError_1.NotFoundError(`Enquiry with ID ${id} not found`);
         }
         const lead = await this.leadRepo.findByEnquiryId(id);
-        const applicationId = lead ? (await this.appRepo.findCurrentByLeadId(lead.id))?.id ?? null : null;
+        const applicationId = lead
+            ? ((await this.appRepo.findCurrentByLeadId(lead.id))?.id ?? null)
+            : null;
         const counselorName = lead?.counselorId
-            ? (await (0, CrmRecordMapper_1.resolveCounselorNames)([lead.counselorId])).get(lead.counselorId) ?? null
+            ? ((await (0, CrmRecordMapper_1.resolveCounselorNames)([lead.counselorId])).get(lead.counselorId) ?? null)
             : null;
         const assignmentMap = lead ? await (0, CrmRecordMapper_1.resolveAssignmentHistory)([lead.id]) : new Map();
         return (0, CrmRecordMapper_1.mapEnquiryToApiRecord)(enquiry, lead, applicationId, counselorName, lead ? assignmentMap.get(lead.id) : undefined);
@@ -109,23 +155,25 @@ class EnquiryService extends BaseService_1.BaseService {
         await this.auditService.logAudit({
             userId: null,
             action: 'DELETE',
-            entityName: 'admission_enquiries',
+            entityName: 'leads',
             entityId: id,
             beforeState: existing,
-            correlationId
+            correlationId,
         });
     }
     async listEnquiries(schoolId, page, limit, filters, search, sortColumn, sortOrder) {
         const { data: enquiries, total } = await this.enquiryRepo.findAll(schoolId, page, limit, filters, search, sortColumn, sortOrder);
-        const enquiryIds = enquiries.map(e => e.id);
+        const enquiryIds = enquiries.map((e) => e.id);
         const leadMap = await this.leadRepo.findByEnquiryIds(enquiryIds);
-        const applicationMap = await this.appRepo.findCurrentIdsByLeadIds([...leadMap.values()].map(l => l.id));
-        const counselorNames = await (0, CrmRecordMapper_1.resolveCounselorNames)([...leadMap.values()].map(l => l.counselorId).filter(Boolean));
-        const assignmentMap = await (0, CrmRecordMapper_1.resolveAssignmentHistory)([...leadMap.values()].map(l => l.id));
-        const data = await Promise.all(enquiries.map(enquiry => {
+        const applicationMap = await this.appRepo.findCurrentIdsByLeadIds([...leadMap.values()].map((l) => l.id));
+        const counselorNames = await (0, CrmRecordMapper_1.resolveCounselorNames)([...leadMap.values()].map((l) => l.counselorId).filter(Boolean));
+        const assignmentMap = await (0, CrmRecordMapper_1.resolveAssignmentHistory)([...leadMap.values()].map((l) => l.id));
+        const data = await Promise.all(enquiries.map((enquiry) => {
             const lead = leadMap.get(enquiry.id) ?? null;
-            const applicationId = lead ? applicationMap.get(lead.id) ?? null : null;
-            const counselorName = lead?.counselorId ? counselorNames.get(lead.counselorId) ?? null : null;
+            const applicationId = lead ? (applicationMap.get(lead.id) ?? null) : null;
+            const counselorName = lead?.counselorId
+                ? (counselorNames.get(lead.counselorId) ?? null)
+                : null;
             return (0, CrmRecordMapper_1.mapEnquiryToApiRecord)(enquiry, lead, applicationId, counselorName, lead ? assignmentMap.get(lead.id) : undefined);
         }));
         return { data, total };
@@ -160,16 +208,13 @@ class EnquiryService extends BaseService_1.BaseService {
         }
         let leadId;
         if (existingLead) {
-            // Lead already exists (created during assignment) — only mark enquiry as converted
+            // Lead already exists (created during assignment) — mark stage as qualified
             leadId = existingLead.id;
-            const { error } = await (await Promise.resolve().then(() => __importStar(require('../../../../config/supabase')))).supabase
-                .from('admission_enquiries')
-                .update({ status: 'converted', updated_at: new Date().toISOString() })
-                .eq('id', enquiryId);
-            if (error) {
-                this.logError('Failed to mark enquiry as converted', error, correlationId);
-                throw new Error(`Failed to update enquiry status: ${error.message}`);
-            }
+            const prisma = (await Promise.resolve().then(() => __importStar(require('../../../../lib/prismaClient')))).default;
+            await prisma.leads.update({
+                where: { lead_id: enquiryId },
+                data: { stage: 'qualified', updated_at: new Date() },
+            });
         }
         else {
             // No lead yet — create it atomically via transaction
@@ -179,10 +224,10 @@ class EnquiryService extends BaseService_1.BaseService {
         await this.auditService.logAudit({
             userId: userId || null,
             action: 'CONVERT_ENQUIRY',
-            entityName: 'admission_enquiries',
+            entityName: 'leads',
             entityId: enquiryId,
             afterState: { leadId, counselorId },
-            correlationId
+            correlationId,
         });
         return leadId;
     }
@@ -228,7 +273,7 @@ class EnquiryService extends BaseService_1.BaseService {
             changedBy: userId ?? null,
             reason: 'Lead converted to application',
             correlationId,
-            eventName: 'LeadConverted'
+            eventName: 'LeadConverted',
         });
         return { leadId, applicationId: application.id };
     }
@@ -237,13 +282,19 @@ class EnquiryService extends BaseService_1.BaseService {
         if (potentialMatches.length === 0) {
             return { status: 'no_duplicate', matches: [] };
         }
-        const matches = potentialMatches.map(m => {
+        const matches = potentialMatches.map((m) => {
             let matchType = 'potential_match';
-            const dobMatches = m.dateOfBirth && enquiryData.date_of_birth &&
-                new Date(m.dateOfBirth).toISOString().split('T')[0] === new Date(enquiryData.date_of_birth).toISOString().split('T')[0];
+            const dobMatches = m.dateOfBirth &&
+                enquiryData.date_of_birth &&
+                new Date(m.dateOfBirth).toISOString().split('T')[0] ===
+                    new Date(enquiryData.date_of_birth).toISOString().split('T')[0];
             const emailMatches = m.parentEmail === enquiryData.parent_email;
             const phoneMatches = m.parentPhone === enquiryData.parent_phone;
-            const nameMatches = m.studentName.toLowerCase() === enquiryData.student_name.toLowerCase();
+            const targetStudentName = (enquiryData.student_name || '').toLowerCase();
+            const matchStudentName = (m.studentName || '').toLowerCase();
+            const nameMatches = targetStudentName !== '' &&
+                matchStudentName !== '' &&
+                matchStudentName === targetStudentName;
             if (nameMatches && phoneMatches && emailMatches && dobMatches) {
                 matchType = 'exact_match';
             }
@@ -252,8 +303,8 @@ class EnquiryService extends BaseService_1.BaseService {
             }
             return { enquiry: m, matchType };
         });
-        const hasExact = matches.some(m => m.matchType === 'exact_match');
-        const hasMerge = matches.some(m => m.matchType === 'merge_candidate');
+        const hasExact = matches.some((m) => m.matchType === 'exact_match');
+        const hasMerge = matches.some((m) => m.matchType === 'merge_candidate');
         let status = 'potentials_found';
         if (hasExact)
             status = 'exact_match';

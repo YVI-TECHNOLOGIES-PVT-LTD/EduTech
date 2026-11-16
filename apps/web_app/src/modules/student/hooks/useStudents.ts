@@ -1,44 +1,40 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { studentApi } from '../services/student.api';
+import {
+  useGetStudentsQuery,
+  useRegisterStudentMutation,
+  useUpdateStudentProfileMutation,
+  useUpdateStudentParentsMutation,
+} from '@/shared/api/student.api';
 
 export function useStudents(params?: any) {
-    const queryClient = useQueryClient();
+  const query = useGetStudentsQuery(params);
 
-    const query = useQuery({
-        queryKey: ['students', 'list', params],
-        queryFn: () => studentApi.list(params).then(res => res.data),
-    });
+  const [registerTrigger, registerState] = useRegisterStudentMutation();
+  const [updateProfileTrigger, updateProfileState] = useUpdateStudentProfileMutation();
+  const [updateParentsTrigger, updateParentsState] = useUpdateStudentParentsMutation();
 
-    const registerMutation = useMutation({
-        mutationFn: studentApi.register,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-        },
-    });
+  const registerStudent = async (data: any) => {
+    return registerTrigger(data).unwrap();
+  };
 
-    const updateProfileMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => studentApi.updateProfile(id, data),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-            queryClient.invalidateQueries({ queryKey: ['student', variables.id] });
-        },
-    });
+  const updateProfile = async ({ id, data }: { id: string; data: any }) => {
+    return updateProfileTrigger({ id, data }).unwrap();
+  };
 
-    const updateParentsMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => studentApi.updateParents(id, data),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
-            queryClient.invalidateQueries({ queryKey: ['student', variables.id] });
-        },
-    });
+  const updateParents = async ({ id, data }: { id: string; data: any }) => {
+    return updateParentsTrigger({ id, data }).unwrap();
+  };
 
-    return {
-        ...query,
-        registerStudent: registerMutation.mutateAsync,
-        isRegistering: registerMutation.isPending,
-        updateProfile: updateProfileMutation.mutateAsync,
-        isUpdatingProfile: updateProfileMutation.isPending,
-        updateParents: updateParentsMutation.mutateAsync,
-        isUpdatingParents: updateParentsMutation.isPending,
-    };
+  return {
+    data: query.data,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch,
+    registerStudent,
+    isRegistering: registerState.isLoading,
+    updateProfile,
+    isUpdatingProfile: updateProfileState.isLoading,
+    updateParents,
+    isUpdatingParents: updateParentsState.isLoading,
+  };
 }

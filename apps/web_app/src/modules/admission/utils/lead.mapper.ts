@@ -92,8 +92,8 @@ export function isArchived(status?: string): boolean {
     return s.includes('archiv') || s.includes('cancel') || s === 'closed' || s === 'lost';
 }
 
-export function isAssigned(lead: Lead | AdmissionInquiry): boolean {
-    const counselor = lead.assigned_counselor ?? lead.assigned_counselor_id;
+export function isAssigned(lead: any): boolean {
+    const counselor = lead?.assigned_counselor ?? lead?.assigned_counselor_id ?? lead?.assignedCounselor;
     return !!counselor && counselor !== 'Unassigned';
 }
 

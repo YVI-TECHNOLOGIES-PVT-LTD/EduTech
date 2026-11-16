@@ -1,17 +1,22 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApplicationRepository = void 0;
 const BaseRepository_1 = require("../BaseRepository");
 const AdmissionApplication_1 = require("../../domain/application/AdmissionApplication");
-const ApplicationProfile_1 = require("../../domain/application/ApplicationProfile");
 const ApplicationDeclaration_1 = require("../../domain/application/ApplicationDeclaration");
 const supabase_1 = require("../../../../config/supabase");
+const prismaClient_1 = __importDefault(require("../../../../lib/prismaClient"));
 class ApplicationRepository extends BaseRepository_1.BaseRepository {
     constructor() {
         super('admission_applications');
     }
     toDomain(row) {
-        return new AdmissionApplication_1.AdmissionApplication(row.id, row.school_id, row.academic_year_id, row.lead_id, row.status, row.version, row.is_current, row.created_by, row.change_reason, row.submitted_at ? new Date(row.submitted_at) : null, new Date(row.created_at), new Date(row.updated_at), row.deleted_at ? new Date(row.deleted_at) : null);
+        const app = new AdmissionApplication_1.AdmissionApplication(row.application_id || row.id, row.org_id || row.school_id, row.academic_year_id, row.lead_id, row.status, row.version || 1, row.is_current ?? true, row.created_by, row.change_reason, row.submitted_at ? new Date(row.submitted_at) : null, new Date(row.created_at), new Date(row.updated_at), row.deleted_at ? new Date(row.deleted_at) : null, row.application_number);
+        app.applicationNumber = row.application_number;
+        return app;
     }
     async findById(id) {
         const { data, error } = await supabase_1.supabase
@@ -34,59 +39,46 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             .is('deleted_at', null);
         if (error)
             throw error;
-        return (data || []).map(row => this.toDomain(row));
+        return (data || []).map((row) => this.toDomain(row));
     }
     async getGradeForApplication(applicationId) {
         const app = await this.findById(applicationId);
-        if (!app || !app.leadId) {
+        if (!app?.leadId) {
             return 'Grade 1';
         }
-        const { data: lead, error: leadErr } = await supabase_1.supabase
-            .from('admission_leads')
-            .select('enquiry_id')
-            .eq('id', app.leadId)
-            .maybeSingle();
-        if (leadErr || !lead || !lead.enquiry_id) {
+        const lead = await prismaClient_1.default.leads.findUnique({
+            where: { lead_id: app.leadId },
+            include: {
+                academic_year_grades: {
+                    include: { grades: true },
+                },
+            },
+        });
+        if (!lead) {
             return 'Grade 1';
         }
-        const { data: enquiry, error: enquiryErr } = await supabase_1.supabase
-            .from('admission_enquiries')
-            .select('grade_applied_for')
-            .eq('id', lead.enquiry_id)
-            .maybeSingle();
-        if (enquiryErr || !enquiry) {
-            return 'Grade 1';
-        }
-        return enquiry.grade_applied_for;
+        return (lead.academic_year_grades?.grades?.grade_name ||
+            lead.academic_year_grades?.grades?.grade_code ||
+            'Grade 1');
     }
     async getApplicantDisplayInfo(applicationId) {
         const app = await this.findById(applicationId);
         if (!app?.leadId) {
             return { studentName: 'Student', parentEmail: null, parentPhone: null };
         }
-        const { data: lead } = await supabase_1.supabase
-            .from('admission_leads')
-            .select('enquiry_id')
-            .eq('id', app.leadId)
-            .maybeSingle();
-        if (!lead?.enquiry_id) {
+        const lead = await prismaClient_1.default.leads.findUnique({
+            where: { lead_id: app.leadId },
+        });
+        if (!lead) {
             return { studentName: 'Student', parentEmail: null, parentPhone: null };
         }
-        const { data: enquiry } = await supabase_1.supabase
-            .from('admission_enquiries')
-            .select('student_name, parent_email, parent_phone')
-            .eq('id', lead.enquiry_id)
-            .maybeSingle();
-        const { data: parentRow } = await supabase_1.supabase
-            .from('application_parents')
-            .select('email, mobile_number')
-            .eq('application_id', applicationId)
-            .limit(1)
-            .maybeSingle();
+        const studentName = lead.student_last_name
+            ? `${lead.student_first_name} ${lead.student_last_name}`
+            : lead.student_first_name;
         return {
-            studentName: enquiry?.student_name ?? 'Student',
-            parentEmail: parentRow?.email ?? enquiry?.parent_email ?? null,
-            parentPhone: parentRow?.mobile_number ?? enquiry?.parent_phone ?? null,
+            studentName,
+            parentEmail: lead.contact_email,
+            parentPhone: lead.contact_phone,
         };
     }
     async findCurrentByLeadId(leadId) {
@@ -112,63 +104,54 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             .is('deleted_at', null);
         if (error)
             throw error;
-        return new Map((data ?? []).map(row => [row.lead_id, row.id]));
+        return new Map((data ?? []).map((row) => [row.lead_id, row.id]));
     }
-    async findCurrentByDetails(studentName, dateOfBirth, academicYearId) {
-        const dobStr = dateOfBirth.toISOString().split('T')[0];
-        const { data, error } = await supabase_1.supabase
-            .from('admission_applications')
-            .select('*, application_profiles!inner(*)')
-            .eq('academic_year_id', academicYearId)
-            .eq('is_current', true)
-            .is('deleted_at', null)
-            .eq('application_profiles.date_of_birth', dobStr);
-        if (error)
-            throw error;
-        if (!data?.length)
+    async findCurrentByDetails(studentName, dateOfBirth, academicYearId, schoolId) {
+        const apps = await prismaClient_1.default.admissions_applications.findMany({
+            where: {
+                academic_year_id: academicYearId,
+                ...(schoolId ? { org_id: schoolId } : {}),
+            },
+            include: {
+                leads: true,
+            },
+        });
+        if (!apps.length)
             return null;
         const normalizedName = studentName.trim().toLowerCase();
-        for (const row of data) {
-            if (!row.lead_id)
+        for (const app of apps) {
+            if (!app.leads)
                 continue;
-            const { data: lead } = await supabase_1.supabase
-                .from('admission_leads')
-                .select('enquiry_id')
-                .eq('id', row.lead_id)
-                .maybeSingle();
-            if (!lead?.enquiry_id)
-                continue;
-            const { data: enquiry } = await supabase_1.supabase
-                .from('admission_enquiries')
-                .select('student_name')
-                .eq('id', lead.enquiry_id)
-                .maybeSingle();
-            if (enquiry?.student_name?.toLowerCase() === normalizedName) {
-                return this.toDomain(row);
+            const lead = app.leads;
+            const name = (lead.student_last_name
+                ? `${lead.student_first_name} ${lead.student_last_name}`
+                : lead.student_first_name).toLowerCase();
+            if (name === normalizedName) {
+                return this.toDomain(app);
             }
         }
         return null;
     }
     async save(application) {
+        const year = new Date().getFullYear();
+        const appCount = await prismaClient_1.default.admissions_applications.count();
+        const appNumber = application.applicationNumber ||
+            `APP-${year}-${String(appCount + 1).padStart(5, '0')}`;
         const payload = {
-            id: application.id,
-            school_id: application.schoolId,
+            application_id: application.id,
+            application_number: appNumber,
+            org_id: application.schoolId,
             academic_year_id: application.academicYearId,
             lead_id: application.leadId,
-            status: application.status,
-            version: application.version,
-            is_current: application.isCurrent,
+            status: (application.status || 'submitted').toLowerCase(),
             created_by: application.createdBy,
-            change_reason: application.changeReason,
-            submitted_at: application.submittedAt?.toISOString() || null,
-            updated_at: application.updatedAt.toISOString(),
-            deleted_at: application.deletedAt?.toISOString() || null
+            updated_at: application.updatedAt,
         };
-        const { error } = await supabase_1.supabase
-            .from('admission_applications')
-            .upsert(payload);
-        if (error)
-            throw error;
+        await prismaClient_1.default.admissions_applications.upsert({
+            where: { application_id: application.id },
+            create: payload,
+            update: payload,
+        });
     }
     async findTimeline(applicationId) {
         const { data, error } = await supabase_1.supabase
@@ -177,43 +160,42 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             .eq('application_id', applicationId)
             .order('created_at', { ascending: true });
         if (error)
-            throw error;
+            return [];
         return data || [];
     }
     async findProfile(applicationId) {
-        const { data, error } = await supabase_1.supabase
-            .from('application_profiles')
-            .select('*')
-            .eq('application_id', applicationId)
-            .maybeSingle();
-        if (error)
-            throw error;
-        if (!data)
+        const app = await prismaClient_1.default.admissions_applications.findUnique({
+            where: { application_id: applicationId },
+            include: { leads: true },
+        });
+        if (!app || !app.leads)
             return null;
-        return new ApplicationProfile_1.ApplicationProfile(data.id, data.application_id, new Date(data.date_of_birth), data.gender, data.blood_group, data.nationality, data.religion, data.category, data.aadhaar, data.photo_url, data.allergies, data.medical_conditions, data.emergency_notes, new Date(data.created_at), new Date(data.updated_at));
+        const lead = app.leads;
+        return {
+            id: lead.lead_id,
+            application_id: applicationId,
+            date_of_birth: lead.dob,
+            gender: lead.gender,
+            student_first_name: lead.student_first_name,
+            student_last_name: lead.student_last_name,
+            created_at: lead.created_at,
+            updated_at: lead.updated_at,
+        };
     }
     async saveProfile(profile) {
-        const payload = {
-            id: profile.id,
-            application_id: profile.applicationId,
-            date_of_birth: profile.dateOfBirth.toISOString().split('T')[0],
-            gender: profile.gender,
-            blood_group: profile.bloodGroup,
-            nationality: profile.nationality,
-            religion: profile.religion,
-            category: profile.category,
-            aadhaar: profile.aadhaar,
-            photo_url: profile.photoUrl,
-            allergies: profile.allergies,
-            medical_conditions: profile.medicalConditions,
-            emergency_notes: profile.emergencyNotes,
-            updated_at: profile.updatedAt.toISOString()
-        };
-        const { error } = await supabase_1.supabase
-            .from('application_profiles')
-            .upsert(payload);
-        if (error)
-            throw error;
+        if (!profile || !profile.lead_id)
+            return;
+        const validDob = profile.dateOfBirth && !isNaN(new Date(profile.dateOfBirth).getTime());
+        const dobDate = validDob ? new Date(profile.dateOfBirth) : undefined;
+        await prismaClient_1.default.leads.update({
+            where: { lead_id: profile.lead_id },
+            data: {
+                dob: dobDate,
+                gender: profile.gender ? profile.gender.toLowerCase() : undefined,
+                student_first_name: profile.student_first_name || undefined,
+                student_last_name: profile.student_last_name || undefined,
+            },
+        });
     }
     async findParents(applicationId) {
         const { data, error } = await supabase_1.supabase
@@ -229,11 +211,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const payload = {
             application_id: applicationId,
             ...parentsData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_parents')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_parents').upsert(payload);
         if (error)
             throw error;
     }
@@ -251,11 +231,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const payload = {
             application_id: applicationId,
             ...eduData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_previous_education')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_previous_education').upsert(payload);
         if (error)
             throw error;
     }
@@ -273,11 +251,9 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const payload = {
             application_id: applicationId,
             ...prefData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_preferences')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_preferences').upsert(payload);
         if (error)
             throw error;
     }
@@ -299,28 +275,32 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
             application_id: declaration.applicationId,
             agreed_to_terms: declaration.agreedToTerms,
             parent_signature: declaration.parentSignature,
-            date_signed: declaration.dateSigned ? declaration.dateSigned.toISOString().split('T')[0] : null,
-            updated_at: declaration.updatedAt.toISOString()
+            date_signed: declaration.dateSigned
+                ? declaration.dateSigned.toISOString().split('T')[0]
+                : null,
+            updated_at: declaration.updatedAt.toISOString(),
         };
-        const { error } = await supabase_1.supabase
-            .from('application_declarations')
-            .upsert(payload);
+        const { error } = await supabase_1.supabase.from('application_declarations').upsert(payload);
         if (error)
             throw error;
     }
     async logWorkflow(applicationId, action, fromStatus, toStatus, performedBy, notes) {
-        const { error } = await supabase_1.supabase
-            .from('application_workflow')
-            .insert({
-            application_id: applicationId,
-            action,
-            from_status: fromStatus,
-            to_status: toStatus,
-            performed_by: performedBy,
-            notes
-        });
-        if (error)
-            throw error;
+        try {
+            const { error } = await supabase_1.supabase.from('application_workflow').insert({
+                application_id: applicationId,
+                action,
+                from_status: fromStatus,
+                to_status: toStatus,
+                performed_by: performedBy,
+                notes,
+            });
+            if (error) {
+                console.warn('[logWorkflow] Warning:', error.message);
+            }
+        }
+        catch (e) {
+            console.warn('[logWorkflow] Exception:', e?.message || e);
+        }
     }
     async getAgeRule(grade) {
         const { data, error } = await supabase_1.supabase
@@ -385,22 +365,15 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const normalizedEmail = userEmail.trim().toLowerCase();
         if (!normalizedEmail)
             return;
-        const { data: enquiries } = await supabase_1.supabase
-            .from('admission_enquiries')
-            .select('id')
-            .ilike('parent_email', normalizedEmail);
-        for (const enquiry of enquiries ?? []) {
-            const { data: lead } = await supabase_1.supabase
-                .from('admission_leads')
-                .select('id')
-                .eq('enquiry_id', enquiry.id)
-                .maybeSingle();
-            if (!lead)
-                continue;
+        const leads = await prismaClient_1.default.leads.findMany({
+            where: { contact_email: { equals: normalizedEmail, mode: 'insensitive' } },
+            select: { lead_id: true },
+        });
+        for (const lead of leads) {
             await supabase_1.supabase
-                .from('admission_applications')
+                .from('admissions_applications')
                 .update({ created_by: userId, updated_at: new Date().toISOString() })
-                .eq('lead_id', lead.id)
+                .eq('lead_id', lead.lead_id)
                 .is('created_by', null);
         }
         const { data: parentApps } = await supabase_1.supabase
@@ -435,20 +408,11 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
                 return true;
         }
         if (app.leadId) {
-            const { data: lead } = await supabase_1.supabase
-                .from('admission_leads')
-                .select('enquiry_id')
-                .eq('id', app.leadId)
-                .maybeSingle();
-            if (lead?.enquiry_id) {
-                const { data: enquiry } = await supabase_1.supabase
-                    .from('admission_enquiries')
-                    .select('parent_email')
-                    .eq('id', lead.enquiry_id)
-                    .maybeSingle();
-                if (enquiry?.parent_email?.toLowerCase() === normalizedEmail)
-                    return true;
-            }
+            const lead = await prismaClient_1.default.leads.findUnique({
+                where: { lead_id: app.leadId },
+            });
+            if (lead?.contact_email?.toLowerCase() === normalizedEmail)
+                return true;
         }
         return false;
     }
@@ -486,7 +450,10 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
                 const studentName = enquiry?.student_name?.toLowerCase() ?? '';
                 const parentEmail = enquiry?.parent_email?.toLowerCase() ?? '';
                 const parentPhone = enquiry?.parent_phone?.toLowerCase() ?? '';
-                return studentName.includes(term) || parentEmail.includes(term) || parentPhone.includes(term) || row.id.includes(term);
+                return (studentName.includes(term) ||
+                    parentEmail.includes(term) ||
+                    parentPhone.includes(term) ||
+                    row.id.includes(term));
             });
         }
         const enriched = rows.map((row) => {
@@ -521,12 +488,15 @@ class ApplicationRepository extends BaseRepository_1.BaseRepository {
         const { data, error } = await query;
         if (error)
             throw error;
-        return (data ?? []).map(row => ({
+        return (data ?? []).map((row) => ({
             id: row.id,
             status: (row.status ?? 'DRAFT').toLowerCase(),
             created_at: row.created_at,
             updated_at: row.updated_at,
         }));
+    }
+    async softDelete(id) {
+        await this.performSoftDelete(id);
     }
 }
 exports.ApplicationRepository = ApplicationRepository;

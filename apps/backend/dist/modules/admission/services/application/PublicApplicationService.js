@@ -1,212 +1,349 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicApplicationService = void 0;
-const supabase_1 = require("../../../../config/supabase");
-const BaseService_1 = require("../BaseService");
-const admission_service_1 = require("../../admission.service");
-class PublicApplicationService extends BaseService_1.BaseService {
-    constructor(enquiryService, counselorAssignmentService, applicationService, appRepo, auditService) {
-        super();
+const prismaClient_1 = __importDefault(require("../../../../lib/prismaClient"));
+const crypto_utils_1 = require("../../../../auth/crypto.utils");
+const client_1 = require("@prisma/client");
+const ValidationError_1 = require("../../errors/ValidationError");
+const BusinessRuleError_1 = require("../../errors/BusinessRuleError");
+const country_resolver_1 = require("../../../../utils/country-resolver");
+class PublicApplicationService {
+    constructor(enquiryService, counselorAssignmentService, applicationService, applicationRepository, auditService) {
         this.enquiryService = enquiryService;
         this.counselorAssignmentService = counselorAssignmentService;
         this.applicationService = applicationService;
-        this.appRepo = appRepo;
+        this.applicationRepository = applicationRepository;
         this.auditService = auditService;
     }
-    /**
-     * Authenticated parent apply — reuses CRM pipeline without password registration.
-     */
-    async applyAsAuthenticatedParent(userId, userEmail, data, correlationId) {
-        const parentEmail = data.mother_email || data.father_email || data.parent_email || userEmail;
-        const parentName = data.mother_name || data.father_name || data.parent_name;
-        return this.executeCrmApply(userId, { ...data, parent_email: parentEmail, parent_name: parentName }, correlationId);
-    }
-    /**
-     * Online public apply: enquiry → lead (round-robin) → CRM application → submit.
-     */
-    async applyOnline(data, correlationId) {
-        if (!data.parent_password || !data.parent_email) {
-            throw new Error('Email and Password are required for application submission.');
+    static normalizePublicApplicationPayload(rawPayload) {
+        const parentEmail = (rawPayload.contact_email ||
+            rawPayload.parent_email ||
+            rawPayload.email ||
+            '')
+            .trim()
+            .toLowerCase();
+        const parentPhone = (rawPayload.contact_phone ||
+            rawPayload.parent_phone ||
+            rawPayload.parentPhone ||
+            rawPayload.phone ||
+            '').trim();
+        let pFirst = rawPayload.parent_first_name || '';
+        let pLast = rawPayload.parent_last_name || '';
+        if (!pFirst) {
+            const fullP = (rawPayload.parent_name || rawPayload.fullName || 'Parent User').trim();
+            const parts = fullP.split(' ');
+            pFirst = parts[0];
+            pLast = parts.slice(1).join(' ');
         }
-        const parentEmail = data.mother_email || data.father_email || data.parent_email;
-        const parentName = data.mother_name || data.father_name || data.parent_name;
-        const { school_id } = await admission_service_1.AdmissionService.resolveContext();
-        const schoolId = data.school_id || school_id;
-        if (!schoolId) {
-            throw new Error('School context could not be resolved.');
+        let sFirst = rawPayload.student_first_name || '';
+        let sLast = rawPayload.student_last_name || '';
+        if (!sFirst) {
+            const fullS = (rawPayload.student_name || rawPayload.studentName || 'Student').trim();
+            const parts = fullS.split(' ');
+            sFirst = parts[0];
+            sLast = parts.slice(1).join(' ');
         }
-        const userId = await this.ensureParentAuthUser(parentEmail, data.parent_password, parentName, schoolId);
-        return this.executeCrmApply(userId, data, correlationId);
-    }
-    async executeCrmApply(userId, data, correlationId) {
-        const { school_id, academic_year_id } = await admission_service_1.AdmissionService.resolveContext();
-        const schoolId = data.school_id || school_id;
-        const academicYearId = data.academic_year_id || academic_year_id;
-        if (!schoolId || !academicYearId) {
-            throw new Error('School and academic year context could not be resolved.');
-        }
-        const parentEmail = data.mother_email || data.father_email || data.parent_email;
-        const parentName = data.mother_name || data.father_name || data.parent_name;
-        const parentPhone = data.mother_phone || data.father_phone || data.parent_phone;
-        if (!data.student_name || !data.grade_applied_for || !data.date_of_birth) {
-            throw new Error('Student name, grade, and date of birth are required.');
-        }
-        const extraFields = {
-            board: data.board || 'CBSE',
-            country: data.country || 'India',
-            state: data.state || 'Telangana',
-            city: data.city || 'Hyderabad',
-            relationship: data.relationship || 'Father',
-            occupation: data.occupation || 'Salaried',
-            religion: data.religion || 'Hindu',
-            category: data.category || 'General',
-            blood_group: data.blood_group || 'A+',
-            transport_route_id: data.transport_route_id || null,
-            hostel_room_type: data.hostel_room_type || 'Single (Non-AC)',
-            fee_structure_id: data.fee_structure_id || null,
-            quota: data.quota || 'Regular'
+        const rawGender = (rawPayload.gender || '').toString().toLowerCase();
+        const normalizedGender = ['male', 'female', 'other'].includes(rawGender)
+            ? rawGender
+            : undefined;
+        const rawRel = (rawPayload.contact_relationship || rawPayload.relationship || '')
+            .toString()
+            .toLowerCase();
+        const normalizedRel = ['father', 'mother', 'guardian', 'other'].includes(rawRel)
+            ? rawRel
+            : undefined;
+        return {
+            school_id: rawPayload.school_id || rawPayload.schoolId || rawPayload.org_id,
+            org_id: rawPayload.org_id || rawPayload.school_id || rawPayload.schoolId,
+            academic_year_id: rawPayload.academic_year_id,
+            academic_year_grade_id: rawPayload.academic_year_grade_id,
+            grade_id: rawPayload.grade_id,
+            student_first_name: sFirst,
+            student_last_name: sLast,
+            date_of_birth: rawPayload.date_of_birth || rawPayload.dob,
+            gender: normalizedGender,
+            parent_first_name: pFirst,
+            parent_last_name: pLast,
+            contact_phone: parentPhone,
+            contact_email: parentEmail,
+            contact_relationship: normalizedRel,
+            parent_password: rawPayload.parent_password || rawPayload.password,
+            curriculum_preference: rawPayload.curriculum_preference || rawPayload.board,
+            scholarship_interest: Boolean(rawPayload.scholarship_interest),
+            remarks: typeof rawPayload.remarks === 'string' ? rawPayload.remarks : undefined,
+            grade_applied_for: rawPayload.grade_applied_for,
         };
-        const enquiry = await this.enquiryService.createEnquiry(schoolId, academicYearId, {
-            student_name: data.student_name,
-            grade_applied_for: data.grade_applied_for,
-            parent_name: parentName,
-            parent_email: parentEmail,
-            parent_phone: parentPhone,
-            source: 'Website',
-            date_of_birth: data.date_of_birth,
-            gender: data.gender,
-            current_school: data.previous_school,
-            address: data.address,
-            ignore_duplicate: data.ignore_duplicate,
-            remarks: JSON.stringify(extraFields),
-        }, correlationId);
-        await this.counselorAssignmentService.assignCounselor(enquiry.id, 'round_robin', {}, correlationId, userId);
-        const leadId = enquiry.id;
-        const existingApp = await this.appRepo.findCurrentByLeadId(leadId);
-        let applicationId;
-        if (existingApp) {
-            applicationId = existingApp.id;
-            if (!existingApp.createdBy) {
-                await supabase_1.supabase
-                    .from('admission_applications')
-                    .update({ created_by: userId, updated_at: new Date().toISOString() })
-                    .eq('id', applicationId);
+    }
+    async applyOnline(payload, correlationId) {
+        return PublicApplicationService.apply(payload);
+    }
+    async applyAsAuthenticatedParent(userId, email, payload, correlationId) {
+        return PublicApplicationService.apply({ ...payload, email, userId });
+    }
+    static async apply(payload) {
+        const canonical = PublicApplicationService.normalizePublicApplicationPayload(payload);
+        const targetEmail = canonical.contact_email;
+        const targetPassword = canonical.parent_password || 'Welcome#123';
+        const targetParentName = `${canonical.parent_first_name} ${canonical.parent_last_name || ''}`.trim();
+        const rawStudentFirst = canonical.student_first_name;
+        const rawStudentLast = canonical.student_last_name || '';
+        const phone = canonical.contact_phone || '9999999999';
+        if (!targetEmail) {
+            throw new ValidationError_1.ValidationError('Email is required for application submission.');
+        }
+        // 1. Resolve Organization
+        let targetOrgId = canonical.school_id || canonical.org_id;
+        if (!targetOrgId || targetOrgId === '00000000-0000-0000-0000-000000000000') {
+            const activeOrg = await prismaClient_1.default.organizations.findFirst({
+                where: { status: 'active' },
+            });
+            if (!activeOrg) {
+                throw new ValidationError_1.ValidationError('No active school organization found in the system.');
             }
+            targetOrgId = activeOrg.org_id;
         }
-        else {
-            const application = await this.applicationService.createApplication(schoolId, academicYearId, userId, {
-                lead_id: leadId,
-                grade: data.grade_applied_for,
-                student_name: data.student_name,
-                date_of_birth: data.date_of_birth,
-                gender: data.gender || 'Other',
-                blood_group: data.blood_group || 'A+',
-                religion: data.religion || 'Hindu',
-                category: data.category || 'General',
-                nationality: data.country || 'India',
-            }, correlationId);
-            applicationId = application.id;
-        }
-        await this.appRepo.saveParents(applicationId, {
-            father_name: data.father_name || (data.relationship === 'Father' ? parentName : null),
-            father_email: data.father_email || (data.relationship === 'Father' ? parentEmail : null),
-            father_phone: data.father_phone || (data.relationship === 'Father' ? parentPhone : null),
-            mother_name: data.mother_name || (data.relationship === 'Mother' ? parentName : null),
-            mother_email: data.mother_email || (data.relationship === 'Mother' ? parentEmail : null),
-            mother_phone: data.mother_phone || (data.relationship === 'Mother' ? parentPhone : null),
-            guardian_name: data.guardian_name || (data.relationship === 'Guardian' ? parentName : null),
-            guardian_email: data.guardian_email || (data.relationship === 'Guardian' ? parentEmail : null),
-            guardian_phone: data.guardian_phone || (data.relationship === 'Guardian' ? parentPhone : null),
+        const finalOrgId = targetOrgId;
+        // Verify organization exists in DB
+        const existingOrg = await prismaClient_1.default.organizations.findUnique({
+            where: { org_id: finalOrgId },
         });
-        if (data.previous_school || data.last_grade_completed) {
-            await this.appRepo.savePreviousEducation(applicationId, {
-                school_name: data.previous_school || 'Unknown',
-                board: data.board || null,
-                last_class: data.last_grade_completed || null,
+        if (!existingOrg) {
+            throw new ValidationError_1.ValidationError(`Organization ID '${finalOrgId}' does not exist.`);
+        }
+        console.log(`[PUBLIC-APPLY] organization resolved: ${finalOrgId} (${existingOrg.org_name})`);
+        // 2. Resolve Academic Year
+        let academicYear = null;
+        if (canonical.academic_year_id) {
+            academicYear = await prismaClient_1.default.academic_years.findFirst({
+                where: {
+                    org_id: finalOrgId,
+                    academic_year_id: canonical.academic_year_id,
+                },
             });
         }
-        const application = await this.appRepo.findById(applicationId);
-        if (application && application.status !== 'SUBMITTED') {
-            await this.applicationService.submitApplication(applicationId, {
-                profile: {
-                    date_of_birth: data.date_of_birth,
-                    gender: data.gender,
-                    blood_group: data.blood_group || 'A+',
-                    religion: data.religion || 'Hindu',
-                    category: data.category || 'General',
-                    nationality: data.country || 'India',
-                },
-                parents: {
-                    father_name: data.father_name || (data.relationship === 'Father' ? parentName : null),
-                    father_email: data.father_email || (data.relationship === 'Father' ? parentEmail : null),
-                    father_phone: data.father_phone || (data.relationship === 'Father' ? parentPhone : null),
-                    mother_name: data.mother_name || (data.relationship === 'Mother' ? parentName : null),
-                    mother_email: data.mother_email || (data.relationship === 'Mother' ? parentEmail : null),
-                    mother_phone: data.mother_phone || (data.relationship === 'Mother' ? parentPhone : null),
-                },
-                preferences: {
-                    need_transport: !!data.transport_route_id,
-                    route_preference: data.transport_route_id || null,
-                    need_hostel: !!data.hostel_room_type && data.hostel_room_type !== 'None',
-                    room_preference: data.hostel_room_type || null,
-                },
-                declaration: {
-                    agreed_to_terms: true,
-                    parent_signature: parentName,
-                    date_signed: new Date().toISOString().slice(0, 10),
-                },
-                change_reason: 'Online public application submitted',
-            }, 'PARENT', userId, correlationId);
+        if (!academicYear) {
+            academicYear = await prismaClient_1.default.academic_years.findFirst({
+                where: { org_id: finalOrgId },
+                orderBy: { created_at: 'desc' },
+            });
         }
-        await this.auditService.logAudit({
-            action: 'PUBLIC_APPLICATION_CREATED',
-            entityName: 'admission_applications',
-            entityId: applicationId,
-            afterState: { enquiryId: enquiry.id, leadId, userId },
-            userId,
-            correlationId,
-        });
-        return { userId, enquiryId: enquiry.id, leadId, applicationId };
-    }
-    async ensureParentAuthUser(email, password, fullName, schoolId) {
-        const { data: existingProfile } = await supabase_1.supabase
-            .from('users')
-            .select('id')
-            .eq('email', email)
-            .maybeSingle();
-        if (existingProfile?.id) {
-            await this.linkParentRole(existingProfile.id);
-            return existingProfile.id;
+        if (!academicYear) {
+            throw new BusinessRuleError_1.BusinessRuleError('No academic year configured for this school organization.');
         }
-        const { data: authData, error: authError } = await supabase_1.supabase.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: { full_name: fullName, school_id: schoolId },
+        console.log(`[PUBLIC-APPLY] academic year resolved: ${academicYear.academic_year_id} (${academicYear.academic_year_name})`);
+        // 2b. Check Admission Configuration Rules
+        const config = await prismaClient_1.default.admission_configurations.findFirst({
+            where: {
+                org_id: finalOrgId,
+                academic_year_id: academicYear.academic_year_id,
+            },
         });
-        if (authError) {
-            if (authError.message.includes('already exists')) {
-                throw new Error('A user with this email already exists. Please login to apply.');
+        if (config) {
+            if (config.allow_online_application === false) {
+                throw new BusinessRuleError_1.BusinessRuleError('Online applications are currently disabled for this academic year.');
             }
-            throw authError;
+            const now = new Date();
+            if (config.admission_start_date && now < config.admission_start_date) {
+                throw new BusinessRuleError_1.BusinessRuleError('Admissions have not opened yet for this academic year.');
+            }
+            if (config.admission_end_date && now > config.admission_end_date) {
+                throw new BusinessRuleError_1.BusinessRuleError('Admissions have closed for this academic year.');
+            }
         }
-        const userId = authData.user.id;
-        await supabase_1.supabase.from('users').upsert({
-            id: userId,
-            school_id: schoolId,
-            full_name: fullName,
-            email,
-            status: 'active',
-            login_status: 'APPROVED',
-        }, { onConflict: 'id' });
-        await this.linkParentRole(userId);
-        return userId;
-    }
-    async linkParentRole(userId) {
-        const { data: role } = await supabase_1.supabase.from('roles').select('id').eq('name', 'PARENT').maybeSingle();
-        if (!role)
-            return;
-        await supabase_1.supabase.from('user_roles').upsert({ user_id: userId, role_id: role.id }, { onConflict: 'user_id,role_id' });
+        console.log('[PUBLIC-APPLY] admission configuration validated');
+        // 3. Resolve Academic Year Grade
+        let ayg = null;
+        if (canonical.academic_year_grade_id) {
+            ayg = await prismaClient_1.default.academic_year_grades.findFirst({
+                where: {
+                    academic_year_grade_id: canonical.academic_year_grade_id,
+                },
+            });
+        }
+        if (!ayg && canonical.grade_id) {
+            ayg = await prismaClient_1.default.academic_year_grades.findFirst({
+                where: {
+                    academic_year_id: academicYear.academic_year_id,
+                    grade_id: canonical.grade_id,
+                },
+            });
+        }
+        if (!ayg && canonical.grade_applied_for) {
+            const matchedGrade = await prismaClient_1.default.grades.findFirst({
+                where: { org_id: finalOrgId, grade_name: canonical.grade_applied_for },
+            });
+            if (matchedGrade) {
+                ayg = await prismaClient_1.default.academic_year_grades.findFirst({
+                    where: {
+                        academic_year_id: academicYear.academic_year_id,
+                        grade_id: matchedGrade.grade_id,
+                    },
+                });
+            }
+        }
+        if (!ayg) {
+            ayg = await prismaClient_1.default.academic_year_grades.findFirst({
+                where: { academic_year_id: academicYear.academic_year_id },
+            });
+        }
+        if (!ayg) {
+            ayg = await prismaClient_1.default.academic_year_grades.findFirst({
+                where: {
+                    academic_years: { org_id: finalOrgId },
+                    is_active: true,
+                },
+            });
+        }
+        if (!ayg) {
+            throw new BusinessRuleError_1.BusinessRuleError('No grade structure configured for this academic year.');
+        }
+        const targetAyg = ayg;
+        const finalAcademicYearId = targetAyg.academic_year_id || academicYear.academic_year_id;
+        console.log(`[PUBLIC-APPLY] academic year grade resolved: ${targetAyg.academic_year_grade_id}`);
+        // 4. Run Transaction for User, Role, Lead, and Application creation
+        return prismaClient_1.default.$transaction(async (tx) => {
+            // a. Find or create user
+            let user = await tx.users.findFirst({
+                where: { org_id: finalOrgId, email: targetEmail },
+            });
+            if (!user) {
+                const resolved = await (0, country_resolver_1.resolveCountryAndPhone)(tx, { phone });
+                const passwordHash = await crypto_utils_1.NativePassword.hash(targetPassword);
+                user = await tx.users.create({
+                    data: {
+                        org_id: finalOrgId,
+                        first_name: targetParentName || 'Parent User',
+                        email: targetEmail,
+                        phone: resolved.phone,
+                        country_id: resolved.country_id,
+                        password_hash: passwordHash,
+                        status: 'active',
+                    },
+                });
+            }
+            else {
+                const passwordHash = await crypto_utils_1.NativePassword.hash(targetPassword);
+                user = await tx.users.update({
+                    where: { user_id: user.user_id },
+                    data: {
+                        password_hash: passwordHash,
+                        status: 'active',
+                    },
+                });
+            }
+            console.log(`[PUBLIC-APPLY] parent user resolved/created: ${user.user_id}`);
+            // b. Ensure PARENT role is assigned
+            const parentRole = (await tx.roles.findFirst({
+                where: { org_id: finalOrgId, role_name: 'PARENT' },
+            })) ||
+                (await tx.roles.findFirst({
+                    where: { role_name: 'PARENT' },
+                }));
+            if (parentRole) {
+                console.log(`[PUBLIC-APPLY] PARENT role resolved: ${parentRole.role_id}`);
+                const existingRoleLink = await tx.user_roles.findUnique({
+                    where: {
+                        user_id_role_id: {
+                            user_id: user.user_id,
+                            role_id: parentRole.role_id,
+                        },
+                    },
+                });
+                if (!existingRoleLink) {
+                    await tx.user_roles.create({
+                        data: {
+                            user_id: user.user_id,
+                            role_id: parentRole.role_id,
+                        },
+                    });
+                }
+                console.log('[PUBLIC-APPLY] user role linked');
+            }
+            // Resolve or create Parent entity
+            let parentRecord = await tx.parents.findFirst({
+                where: { user_id: user.user_id },
+            });
+            if (!parentRecord) {
+                parentRecord = await tx.parents.create({
+                    data: {
+                        org_id: finalOrgId,
+                        user_id: user.user_id,
+                        first_name: canonical.parent_first_name || targetParentName || 'Parent',
+                        last_name: canonical.parent_last_name || undefined,
+                        phone: phone,
+                        email: targetEmail,
+                    },
+                });
+            }
+            // c. Create Lead record with unique lead_number check
+            const year = new Date().getFullYear();
+            const leadCount = await tx.leads.count();
+            let leadSeq = leadCount + 1;
+            let leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
+            while (await tx.leads.findUnique({ where: { lead_number: leadNumber } })) {
+                leadSeq++;
+                leadNumber = `LEAD-${year}-${String(leadSeq).padStart(5, '0')}`;
+            }
+            const parsedDob = canonical.date_of_birth ? new Date(canonical.date_of_birth) : undefined;
+            const validDob = parsedDob && !isNaN(parsedDob.getTime()) ? parsedDob : undefined;
+            const lead = await tx.leads.create({
+                data: {
+                    org_id: finalOrgId,
+                    parent_id: parentRecord.parent_id,
+                    lead_number: leadNumber,
+                    academic_year_grade_id: targetAyg.academic_year_grade_id,
+                    student_first_name: rawStudentFirst || 'Applicant',
+                    student_last_name: rawStudentLast || undefined,
+                    dob: validDob,
+                    gender: canonical.gender,
+                    curriculum_preference: canonical.curriculum_preference,
+                    scholarship_interest: Boolean(canonical.scholarship_interest),
+                    contact_name: targetParentName || 'Parent User',
+                    contact_relationship: canonical.contact_relationship || 'father',
+                    contact_phone: phone,
+                    contact_email: targetEmail,
+                    source: client_1.lead_source.website,
+                    stage: client_1.lead_stage.application_submitted,
+                    remarks: canonical.remarks,
+                    created_by: user.user_id,
+                },
+            });
+            console.log(`[PUBLIC-APPLY] lead created: ${lead.lead_id} (${lead.lead_number})`);
+            // d. Create Admissions Application record with unique application_number check
+            const appCount = await tx.admissions_applications.count();
+            let appSeq = appCount + 1;
+            let applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+            while (await tx.admissions_applications.findUnique({
+                where: { application_number: applicationNumber },
+            })) {
+                appSeq++;
+                applicationNumber = `APP-${year}-${String(appSeq).padStart(5, '0')}`;
+            }
+            const application = await tx.admissions_applications.create({
+                data: {
+                    lead_id: lead.lead_id,
+                    org_id: finalOrgId,
+                    academic_year_id: finalAcademicYearId,
+                    application_number: applicationNumber,
+                    application_date: new Date(),
+                    status: client_1.application_status.submitted,
+                    created_by: user.user_id,
+                },
+            });
+            console.log(`[PUBLIC-APPLY] application created: ${application.application_id} (${application.application_number})`);
+            console.log('[PUBLIC-APPLY] transaction committed');
+            return {
+                applicationId: application.application_id,
+                applicationNumber: application.application_number,
+                enquiryId: lead.lead_id,
+                leadId: lead.lead_id,
+                userId: user.user_id,
+            };
+        });
     }
 }
 exports.PublicApplicationService = PublicApplicationService;

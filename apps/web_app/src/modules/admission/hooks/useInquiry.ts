@@ -5,7 +5,7 @@ import { AdmissionEngine, ADMISSION_EVENTS, ADMISSION_STALE_TIME } from '../core
 export function useInquiries(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: AdmissionEngine.cacheKeys.inquiry.lists(params),
-        queryFn: () => admissionApi.getEnquiries(params).then(res => res.data),
+        queryFn: () => admissionApi.getEnquiries(params).then((res: any) => res.data),
         enabled: options?.enabled ?? true,
         staleTime: ADMISSION_STALE_TIME,
         ...options,
@@ -15,7 +15,7 @@ export function useInquiries(params?: Record<string, unknown>, options?: { enabl
 export function useEnquiryDetails(id: string) {
     return useQuery({
         queryKey: AdmissionEngine.cacheKeys.inquiry.detail(id),
-        queryFn: () => admissionApi.getEnquiryById(id).then(res => res.data),
+        queryFn: () => admissionApi.getEnquiryById(id).then((res: any) => res.data),
         enabled: !!id,
         staleTime: ADMISSION_STALE_TIME,
     });
@@ -87,7 +87,7 @@ export {
 export function useLeadDetails(id: string) {
     return useQuery({
         queryKey: AdmissionEngine.cacheKeys.lead.detail(id),
-        queryFn: () => admissionApi.getLeadById(id).then(res => res.data),
+        queryFn: () => admissionApi.getLeadById(id).then((res: any) => res.data),
         enabled: !!id,
         staleTime: ADMISSION_STALE_TIME,
     });

@@ -1,0 +1,3 @@
+{
+  "__deprecated": "Static translation dictionaries have been retired in favor of the dynamic TranslationManager and controlled TranslationGlossary architecture."
+}

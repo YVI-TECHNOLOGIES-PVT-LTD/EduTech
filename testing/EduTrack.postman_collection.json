@@ -1,0 +1,1446 @@
+{
+  "info": {
+    "_postman_id": "edutrack-stage0-stage1-collection-v1",
+    "name": "EduTrack ERP — Stage-0 & Stage-1 APIs (61 Endpoints)",
+    "description": "Complete Postman Collection covering all 61 Stage-0 & Stage-1 REST API Endpoints for EduTrack ERP.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "schoolId",
+      "value": "5205f1f3-4e31-42d9-9b53-77fc84ad40df",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System & Health",
+      "item": [
+        {
+          "name": "1.1 Health Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "1.2 K8s Liveness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/liveness",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "liveness"]
+            }
+          }
+        },
+        {
+          "name": "1.3 DB Readiness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/readiness",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "readiness"]
+            }
+          }
+        },
+        {
+          "name": "1.4 System Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/system/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "info"]
+            }
+          }
+        },
+        {
+          "name": "1.5 RBAC Audit Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/system/rbac/audit",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "rbac", "audit"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication & Session",
+      "item": [
+        {
+          "name": "2.1 Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) {",
+                  "    pm.environment.set('accessToken', jsonData.accessToken);",
+                  "    pm.environment.set('token', jsonData.accessToken);",
+                  "}",
+                  "if (jsonData.refreshToken) {",
+                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
+                  "}",
+                  "if (jsonData.user) {",
+                  "    if (jsonData.user.user_id || jsonData.user.id) { pm.environment.set('userId', jsonData.user.user_id || jsonData.user.id); }",
+                  "    if (jsonData.user.org_id || jsonData.user.organization_id) {",
+                  "        pm.environment.set('organizationId', jsonData.user.org_id || jsonData.user.organization_id);",
+                  "        pm.environment.set('orgId', jsonData.user.org_id || jsonData.user.organization_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Token Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) {",
+                  "    pm.environment.set('accessToken', jsonData.accessToken);",
+                  "    pm.environment.set('token', jsonData.accessToken);",
+                  "}",
+                  "if (jsonData.refreshToken) {",
+                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "2.4 User Profile (Me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.user || jsonData.data) {",
+                  "    var u = jsonData.user || jsonData.data;",
+                  "    if (u.user_id || u.id) { pm.environment.set('userId', u.user_id || u.id); }",
+                  "    if (u.org_id || u.organization_id) {",
+                  "        pm.environment.set('organizationId', u.org_id || u.organization_id);",
+                  "        pm.environment.set('orgId', u.org_id || u.organization_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Public Lookups",
+      "item": [
+        {
+          "name": "3.1 List Schools",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array', function () { pm.expect(Array.isArray(jsonData)).to.be.true; });",
+                  "if (Array.isArray(jsonData) && jsonData.length > 0) {",
+                  "    var candidate = jsonData[0].id;",
+                  "    var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "    if (candidate && uuidRegex.test(candidate)) {",
+                  "        pm.environment.set('schoolId', candidate);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/schools",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools"]
+            }
+          }
+        },
+        {
+          "name": "3.2 Public Academic Year",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.id) {",
+                  "    pm.environment.set('academicYearId', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/academic-year",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "academic-year"]
+            }
+          }
+        },
+        {
+          "name": "3.3 Public Classes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/classes?school_id={{schoolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "classes"],
+              "query": [
+                {
+                  "key": "school_id",
+                  "value": "{{schoolId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.4 Public Admission Config",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && Array.isArray(jsonData.grades) && jsonData.grades.length > 0) {",
+                  "    var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "    var g = jsonData.grades[0];",
+                  "    if (g && g.id && uuidRegex.test(g.id)) { pm.environment.set('gradeId', g.id); }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/admission/config?school_id={{schoolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "admission", "config"],
+              "query": [
+                {
+                  "key": "school_id",
+                  "value": "{{schoolId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. CRM & Inquiries",
+      "item": [
+        {
+          "name": "4.1 Create Inquiry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.id || jsonData.enquiry_id || jsonData.lead_id || (jsonData.data && (jsonData.data.id || jsonData.data.enquiry_id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('enquiryId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aarav Sharma\",\n  \"email\": \"aarav@example.com\",\n  \"phone\": \"+919876543210\",\n  \"grade_applying\": \"Grade 9\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/enquiries",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "enquiries"]
+            }
+          }
+        },
+        {
+          "name": "4.2 List Inquiries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/enquiries?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "enquiries"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.3 Get Inquiry Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}"]
+            }
+          }
+        },
+        {
+          "name": "4.4 Update Inquiry",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONTACTED\",\n  \"remarks\": \"Parent called desk\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}"]
+            }
+          }
+        },
+        {
+          "name": "4.5 Delete Inquiry",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}"]
+            }
+          }
+        },
+        {
+          "name": "4.6 Convert Inquiry to Lead",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.id || jsonData.lead_id || (jsonData.lead && (jsonData.lead.id || jsonData.lead.lead_id)) || (jsonData.data && (jsonData.data.id || jsonData.data.lead_id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('leadId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/enquiries/{{enquiryId}}/convert",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "enquiries", "{{enquiryId}}", "convert"]
+            }
+          }
+        },
+        {
+          "name": "4.7 List Leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/leads",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "leads"]
+            }
+          }
+        },
+        {
+          "name": "4.8 Get Lead Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/leads/{{leadId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "leads", "{{leadId}}"]
+            }
+          }
+        },
+        {
+          "name": "4.9 Update Lead",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"QUALIFIED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/leads/{{leadId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "leads", "{{leadId}}"]
+            }
+          }
+        },
+        {
+          "name": "4.10 Assign Lead Counselor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"counselor_id\": \"{{counselorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/leads/{{leadId}}/assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "leads", "{{leadId}}", "assign"]
+            }
+          }
+        },
+        {
+          "name": "4.11 Log Followup Call",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lead_id\": \"{{leadId}}\",\n  \"remarks\": \"Discussed fee structure\",\n  \"next_followup\": \"2026-08-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/followups",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "followups"]
+            }
+          }
+        },
+        {
+          "name": "4.12 List Followups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/followups?lead_id={{leadId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "followups"],
+              "query": [
+                {
+                  "key": "lead_id",
+                  "value": "{{leadId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.13 Log Gate Pass Visitor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visitor_name\": \"Rajesh Kumar\",\n  \"purpose\": \"Campus Tour\",\n  \"phone\": \"+919876543211\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/visitors",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "visitors"]
+            }
+          }
+        },
+        {
+          "name": "4.14 List Gate Pass Visitors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/visitors",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "visitors"]
+            }
+          }
+        },
+        {
+          "name": "4.15 List Available Counselors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/crm/counselors",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "crm", "counselors"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Admission & Applications",
+      "item": [
+        {
+          "name": "5.1 Public Application Submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.application_id || jsonData.id || (jsonData.data && (jsonData.data.application_id || jsonData.data.id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('applicationId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_name\": \"Rohan Verma\",\n  \"grade\": \"Grade 10\",\n  \"parent_email\": \"verma@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/public-apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "public-apply"]
+            }
+          }
+        },
+        {
+          "name": "5.2 List My Applications (Parent)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "my"]
+            }
+          }
+        },
+        {
+          "name": "5.3 Submit Parent Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_name\": \"Ananya Gupta\",\n  \"grade\": \"Grade 6\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "apply"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Document Verification Desk",
+      "item": [
+        {
+          "name": "6.1 Upload Verification Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var jsonData = pm.response.json();",
+                  "var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "var id = jsonData.document_id || jsonData.id || (jsonData.data && (jsonData.data.document_id || jsonData.data.id));",
+                  "if (id && uuidRegex.test(id)) { pm.environment.set('documentId', id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/application/documents/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "application", "documents", "upload"]
+            }
+          }
+        },
+        {
+          "name": "6.2 Bulk Upload Documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/application/documents/upload/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "application", "documents", "upload", "bulk"]
+            }
+          }
+        },
+        {
+          "name": "6.3 View Document Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/application/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "application", "documents", "{{documentId}}"]
+            }
+          }
+        },
+        {
+          "name": "6.4 Verify / Reject Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VERIFIED\",\n  \"remarks\": \"All documents valid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/application/documents/{{documentId}}/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "application", "documents", "{{documentId}}", "verify"]
+            }
+          }
+        },
+        {
+          "name": "6.5 Get Required Document Checklist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/application/documents/checklist/Grade9",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "application", "documents", "checklist", "Grade9"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Fee Deposit & SIS Enrollment",
+      "item": [
+        {
+          "name": "7.1 Assign Fee Structure",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"structure_id\": \"fee-struct-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/enrollment/fees/assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "enrollment", "fees", "assign"]
+            }
+          }
+        },
+        {
+          "name": "7.2 Collect Admission Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application_id\": \"{{applicationId}}\",\n  \"amount\": 15000,\n  \"payment_mode\": \"UPI\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/enrollment/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "enrollment", "payments"]
+            }
+          }
+        },
+        {
+          "name": "7.3 Print Payment Receipt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admission/enrollment/payments/{{paymentId}}/receipt",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "enrollment", "payments", "{{paymentId}}", "receipt"]
+            }
+          }
+        },
+        {
+          "name": "7.4 Finalize SIS Enrollment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application_id\": \"{{applicationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admission/enrollment/enroll",
+              "host": ["{{baseUrl}}"],
+              "path": ["admission", "enrollment", "enroll"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Dashboard & Activity Stream",
+      "item": [
+        {
+          "name": "8.1 Staff Admin Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/admin/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "admin", "overview"]
+            }
+          }
+        },
+        {
+          "name": "8.2 Parent Portal Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/parent/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "parent", "overview"]
+            }
+          }
+        },
+        {
+          "name": "8.3 School Activity Event Stream",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/timeline",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "timeline"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. People Directory (Students, Parents, Staff)",
+      "item": [
+        {
+          "name": "9.1 Search Student Directory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/students?search=Aarav",
+              "host": ["{{baseUrl}}"],
+              "path": ["students"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Aarav"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "9.2 Create Student Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Priya\",\n  \"last_name\": \"Singh\",\n  \"grade\": \"Grade 8\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["students"]
+            }
+          }
+        },
+        {
+          "name": "9.3 Get Student Details 360",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/students/{{studentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "{{studentId}}"]
+            }
+          }
+        },
+        {
+          "name": "9.4 Update Student Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543212\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/{{studentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "{{studentId}}"]
+            }
+          }
+        },
+        {
+          "name": "9.5 Toggle Student Active Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/{{studentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "{{studentId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "9.6 Search Parent Directory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/parents",
+              "host": ["{{baseUrl}}"],
+              "path": ["parents"]
+            }
+          }
+        },
+        {
+          "name": "9.7 Get Parent Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/parents/{{parentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["parents", "{{parentId}}"]
+            }
+          }
+        },
+        {
+          "name": "9.8 Search Staff Directory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff"]
+            }
+          }
+        },
+        {
+          "name": "9.9 Create Staff Member Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Sunita\",\n  \"last_name\": \"Deshmukh\",\n  \"email\": \"sunita@nationalahmedabad.edu.in\",\n  \"designation\": \"Counselor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. User & Role Administration",
+      "item": [
+        {
+          "name": "10.1 Search User Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "10.2 Create User Access Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@nationalahmedabad.edu.in\",\n  \"role\": \"STAFF\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "10.3 Get User Account Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "10.4 Toggle User Account Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "10.5 List System Roles & Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "roles"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Academic Setup",
+      "item": [
+        {
+          "name": "11.1 Active Tenant School Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/schools/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools", "current"]
+            }
+          }
+        },
+        {
+          "name": "11.2 Current Active Academic Year",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academic-years/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic-years", "current"]
+            }
+          }
+        },
+        {
+          "name": "11.3 Create Academic Year Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year_label\": \"2026-2027\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic-years",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic-years"]
+            }
+          }
+        },
+        {
+          "name": "11.4 List Class Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academic/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "sections"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

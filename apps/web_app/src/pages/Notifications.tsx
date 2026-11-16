@@ -4,48 +4,53 @@ import { Button } from "@/components/ui/button";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import { NOTIFICATIONS } from "@/lib/public-constants";
 import { cn } from "@/lib/utils";
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 export default function Notifications() {
   return (
     <div className="overflow-hidden">
-      <section className="relative pt-32 pb-20 bg-hero-gradient">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">Updates</span>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-white mb-6">Notifications & <span className="text-gold">Announcements</span></h1>
-            <p className="text-lg text-white/80">Stay informed with the latest updates from our institution.</p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="EDUTRACK UPDATES"
+        title="Important Information for Our Community"
+        accentText="Our Community"
+        description="Stay informed with official circulars, announcements, and key institutional updates."
+        backgroundImage="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[55%_center]"
+        metadataItems={["Announcements", "Updates", "Notices"]}
+      />
 
-      <section className="section-padding bg-background">
-        <div className="container-custom max-w-3xl">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <StaggerContainer className="space-y-4">
             {NOTIFICATIONS.map((notification) => (
               <StaggerItem key={notification.id}>
-                <div className={cn("bg-white rounded-xl p-6 shadow-md border-l-4", notification.isNew ? "border-gold" : "border-muted")}>
+                <Card className={cn("p-6 rounded-2xl bg-card border border-border/80 shadow-sm border-l-4", notification.isNew ? "border-l-indigo-600 dark:border-l-indigo-400" : "border-l-muted")}>
                   <div className="flex items-start gap-4">
-                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0", notification.isNew ? "bg-gold/10" : "bg-muted")}>
-                      <Bell className={cn("w-5 h-5", notification.isNew ? "text-gold" : "text-muted-foreground")} />
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", notification.isNew ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400" : "bg-muted text-muted-foreground")}>
+                      <Bell className="w-5 h-5" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-primary">{notification.title}</h3>
-                        {notification.isNew && <span className="bg-gold text-navy px-2 py-0.5 rounded-full text-xs font-medium">New</span>}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-foreground text-base">{notification.title}</h3>
+                        {notification.isNew && (
+                          <Badge variant="secondary" className="text-[10px] font-bold">New</Badge>
+                        )}
                       </div>
-                      <p className="text-muted-foreground text-sm mb-2">{notification.message}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{notification.date}</span>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{notification.message}</p>
+                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                        <span className="text-xs font-medium text-muted-foreground">{notification.date}</span>
                         {"ctaText" in notification && "ctaLink" in notification && (
                           <Link to={notification.ctaLink}>
-                            <Button variant="cta" size="sm">{notification.ctaText}</Button>
+                            <Button size="sm" className="font-bold">{notification.ctaText}</Button>
                           </Link>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -54,3 +59,4 @@ export default function Notifications() {
     </div>
   );
 }
+

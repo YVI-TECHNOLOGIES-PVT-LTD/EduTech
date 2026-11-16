@@ -7,6 +7,7 @@ import { ExecutiveOverview } from '../modules/common/executive/ExecutiveOverview
 import { ImportHistoryPage } from '../modules/import/pages/ImportHistory';
 import { StudentDashboard } from '../modules/dashboard/pages/StudentDashboard';
 import { AdminDashboard } from '../modules/dashboard/pages/AdminDashboard';
+import { FacultyDashboard } from '../modules/dashboard/pages/FacultyDashboard';
 import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
 import { MyApplications } from '../modules/admission/pages/MyApplications';
 import { InstructionsPage } from '../modules/admission/pages/InstructionsPage';
@@ -16,21 +17,90 @@ import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashbo
 import WorkspaceDashboard from '../modules/admission/pages/Workspace';
 import Applicant360Page from '../modules/admission/pages/Applicant360';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
+import { ApplicationsManagementPage } from '../modules/admission/pages/front-office/ApplicationsManagementPage';
+import { CounsellingPage } from '../modules/admission/pages/front-office/CounsellingPage';
+import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
+import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
+import { CampusVisitsPage } from '../modules/admission/pages/front-office/CampusVisitsPage';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
+import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
+
+import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
+import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
+import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
+import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
+import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
+import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/ParentAdmissionStatusPage';
+import { ParentSubmittedApplicationPage } from '../modules/admission/pages/parent/ParentSubmittedApplicationPage';
+
+import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
+import { FinanceConfigurationPage } from '../modules/fees/pages/FinanceConfiguration';
+import { FinanceDashboard } from '../modules/fees/pages/FinanceDashboard';
+import { FeeStructureManagement } from '../modules/fees/pages/FeeStructureManagement';
+import { DemandManagement } from '../modules/fees/pages/DemandManagement';
+import { PaymentEntry } from '../modules/fees/pages/PaymentEntry';
+import { AdminFeeLedger } from '../modules/fees/pages/AdminFeeLedger';
+import { FinanceReports } from '../modules/fees/pages/FinanceReports';
+import { ReceiptCenter } from '../modules/fees/pages/ReceiptCenter';
+import { ScholarshipsConcessions } from '../modules/fees/pages/ScholarshipsConcessions';
+import { ReceivablesCollections } from '../modules/fees/pages/ReceivablesCollections';
+import { FinanceNotificationCenter } from '../modules/fees/pages/FinanceNotificationCenter';
+import { FinanceReconciliation } from '../modules/fees/pages/FinanceReconciliation';
+import { FinanceAccounting } from '../modules/fees/pages/FinanceAccounting';
+import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
+import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
+import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
+import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
 
 export interface RouteConfig {
   path: string;
   element: React.ReactNode;
   permission?: string;
   permissions?: string[]; // For AnyPermissionGuard
-  layout: 'dashboard' | 'exam_admin' | 'admission_workspace' | 'none';
-  guardType?: 'exam_operation' | 'admission_inquiry' | 'admission_application' | 'none';
+  layout: 'dashboard' | 'exam_admin' | 'admission_workspace' | 'parent_admission' | 'none';
+  guardType?:
+    | 'exam_operation'
+    | 'admission_inquiry'
+    | 'admission_application'
+    | 'front_office'
+    | 'parent'
+    | 'admin'
+    | 'none';
 }
 
 export const ROUTE_REGISTRY: RouteConfig[] = [
-  // CORE DASHBOARDS
-  { path: 'dashboard', element: <Dashboard />, layout: 'dashboard' },
+  // ─── 1. CANONICAL ROLE DASHBOARDS ──────────────────────────────────────────
+  {
+    path: 'front-office/dashboard',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'front-office',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'parent/dashboard',
+    element: <ParentDashboardRouter />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admin/dashboard',
+    element: <AdminDashboard />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
+    path: 'faculty/dashboard',
+    element: <FacultyDashboard />,
+    layout: 'dashboard',
+  },
   {
     path: 'student/dashboard',
     element: <StudentDashboard />,
@@ -38,121 +108,374 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     permission: 'student.dashboard.view',
   },
   {
-    path: 'admin/dashboard',
-    element: <AdminDashboard />,
-    layout: 'dashboard',
-    permission: 'admin.dashboard.view',
-  },
-  {
     path: 'executive',
     element: <ExecutiveOverview />,
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
+    guardType: 'admin',
   },
 
-  // WORKSPACE PROFILE & SETTINGS
-  { path: 'profile', element: <Profile />, layout: 'dashboard' },
-  { path: 'settings', element: <Settings />, layout: 'dashboard' },
+  // ─── 2. LEGACY / SHARED DASHBOARD RESOLVER ─────────────────────────────────
+  // Note: /app/dashboard MUST NEVER render a dashboard UI directly. It is a pure dynamic role redirector.
+  {
+    path: 'dashboard',
+    element: <Dashboard />,
+    layout: 'dashboard',
+  },
 
-  // PARENT PORTAL & APPLICANT SELF-SERVICE
+  // ─── 3. PARENT & APPLICANT PORTAL ROUTES (GUARDED BY PARENT GUARD) ─────────
+  {
+    path: 'admissions/dashboard',
+    element: <ParentDashboardPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
   {
     path: 'admissions/my',
     element: <MyApplications />,
-    layout: 'dashboard',
-    permission: 'admission.view_own',
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/wizard',
+    element: <ApplicationWizardPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/view/:id',
+    element: <ParentSubmittedApplicationPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/documents',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/documents/:applicationId',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/fees',
+    element: <ParentFeePaymentPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/payments',
+    element: <ParentFeePaymentPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/status',
+    element: <ParentAdmissionStatusPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'admissions/:id',
+    element: <ParentAdmissionStatusPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
   },
 
-  // ADMISSIONS DESK (AdmissionWorkspaceLayout)
+  // Post-Admission Enrolled Parent Routes
   {
-    path: 'admissions/dashboard',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'admission.review',
+    path: 'parent/my-child',
+    element: <ParentDashboard />,
+    layout: 'dashboard',
+    guardType: 'parent',
   },
   {
-    path: 'admissions/analytics',
-    element: <WorkspaceDashboard />,
+    path: 'parent/applications',
+    element: <MyApplications />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/documents',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/documents/:applicationId',
+    element: <ParentDocumentCenterPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/payments',
+    element: <ParentFeePaymentPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/fees',
+    element: <ParentFeePaymentPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/decision',
+    element: <ParentAdmissionStatusPage />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/notifications',
+    element: <MyApplications />,
+    layout: 'parent_admission',
+    guardType: 'parent',
+  },
+
+  // ─── 4. SCHOOL OPERATIONS & FRONT OFFICE DESK ROUTES (GUARDED BY FO GUARD) ─
+  {
+    path: 'workspace',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'people',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'people/students',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'people/parents',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'people/staff',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'school',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+  {
+    path: 'school/academics',
+    element: <SchoolOperationsWorkspace />,
+    layout: 'dashboard',
+    guardType: 'front_office',
+  },
+
+  // Front Office Admissions Desk Routes
+  {
+    path: 'front-office/leads',
+    element: <InquiryListPage />,
     layout: 'admission_workspace',
-    permission: 'admission.review',
+    permission: 'admission.enquiry.view',
+    guardType: 'front_office',
   },
   {
     path: 'admissions/inquiries',
     element: <InquiryListPage />,
     layout: 'admission_workspace',
-    guardType: 'admission_inquiry',
+    permission: 'admission.enquiry.view',
+    guardType: 'front_office',
   },
   {
-    path: 'admissions/enquiry',
-    element: <InquiryListPage />,
+    path: 'front-office/counselling',
+    element: <CounsellingPage />,
     layout: 'admission_workspace',
-    guardType: 'admission_inquiry',
+    permissions: ['admission.enquiry.view', 'admission.leads.manage', 'admission.review'],
+    guardType: 'front_office',
   },
   {
-    path: 'admissions/assign',
-    element: <InquiryListPage />,
+    path: 'admissions/counselling',
+    element: <CounsellingPage />,
     layout: 'admission_workspace',
-    guardType: 'admission_inquiry',
+    permissions: ['admission.enquiry.view', 'admission.leads.manage', 'admission.review'],
+    guardType: 'front_office',
   },
   {
-    path: 'admissions/new',
-    element: <AdmissionForm />,
+    path: 'front-office/applications',
+    element: <ApplicationsManagementPage />,
     layout: 'admission_workspace',
-    permission: 'admission.create',
+    permission: 'admission.application.view',
+    guardType: 'front_office',
   },
   {
-    path: 'admissions/wizard',
-    element: <ApplicationWizardPage />,
+    path: 'admissions/applications',
+    element: <ApplicationsManagementPage />,
     layout: 'admission_workspace',
-    permission: 'admission.create',
-  },
-  {
-    path: 'admissions/application/:id',
-    element: <Applicant360Page />,
-    layout: 'admission_workspace',
-    guardType: 'admission_application',
-  },
-  {
-    path: 'admissions/documents/:id',
-    element: <Applicant360Page />,
-    layout: 'admission_workspace',
-    guardType: 'admission_application',
-  },
-  {
-    path: 'admissions/timeline/:id',
-    element: <Applicant360Page />,
-    layout: 'admission_workspace',
-    guardType: 'admission_application',
+    permission: 'admission.application.view',
+    guardType: 'front_office',
   },
   {
     path: 'admissions/review',
-    element: <WorkspaceDashboard />,
+    element: <ApplicationsManagementPage />,
     layout: 'admission_workspace',
-    permission: 'admission.review',
+    permission: 'admission.application.view',
+    guardType: 'front_office',
   },
   {
-    path: 'admissions/:id',
-    element: <Applicant360Page />,
+    path: 'front-office/verification',
+    element: <DocumentVerificationPage />,
     layout: 'admission_workspace',
-    guardType: 'admission_application',
+    permission: 'admission.review',
+    guardType: 'front_office',
   },
   {
     path: 'admissions/verification',
-    element: <WorkspaceDashboard />,
+    element: <DocumentVerificationPage />,
     layout: 'admission_workspace',
     permission: 'admission.review',
+    guardType: 'front_office',
   },
   {
     path: 'admissions/queues',
-    element: <WorkspaceDashboard />,
+    element: <DocumentVerificationPage />,
     layout: 'admission_workspace',
     permission: 'admission.review',
+    guardType: 'front_office',
   },
   {
     path: 'admissions/exams',
     element: <EntranceExamPage />,
     layout: 'admission_workspace',
     permissions: ['admission.review', 'admission.exam.manage', 'admission.exam.evaluate'],
+    guardType: 'front_office',
   },
+  {
+    path: 'front-office/decisions',
+    element: <AdmissionDecisionPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.review', 'admission.approve', 'admission.enrol'],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/decisions',
+    element: <AdmissionDecisionPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.review', 'admission.approve', 'admission.enrol'],
+    guardType: 'front_office',
+  },
+  {
+    path: 'front-office/visits',
+    element: <CampusVisitsPage />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.interview.manage',
+      'admission.interview.evaluate',
+      'admission.enquiry.view',
+      'admission.leads.manage',
+    ],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/interviews',
+    element: <CampusVisitsPage />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.interview.manage',
+      'admission.interview.evaluate',
+      'admission.enquiry.view',
+      'admission.leads.manage',
+    ],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/visits',
+    element: <CampusVisitsPage />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.interview.manage',
+      'admission.interview.evaluate',
+      'admission.enquiry.view',
+      'admission.leads.manage',
+    ],
+    guardType: 'front_office',
+  },
+  {
+    path: 'front-office/fees',
+    element: <FeeCollectionPage />,
+    layout: 'admission_workspace',
+    permissions: ['fees.payment.collect', 'fees.view', 'admission.view_all', 'admission.review'],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/merit',
+    element: <WorkspaceDashboard />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.merit.generate',
+      'admission.exam.manage',
+      'admission.interview.manage',
+    ],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/offers',
+    element: <WorkspaceDashboard />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.merit.generate',
+      'admission.exam.manage',
+      'admission.interview.manage',
+    ],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/merit/offers',
+    element: <WorkspaceDashboard />,
+    layout: 'admission_workspace',
+    permissions: [
+      'admission.review',
+      'admission.merit.generate',
+      'admission.exam.manage',
+      'admission.interview.manage',
+    ],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/enrollment',
+    element: <AdmissionDecisionPage />,
+    layout: 'admission_workspace',
+    permissions: ['admission.review', 'admission.approve', 'admission.enrol', 'admission.view_all'],
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/reports',
+    element: <WorkspaceDashboard />,
+    layout: 'admission_workspace',
+    permission: 'admission.review',
+    guardType: 'front_office',
+  },
+  {
+    path: 'admissions/settings',
+    element: <WorkspaceDashboard />,
+    layout: 'admission_workspace',
+    permission: 'admission.review',
+    guardType: 'front_office',
+  },
+
+  // Assessment Examination Testing Portal (Public Candidate Assessment)
   {
     path: 'admissions/entrance-assessment',
     element: <InstructionsPage />,
@@ -176,85 +499,162 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <MonitoringDashboard />,
     layout: 'admission_workspace',
     permission: 'admission.assessment.manage',
-  },
-  {
-    path: 'admissions/interviews',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permissions: ['admission.review', 'admission.interview.manage', 'admission.interview.evaluate'],
-  },
-  {
-    path: 'admissions/merit',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permissions: [
-      'admission.review',
-      'admission.merit.generate',
-      'admission.exam.manage',
-      'admission.interview.manage',
-    ],
-  },
-  {
-    path: 'admissions/offers',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permissions: [
-      'admission.review',
-      'admission.merit.generate',
-      'admission.exam.manage',
-      'admission.interview.manage',
-    ],
-  },
-  {
-    path: 'admissions/merit/offers',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permissions: [
-      'admission.review',
-      'admission.merit.generate',
-      'admission.exam.manage',
-      'admission.interview.manage',
-    ],
-  },
-  {
-    path: 'admissions/fees',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'fees.payment.collect',
-  },
-  {
-    path: 'admissions/enrollment',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'admission.review',
-  },
-  {
-    path: 'admissions/reports',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'admission.review',
-  },
-  {
-    path: 'admissions/settings',
-    element: <WorkspaceDashboard />,
-    layout: 'admission_workspace',
-    permission: 'admission.review',
+    guardType: 'front_office',
   },
 
-  // ADMIN OPERATIONS
+  // Workspace Profile & Settings
+  { path: 'profile', element: <Profile />, layout: 'dashboard' },
+  { path: 'settings', element: <Settings />, layout: 'dashboard' },
+  {
+    path: 'admissions/application/:id',
+    element: <Applicant360Page />,
+    layout: 'admission_workspace',
+    guardType: 'admission_application',
+  },
+  {
+    path: 'admissions/application/:id/documents',
+    element: <Applicant360Page />,
+    layout: 'admission_workspace',
+    guardType: 'admission_application',
+  },
+  {
+    path: 'admissions/timeline/:id',
+    element: <Applicant360Page />,
+    layout: 'admission_workspace',
+    guardType: 'admission_application',
+  },
+
+  // ─── 5. ADMIN OPERATIONS (GUARDED BY ADMIN GUARD) ──────────────────────────
   {
     path: 'admin/bulk',
     element: <BulkOperations />,
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
+    guardType: 'admin',
   },
 
-  // IMPORT TOOLKIT
+  // ─── 6. IMPORT TOOLKIT (GUARDED BY ADMIN GUARD) ────────────────────────────
   {
     path: 'import/history',
     element: <ImportHistoryPage />,
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+
+  // ─── 7. FINANCE & FEES MANAGEMENT (PHASE 1 & PHASE 2) ─────────────────────
+  {
+    path: 'finance/dashboard',
+    element: <FinanceDashboard />,
+    layout: 'dashboard',
+    permissions: ['fees.dashboard.view', 'fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/configuration',
+    element: <FinanceConfigurationPage />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.structure.manage', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/settings',
+    element: <FinanceConfigurationPage />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.structure.manage', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/structures',
+    element: <FeeStructureManagement />,
+    layout: 'dashboard',
+    permissions: ['fees.structure.view', 'fees.structure.manage', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/demands',
+    element: <DemandManagement />,
+    layout: 'dashboard',
+    permissions: ['fees.demand.view', 'fees.demand.generate', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/payments',
+    element: <PaymentEntry />,
+    layout: 'dashboard',
+    permissions: ['fees.payment.collect', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/ledger',
+    element: <AdminFeeLedger />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/reports',
+    element: <FinanceReports />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/receipts',
+    element: <ReceiptCenter />,
+    layout: 'dashboard',
+    permissions: ['fees.receipt.generate', 'fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/scholarships',
+    element: <ScholarshipsConcessions />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.structure.manage', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/receivables',
+    element: <ReceivablesCollections />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/notifications',
+    element: <FinanceNotificationCenter />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/reconciliation',
+    element: <FinanceReconciliation />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/accounting',
+    element: <FinanceAccounting />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/planning',
+    element: <FinancePlanning />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/audit',
+    element: <FinanceAudit />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/operations',
+    element: <FinanceOperations />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/checkout',
+    element: <RazorpayCheckoutDemo />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'checkout-demo',
+    element: <RazorpayCheckoutDemo />,
+    layout: 'none',
   },
 ];
 

@@ -299,6 +299,11 @@ CREATE TABLE parents (
         ON DELETE SET NULL
 );
 
+ALTER TABLE parents
+ADD COLUMN user_id UUID UNIQUE
+REFERENCES users(user_id)
+ON DELETE SET NULL;
+
 -- ============================================================================
 -- ACADEMIC YEARS
 -- ============================================================================
@@ -647,6 +652,53 @@ CREATE TABLE lead_activities (
         ON DELETE SET NULL
 );
 
+-- ----------------------------------------------------------------------------
+-- CHATBOT SESSIONS   
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE chatbot_sessions (
+  session_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id              UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
+  channel             chatbot_channel NOT NULL DEFAULT 'web_widget',
+
+  -- Who the session belongs to — a session can start anonymous (lead_id and
+  -- user_id both null) and be linked once the visitor identifies themselves.
+  lead_id             UUID REFERENCES leads(lead_id) ON DELETE SET NULL,
+  user_id             UUID REFERENCES users(user_id) ON DELETE SET NULL,
+  anonymous_contact   VARCHAR(150),           -- phone/email captured before a lead row exists
+
+  status              chatbot_status NOT NULL DEFAULT 'active',
+  started_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ended_at            TIMESTAMPTZ,
+
+  -- Escalation to a human counsellor (mirrors lead_activities activity_type = 'chatbot_session')
+  escalated_to_staff_id UUID REFERENCES staff(staff_id) ON DELETE SET NULL,
+  escalation_reason   TEXT,
+
+  -- Post-session quality signals
+  ai_summary          TEXT,                   -- AI-generated session summary
+  satisfaction_rating SMALLINT CHECK (satisfaction_rating BETWEEN 1 AND 5),
+
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- 2. CHATBOT MESSAGES — one row per message, in order, within a session
+-- ----------------------------------------------------------------------------
+CREATE TABLE chatbot_messages (
+  message_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id       UUID NOT NULL REFERENCES chatbot_sessions(session_id) ON DELETE CASCADE,
+  sender           chatbot_sender NOT NULL,
+  content          TEXT NOT NULL,
+
+  -- AI/NLU metadata — null for sender = 'user' or 'staff'
+  intent           VARCHAR(50),               -- e.g. 'fee_query', 'admission_status', 'schedule_visit'
+  confidence_score NUMERIC(5,2),              -- 0-100, model's confidence in the detected intent
+  model_version    VARCHAR(30),
+  response_time_ms INT,                       -- latency for bot replies; null for user/staff messages
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- ============================================================================
 -- LEAD VISITS
@@ -1230,4 +1282,63 @@ CREATE TABLE student_enrollments (
 
     UNIQUE(student_id, academic_year_grade_id)
     UNIQUE(section_id, roll_number)
+);
+
+
+CREATE TABLE public.notifications (
+    notification_id uuid NOT NULL DEFAULT gen_random_uuid(),
+
+    org_id uuid NOT NULL,
+    recipient_user_id uuid NOT NULL,
+
+    category public.notification_category NOT NULL DEFAULT 'SYSTEM',
+    type character varying(100) NOT NULL,
+    priority public.notification_priority NOT NULL DEFAULT 'NORMAL',
+
+    title character varying(255) NOT NULL,
+    message text NOT NULL,
+
+    entity_type character varying(100) NULL,
+    entity_id uuid NULL,
+
+    action_url text NULL,
+
+    is_read boolean NOT NULL DEFAULT false,
+    read_at timestamp with time zone NULL,
+
+    metadata jsonb NULL,
+
+    expires_at timestamp with time zone NULL,
+
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+
+    CONSTRAINT notifications_pkey
+        PRIMARY KEY (notification_id),
+
+    CONSTRAINT notifications_org_id_fkey
+        FOREIGN KEY (org_id)
+        REFERENCES public.organizations (org_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT notifications_recipient_user_id_fkey
+        FOREIGN KEY (recipient_user_id)
+        REFERENCES public.users (user_id)
+        ON DELETE CASCADE
+);
+
+
+CREATE TABLE public.countries (
+    country_id uuid NOT NULL DEFAULT gen_random_uuid(),
+    country_code character varying(2) NOT NULL,       -- ISO 3166-1 alpha-2: IN, US, GB
+    country_name character varying(100) NOT NULL,
+    calling_code character varying(10) NOT NULL,      -- +91, +1, +44
+    is_active boolean NOT NULL DEFAULT true,
+
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+
+    CONSTRAINT countries_pkey PRIMARY KEY (country_id),
+    CONSTRAINT countries_country_code_key UNIQUE (country_code),
+    CONSTRAINT countries_country_name_key UNIQUE (country_name)
 );

@@ -1,30 +1,16 @@
-import { z } from 'zod';
+/**
+ * Centralized Environment Configuration
+ * Enforces zero direct `import.meta.env` references in application business logic.
+ */
+export const ENV = {
+  NODE_ENV: import.meta.env.MODE || 'development',
+  IS_DEV: import.meta.env.DEV,
+  IS_PROD: import.meta.env.PROD,
+  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  APP_TITLE: import.meta.env.VITE_APP_TITLE || 'EduTrack ERP Admin Portal',
+  ENABLE_MOCK_API: import.meta.env.VITE_ENABLE_MOCK_API === 'true',
+  SESSION_TIMEOUT_MINS: Number(import.meta.env.VITE_SESSION_TIMEOUT_MINS) || 60,
+  DEFAULT_TENANT_ID: import.meta.env.VITE_DEFAULT_TENANT_ID || '',
+} as const;
 
-const envSchema = z.object({
-    VITE_API_URL: z.string().url().optional(),
-    VITE_SUPABASE_URL: z.string().url(),
-    VITE_SUPABASE_ANON_KEY: z.string().min(10),
-    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-});
-
-const getEnvVars = () => {
-    try {
-        return envSchema.parse({
-            VITE_API_URL: import.meta.env.VITE_API_URL,
-            VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-            VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            NODE_ENV: import.meta.env.MODE,
-        });
-    } catch (error) {
-        console.error('[Config] Invalid environment configuration variables:', error);
-        // Default fallbacks for compilation safety
-        return {
-            VITE_API_URL: 'http://127.0.0.1:3000/api',
-            VITE_SUPABASE_URL: 'https://placeholder.supabase.co',
-            VITE_SUPABASE_ANON_KEY: 'placeholder-anon-key',
-            NODE_ENV: 'development',
-        };
-    }
-};
-
-export const ENV = getEnvVars();
+export type EnvConfig = typeof ENV;

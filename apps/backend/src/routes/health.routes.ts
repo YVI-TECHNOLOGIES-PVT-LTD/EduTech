@@ -12,7 +12,9 @@ healthRouter.get('/', async (req: Request, res: Response) => {
   let dbError = null;
 
   try {
-    const { error } = await supabase.from('users').select('id', { count: 'exact', head: true });
+    const { error } = await supabase
+      .from('users')
+      .select('user_id', { count: 'exact', head: true });
     if (error) {
       dbStatus = 'error';
       dbError = error.message;
@@ -52,7 +54,9 @@ healthRouter.get('/live', (req: Request, res: Response) => {
 // Readiness Probe (ready to serve traffic)
 healthRouter.get('/ready', async (req: Request, res: Response) => {
   try {
-    const { error } = await supabase.from('users').select('id', { count: 'exact', head: true });
+    const { error } = await supabase
+      .from('users')
+      .select('user_id', { count: 'exact', head: true });
     if (error) throw error;
 
     const cacheMetrics = await cacheService.getMetrics();

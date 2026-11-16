@@ -1,26 +1,23 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/utils';
+
 interface LeadAvatarProps {
-    name: string;
-    size?: 'sm' | 'md';
+  name: string;
+  size?: 'sm' | 'md';
+  avatarUrl?: string;
+  className?: string;
 }
 
-function initials(name: string): string {
-    return name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(p => p[0]?.toUpperCase() ?? '')
-        .join('');
-}
-
-export function LeadAvatar({ name, size = 'md' }: LeadAvatarProps) {
-    const dim = size === 'sm' ? 'w-8 h-8 text-[10px]' : 'w-10 h-10 text-xs';
-    return (
-        <div
-            className={`${dim} rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center font-black shrink-0`}
-        >
-            {initials(name || '?')}
-        </div>
-    );
+export function LeadAvatar({ name, size = 'md', avatarUrl, className = '' }: LeadAvatarProps) {
+  const avatarSize = size === 'sm' ? 'sm' : 'default';
+  return (
+    <Avatar size={avatarSize} className={`border border-border/80 shrink-0 ${className}`}>
+      <AvatarImage src={avatarUrl} alt={name} />
+      <AvatarFallback className="bg-primary/10 text-primary font-black">
+        {getInitials(name, '?')}
+      </AvatarFallback>
+    </Avatar>
+  );
 }
 
 export default LeadAvatar;

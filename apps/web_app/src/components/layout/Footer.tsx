@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 import {
   Facebook,
   Twitter,
@@ -10,40 +10,40 @@ import {
   MapPin,
   GraduationCap,
   ArrowRight,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SCHOOL_INFO, EXTERNAL_URLS } from "@/lib/public-constants";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { SCHOOL_INFO, EXTERNAL_URLS } from '@/lib/public-constants';
 
 const footerLinks = {
   quickLinks: [
-    { label: "About Us", href: "/about" },
-    { label: "Academics", href: "/academics" },
-    { label: "Admissions", href: "/admissions" },
-    { label: "Campus Life", href: "/campus" },
-    { label: "Contact Us", href: "/contact" },
+    { label: 'About Us', href: '/about' },
+    { label: 'Academics', href: '/academics' },
+    { label: 'Admissions', href: '/admissions' },
+    { label: 'Campus Life', href: '/campus' },
+    { label: 'Contact Us', href: '/contact' },
   ],
   academics: [
-    { label: "Programs", href: "/academics" },
-    { label: "Departments", href: "/departments" },
-    { label: "Faculty", href: "/faculty" },
-    { label: "Achievements", href: "/achievements" },
-    { label: "Events", href: "/events" },
+    { label: 'Programs', href: '/academics' },
+    { label: 'Departments', href: '/departments' },
+    { label: 'Faculty', href: '/faculty' },
+    { label: 'Achievements', href: '/achievements' },
+    { label: 'Events', href: '/events' },
   ],
   resources: [
-    { label: "Student Portal", href: EXTERNAL_URLS.LOGIN, external: true },
-    { label: "Apply Online", href: EXTERNAL_URLS.ADMISSION_REGISTRATION, external: true },
-    { label: "Notifications", href: "/notifications" },
-    { label: "Vision & Mission", href: "/vision-mission" },
-    { label: "Leadership", href: "/leadership" },
+    { label: 'Student Portal', href: EXTERNAL_URLS.LOGIN, external: true },
+    { label: 'Apply Online', href: EXTERNAL_URLS.ADMISSION_REGISTRATION, external: true },
+    { label: 'Notifications', href: '/notifications' },
+    { label: 'Vision & Mission', href: '/vision-mission' },
+    { label: 'Leadership', href: '/leadership' },
   ],
 };
 
 const socialLinks = [
-  { icon: Facebook, href: SCHOOL_INFO.socialLinks.facebook, label: "Facebook" },
-  { icon: Twitter, href: SCHOOL_INFO.socialLinks.twitter, label: "Twitter" },
-  { icon: Instagram, href: SCHOOL_INFO.socialLinks.instagram, label: "Instagram" },
-  { icon: Linkedin, href: SCHOOL_INFO.socialLinks.linkedin, label: "LinkedIn" },
-  { icon: Youtube, href: SCHOOL_INFO.socialLinks.youtube, label: "YouTube" },
+  { icon: Facebook, href: SCHOOL_INFO.socialLinks.facebook, label: 'Facebook' },
+  { icon: Twitter, href: SCHOOL_INFO.socialLinks.twitter, label: 'Twitter' },
+  { icon: Instagram, href: SCHOOL_INFO.socialLinks.instagram, label: 'Instagram' },
+  { icon: Linkedin, href: SCHOOL_INFO.socialLinks.linkedin, label: 'LinkedIn' },
+  { icon: Youtube, href: SCHOOL_INFO.socialLinks.youtube, label: 'YouTube' },
 ];
 
 export function Footer() {
@@ -62,10 +62,7 @@ export function Footer() {
               </p>
             </div>
             <Link to={EXTERNAL_URLS.ADMISSION_REGISTRATION}>
-              <Button
-                size="lg"
-                className="bg-navy text-white hover:bg-navy-light shadow-lg group"
-              >
+              <Button size="lg" className="bg-navy text-white hover:bg-navy-light shadow-lg group">
                 Start Your Application
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -80,21 +77,21 @@ export function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-3 mb-6 group">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-gold" />
-              </div>
+              <img
+                src="/EduTrack_logo.png"
+                alt="EduTrack ERP"
+                className="w-12 h-12 object-contain rounded-xl shadow-md"
+              />
               <div>
-                <span className="font-display text-xl font-bold block">
-                  {SCHOOL_INFO.name}
-                </span>
+                <span className="font-display text-xl font-bold block">{SCHOOL_INFO.name}</span>
                 <span className="text-xs text-primary-foreground/70">
                   Est. {SCHOOL_INFO.established}
                 </span>
               </div>
             </Link>
             <p className="text-primary-foreground/80 mb-6 max-w-sm">
-              {SCHOOL_INFO.tagline}. We are committed to nurturing young minds and
-              shaping future leaders through excellence in education.
+              {SCHOOL_INFO.tagline}. We are committed to nurturing young minds and shaping future
+              leaders through excellence in education.
             </p>
             <div className="space-y-3">
               <a
@@ -120,9 +117,7 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-display text-lg font-semibold mb-4 text-gold">
-              Quick Links
-            </h4>
+            <h4 className="font-display text-lg font-semibold mb-4 text-gold">Quick Links</h4>
             <ul className="space-y-2">
               {footerLinks.quickLinks.map((link) => (
                 <li key={link.label}>
@@ -139,9 +134,7 @@ export function Footer() {
 
           {/* Academics */}
           <div>
-            <h4 className="font-display text-lg font-semibold mb-4 text-gold">
-              Academics
-            </h4>
+            <h4 className="font-display text-lg font-semibold mb-4 text-gold">Academics</h4>
             <ul className="space-y-2">
               {footerLinks.academics.map((link) => (
                 <li key={link.label}>
@@ -158,9 +151,7 @@ export function Footer() {
 
           {/* Resources */}
           <div>
-            <h4 className="font-display text-lg font-semibold mb-4 text-gold">
-              Resources
-            </h4>
+            <h4 className="font-display text-lg font-semibold mb-4 text-gold">Resources</h4>
             <ul className="space-y-2">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>

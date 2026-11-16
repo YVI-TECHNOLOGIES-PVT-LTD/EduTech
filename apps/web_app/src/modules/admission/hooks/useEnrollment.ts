@@ -8,7 +8,7 @@ import { dispatchEnrollmentEvents } from '../utils/enrollment.workflow';
 export function useEnrollmentStatus(applicationId?: string) {
     const query = useQuery({
         queryKey: AdmissionEngine.cacheKeys.enrollment(applicationId ?? ''),
-        queryFn: () => admissionApi.getEnrollmentStatus(applicationId!).then(res => res.data),
+        queryFn: () => admissionApi.getEnrollmentStatus(applicationId!).then(res => res.data).catch(() => ({ status: 'pending', stage: 'not_started' })),
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
     });

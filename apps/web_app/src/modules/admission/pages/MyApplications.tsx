@@ -1,93 +1,131 @@
 import React from 'react';
-import { Plus, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApplicationList } from '../hooks/useApplication';
-import { formatStatusLabel, getStatusColor } from '../core/AdmissionStatusMapper';
-import ParentAdmissionDashboard from '../pages/Workspace/ParentDashboard';
+import {
+  PageContainer,
+  PageHeader,
+  SectionHeader,
+  EmptyState,
+} from '@/components/layout/PageLayout';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ApplicationStatusCard } from '../components/ApplicationStatusCard';
+import type { ApplicationRecord } from '@/shared/api/admission.api';
 
 export function MyApplications() {
-    const { applications, isLoading } = useApplicationList({ limit: 50 }, { mine: true });
+  const navigate = useNavigate();
+  const {
+    applications = [],
+    isLoading,
+    error,
+    refetch,
+  } = useApplicationList({ limit: 50 }, { mine: true });
 
-    if (isLoading) {
-        return <div className="p-8 text-center text-gray-500">Loading applications…</div>;
-    }
-
-    const activeApplications = applications.filter(
-        app => !['enrolled', 'rejected', 'withdrawn'].includes(app.status.toLowerCase())
-    );
-
+  if (isLoading) {
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                        My Admission
-                    </h1>
-                    <p className="text-gray-500 mt-1">Track your child&apos;s admission progress, documents, and fees</p>
-                </div>
-                <Link
-                    to="/admissions/apply"
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all shadow-lg shadow-blue-200 font-medium"
-                >
-                    <Plus className="w-4 h-4" />
-                    New Application
-                </Link>
-            </div>
-
-            {activeApplications.length > 0 && <ParentAdmissionDashboard />}
-
-            {applications.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center shadow-sm">
-                    <h3 className="text-xl font-semibold text-gray-800">No Applications Yet</h3>
-                    <p className="text-gray-500 mt-2 max-w-sm mx-auto">Start your child&apos;s journey with an online application.</p>
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    <h2 className="text-sm font-black uppercase tracking-wider text-gray-500">All Applications</h2>
-                    <div className="grid gap-4">
-                        {applications.map(app => (
-                            <div
-                                key={app.id}
-                                className="bg-white rounded-xl border border-gray-100 p-5 flex items-center justify-between hover:shadow-md transition-shadow"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center text-xl font-bold text-gray-600">
-                                        {app.student_name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">{app.student_name}</h3>
-                                        <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                                            <span>Grade: {app.grade_applied_for}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4">
-                                    <span className={`px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${getStatusColor(app.status)}`}>
-                                        {formatStatusLabel(app.status)}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <Link to={`/app/admissions/${app.id}?tab=documents`} className="text-xs font-bold text-indigo-600 hover:underline">
-                                            Documents
-                                        </Link>
-                                        <Link to={`/app/admissions/${app.id}?tab=timeline`} className="text-xs font-bold text-indigo-600 hover:underline">
-                                            Timeline
-                                        </Link>
-                                        <Link
-                                            to={`/app/admissions/${app.id}`}
-                                            className="p-2 hover:bg-gray-50 rounded-full text-gray-400 hover:text-blue-600 transition-colors"
-                                        >
-                                            <ChevronRight className="w-6 h-6" />
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+      <PageContainer variant="default">
+        <div className="p-12 text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-bold text-muted-foreground">
+            Loading your admission applications...
+          </p>
         </div>
+      </PageContainer>
     );
+  }
+
+  if (error) {
+    return (
+      <PageContainer variant="default">
+        <div className="p-12 text-center space-y-4 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Failed to load applications</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Unable to retrieve your admission applications. Please try again.
+            </p>
+          </div>
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            className="font-bold text-xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer variant="default">
+      {/* Canonical Page Header */}
+      <PageHeader
+        title="My Admission Applications"
+        description="Track evaluation status, submitted certificates, and processing fee clearance for your children."
+        badge={
+          <Badge
+            variant="outline"
+            className="text-[10px] font-black uppercase tracking-wider text-indigo-600 border-indigo-200"
+          >
+            Admission Self-Service
+          </Badge>
+        }
+        actions={
+          <Button
+            onClick={() => navigate('/app/admissions/wizard')}
+            className="font-bold text-xs shadow-md"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Start New Application
+          </Button>
+        }
+      />
+
+      {/* Applications List or Empty State */}
+      {applications.length === 0 ? (
+        <EmptyState
+          title="No Admission Applications Yet"
+          description="Start your child's enrollment process by completing an online admission application."
+          action={
+            <Button
+              onClick={() => navigate('/app/admissions/wizard')}
+              className="font-bold text-xs px-6 shadow-md"
+            >
+              Start New Application
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-6">
+          <SectionHeader
+            title={`Your Registered Applications (${applications.length})`}
+            action={
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Refresh Status</span>
+              </button>
+            }
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {applications.map((app: ApplicationRecord) => (
+              <ApplicationStatusCard key={app.application_id || app.id} application={app} />
+            ))}
+          </div>
+        </div>
+      )}
+    </PageContainer>
+  );
 }
 
 export default MyApplications;

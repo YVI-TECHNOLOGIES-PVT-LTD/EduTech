@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Quote, Award, BookOpen, Heart } from "lucide-react";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
+import { Card } from '@/components/ui/card';
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const leadershipTeam = [
   {
@@ -38,51 +40,43 @@ const boardMembers = [
 export default function Leadership() {
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              Our Leaders
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Leadership & <span className="text-gold">Principal's Message</span>
-            </h1>
-            <p className="text-lg text-white/80">
-              Meet the dedicated leaders who guide our institution with vision,
-              expertise, and an unwavering commitment to student success.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="EDUTRACK LEADERSHIP"
+        title="Leadership That Keeps Learning at the Centre"
+        accentText="Learning at the Centre"
+        description="Meet the dedicated leaders who guide our institution with vision, expertise, and an unwavering commitment to student success."
+        backgroundImage="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[50%_35%]"
+        metadataItems={["Leadership", "Governance", "Academic Direction"]}
+      />
 
       {/* Principal's Message */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <AnimatedSection>
-              <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+              <Card className="rounded-2xl border border-border/80 shadow-sm overflow-hidden bg-card">
                 <div className="grid md:grid-cols-5">
-                  <div className="md:col-span-2 bg-primary p-8 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-32 h-32 bg-gold/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <span className="font-display text-4xl font-bold text-gold">MT</span>
+                  <div className="md:col-span-2 bg-slate-950 text-white p-8 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-900">
+                    <div className="text-center space-y-3">
+                      <div className="w-28 h-28 bg-indigo-600/30 text-amber-400 rounded-full mx-auto flex items-center justify-center font-bold text-3xl border border-indigo-500/40 shadow-inner">
+                        <span>MT</span>
                       </div>
-                      <h3 className="font-display text-xl font-bold text-white">
+                      <h3 className="font-extrabold text-xl text-white">
                         Dr. Margaret Thompson
                       </h3>
-                      <p className="text-gold">Principal</p>
+                      <p className="text-amber-400 text-xs font-bold uppercase tracking-wider">Principal</p>
                     </div>
                   </div>
-                  <div className="md:col-span-3 p-8">
-                    <div className="flex gap-2 mb-4">
-                      <Quote className="w-8 h-8 text-gold flex-shrink-0" />
+                  <div className="md:col-span-3 p-8 space-y-4">
+                    <div className="flex gap-2">
+                      <Quote className="w-8 h-8 text-amber-500 shrink-0 opacity-80" />
                     </div>
-                    <h2 className="font-display text-2xl font-bold text-primary mb-4">
+                    <h2 className="font-extrabold text-2xl text-foreground">
                       Message from the Principal
                     </h2>
-                    <div className="space-y-4 text-muted-foreground">
+                    <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
                       <p>
                         Dear Parents, Students, and Community Members,
                       </p>
@@ -103,22 +97,22 @@ export default function Leadership() {
                         and discover why EduTrack has been a trusted name in
                         education for over seven decades.
                       </p>
-                      <p className="font-semibold text-primary">
+                      <p className="font-bold text-foreground pt-2">
                         With warm regards,<br />
                         Dr. Margaret Thompson
                       </p>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </AnimatedSection>
           </div>
         </div>
       </section>
 
       {/* Leadership Team */}
-      <section className="section-padding bg-cream">
-        <div className="container-custom">
+      <section className="py-20 bg-slate-50/50 dark:bg-card/40 border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             subtitle="Leadership Team"
             title="Guiding with Vision & Expertise"
@@ -128,34 +122,31 @@ export default function Leadership() {
           <StaggerContainer className="grid md:grid-cols-3 gap-8">
             {leadershipTeam.map((leader) => (
               <StaggerItem key={leader.name}>
-                <motion.div
-                  whileHover={{ y: -8 }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-md h-full flex flex-col"
-                >
-                  <div className="bg-primary p-6 text-center">
-                    <div className="w-20 h-20 bg-gold/20 rounded-full mx-auto mb-3 flex items-center justify-center">
-                      <span className="font-display text-2xl font-bold text-gold">
+                <Card className="rounded-2xl bg-card border border-border/80 shadow-sm overflow-hidden h-full flex flex-col hover:shadow-md transition-all duration-300">
+                  <div className="bg-slate-950 p-6 text-center text-white border-b border-slate-900">
+                    <div className="w-16 h-16 bg-indigo-600/30 text-amber-400 rounded-full mx-auto mb-3 flex items-center justify-center font-bold text-xl border border-indigo-500/40">
+                      <span>
                         {leader.name.split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
-                    <h3 className="font-display text-lg font-bold text-white">
+                    <h3 className="font-bold text-lg text-white">
                       {leader.name}
                     </h3>
-                    <p className="text-gold text-sm">{leader.role}</p>
+                    <p className="text-amber-400 text-xs font-bold uppercase tracking-wider">{leader.role}</p>
                   </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <p className="text-muted-foreground text-sm mb-4">{leader.bio}</p>
-                    <div className="flex items-center gap-2 text-sm text-primary mb-4">
-                      <Award className="w-4 h-4 text-gold" />
+                  <div className="p-6 flex-1 flex flex-col space-y-4">
+                    <p className="text-muted-foreground text-sm leading-relaxed">{leader.bio}</p>
+                    <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                      <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       <span>{leader.education}</span>
                     </div>
-                    <div className="mt-auto pt-4 border-t border-muted">
-                      <p className="text-sm italic text-muted-foreground">
+                    <div className="mt-auto pt-4 border-t border-border/80">
+                      <p className="text-xs italic text-muted-foreground leading-relaxed">
                         "{leader.quote}"
                       </p>
                     </div>
                   </div>
-                </motion.div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -163,8 +154,8 @@ export default function Leadership() {
       </section>
 
       {/* Board of Directors */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             subtitle="Governance"
             title="Board of Directors"
@@ -174,44 +165,22 @@ export default function Leadership() {
           <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {boardMembers.map((member) => (
               <StaggerItem key={member.name}>
-                <motion.div
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-xl p-5 shadow-md text-center h-full"
-                >
-                  <div className="w-14 h-14 bg-primary rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <span className="font-display text-lg font-bold text-gold">
+                <Card className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm text-center h-full flex flex-col items-center justify-center space-y-1.5">
+                  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-sm">
+                    <span>
                       {member.name.split(' ').map(n => n[0]).join('')}
                     </span>
                   </div>
-                  <h4 className="font-semibold text-primary text-sm mb-1">{member.name}</h4>
-                  <p className="text-gold text-xs mb-2">{member.role}</p>
+                  <h4 className="font-bold text-foreground text-sm">{member.name}</h4>
+                  <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold">{member.role}</p>
                   <p className="text-muted-foreground text-xs">{member.expertise}</p>
-                </motion.div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
         </div>
       </section>
-
-      {/* Values Banner */}
-      <section className="py-16 bg-gold">
-        <div className="container-custom">
-          <AnimatedSection className="flex flex-wrap justify-center gap-8 md:gap-16">
-            {[
-              { icon: BookOpen, label: "Academic Leadership" },
-              { icon: Heart, label: "Student Welfare" },
-              { icon: Award, label: "Excellence in Education" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-3">
-                <item.icon className="w-8 h-8 text-navy" />
-                <span className="font-display text-lg font-bold text-navy">
-                  {item.label}
-                </span>
-              </div>
-            ))}
-          </AnimatedSection>
-        </div>
-      </section>
     </div>
   );
 }
+

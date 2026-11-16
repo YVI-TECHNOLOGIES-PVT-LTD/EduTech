@@ -56,7 +56,7 @@ export function useCrmDocuments(applicationId?: string) {
 
     const uploadMutation = useMutation({
         mutationFn: ({ file, documentTypeCode }: { file: File; documentTypeCode: string }) =>
-            admissionApi.uploadCrmDocument(applicationId!, documentTypeCode, file),
+            admissionApi.uploadCrmDocument(applicationId!, documentTypeCode, file as any),
         onSuccess: () => {
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DOCUMENT_UPLOADED, { applicationId });
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.CHECKLIST_UPDATED, { applicationId });

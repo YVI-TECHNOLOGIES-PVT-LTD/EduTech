@@ -263,3 +263,48 @@ ON student_enrollments(section_id);
 
 CREATE INDEX ix_student_enrollments_status
 ON student_enrollments(status);
+
+-- ----------------------------------------------------------------------------
+-- CHATBOT SESSIONS 
+-- ----------------------------------------------------------------------------
+
+CREATE INDEX ix_chatbot_sessions_org
+ON chatbot_sessions(org_id);
+
+CREATE INDEX ix_chatbot_sessions_lead
+ON chatbot_sessions(lead_id);
+
+CREATE INDEX ix_chatbot_sessions_status
+ON chatbot_sessions(org_id, status);
+
+CREATE INDEX ix_chatbot_sessions_started
+ON chatbot_sessions(started_at DESC);
+
+CREATE INDEX ix_chatbot_sessions_lead_activity
+ON chatbot_sessions(lead_activity_id);
+
+CREATE INDEX ix_chatbot_messages_session
+ON chatbot_messages(session_id, created_at);
+
+
+CREATE INDEX ix_notifications_recipient
+ON public.notifications (recipient_user_id);
+
+CREATE INDEX ix_notifications_recipient_unread
+ON public.notifications (
+    recipient_user_id,
+    is_read,
+    created_at DESC
+);
+
+CREATE INDEX ix_notifications_org
+ON public.notifications (org_id);
+
+CREATE INDEX ix_notifications_entity
+ON public.notifications (
+    entity_type,
+    entity_id
+);
+
+CREATE INDEX ix_notifications_created_at
+ON public.notifications (created_at DESC);

@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import { motion } from "framer-motion";
 import { Award, BookOpen, Mail } from "lucide-react";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
 import SectionHeader from "@/components/common/SectionHeader";
+import { ImportWizard } from "@/components/import/ImportWizard";
+import { useAuth } from "@/context/AuthContext";
+import { Card } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
+import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
 
 const facultyMembers = [
   {
@@ -109,10 +115,6 @@ const stats = [
   { value: "18+", label: "Avg. Years Experience" },
 ];
 
-import { useState } from 'react';
-import { ImportWizard } from "@/components/import/ImportWizard";
-import { useAuth } from "@/context/AuthContext";
-
 export default function Faculty() {
   const { user, hasPermission } = useAuth();
   const [importOpen, setImportOpen] = useState(false);
@@ -127,47 +129,37 @@ export default function Faculty() {
         title="Faculty"
       />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 bg-hero-pattern opacity-20" />
-        <div className="container-custom relative z-10 flex justify-between items-end">
-          <AnimatedSection className="max-w-3xl">
-            <span className="inline-block bg-gold/20 text-gold-light px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              Our Team
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Meet Our <span className="text-gold">Faculty</span>
-            </h1>
-            <p className="text-lg text-white/80">
-              Our distinguished faculty brings together experienced educators,
-              researchers, and industry professionals dedicated to student success.
-            </p>
-          </AnimatedSection>
-
-          {canImport && (
-            <button
-              onClick={() => setImportOpen(true)}
-              className="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm px-6 py-3 rounded-xl border border-white/20 font-bold transition-all mb-8"
-            >
-              <BookOpen className="w-5 h-5" />
-              Import Faculty CSV
-            </button>
-          )}
-        </div>
-      </section>
+      {/* Cinematic Hero Section */}
+      <CinematicPageHero
+        eyebrow="OUR FACULTY"
+        title="Experienced Educators. Meaningful Learning."
+        accentText="Meaningful Learning"
+        description="Our distinguished faculty brings together experienced educators, researchers, and industry professionals dedicated to student success."
+        backgroundImage="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1600&auto=format&fit=crop"
+        imagePosition="object-[50%_35%]"
+        metadataItems={["Qualified Teachers", "Mentorship", "Student Support"]}
+        primaryAction={
+          canImport
+            ? {
+                label: "Import Faculty CSV",
+                onClick: () => setImportOpen(true),
+              }
+            : undefined
+        }
+      />
 
       {/* Stats */}
       <section className="relative -mt-10 z-10">
-        <div className="container-custom">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {stats.map((stat) => (
               <StaggerItem key={stat.label}>
-                <div className="bg-white rounded-xl p-6 shadow-lg text-center">
-                  <p className="font-display text-3xl font-bold text-primary mb-1">
+                <Card className="p-6 rounded-2xl bg-card border border-border/80 shadow-md text-center">
+                  <p className="font-extrabold text-3xl text-indigo-600 dark:text-indigo-400 mb-1">
                     {stat.value}
                   </p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -175,8 +167,8 @@ export default function Faculty() {
       </section>
 
       {/* Faculty Grid */}
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             subtitle="Faculty Directory"
             title="Dedicated Educators"
@@ -186,38 +178,35 @@ export default function Faculty() {
           <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {facultyMembers.map((member) => (
               <StaggerItem key={member.name}>
-                <motion.div
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-md h-full"
-                >
-                  <div className="bg-primary p-4 text-center">
-                    <div className="w-16 h-16 bg-gold/20 rounded-full mx-auto mb-2 flex items-center justify-center">
-                      <span className="font-display text-xl font-bold text-gold">
+                <Card className="rounded-2xl bg-card border border-border/80 shadow-sm overflow-hidden h-full flex flex-col hover:shadow-md transition-all duration-300">
+                  <div className="bg-slate-950 p-4 text-center text-white border-b border-slate-900">
+                    <div className="w-14 h-14 bg-indigo-600/30 text-amber-400 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-lg border border-indigo-500/40">
+                      <span>
                         {member.name.split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-white text-sm">{member.name}</h3>
-                    <p className="text-gold text-xs">{member.role}</p>
+                    <h3 className="font-bold text-white text-sm">{member.name}</h3>
+                    <p className="text-amber-400 text-xs font-bold">{member.role}</p>
                   </div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <BookOpen className="w-4 h-4 text-gold flex-shrink-0" />
-                      <span className="text-muted-foreground">{member.department}</span>
+                  <div className="p-4 space-y-3 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                      <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <span>{member.department}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Award className="w-4 h-4 text-gold flex-shrink-0" />
-                      <span className="text-muted-foreground text-xs">{member.education}</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Award className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>{member.education}</span>
                     </div>
-                    <div className="pt-2 border-t border-muted">
+                    <div className="pt-2 border-t border-border/80 mt-auto space-y-1">
                       <p className="text-xs text-muted-foreground">
-                        <span className="font-medium">Specialization:</span> {member.specialization}
+                        <span className="font-bold text-foreground">Specialization:</span> {member.specialization}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        <span className="font-medium">Experience:</span> {member.experience}
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-bold text-foreground">Experience:</span> {member.experience}
                       </p>
                     </div>
                   </div>
-                </motion.div>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -225,25 +214,22 @@ export default function Faculty() {
       </section>
 
       {/* Join Our Team */}
-      <section className="py-16 bg-cream">
-        <div className="container-custom">
-          <AnimatedSection className="max-w-2xl mx-auto text-center">
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-primary mb-4">
+      <section className="py-20 bg-slate-950 text-white border-t border-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <AnimatedSection className="max-w-2xl mx-auto text-center space-y-6">
+            <h2 className="font-extrabold text-2xl md:text-3xl text-white tracking-tight">
               Join Our Faculty
             </h2>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-slate-300 leading-relaxed font-normal">
               We're always looking for passionate educators to join our team.
               If you're interested in making a difference in students' lives,
               we'd love to hear from you.
             </p>
-            <a href="mailto:careers@apexinternationalschool.edu">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold"
-              >
+            <a href="mailto:careers@apexinternationalschool.edu" className="inline-block pt-2">
+              <Button size="lg" className="font-bold shadow-lg flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                Contact HR Department
-              </motion.button>
+                <span>Contact HR Department</span>
+              </Button>
             </a>
           </AnimatedSection>
         </div>
@@ -251,3 +237,4 @@ export default function Faculty() {
     </div>
   );
 }
+

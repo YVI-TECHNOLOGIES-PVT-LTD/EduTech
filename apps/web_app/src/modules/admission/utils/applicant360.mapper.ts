@@ -168,23 +168,57 @@ export interface Applicant360MapperInput {
     enrollmentStatus?: unknown;
 }
 
+function deriveStudentName(rawApp: any): string {
+    const app = rawApp as any;
+    if (!app) return 'Applicant';
+
+    if (app.student_name && typeof app.student_name === 'string' && app.student_name.trim() && app.student_name !== 'N/A') {
+        return app.student_name.trim();
+    }
+
+    const leadObj = app.lead || app.leads;
+    if (leadObj) {
+        if (leadObj.student_name && typeof leadObj.student_name === 'string' && leadObj.student_name.trim() && leadObj.student_name !== 'N/A') {
+            return leadObj.student_name.trim();
+        }
+        const leadFullName = [leadObj.student_first_name, leadObj.student_last_name].filter(Boolean).join(' ').trim();
+        if (leadFullName) return leadFullName;
+    }
+
+    if (app.applicant?.full_name && typeof app.applicant.full_name === 'string' && app.applicant.full_name.trim()) {
+        return app.applicant.full_name.trim();
+    }
+    if (app.applicantName && typeof app.applicantName === 'string' && app.applicantName.trim()) {
+        return app.applicantName.trim();
+    }
+
+    return 'Applicant';
+}
+
 export function mapApplicant360View(input: Applicant360MapperInput): Applicant360View {
-    const { application: app, auditLogs, examResults, meritData, feesSummary, enrollmentStatus } = input;
-    const uiStatus = mapUIStatus(app.status);
-    const progressPercent = getProgressPercentage(app.status);
+    const { application: rawApp, auditLogs, examResults, meritData, feesSummary, enrollmentStatus } = input;
+    const app = rawApp as any;
+    const name = deriveStudentName(app);
+    const code = (app.application_number || app.id || app.application_id || 'APP').slice(0, 15).toUpperCase();
+    const email = app.parent_email || app.contact_email || app.lead?.contact_email || app.leads?.contact_email || app.applicant?.email || '—';
+    const phone = app.parent_phone || app.contact_phone || app.lead?.contact_phone || app.leads?.contact_phone || '—';
+    const grade = app.grade_applied_for || app.lead?.grade_applied_for || app.leads?.grade_applied_for || 'Grade Applied';
+    const statusStr = app.status || 'submitted';
+    const uiStatus = mapUIStatus(statusStr);
+    const progressPercent = getProgressPercentage(statusStr);
     const sla = computeSla(app);
     const exam = mapExamStatus(examResults, app);
     const leadScore = calculateLeadScore(
         {
-            id: app.id,
-            student_name: app.student_name,
-            parent_name: app.parent_name,
-            parent_email: app.parent_email,
-            parent_phone: app.parent_phone,
-            grade_applied_for: app.grade_applied_for,
-            status: app.status,
-            created_at: app.created_at,
-            updated_at: app.updated_at,
+            id: app.id || app.application_id || '',
+            student_name: name,
+            parent_name: app.parent_name || app.lead?.contact_name || app.leads?.contact_name || '',
+            parent_email: email,
+            parent_phone: phone,
+            grade_applied_for: grade,
+            status: statusStr,
+            created_at: app.created_at || '',
+            updated_at: app.updated_at || '',
             document_count: app.admission_documents?.length ?? 0,
         },
         [],
@@ -193,13 +227,13 @@ export function mapApplicant360View(input: Applicant360MapperInput): Applicant36
     const enrollmentObj = enrollmentStatus as Record<string, unknown> | null | undefined;
 
     return {
-        id: app.id,
-        code: app.id.slice(0, 8).toUpperCase(),
-        name: app.student_name,
-        email: app.parent_email ?? app.applicant?.email ?? '—',
-        phone: app.parent_phone ?? '—',
-        grade: app.grade_applied_for,
-        status: formatStatusLabel(app.status),
+        id: app.id || app.application_id || '',
+        code,
+        name,
+        email,
+        phone,
+        grade,
+        status: formatStatusLabel(statusStr),
         uiStatus,
         submittedAt: formatSubmittedAt(app),
         counselor: app.remark_by_officer ? 'Admission Officer' : undefined,
@@ -218,6 +252,6 @@ export function mapApplicant360View(input: Applicant360MapperInput): Applicant36
         progressPercent,
         paymentAmount: app.payment_amount ?? (feesSummary?.total as number | undefined),
         paymentReference: app.payment_reference,
-        enrollmentStatus: enrollmentObj?.status ? String(enrollmentObj.status) : app.status === 'enrolled' ? 'completed' : undefined,
+        enrollmentStatus: enrollmentObj?.status ? String(enrollmentObj.status) : statusStr === 'enrolled' ? 'completed' : undefined,
     };
 }

@@ -4,125 +4,243 @@ import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from './ControllerErrorHandler';
 import { AdmissionService } from '../../admission.service';
+import prisma from '../../../../lib/prismaClient';
 
 export class EnquiryController {
-    constructor(
-        private readonly enquiryService: EnquiryService,
-        private readonly flagService: FeatureFlagService
-    ) {}
+  constructor(
+    private readonly enquiryService: EnquiryService,
+    private readonly flagService: FeatureFlagService,
+  ) {}
 
-    private async checkFlags(req: Request) {
-        const schoolId = req.context?.user?.school_id || null;
-        const envMode = process.env.NODE_ENV || 'development';
-        const isCrmActive = await this.flagService.isEnabled('admission', 'admission_crm', envMode, schoolId);
-        const isEnqActive = await this.flagService.isEnabled('admission', 'enquiry_management', envMode, schoolId);
-        if (!isCrmActive || !isEnqActive) {
-            throw new PermissionError('Feature Disabled: enquiry_management');
-        }
+  private async checkFlags(req: Request) {
+    const schoolId = req.context?.user?.school_id || null;
+    const envMode = process.env.NODE_ENV || 'development';
+    const isCrmActive = await this.flagService.isEnabled(
+      'admission',
+      'admission_crm',
+      envMode,
+      schoolId,
+    );
+    const isEnqActive = await this.flagService.isEnabled(
+      'admission',
+      'enquiry_management',
+      envMode,
+      schoolId,
+    );
+    if (!isCrmActive || !isEnqActive) {
+      throw new PermissionError('Feature Disabled: enquiry_management');
     }
+  }
 
-    public create = async (req: Request, res: Response) => {
-        try {
-            await this.checkFlags(req);
-            let schoolId = req.context?.user?.school_id;
-            let academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
+  public create = async (req: Request, res: Response) => {
+    const requestId = (req.headers['x-request-id'] ||
+      req.headers['x-correlation-id'] ||
+      crypto.randomUUID()) as string;
+    const authUserId = req.context?.user?.id || 'anonymous';
 
-            if (!schoolId || !academicYearId) {
-                const resolved = await AdmissionService.resolveContext();
-                if (!schoolId) schoolId = resolved.school_id;
-                if (!academicYearId) academicYearId = resolved.academic_year_id || '';
-            }
+    try {
+      await this.checkFlags(req);
+      let schoolId = req.context?.user?.school_id || (req as any).tenantOrgId;
+      let academicYearId =
+        (req.headers['x-academic-year-id'] as string) || req.body?.academic_year_id;
 
-            const correlationId = req.headers['x-correlation-id'] as string;
-            const data = await this.enquiryService.createEnquiry(schoolId!, academicYearId!, req.body, correlationId);
-            res.status(201).json(data);
-        } catch (err) {
-            handleControllerError(res, err);
-        }
-    };
+      if (!schoolId || !academicYearId) {
+        const requestedYear =
+          req.body?.academic_year || req.body?.academicYear || req.body?.academic_year_name;
+        const resolved = await AdmissionService.resolveContext(requestedYear);
+        if (!schoolId) schoolId = resolved.school_id;
+        if (!academicYearId) academicYearId = resolved.academic_year_id || '';
+      }
 
-    public update = async (req: Request, res: Response) => {
-        try {
-            await this.checkFlags(req);
-            const { id } = req.params;
-            const correlationId = req.headers['x-correlation-id'] as string;
-            const data = await this.enquiryService.updateEnquiry(id, req.body, correlationId);
-            res.json(data);
-        } catch (err) {
-            handleControllerError(res, err);
-        }
-    };
+      console.log('[ENQUIRY-CONTROLLER-START]', {
+        requestId,
+        authUserId,
+        resolvedOrgId: schoolId,
+        resolvedAcademicYearId: academicYearId,
+        incomingFields: Object.keys(req.body || {}),
+        hasParentName: !!req.body?.parent_name,
+        hasParentPhone: !!req.body?.parent_phone,
+        gradeAppliedFor: req.body?.grade_applied_for,
+      });
 
-    public getById = async (req: Request, res: Response) => {
-        try {
-            await this.checkFlags(req);
-            const { id } = req.params;
-            const data = await this.enquiryService.getEnquiryById(id);
-            res.json(data);
-        } catch (err) {
-            handleControllerError(res, err);
-        }
-    };
+      const data = await this.enquiryService.createEnquiry(
+        schoolId!,
+        academicYearId!,
+        req.body,
+        requestId,
+      );
+      const referenceCode = `ENQ-2026-${data.id.slice(0, 8).toUpperCase()}`;
 
-    public list = async (req: Request, res: Response) => {
-        try {
-            await this.checkFlags(req);
-            let schoolId = req.context?.user?.school_id;
-            if (!schoolId) {
-                const resolved = await AdmissionService.resolveContext();
-                schoolId = resolved.school_id;
-            }
+      console.log('[ENQUIRY-CONTROLLER-SUCCESS-201]', {
+        requestId,
+        enquiryId: data.id,
+        referenceCode,
+        orgId: schoolId,
+      });
 
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 10;
-            const search = req.query.search as string || undefined;
-            const sortColumn = req.query.sort_column as string || undefined;
-            const sortOrder = req.query.sort_order as 'asc' | 'desc' || undefined;
+      res.status(201).json({
+        ...data,
+        id: data.id,
+        reference_code: referenceCode,
+        reference: referenceCode,
+        requestId,
+      });
+    } catch (err: any) {
+      console.error('[ENQUIRY-CONTROLLER-ERROR]', {
+        requestId,
+        authUserId,
+        error: err?.message || err,
+        stack: err?.stack,
+      });
+      handleControllerError(res, err, requestId);
+    }
+  };
 
-            const { page: _p, limit: _l, search: _s, sort_column: _sc, sort_order: _so, ...filters } = req.query;
+  public getQueryTypes = async (req: Request, res: Response) => {
+    try {
+      let schoolId = req.context?.user?.school_id;
+      if (!schoolId) {
+        const resolved = await AdmissionService.resolveContext();
+        schoolId = resolved.school_id;
+      }
 
-            const data = await this.enquiryService.listEnquiries(
-                schoolId!,
-                page,
-                limit,
-                filters,
-                search,
-                sortColumn,
-                sortOrder
-            );
-            res.json(data);
-        } catch (err) {
-            handleControllerError(res, err);
-        }
-    };
+      const queryTypes = await (prisma as any).lead_query_types.findMany({
+        where: {
+          org_id: schoolId,
+          is_active: true,
+        },
+        orderBy: {
+          display_order: 'asc',
+        },
+        select: {
+          query_type_id: true,
+          query_type_name: true,
+          display_order: true,
+        },
+      });
 
-    public softDelete = async (req: Request, res: Response) => {
-        try {
-            await this.checkFlags(req);
-            const { id } = req.params;
-            const correlationId = req.headers['x-correlation-id'] as string;
-            await this.enquiryService.deleteEnquiry(id, correlationId);
-            res.json({ success: true, message: 'Enquiry deleted successfully' });
-        } catch (err) {
-            handleControllerError(res, err);
-        }
-    };
+      let items = queryTypes.map((q: any) => ({
+        id: q.query_type_id,
+        name: q.query_type_name,
+        displayOrder: q.display_order,
+      }));
 
-    public convert = async (req: Request, res: Response) => {
-        try {
-            await this.checkFlags(req);
-            const { id } = req.params;
-            const correlationId = req.headers['x-correlation-id'] as string;
-            const userId = req.context?.user?.id || null;
-            const { leadId, applicationId } = await this.enquiryService.convertToApplication(id, correlationId, userId);
-            res.json({
-                success: true,
-                lead_id: leadId,
-                application_id: applicationId,
-                message: 'Enquiry converted to application successfully',
-            });
-        } catch (err) {
-            handleControllerError(res, err);
-        }
-    };
+      if (items.length === 0) {
+        const defaultNames = [
+          'Admission Availability',
+          'Admission Process',
+          'Fees',
+          'Curriculum',
+          'Documents Required',
+          'Campus Visit',
+        ];
+        items = defaultNames.map((name, idx) => ({
+          id: `default-${idx + 1}`,
+          name,
+          displayOrder: idx + 1,
+        }));
+      }
+
+      res.json({ items });
+    } catch (err) {
+      console.error('[QUERY-TYPES-ERROR]', err);
+      handleControllerError(res, err);
+    }
+  };
+
+  public update = async (req: Request, res: Response) => {
+    try {
+      await this.checkFlags(req);
+      const { id } = req.params;
+      const correlationId = req.headers['x-correlation-id'] as string;
+      const data = await this.enquiryService.updateEnquiry(id, req.body, correlationId);
+      res.json(data);
+    } catch (err) {
+      handleControllerError(res, err);
+    }
+  };
+
+  public getById = async (req: Request, res: Response) => {
+    try {
+      await this.checkFlags(req);
+      const { id } = req.params;
+      const data = await this.enquiryService.getEnquiryById(id);
+      res.json(data);
+    } catch (err) {
+      handleControllerError(res, err);
+    }
+  };
+
+  public list = async (req: Request, res: Response) => {
+    try {
+      await this.checkFlags(req);
+      let schoolId = req.context?.user?.school_id;
+      if (!schoolId) {
+        const resolved = await AdmissionService.resolveContext();
+        schoolId = resolved.school_id;
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = (req.query.search as string) || undefined;
+      const sortColumn = (req.query.sort_column as string) || undefined;
+      const sortOrder = (req.query.sort_order as 'asc' | 'desc') || undefined;
+
+      const {
+        page: _p,
+        limit: _l,
+        search: _s,
+        sort_column: _sc,
+        sort_order: _so,
+        ...filters
+      } = req.query;
+
+      const data = await this.enquiryService.listEnquiries(
+        schoolId!,
+        page,
+        limit,
+        filters,
+        search,
+        sortColumn,
+        sortOrder,
+      );
+      res.json(data);
+    } catch (err) {
+      handleControllerError(res, err);
+    }
+  };
+
+  public softDelete = async (req: Request, res: Response) => {
+    try {
+      await this.checkFlags(req);
+      const { id } = req.params;
+      const correlationId = req.headers['x-correlation-id'] as string;
+      await this.enquiryService.deleteEnquiry(id, correlationId);
+      res.json({ success: true, message: 'Enquiry deleted successfully' });
+    } catch (err) {
+      handleControllerError(res, err);
+    }
+  };
+
+  public convert = async (req: Request, res: Response) => {
+    try {
+      await this.checkFlags(req);
+      const { id } = req.params;
+      const correlationId = req.headers['x-correlation-id'] as string;
+      const userId = req.context?.user?.id || null;
+      const { leadId, applicationId } = await this.enquiryService.convertToApplication(
+        id,
+        correlationId,
+        userId,
+      );
+      res.json({
+        success: true,
+        lead_id: leadId,
+        application_id: applicationId,
+        message: 'Enquiry converted to application successfully',
+      });
+    } catch (err) {
+      handleControllerError(res, err);
+    }
+  };
 }

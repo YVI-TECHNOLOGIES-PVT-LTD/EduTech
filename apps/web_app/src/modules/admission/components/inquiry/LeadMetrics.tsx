@@ -1,29 +1,29 @@
 import type { LeadMetrics } from '../../types/admission.types';
 
 interface LeadMetricsProps {
-    metrics: LeadMetrics;
+    metrics: any;
     variant?: 'counselor' | 'reception';
 }
 
-export function LeadMetricsPanel({ metrics, variant = 'counselor' }: LeadMetricsProps) {
+export function LeadMetricsPanel({ metrics = {}, variant = 'counselor' }: LeadMetricsProps) {
     const counselorCards = [
-        { label: 'Assigned Leads', value: metrics.assigned },
-        { label: 'Unassigned', value: metrics.unassigned },
-        { label: "Today's Calls", value: metrics.todayFollowups },
-        { label: 'Overdue', value: metrics.overdueFollowups },
-        { label: 'Converted', value: metrics.converted },
-        { label: 'Applications', value: metrics.applicationsSubmitted },
-        { label: 'Conversion %', value: `${metrics.conversionRate}%` },
+        { label: 'Assigned Leads', value: metrics?.assigned ?? metrics?.totalLeads ?? 0 },
+        { label: 'Unassigned', value: metrics?.unassigned ?? 0 },
+        { label: "Today's Calls", value: metrics?.todayFollowups ?? metrics?.totalFollowups ?? 0 },
+        { label: 'Overdue', value: metrics?.overdueFollowups ?? 0 },
+        { label: 'Converted', value: metrics?.converted ?? 0 },
+        { label: 'Applications', value: metrics?.applicationsSubmitted ?? metrics?.totalInquiries ?? 0 },
+        { label: 'Conversion %', value: `${metrics?.conversionRate ?? 0}%` },
     ];
 
     const receptionCards = [
-        { label: "Today's Walk-ins", value: metrics.walkInsToday },
-        { label: "Today's Visitors", value: metrics.todayVisitors },
-        { label: 'Pending Follow-ups', value: metrics.todayFollowups },
-        { label: 'Assigned Counselors', value: metrics.assigned },
-        { label: "Today's Applications", value: metrics.applicationsSubmitted },
-        { label: 'Conversion %', value: `${metrics.conversionRate}%` },
-        { label: 'Avg Response (hrs)', value: metrics.avgResponseHours },
+        { label: "Today's Walk-ins", value: metrics?.walkInsToday ?? metrics?.totalInquiries ?? 0 },
+        { label: "Today's Visitors", value: metrics?.todayVisitors ?? metrics?.totalVisitors ?? 0 },
+        { label: 'Pending Follow-ups', value: metrics?.todayFollowups ?? metrics?.totalFollowups ?? 0 },
+        { label: 'Assigned Counselors', value: metrics?.assigned ?? 0 },
+        { label: "Today's Applications", value: metrics?.applicationsSubmitted ?? 0 },
+        { label: 'Conversion %', value: `${metrics?.conversionRate ?? 0}%` },
+        { label: 'Avg Response (hrs)', value: metrics?.avgResponseHours ?? 0 },
     ];
 
     const cards = variant === 'reception' ? receptionCards : counselorCards;

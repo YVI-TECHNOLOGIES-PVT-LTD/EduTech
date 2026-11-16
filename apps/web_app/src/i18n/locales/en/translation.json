@@ -1,14 +1,3 @@
 {
-    "common": {
-        "dashboard": "Dashboard",
-        "admissions": "Admissions",
-        "students": "Students",
-        "attendance": "Attendance",
-        "profile": "Profile",
-        "settings": "Settings",
-        "logout": "Logout",
-        "save": "Save changes",
-        "cancel": "Cancel",
-        "loading": "Loading..."
-    }
+  "__deprecated": "Static translation dictionaries have been retired in favor of the dynamic TranslationManager and controlled TranslationGlossary architecture."
 }

@@ -2,6 +2,8 @@ import { supabase } from '../../../config/supabase';
 import { FeeStructureRepository } from '../repositories/FeeStructureRepository';
 import { FeePreviewResponseDto } from '../dto/FeePreviewDto';
 import { ApplicantNotFoundException, ClassMappingException, StructureNotFoundException } from '../errors/FinanceExceptions';
+import { FeeStructureManagerService } from './FeeStructureManagerService';
+export { FeeStructureManagerService };
 
 export class FeeStructureService {
     /**

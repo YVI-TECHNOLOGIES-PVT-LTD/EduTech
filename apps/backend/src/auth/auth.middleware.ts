@@ -8,6 +8,7 @@ declare global {
                 user: {
                     id: string;
                     email: string;
+                    org_id: string;
                     school_id: string;
                     roles: string[];
                     permissions: string[];
@@ -40,7 +41,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             user: {
                 id: userProfile.id,
                 email: userProfile.email,
-                school_id: userProfile.school_id,
+                org_id: userProfile.org_id || userProfile.school_id,
+                school_id: userProfile.school_id || userProfile.org_id,
                 roles: userProfile.roles,
                 permissions: userProfile.permissions,
                 login_status: userProfile.login_status
@@ -71,7 +73,8 @@ export const authenticateOptional = async (req: Request, res: Response, next: Ne
                 user: {
                     id: userProfile.id,
                     email: userProfile.email,
-                    school_id: userProfile.school_id,
+                    org_id: userProfile.org_id || userProfile.school_id,
+                    school_id: userProfile.school_id || userProfile.org_id,
                     roles: userProfile.roles,
                     permissions: userProfile.permissions,
                     login_status: userProfile.login_status
@@ -102,6 +105,8 @@ export const checkLoginApproval = (req: Request, res: Response, next: NextFuncti
             '/v1/admission/application',
             '/v1/admission/public-apply',
             '/v1/admission/apply',
+            '/v1/admission/crm/enquiries',
+            '/v1/admission/enquiries',
             '/v1/admission/assessment',
         ];
         const isAllowed = allowedPaths.some(path => req.path === path || req.path.startsWith(path + '/'));

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdmissionEnquiry = void 0;
 class AdmissionEnquiry {
-    constructor(id, schoolId, academicYearId, studentName, gradeAppliedFor, parentName, parentEmail, parentPhone, source, status, createdAt, updatedAt, deletedAt = null, dateOfBirth = null, gender = null, currentSchool = null, address = null, remarks = null) {
+    constructor(id, schoolId, academicYearId, studentName, gradeAppliedFor, parentName, parentEmail, parentPhone, source, status, createdAt, updatedAt, deletedAt = null, dateOfBirth = null, gender = null, currentSchool = null, address = null, remarks = null, queryType = null) {
         this.id = id;
         this.schoolId = schoolId;
         this.academicYearId = academicYearId;
@@ -21,6 +21,7 @@ class AdmissionEnquiry {
         this.currentSchool = currentSchool;
         this.address = address;
         this.remarks = remarks;
+        this.queryType = queryType;
     }
     convert() {
         this.status = 'converted';

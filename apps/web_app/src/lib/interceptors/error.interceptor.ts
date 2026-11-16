@@ -2,6 +2,8 @@ import { supabase } from '../supabase';
 import { notify } from '../../components/feedback/Notifications';
 import { AxiosRequestConfig } from 'axios';
 
+import { resetAuthenticatedClientState } from '../auth/sessionReset';
+
 export interface ApiRequestConfig extends AxiosRequestConfig {
     silent?: boolean;
     _retry?: boolean;
@@ -13,12 +15,15 @@ export const errorResponseInterceptor = async (error: any) => {
 
     // Handle 401 Unauthorized globally
     if (status === 401 && !originalRequest?._retry) {
-        (originalRequest as any)._retry = true;
+        originalRequest._retry = true;
         const isLoginPage = window.location.pathname.includes('/login');
 
         if (!isLoginPage) {
-            console.warn('[API] Session expired. Redirecting to login...');
-            await supabase.auth.signOut();
+            console.warn('[API] Session expired. Executing client reset and redirecting to login...');
+            await resetAuthenticatedClientState('api_401_session_expired');
+            try {
+                await supabase.auth.signOut();
+            } catch {}
             window.location.href = '/login?reason=expired';
         }
     }

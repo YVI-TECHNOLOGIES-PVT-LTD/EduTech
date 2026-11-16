@@ -4,3 +4,6 @@ export { ExamCard } from './ExamCard';
 export { EvaluationPanel } from './EvaluationPanel';
 export { ExamSummary } from './ExamSummary';
 export { ExamHistory } from './ExamHistory';
+export { MarksEntryModal } from './MarksEntryModal';
+export { AssessmentConfigModal } from './AssessmentConfigModal';
+export { AssessmentAnalyticsTab } from './AssessmentAnalyticsTab';

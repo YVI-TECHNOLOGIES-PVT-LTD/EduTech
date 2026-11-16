@@ -1,35 +1,36 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { DashboardSearchService, SearchResultItem } from '../services/DashboardSearchService';
 
 export function useDashboardSearch() {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [debouncedTerm, setDebouncedTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedTerm(searchTerm);
-        }, 300);
+  useEffect(() => {
+    if (searchTerm.trim().length < 2) {
+      setResults([]);
+      setIsLoading(false);
+      return;
+    }
 
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [searchTerm]);
+    setIsLoading(true);
+    const handler = setTimeout(() => {
+      DashboardSearchService.querySearch(searchTerm)
+        .then((res) => setResults(res))
+        .catch(() => setResults([]))
+        .finally(() => setIsLoading(false));
+    }, 300);
 
-    const { data: results = [], isLoading, isError } = useQuery<SearchResultItem[], Error>({
-        queryKey: ['dashboard', 'search', debouncedTerm],
-        queryFn: () => DashboardSearchService.querySearch(debouncedTerm),
-        enabled: debouncedTerm.trim().length >= 2,
-        staleTime: 30_000 // Cache searches for 30s
-    });
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
-    return {
-        searchTerm,
-        setSearchTerm,
-        results: debouncedTerm.trim().length < 2 ? [] : results,
-        isLoading: debouncedTerm !== searchTerm ? true : isLoading,
-        isError
-    };
+  return {
+    searchTerm,
+    setSearchTerm,
+    results,
+    isLoading,
+    isError: false,
+  };
 }
 
 export default useDashboardSearch;

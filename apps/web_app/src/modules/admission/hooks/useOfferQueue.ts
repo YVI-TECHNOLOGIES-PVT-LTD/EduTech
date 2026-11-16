@@ -33,7 +33,7 @@ export function useOfferQueue(search = '', statusFilter = 'all') {
         const merged = new Map<string, Admission>();
         [...approved.applications, ...recommended.applications, ...enrolled.applications].forEach(app => {
             const ui = mapUIStatus(app.status);
-            const hasOfferLog = app.admission_audit_logs?.some(l => l.action.includes('OFFER'));
+            const hasOfferLog = app.admission_audit_logs?.some((l: any) => l.action.includes('OFFER'));
             if (
                 OFFER_UI_STATUSES.has(ui) ||
                 ['recommended', 'approved', 'enrolled'].includes(app.status) ||

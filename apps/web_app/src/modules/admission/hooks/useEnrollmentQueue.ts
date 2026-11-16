@@ -40,7 +40,7 @@ export function useEnrollmentQueue(search = '', statusFilter = 'all') {
         [...paymentVerified.applications, ...approved.applications, ...enrolled.applications].forEach(app => {
             const ui = mapUIStatus(app.status);
             const hasEnrollLog = app.admission_audit_logs?.some(
-                l =>
+                (l: any) =>
                     l.action.includes('ENROLL') ||
                     l.action.includes('CONFIRM') ||
                     l.action === 'STUDENT_ENROLLED',

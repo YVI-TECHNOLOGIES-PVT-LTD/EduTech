@@ -23,8 +23,9 @@ import {
   CalendarDays,
   ShieldCheck,
 } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 import { useMasterData } from '../../admission/context/MasterDataContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
@@ -45,21 +46,9 @@ import {
   Legend,
 } from 'recharts';
 
-// Custom CountUp Component using Framer Motion
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-
-const AnimatedNumber = ({ value }: { value: number }) => {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => Math.round(latest));
-  const [displayVal, setDisplayVal] = useState(0);
-
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 1.2, ease: 'easeOut' });
-    return rounded.on('change', (latest) => setDisplayVal(latest));
-  }, [value]);
-
-  return <span>{displayVal.toLocaleString()}</span>;
-};
+import { CountUp } from '../../../components/react-bits/CountUp';
+import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
+import { SpecularButton } from '../../../components/react-bits/SpecularButton';
 
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
@@ -80,24 +69,36 @@ export const AdminDashboard = () => {
 };
 
 const AdminDashboardInner = () => {
-  const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const { user, hasPermission, isAuthenticated } = useAuth();
   const { activeSchool, activeAcademicYear } = useMasterData();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
+    const requestGen = getCurrentSessionGeneration();
+    setLoading(true);
+    setStats(null);
+
     apiClient
       .get('/dashboard/admin/overview')
       .then((res) => {
-        if (isMounted) setStats(res.data);
+        if (isMounted && requestGen === getCurrentSessionGeneration()) setStats(res.data);
       })
       .catch((err) => {
-        if (isMounted) console.error('Dashboard load failed', err);
+        if (isMounted && requestGen === getCurrentSessionGeneration())
+          console.error('Dashboard load failed', err);
       })
       .finally(() => {
-        if (isMounted) setLoading(false);
+        if (isMounted && requestGen === getCurrentSessionGeneration()) setLoading(false);
       });
 
     // Set timer for greeting context
@@ -107,7 +108,7 @@ const AdminDashboardInner = () => {
       isMounted = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [user?.id, user?.school_id, isAuthenticated]);
 
   const isFullAdmin = hasPermission('admin.dashboard.view');
 
@@ -203,7 +204,7 @@ const AdminDashboardInner = () => {
     {
       label: 'Admissions Desk',
       icon: GraduationCap,
-      link: '/app/admissions/dashboard',
+      link: '/app/workspace',
       desc: 'Workspace & Pipeline',
     },
     {
@@ -264,9 +265,10 @@ const AdminDashboardInner = () => {
 
   // Layout customizer KPI cards
   const kpiElements = cards.map((c, i) => (
-    <div
+    <SpotlightCard
       key={i}
-      className="group relative bg-white dark:bg-card p-6 rounded-3xl border border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
+      spotlightColor="rgba(6, 63, 64, 0.08)"
+      className="group relative bg-card p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
     >
       <div className="flex items-start justify-between">
         <div
@@ -292,46 +294,49 @@ const AdminDashboardInner = () => {
       </div>
 
       <div className="mt-5 space-y-1">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none">
           {c.label}
         </p>
         <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+          <span className="text-2xl font-black text-foreground tracking-tight">
             {c.format}
-            <AnimatedNumber value={c.value} />
+            <CountUp to={c.value} />
           </span>
-          <span className="text-[10px] font-bold text-emerald-500 ml-1">{c.trend}</span>
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1">
+            {c.trend}
+          </span>
         </div>
       </div>
 
       {c.link && (
         <Link
           to={c.link}
-          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-muted/60 hover:bg-primary hover:text-white rounded-lg text-muted-foreground"
+          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-muted hover:bg-primary hover:text-white rounded-lg text-muted-foreground"
         >
           <ArrowUpRight className="w-3.5 h-3.5" />
         </Link>
       )}
-    </div>
+    </SpotlightCard>
   ));
 
   return (
     <PageWrapper
-      title={`${getGreeting()}, Sathish`}
+      title={`${getGreeting()}, ${user?.full_name || 'Administrator'}`}
       description={`Academic Year ${activeAcademicYear?.year_label || 'No Academic Year'} | Active Campus: ${activeSchool?.name || 'No Campus'} | Dashboard overview`}
       icon={Sparkles}
       actions={
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 p-2.5 bg-white dark:bg-card border border-border/40 rounded-xl hover:bg-gray-50 text-muted-foreground hover:text-primary transition-all shadow-premium-sm">
+          <button className="flex items-center gap-2 p-2.5 bg-card border border-border/80 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm">
             <Bell className="w-4 h-4" />
           </button>
-          <Link
-            to="/app/admissions/review"
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl font-bold transition-all shadow-premium-md shadow-glow hover:scale-[1.01] text-xs"
+          <SpecularButton
+            size="sm"
+            onClick={() => navigate('/app/admissions/review')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm text-xs"
           >
-            <ShieldCheck className="w-4.5 h-4.5" />
+            <ShieldCheck className="w-4 h-4" />
             Admin Panel Actions
-          </Link>
+          </SpecularButton>
         </div>
       }
       kpis={<>{kpiElements}</>}

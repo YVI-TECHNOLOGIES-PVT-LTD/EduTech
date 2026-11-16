@@ -15,26 +15,16 @@ import {
   Search,
   Sparkles,
 } from 'lucide-react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { ActivityTimeline } from '../../../components/ActivityTimeline';
+import { CountUp } from '../../../components/react-bits/CountUp';
+import { SpotlightCard } from '../../../components/react-bits/SpotlightCard';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
-
-const AnimatedNumber = ({ value }: { value: number }) => {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => Math.round(latest));
-  const [displayVal, setDisplayVal] = useState(0);
-
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 1.2, ease: 'easeOut' });
-    return rounded.on('change', (latest) => setDisplayVal(latest));
-  }, [value]);
-
-  return <span>{displayVal.toLocaleString()}</span>;
-};
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardMapper } from '../utils/dashboard.mapper';
+import { useAuth } from '../../../context/AuthContext';
+import { getCurrentSessionGeneration } from '../../../lib/auth/sessionReset';
 // Phase 3.3 Enterprise Workspace imports
 import { WorkQueue } from '../components/workqueue/WorkQueue';
 import { QuickActions } from '../components/actions/QuickActions';
@@ -50,16 +40,33 @@ export const FacultyDashboard = () => {
 };
 
 const FacultyDashboardInner = () => {
+  const { user, isAuthenticated } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
+
+    const requestGen = getCurrentSessionGeneration();
+    setLoading(true);
+    setStats(null);
+
     apiClient
       .get('/dashboard/faculty/overview')
-      .then((res) => setStats(res.data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+      .then((res) => {
+        if (requestGen === getCurrentSessionGeneration()) setStats(res.data);
+      })
+      .catch((err) => {
+        if (requestGen === getCurrentSessionGeneration()) console.error(err);
+      })
+      .finally(() => {
+        if (requestGen === getCurrentSessionGeneration()) setLoading(false);
+      });
+  }, [user?.id, user?.school_id, isAuthenticated]);
 
   const { kpis: engineKPIs } = useDashboard();
 
@@ -107,9 +114,10 @@ const FacultyDashboardInner = () => {
   ];
 
   const kpiElements = kpis.map((c, i) => (
-    <div
+    <SpotlightCard
       key={i}
-      className="group relative bg-white dark:bg-card p-6 rounded-3xl border border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
+      spotlightColor="rgba(6, 63, 64, 0.08)"
+      className="group relative bg-white dark:bg-card p-6 border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between"
     >
       <div className="flex items-start justify-between">
         <div
@@ -126,12 +134,12 @@ const FacultyDashboardInner = () => {
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
             {c.format !== '%' && c.format}
-            <AnimatedNumber value={c.value} />
+            <CountUp to={c.value} />
             {c.format === '%' && c.format}
           </span>
         </div>
       </div>
-    </div>
+    </SpotlightCard>
   ));
 
   const operations = [

@@ -1,45 +1,28 @@
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useModuleVisibility } from '../services/ModuleVisibilityService';
 import { LandingResolver } from '../services/LandingResolver';
-import { FacultyDashboard } from '../modules/dashboard/pages/FacultyDashboard';
-import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
+import { PageSkeleton } from '../components/common/LoadingSkeleton';
 
+/**
+ * Legacy /app/dashboard Resolver
+ * MUST NEVER render any dashboard component directly.
+ * Resolves the authenticated user's canonical landing route and redirects immediately.
+ */
 export default function Dashboard() {
-    const { user, hasPermission } = useAuth();
-    const { getVisibleModules } = useModuleVisibility();
+  const { user, loading } = useAuth();
 
-    if (!user) {
-        return <Navigate to="/login" replace />;
-    }
+  if (loading) {
+    return <PageSkeleton />;
+  }
 
-    const visibleModules = getVisibleModules();
-    const targetRoute = LandingResolver.resolveLandingRoute(visibleModules);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-    // If targetRoute is different from "/app/dashboard" and valid, redirect to it
-    if (targetRoute !== '/app/dashboard' && targetRoute !== '/unauthorized') {
-        return <Navigate to={targetRoute} replace />;
-    }
+  const rawRoles =
+    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const destination = LandingResolver.resolveLandingRoute(rawRoles, [], user);
 
-    // Render components inline if the resolved landing route is /app/dashboard
-    const isFaculty = hasPermission('faculty.dashboard.view');
-    const isParent = hasPermission('parent.dashboard.view');
-
-    return (
-        <div className="space-y-6">
-            {isFaculty && <FacultyDashboard />}
-            {isParent && <ParentDashboard />}
-
-            {!isFaculty && !isParent && (
-                <div className="rounded-2xl bg-white p-12 text-center shadow-sm border border-gray-100">
-                    <div className="text-4xl mb-4">🔓</div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">Account Pending Verification</h2>
-                    <p className="text-gray-500 max-w-md mx-auto">
-                        Your account doesn't have any specific dashboard modules assigned. Please contact the administrator.
-                    </p>
-                </div>
-            )}
-        </div>
-    );
+  return <Navigate to={destination} replace />;
 }
-

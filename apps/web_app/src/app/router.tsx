@@ -1,16 +1,17 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceShell } from '../modules/common/workspace/WorkspaceShell';
-import LoginPage from '../pages/Login';
+import { LoginPage } from '../modules/auth/pages/LoginPage';
 import UnauthorizedPage from '../pages/Unauthorized';
 import {
   ProtectedRoute,
   PermissionGuard,
   AnyPermissionGuard,
+  FrontOfficeRouteGuard,
+  ParentRouteGuard,
+  AdminRouteGuard,
 } from '../components/auth/ProtectedRoute';
-import { DashboardLayout } from '../layouts/DashboardLayout';
-import { AdmissionWorkspaceLayout } from '../modules/admission/layouts/AdmissionWorkspaceLayout';
-import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
+import { AppShell } from '../components/shell/AppShell';
 import PublicLayout from '../layouts/PublicLayout';
 import Home from '../pages/Home';
 import About from '../pages/About';
@@ -27,20 +28,47 @@ import Achievements from '../pages/Achievements';
 import Events from '../pages/Events';
 import Contact from '../pages/Contact';
 import Notifications from '../pages/Notifications';
-import ForgotPasswordPage from '../features/auth/ForgotPasswordPage';
-import ResetPasswordPage from '../features/auth/ResetPasswordPage';
-import SessionExpiredPage from '../features/auth/SessionExpiredPage';
+import EnquiryPage from '../modules/admission/pages/public/EnquiryPage';
+import EnquirySuccessPage from '../modules/admission/pages/public/EnquirySuccessPage';
+import RegistrationPage from '../modules/admission/pages/public/RegistrationPage';
+import OtpVerificationPage from '../modules/admission/pages/public/OtpVerificationPage';
+import RegistrationSuccessPage from '../modules/admission/pages/public/RegistrationSuccessPage';
+import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
+import SessionExpiredPage from '../modules/auth/pages/SessionExpiredPage';
 import { AdmissionInquiryGuard } from '../modules/admission/components/AdmissionInquiryGuard';
 import { AdmissionApplicationGuard } from '../modules/admission/components/AdmissionApplicationGuard';
 import { LayoutErrorBoundary } from '../components/common/ErrorBoundary';
 import { PageSkeleton } from '../components/common/LoadingSkeleton';
 
 import { ROUTE_REGISTRY, RouteConfig } from '../config/route_registry';
+import { AutoTranslator } from '../components/i18n/AutoTranslator';
+import { LandingResolver } from '../services/LandingResolver';
+import { useAuth } from '../context/AuthContext';
+
+const RoleBasedDefaultRedirect: React.FC = () => {
+  const { user, loading } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+
+  if (loading) {
+    return <PageSkeleton />;
+  }
+
+  const destination = LandingResolver.resolveLandingRoute(rawRoles, [], user);
+  return <Navigate to={destination} replace />;
+};
 
 export const AppRouter = () => {
   const wrapWithGuards = (route: RouteConfig) => {
     let el = route.element;
-    if (route.guardType === 'admission_inquiry') {
+    if (route.guardType === 'front_office') {
+      el = <FrontOfficeRouteGuard>{el}</FrontOfficeRouteGuard>;
+    } else if (route.guardType === 'parent') {
+      el = <ParentRouteGuard>{el}</ParentRouteGuard>;
+    } else if (route.guardType === 'admin') {
+      el = <AdminRouteGuard>{el}</AdminRouteGuard>;
+    } else if (route.guardType === 'admission_inquiry') {
       el = <AdmissionInquiryGuard>{el}</AdmissionInquiryGuard>;
     } else if (route.guardType === 'admission_application') {
       el = <AdmissionApplicationGuard>{el}</AdmissionApplicationGuard>;
@@ -55,17 +83,14 @@ export const AppRouter = () => {
     return el;
   };
 
-  const dashboardRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'dashboard');
-  const admissionWorkspaceRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'admission_workspace');
-  const standaloneRoutes = ROUTE_REGISTRY.filter((r) => r.layout === 'none');
-
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AutoTranslator />
       <WorkspaceShell>
         <LayoutErrorBoundary>
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
-              {/* Public Site Routes */}
+              {/* Public Site Routes (inheriting Landing AnnouncementBar & Navbar) */}
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -76,8 +101,8 @@ export const AppRouter = () => {
                 <Route path="/faculty" element={<Faculty />} />
                 <Route path="/admissions" element={<Admissions />} />
                 <Route path="/admission-process" element={<AdmissionProcess />} />
-                <Route path="/admissions/apply" element={<AdmissionForm />} />
                 <Route path="/campus" element={<Campus />} />
+                <Route path="/gallery" element={<Campus />} />
                 <Route path="/student-life" element={<StudentLife />} />
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/events" element={<Events />} />
@@ -85,8 +110,19 @@ export const AppRouter = () => {
                 <Route path="/notifications" element={<Notifications />} />
               </Route>
 
-              {/* Login */}
+              {/* Public Standalone Enquiry Routes */}
+              <Route path="/enquiry" element={<EnquiryPage />} />
+              <Route path="/admissions/enquiry-form" element={<EnquiryPage />} />
+              <Route path="/admission/enquiry" element={<EnquiryPage />} />
+              <Route path="/admission/enquiry/success" element={<EnquirySuccessPage />} />
+
+              {/* Standalone Authentication & Parent Registration Routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<Navigate to="/admission/register" replace />} />
+              <Route path="/signup" element={<Navigate to="/admission/register" replace />} />
+              <Route path="/admission/register" element={<RegistrationPage />} />
+              <Route path="/admission/register/otp" element={<OtpVerificationPage />} />
+              <Route path="/admission/register/success" element={<RegistrationSuccessPage />} />
 
               {/* Auth Utility Pages */}
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -95,31 +131,19 @@ export const AppRouter = () => {
 
               {/* Protected App Routes */}
               <Route path="/app" element={<ProtectedRoute />}>
-                {/* Standalone routes outside layout */}
-                {standaloneRoutes.map((route) => (
-                  <Route key={route.path} path={route.path} element={wrapWithGuards(route)} />
-                ))}
-
-                {/* DashboardLayout routes */}
-                <Route element={<DashboardLayout />}>
-                  {dashboardRoutes.map((route) => (
+                {/* Single Canonical Global AppShell for all application routes */}
+                <Route element={<AppShell />}>
+                  {ROUTE_REGISTRY.map((route) => (
                     <Route key={route.path} path={route.path} element={wrapWithGuards(route)} />
                   ))}
+                  <Route path="unauthorized" element={<UnauthorizedPage />} />
+                  <Route path="" element={<RoleBasedDefaultRedirect />} />
                 </Route>
-
-                {/* AdmissionWorkspaceLayout routes */}
-                <Route element={<AdmissionWorkspaceLayout />}>
-                  {admissionWorkspaceRoutes.map((route) => (
-                    <Route key={route.path} path={route.path} element={wrapWithGuards(route)} />
-                  ))}
-                </Route>
-
-                <Route path="unauthorized" element={<UnauthorizedPage />} />
-                <Route path="" element={<Navigate to="dashboard" replace />} />
               </Route>
 
-              {/* Redirects */}
-              <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
+              {/* Canonical Persona Redirects */}
+              <Route path="/parent/*" element={<Navigate to="/app/parent/dashboard" replace />} />
+              <Route path="/app/*" element={<RoleBasedDefaultRedirect />} />
               <Route path="*" element={<Home />} />
             </Routes>
           </Suspense>

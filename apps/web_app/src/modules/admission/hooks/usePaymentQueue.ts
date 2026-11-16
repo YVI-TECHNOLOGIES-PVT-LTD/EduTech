@@ -46,7 +46,7 @@ export function usePaymentQueue(search = '', statusFilter = 'all') {
         ].forEach(app => {
             const ui = mapUIStatus(app.status);
             const hasPaymentLog = app.admission_audit_logs?.some(
-                l =>
+                (l: any) =>
                     l.action.toLowerCase().includes('payment') ||
                     l.action.toLowerCase().includes('fee') ||
                     l.action.toLowerCase().includes('receipt'),

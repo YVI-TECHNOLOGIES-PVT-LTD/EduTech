@@ -1,18 +1,13 @@
-import { useLocation } from 'react-router-dom';
-import { InquiryWorkspace } from '../components/inquiry/InquiryWorkspace';
+import React from 'react';
+import { LeadsManagementPage } from './front-office/LeadsManagementPage';
+import { PageContainer } from '@/components/layout/PageLayout';
 
 export function InquiryListPage() {
-    const location = useLocation();
-    const isAssignRoute = location.pathname.endsWith('/assign');
-    const hashAction = location.hash.replace('#', '');
-
-    return (
-        <InquiryWorkspace
-            mode={isAssignRoute ? 'assignment' : 'workspace'}
-            openCreateOnMount={hashAction === 'new'}
-            initialSection={hashAction === 'calls' ? 'followups' : undefined}
-        />
-    );
+  return (
+    <PageContainer variant="full">
+      <LeadsManagementPage />
+    </PageContainer>
+  );
 }
 
 export default InquiryListPage;
