@@ -6,7 +6,7 @@ services:
     region: oregon
     branch: main
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter @edutrack/validation run build && pnpm --filter @edutrack/api run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @edutrack/api... run build
     startCommand: pnpm --filter @edutrack/api run start
     healthCheckPath: /health/live
     autoDeploy: true

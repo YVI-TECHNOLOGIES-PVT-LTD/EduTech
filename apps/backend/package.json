@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon",
-    "build": "prisma generate && tsc",
+    "build": "pnpm --filter @edutrack/validation run build && prisma generate && tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "test": "node --env-file=.env -r ts-node/register src/tests/stage3-phase2-hardening.spec.ts && node --env-file=.env -r ts-node/register src/modules/academic-management/tests/verify_persistence.ts && node --env-file=.env -r ts-node/register src/modules/academic-management/tests/verify_concurrency.ts && node --env-file=.env -r ts-node/register src/modules/classroom/tests/classroom.spec.ts && node --env-file=.env -r ts-node/register src/modules/learning-activities/tests/learning-activities.spec.ts",

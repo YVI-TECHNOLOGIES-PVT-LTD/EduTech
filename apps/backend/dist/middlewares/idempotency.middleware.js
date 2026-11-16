@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkIdempotency = checkIdempotency;
+exports.checkIdempotency = void 0;
 const supabase_1 = require("../config/supabase");
 /**
  * Express middleware to enforce request idempotency via an Idempotency-Key header,
@@ -69,3 +69,4 @@ async function checkIdempotency(req, res, next) {
         next();
     }
 }
+exports.checkIdempotency = checkIdempotency;
