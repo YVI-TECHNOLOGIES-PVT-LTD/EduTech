@@ -50,7 +50,7 @@ export default function AcademicsHubScreen() {
 
   const handleRefresh = async () => {
     if (enrolledStudent?.studentId) {
-      await fetchStudentAcademics(enrolledStudent.studentId);
+      await fetchStudentAcademics(enrolledStudent.studentId, true);
     }
   };
 

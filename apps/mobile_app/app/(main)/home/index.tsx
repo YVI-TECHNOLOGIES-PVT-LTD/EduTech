@@ -46,21 +46,24 @@ export default function HomeDashboardScreen() {
     syncChildren(user?.id);
   }, [user?.id, syncChildren]);
 
-  // When active enrolled student changes, hydrate academics and finance data
+  const enrolledStudentId =
+    activeChild && activeChild.kind === 'enrolled' ? activeChild.studentId : null;
+
+  // When active enrolled student changes, hydrate academics and finance data (demand-driven, cached)
   useEffect(() => {
-    if (activeChild && activeChild.kind === 'enrolled') {
-      fetchStudentAcademics(activeChild.studentId);
-      fetchChildFees(activeChild.studentId);
+    if (enrolledStudentId) {
+      fetchStudentAcademics(enrolledStudentId);
+      fetchChildFees(enrolledStudentId);
     }
-  }, [activeChild, fetchStudentAcademics, fetchChildFees]);
+  }, [enrolledStudentId, fetchStudentAcademics, fetchChildFees]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await syncChildren(user?.id);
-    if (activeChild && activeChild.kind === 'enrolled') {
+    await syncChildren(user?.id, true);
+    if (enrolledStudentId) {
       await Promise.all([
-        fetchStudentAcademics(activeChild.studentId),
-        fetchChildFees(activeChild.studentId),
+        fetchStudentAcademics(enrolledStudentId, true),
+        fetchChildFees(enrolledStudentId, true),
       ]);
     }
     setRefreshing(false);

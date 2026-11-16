@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 
 export interface AvatarProps {
   source?: string;
@@ -9,52 +10,60 @@ export interface AvatarProps {
   showOnlineStatus?: boolean;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({
-  source,
-  uri,
-  name = 'U',
-  size = 'md',
-  showOnlineStatus = false,
-}) => {
-  const imageSource = source || uri;
+export const Avatar: React.FC<AvatarProps> = React.memo(
+  ({ source, uri, name = 'U', size = 'md', showOnlineStatus = false }) => {
+    const [hasError, setHasError] = useState(false);
+    const imageSource = source || uri;
 
-  const getSizeStyle = () => {
-    switch (size) {
-      case 'sm':
-        return 'w-9 h-9 text-xs';
-      case 'lg':
-        return 'w-14 h-14 text-lg';
-      case 'xl':
-        return 'w-20 h-20 text-2xl';
-      case 'md':
-      default:
-        return 'w-11 h-11 text-sm';
-    }
-  };
+    const getSizeStyle = () => {
+      switch (size) {
+        case 'sm':
+          return 'w-9 h-9 text-xs';
+        case 'lg':
+          return 'w-14 h-14 text-lg';
+        case 'xl':
+          return 'w-20 h-20 text-2xl';
+        case 'md':
+        default:
+          return 'w-11 h-11 text-sm';
+      }
+    };
 
-  const initials =
-    name
-      .split(' ')
-      .filter(Boolean)
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2) || 'U';
+    const initials =
+      name
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2) || 'U';
 
-  return (
-    <View className="relative">
-      <View
-        className={`rounded-full bg-indigo-600 border-2 border-white dark:border-slate-800 items-center justify-center overflow-hidden shadow-sm ${getSizeStyle()}`}
-      >
-        {imageSource ? (
-          <Image source={{ uri: imageSource }} className="w-full h-full" resizeMode="cover" />
-        ) : (
-          <Text className="font-extrabold text-white tracking-wider">{initials}</Text>
+    const shouldRenderImage = Boolean(imageSource) && !hasError;
+
+    return (
+      <View className="relative">
+        <View
+          className={`rounded-full bg-indigo-600 border-2 border-white dark:border-slate-800 items-center justify-center overflow-hidden shadow-sm ${getSizeStyle()}`}
+        >
+          {shouldRenderImage ? (
+            <ExpoImage
+              source={{ uri: imageSource! }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+              onError={() => setHasError(true)}
+            />
+          ) : (
+            <Text className="font-extrabold text-white tracking-wider">{initials}</Text>
+          )}
+        </View>
+        {showOnlineStatus && (
+          <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
         )}
       </View>
-      {showOnlineStatus && (
-        <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
-      )}
-    </View>
-  );
-};
+    );
+  },
+);
+
+Avatar.displayName = 'Avatar';

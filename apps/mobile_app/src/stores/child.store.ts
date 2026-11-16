@@ -17,11 +17,12 @@ interface ChildStoreState {
   errorMessage: string | null;
   accountType: AccountLifecycleType | null;
   lifecycleData: any | null;
+  lastSyncedAt: number;
 
   setChildren: (children: UnifiedChild[]) => void;
   selectChild: (id: string) => boolean;
   getSelectedChild: () => UnifiedChild | null;
-  syncChildren: (parentId?: string) => Promise<void>;
+  syncChildren: (parentId?: string, force?: boolean) => Promise<void>;
   hydrateStoredSelection: () => Promise<void>;
   reset: () => void;
 }
@@ -34,6 +35,7 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
   errorMessage: null,
   accountType: null,
   lifecycleData: null,
+  lastSyncedAt: 0,
 
   setChildren: (children: UnifiedChild[]) => {
     const currentSelectedId = get().selectedChildId;
@@ -113,7 +115,13 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
     }
   },
 
-  syncChildren: async (parentId?: string) => {
+  syncChildren: async (parentId?: string, force = false) => {
+    const { children, lastSyncedAt } = get();
+    // Cache guard: If children already loaded and synced within last 60 seconds, reuse unless forced
+    if (!force && children.length > 0 && Date.now() - lastSyncedAt < 60 * 1000) {
+      return;
+    }
+
     set({ isLoading: true, isError: false, errorMessage: null });
     try {
       const unifiedList: UnifiedChild[] = [];
@@ -312,6 +320,7 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
       }
 
       get().setChildren(unifiedList);
+      set({ lastSyncedAt: Date.now() });
       await get().hydrateStoredSelection();
     } catch (err: any) {
       set({
@@ -333,6 +342,7 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
       errorMessage: null,
       accountType: null,
       lifecycleData: null,
+      lastSyncedAt: 0,
     });
   },
 }));

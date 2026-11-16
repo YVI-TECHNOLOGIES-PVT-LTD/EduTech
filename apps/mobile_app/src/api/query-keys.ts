@@ -41,4 +41,21 @@ export const QUERY_KEYS = {
     all: ['notifications', 'list'] as const,
     unreadCount: ['notifications', 'unreadCount'] as const,
   },
+  academics: {
+    all: ['academics'] as const,
+    attendance: (studentId: string, month?: string) =>
+      ['academics', 'attendance', studentId, month || 'current'] as const,
+    timetable: (studentId: string) => ['academics', 'timetable', studentId] as const,
+    homework: (studentId: string) => ['academics', 'homework', studentId] as const,
+    exams: (studentId: string) => ['academics', 'exams', studentId] as const,
+    reportCard: (studentId: string, term?: string) =>
+      ['academics', 'reportCard', studentId, term || 'all'] as const,
+  },
+  finance: {
+    childLedger: (studentId: string) => ['finance', 'childLedger', studentId] as const,
+  },
+  parent: {
+    lifecycle: (parentId?: string) => ['parent', 'lifecycle', parentId || 'current'] as const,
+    students: (parentId: string) => ['parent', 'students', parentId] as const,
+  },
 } as const;

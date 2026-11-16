@@ -6,7 +6,13 @@ import {
   VerifyPaymentPayload,
 } from '../api/finance.api';
 
+export interface StudentFinanceCache {
+  ledger: ChildFeeLedger | null;
+  cachedAt: number;
+}
+
 interface FinanceState {
+  currentStudentId: string | null;
   ledger: ChildFeeLedger | null;
   isLoading: boolean;
   isCheckingOut: boolean;
@@ -14,8 +20,9 @@ interface FinanceState {
   errorMessage: string | null;
   activeOrder: CreateOrderResponse | null;
   paymentSuccessNotice: string | null;
+  studentCache: Record<string, StudentFinanceCache>;
 
-  fetchChildFees: (studentId: string) => Promise<void>;
+  fetchChildFees: (studentId: string, force?: boolean) => Promise<void>;
   initiatePayment: (
     studentId: string,
     dueId: string,
@@ -26,7 +33,10 @@ interface FinanceState {
   clear: () => void;
 }
 
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes in-memory cache
+
 export const useFinanceStore = create<FinanceState>((set, get) => ({
+  currentStudentId: null,
   ledger: null,
   isLoading: false,
   isCheckingOut: false,
@@ -34,13 +44,51 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   errorMessage: null,
   activeOrder: null,
   paymentSuccessNotice: null,
+  studentCache: {},
 
-  fetchChildFees: async (studentId: string) => {
+  fetchChildFees: async (studentId: string, force = false) => {
     if (!studentId) return;
+
+    const { studentCache, currentStudentId } = get();
+    const cached = studentCache[studentId];
+    const isCacheFresh = cached && Date.now() - cached.cachedAt < CACHE_TTL_MS;
+
+    // Fast path: Return cached child fee ledger immediately if fresh and not forced
+    if (!force && isCacheFresh) {
+      set({
+        currentStudentId: studentId,
+        ledger: cached.ledger,
+        isLoading: false,
+        isError: false,
+        errorMessage: null,
+      });
+      return;
+    }
+
+    // If switching student without fresh cache, clear previous student ledger to avoid stale flash
+    if (currentStudentId !== studentId) {
+      set({
+        currentStudentId: studentId,
+        ledger: cached?.ledger || null,
+      });
+    }
+
     set({ isLoading: true, isError: false, errorMessage: null });
     try {
       const data = await financeApi.getChildFeeDetails(studentId);
-      set({ ledger: data, isLoading: false });
+      const freshEntry: StudentFinanceCache = {
+        ledger: data,
+        cachedAt: Date.now(),
+      };
+      set((state) => ({
+        currentStudentId: studentId,
+        ledger: data,
+        isLoading: false,
+        studentCache: {
+          ...state.studentCache,
+          [studentId]: freshEntry,
+        },
+      }));
     } catch (err: any) {
       set({
         isLoading: false,
@@ -81,10 +129,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
           activeOrder: null,
           paymentSuccessNotice: 'Fee installment payment confirmed successfully.',
         });
-        // Refresh fee details if studentId is present
+        // Invalidate cache and refresh fee details for current student
         const currentStudentId = get().ledger?.student_id;
         if (currentStudentId) {
-          get().fetchChildFees(currentStudentId);
+          get().fetchChildFees(currentStudentId, true);
         }
         return true;
       }
@@ -116,6 +164,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
   clear: () => {
     set({
+      currentStudentId: null,
       ledger: null,
       isLoading: false,
       isCheckingOut: false,
@@ -123,6 +172,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       errorMessage: null,
       activeOrder: null,
       paymentSuccessNotice: null,
+      studentCache: {},
     });
   },
 }));

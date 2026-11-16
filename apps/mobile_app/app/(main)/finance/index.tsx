@@ -52,7 +52,7 @@ export default function FinanceHubScreen() {
 
   const handleRefresh = async () => {
     if (enrolledStudentId) {
-      await fetchChildFees(enrolledStudentId);
+      await fetchChildFees(enrolledStudentId, true);
     }
   };
 

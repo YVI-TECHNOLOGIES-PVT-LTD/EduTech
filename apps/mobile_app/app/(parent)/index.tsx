@@ -63,17 +63,18 @@ export default function ParentDashboardScreen() {
   } = useQuery<AdmissionApplication[], Error>({
     queryKey: QUERY_KEYS.applications.mine(),
     queryFn: () => applicationsApi.listMine(),
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   // 2. Fetch Unread Notifications Count
   const { data: unreadCount = 0 } = useQuery<number, Error>({
     queryKey: QUERY_KEYS.notifications.unreadCount,
     queryFn: () => notificationsApi.getUnreadCount(),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60, // 1 minute cache
   });
 
   const handleRefresh = async () => {
-    await Promise.all([syncChildren(user?.id), refetchApps()]);
+    await Promise.all([syncChildren(user?.id, true), refetchApps()]);
   };
 
   const parentName =

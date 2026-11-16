@@ -25,6 +25,10 @@ jest.mock('react-native', () => ({
     flatten: (styles) => styles,
     hairlineWidth: 1,
   },
+  AppState: {
+    currentState: 'active',
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
 }));
 
 jest.mock('expo-secure-store', () => ({
@@ -71,3 +75,10 @@ jest.mock('expo-constants', () => ({
     },
   },
 }));
+
+jest.mock('expo-image', () => {
+  const React = require('react');
+  return {
+    Image: (props) => React.createElement('Image', props),
+  };
+});
