@@ -37,8 +37,9 @@
       "distribution": "store",
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.edutrack.com/api",
-        "EXPO_PUBLIC_WS_URL": "wss://api.edutrack.com/ws/notifications",
+        "EXPO_PUBLIC_API_URL": "https://edutrack-backend-0fyq.onrender.com/api",
+        "EXPO_PUBLIC_WS_URL": "wss://edutrack-backend-0fyq.onrender.com/ws/notifications",
+        "EXPO_PUBLIC_PARENT_WEB_URL": "https://edutrackcom.netlify.app/fees/my",
         "EXPO_PUBLIC_ENABLE_LOGGING": "false",
         "EXPO_PUBLIC_ENABLE_ANALYTICS": "true"
       },
