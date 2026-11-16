@@ -3454,6 +3454,7 @@ model assessment_attendance {
   users                           users                         @relation(fields: [recorded_by_user_id], references: [user_id], onUpdate: NoAction, map: "fk_assessment_attendance_recorder")
   assessment_students             assessment_students           @relation(fields: [assessment_student_id, assessment_id], references: [assessment_student_id, assessment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_assessment_attendance_roster")
 
+  @@unique([assessment_student_id, assessment_id], map: "uq_assessment_attendance_student_assessment")
   @@index([assessment_id, attendance_status], map: "ix_assessment_attendance_assessment")
   @@schema("public")
 }
@@ -3652,6 +3653,7 @@ model assessment_results {
   assessment_rubric_evaluations assessment_rubric_evaluations[]
 
   @@unique([assessment_result_id, assessment_id], map: "uq_assessment_results_id_assessment")
+  @@unique([assessment_student_id, assessment_id], map: "uq_assessment_results_student_assessment")
   @@index([assessment_id, result_status], map: "ix_assessment_results_assessment")
   @@schema("public")
 }
@@ -3970,6 +3972,7 @@ model intervention_plans {
   intervention_progress_notes intervention_progress_notes[]
 
   @@unique([intervention_plan_id, org_id], map: "uq_intervention_plans_id_org")
+  @@unique([learning_gap_id, org_id], map: "uq_intervention_plans_learning_gap_org")
   @@index([org_id, status], map: "ix_intervention_plans_org_status")
   @@index([assigned_teacher_staff_id, status], map: "ix_intervention_plans_teacher_status")
   @@schema("public")
