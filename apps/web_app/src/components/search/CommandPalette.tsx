@@ -29,7 +29,7 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
   const userRoles = useMemo(() => {
     if (user?.roles && user.roles.length > 0) return user.roles;
     if ((user as any)?.role) return [(user as any).role];
-    return ['PARENT'];
+    return ['ADMIN'];
   }, [user]);
 
   const navGroups = useMemo(() => getNavigationForUser(userRoles), [userRoles]);
@@ -116,7 +116,7 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
 
   return (
     <div
-      className={`w-full bg-popover/90 backdrop-blur-2xl text-popover-foreground border border-border/80 rounded-[14px] shadow-2xl overflow-hidden ring-1 ring-border/50 ${className}`}
+      className={`w-full bg-popover/95 backdrop-blur-2xl text-popover-foreground border border-border/80 rounded-[16px] shadow-2xl overflow-hidden ring-1 ring-border/50 ${className}`}
     >
       {/* Search Input Bar */}
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border/70 bg-card/60">
@@ -141,11 +141,22 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
               setSelectedIndex(0);
               inputRef.current?.focus();
             }}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors"
+            title="Clear search query"
+            aria-label="Clear search query"
+            className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors cursor-pointer mr-0.5"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
+        <button
+          type="button"
+          onClick={onClose}
+          title="Close search modal (Esc)"
+          aria-label="Close search modal"
+          className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/80 transition-colors cursor-pointer border border-border/50 hover:border-border/80"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Results List */}

@@ -22,7 +22,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { useGetParentChildProfileQuery } from '@/shared/api/parentPortal.api';
 import { useParentSelectedChild } from '../hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '../components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -90,13 +89,6 @@ export const ParentChildrenPage: React.FC = () => {
         />
       ) : (
         <>
-          <ParentChildSelectorBar
-            childrenList={children}
-            selectedChildId={selectedChildId}
-            onSelectChild={selectChild}
-            title="Select Linked Child"
-          />
-
           {isProfileLoading && !profileData ? (
             <ParentLoadingSkeleton cards={2} />
           ) : isProfileError ? (

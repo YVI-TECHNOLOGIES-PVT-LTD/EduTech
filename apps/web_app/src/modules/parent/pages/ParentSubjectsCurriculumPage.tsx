@@ -9,7 +9,6 @@ import {
   useGetChildSubjectsQuery,
 } from '@/shared/api/parentPortal.api';
 import { useParentSelectedChild } from '../hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '../components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -97,15 +96,6 @@ export const ParentSubjectsCurriculumPage: React.FC = () => {
         <ParentNoChildrenState />
       ) : (
         <>
-          <ParentChildSelectorBar
-            childrenList={children}
-            selectedChildId={selectedChildId}
-            onSelectChild={(id) => {
-              setSelectedSubjectId(null);
-              selectChild(id);
-            }}
-          />
-
           {(isSubjectsLoading || isCurriculumLoading) && !subjectsData ? (
             <ParentLoadingSkeleton />
           ) : isSubjectsError || isCurriculumError ? (

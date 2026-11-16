@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useGetChildAcademicProgressQuery } from '@/shared/api/parentPortal.api';
 import { useParentSelectedChild } from '../hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '../components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -60,12 +59,6 @@ export const ParentAcademicProgressPage: React.FC = () => {
         <ParentNoChildrenState />
       ) : (
         <>
-          <ParentChildSelectorBar
-            childrenList={children}
-            selectedChildId={selectedChildId}
-            onSelectChild={selectChild}
-          />
-
           {isLoading && !data ? (
             <ParentLoadingSkeleton />
           ) : isError ? (

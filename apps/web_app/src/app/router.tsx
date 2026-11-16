@@ -1,9 +1,9 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceShell } from '../modules/common/workspace/WorkspaceShell';
-import { LoginPage } from '../modules/auth/pages/LoginPage';
-import UnauthorizedPage from '../pages/Unauthorized';
-import NotFoundPage from '../pages/NotFoundPage';
+const LoginPage = React.lazy(() => import('../modules/auth/pages/LoginPage'));
+const UnauthorizedPage = React.lazy(() => import('../pages/Unauthorized'));
+const NotFoundPage = React.lazy(() => import('../pages/NotFoundPage'));
 import {
   ProtectedRoute,
   PermissionGuard,
@@ -15,30 +15,38 @@ import {
   TeacherRouteGuard,
 } from '../components/auth/ProtectedRoute';
 import { AppShell } from '../components/shell/AppShell';
-import PublicLayout from '../layouts/PublicLayout';
-import Home from '../pages/Home';
-import About from '../pages/About';
-import VisionMission from '../pages/VisionMission';
-import Leadership from '../pages/Leadership';
-import Academics from '../pages/Academics';
-import Departments from '../pages/Departments';
-import Faculty from '../pages/Faculty';
-import Admissions from '../pages/Admissions';
-import AdmissionProcess from '../pages/AdmissionProcess';
-import Campus from '../pages/Campus';
-import StudentLife from '../pages/StudentLife';
-import Achievements from '../pages/Achievements';
-import Events from '../pages/Events';
-import Contact from '../pages/Contact';
-import Notifications from '../pages/Notifications';
-import EnquiryPage from '../modules/admission/pages/public/EnquiryPage';
-import EnquirySuccessPage from '../modules/admission/pages/public/EnquirySuccessPage';
-import RegistrationPage from '../modules/admission/pages/public/RegistrationPage';
-import OtpVerificationPage from '../modules/admission/pages/public/OtpVerificationPage';
-import RegistrationSuccessPage from '../modules/admission/pages/public/RegistrationSuccessPage';
-import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
-import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
-import SessionExpiredPage from '../modules/auth/pages/SessionExpiredPage';
+const PublicLayout = React.lazy(() => import('../layouts/PublicLayout'));
+const Home = React.lazy(() => import('../pages/Home'));
+const About = React.lazy(() => import('../pages/About'));
+const VisionMission = React.lazy(() => import('../pages/VisionMission'));
+const Leadership = React.lazy(() => import('../pages/Leadership'));
+const Academics = React.lazy(() => import('../pages/Academics'));
+const Departments = React.lazy(() => import('../pages/Departments'));
+const Faculty = React.lazy(() => import('../pages/Faculty'));
+const Admissions = React.lazy(() => import('../pages/Admissions'));
+const AdmissionProcess = React.lazy(() => import('../pages/AdmissionProcess'));
+const Campus = React.lazy(() => import('../pages/Campus'));
+const StudentLife = React.lazy(() => import('../pages/StudentLife'));
+const Achievements = React.lazy(() => import('../pages/Achievements'));
+const Events = React.lazy(() => import('../pages/Events'));
+const Contact = React.lazy(() => import('../pages/Contact'));
+const Notifications = React.lazy(() => import('../pages/Notifications'));
+const EnquiryPage = React.lazy(() => import('../modules/admission/pages/public/EnquiryPage'));
+const EnquirySuccessPage = React.lazy(
+  () => import('../modules/admission/pages/public/EnquirySuccessPage'),
+);
+const RegistrationPage = React.lazy(
+  () => import('../modules/admission/pages/public/RegistrationPage'),
+);
+const OtpVerificationPage = React.lazy(
+  () => import('../modules/admission/pages/public/OtpVerificationPage'),
+);
+const RegistrationSuccessPage = React.lazy(
+  () => import('../modules/admission/pages/public/RegistrationSuccessPage'),
+);
+const ForgotPasswordPage = React.lazy(() => import('../modules/auth/pages/ForgotPasswordPage'));
+const ResetPasswordPage = React.lazy(() => import('../modules/auth/pages/ResetPasswordPage'));
+const SessionExpiredPage = React.lazy(() => import('../modules/auth/pages/SessionExpiredPage'));
 import { AdmissionInquiryGuard } from '../modules/admission/components/AdmissionInquiryGuard';
 import { AdmissionApplicationGuard } from '../modules/admission/components/AdmissionApplicationGuard';
 import { LayoutErrorBoundary } from '../components/common/ErrorBoundary';

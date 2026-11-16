@@ -301,25 +301,77 @@ export class ParentOverviewService {
               student_id: { in: targetStudentIds },
               org_id: safeOrgId, // Strict tenant boundary enforcement
             },
-            include: {
+            select: {
+              student_id: true,
+              org_id: true,
+              admission_no: true,
+              first_name: true,
+              last_name: true,
+              status: true,
+              application_id: true,
+              dob: true,
+              gender: true,
+              nationality: true,
               student_enrollments: {
                 where: { status: 'active' },
-                include: {
+                select: {
+                  enrollment_id: true,
+                  section_id: true,
+                  academic_year_grade_id: true,
+                  roll_number: true,
+                  status: true,
+                  enrollment_date: true,
+                  created_at: true,
                   academic_year_grades: {
-                    include: {
-                      academic_years: true,
-                      grades: true,
+                    select: {
+                      academic_year_grade_id: true,
+                      academic_years: {
+                        select: {
+                          academic_year_id: true,
+                          academic_year_name: true,
+                          status: true,
+                          org_id: true,
+                        },
+                      },
+                      grades: {
+                        select: {
+                          grade_id: true,
+                          grade_name: true,
+                          grade_code: true,
+                        },
+                      },
                     },
                   },
-                  sections: true,
+                  sections: {
+                    select: {
+                      section_id: true,
+                      section_name: true,
+                    },
+                  },
                 },
                 orderBy: [{ enrollment_date: 'desc' }, { created_at: 'desc' }],
               },
               admissions_applications: {
-                include: {
+                select: {
+                  application_id: true,
                   admission_documents: {
-                    include: {
-                      document_types: true,
+                    select: {
+                      document_id: true,
+                      document_type_id: true,
+                      original_file_name: true,
+                      mime_type: true,
+                      file_size: true,
+                      verify_status: true,
+                      verification_remarks: true,
+                      uploaded_at: true,
+                      verified_at: true,
+                      storage_path: true,
+                      document_types: {
+                        select: {
+                          document_name: true,
+                          is_mandatory: true,
+                        },
+                      },
                     },
                     orderBy: { uploaded_at: 'desc' },
                   },

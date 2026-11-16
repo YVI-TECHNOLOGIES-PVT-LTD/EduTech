@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ChildCalendarEntryDto, useGetChildCalendarQuery } from '@/shared/api/parentPortal.api';
 import { useParentSelectedChild } from '../hooks/useParentSelectedChild';
-import { ParentChildSelectorBar } from '../components/ParentChildSelectorBar';
 import {
   ParentErrorState,
   ParentLoadingSkeleton,
@@ -143,12 +142,6 @@ export const ParentAcademicCalendarPage: React.FC = () => {
         <ParentNoChildrenState />
       ) : (
         <div className="space-y-6">
-          <ParentChildSelectorBar
-            childrenList={children}
-            selectedChildId={selectedChildId}
-            onSelectChild={selectChild}
-          />
-
           {isLoading ? (
             <ParentLoadingSkeleton cards={2} />
           ) : isError ? (

@@ -178,9 +178,17 @@ export interface FlippedPreparationDto {
   preparation_deadline: string | null;
   resources: FlippedPreparationResourceDto[];
   outcomes: FlippedPreparationOutcomeDto[];
+  learning_outcomes?: FlippedPreparationOutcomeDto[];
   preparation_questions: FlippedPreparationQuestionDto[];
+  questions?: FlippedPreparationQuestionDto[];
   in_class_activities: FlippedInClassActivityDto[];
   post_class_activities: FlippedPostClassActivityDto[];
+  monitoring?: {
+    enrolled_count: number;
+    resources_accessed_count?: number;
+    questions_completed_count?: number;
+    submission_rate_percent?: number;
+  };
 }
 
 export interface TeacherSessionDetailDto {
