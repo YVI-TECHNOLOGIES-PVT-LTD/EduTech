@@ -29,8 +29,9 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      # Optional. When unset, the API derives a distinct refresh secret from JWT_SECRET.
       - key: JWT_REFRESH_SECRET
-        generateValue: true
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

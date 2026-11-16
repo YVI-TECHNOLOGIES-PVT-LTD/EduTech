@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -21,6 +22,11 @@ dotenv.config();
 export const DEV_DEFAULT_JWT_SECRET = 'edutrack-enterprise-jwt-secret-2026';
 export const DEV_DEFAULT_JWT_REFRESH_SECRET = 'edutrack-enterprise-jwt-refresh-secret-2026';
 const MIN_PRODUCTION_SECRET_LENGTH = 32;
+
+/** Stable distinct refresh secret when only JWT_SECRET is configured. */
+export function deriveJwtRefreshSecret(jwtSecret: string): string {
+  return crypto.createHmac('sha256', jwtSecret).update('edutrack-jwt-refresh-v1').digest('hex');
+}
 
 const envSchema = z
   .object({
@@ -61,31 +67,30 @@ const envSchema = z
         });
       }
 
-      if (!val.JWT_REFRESH_SECRET || val.JWT_REFRESH_SECRET.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['JWT_REFRESH_SECRET'],
-          message: 'JWT_REFRESH_SECRET must be explicitly configured in staging/production modes.',
-        });
-      } else if (val.JWT_REFRESH_SECRET === DEV_DEFAULT_JWT_REFRESH_SECRET) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['JWT_REFRESH_SECRET'],
-          message:
-            'JWT_REFRESH_SECRET cannot use the known development default in staging/production.',
-        });
-      } else if (val.JWT_REFRESH_SECRET.length < MIN_PRODUCTION_SECRET_LENGTH) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['JWT_REFRESH_SECRET'],
-          message: `JWT_REFRESH_SECRET must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters in staging/production.`,
-        });
-      } else if (val.JWT_SECRET && val.JWT_REFRESH_SECRET === val.JWT_SECRET) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['JWT_REFRESH_SECRET'],
-          message: 'JWT_REFRESH_SECRET must be distinct from JWT_SECRET in staging/production.',
-        });
+      // JWT_REFRESH_SECRET is optional: when omitted, validateEnvConfig derives a
+      // distinct secret from JWT_SECRET so production can run with a single key.
+      const refreshSecret = val.JWT_REFRESH_SECRET?.trim() || '';
+      if (refreshSecret) {
+        if (refreshSecret === DEV_DEFAULT_JWT_REFRESH_SECRET) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['JWT_REFRESH_SECRET'],
+            message:
+              'JWT_REFRESH_SECRET cannot use the known development default in staging/production.',
+          });
+        } else if (refreshSecret.length < MIN_PRODUCTION_SECRET_LENGTH) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['JWT_REFRESH_SECRET'],
+            message: `JWT_REFRESH_SECRET must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters in staging/production.`,
+          });
+        } else if (val.JWT_SECRET && refreshSecret === val.JWT_SECRET) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['JWT_REFRESH_SECRET'],
+            message: 'JWT_REFRESH_SECRET must be distinct from JWT_SECRET in staging/production.',
+          });
+        }
       }
     }
   });
@@ -114,7 +119,12 @@ export function validateEnvConfig(rawEnv: Record<string, string | undefined>) {
 
   const data = parseResult.data;
   const effectiveJwtSecret = data.JWT_SECRET || DEV_DEFAULT_JWT_SECRET;
-  const effectiveRefreshSecret = data.JWT_REFRESH_SECRET || DEV_DEFAULT_JWT_REFRESH_SECRET;
+  const explicitRefreshSecret = data.JWT_REFRESH_SECRET?.trim() || '';
+  const effectiveRefreshSecret = explicitRefreshSecret
+    ? explicitRefreshSecret
+    : data.JWT_SECRET
+      ? deriveJwtRefreshSecret(effectiveJwtSecret)
+      : DEV_DEFAULT_JWT_REFRESH_SECRET;
 
   return {
     ...data,

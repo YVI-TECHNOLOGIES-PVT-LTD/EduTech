@@ -181,6 +181,14 @@ export async function runStage3Phase2HardeningTests() {
       /distinct/,
     );
 
+    const accessOnly = validateEnvConfig({
+      ...base,
+      JWT_SECRET: 'prod-access-secret-minimum-32-characters-long-alpha',
+    });
+    assert.strictEqual(accessOnly.NODE_ENV, 'production');
+    assert.notStrictEqual(accessOnly.JWT_REFRESH_SECRET, accessOnly.JWT_SECRET);
+    assert.ok(accessOnly.JWT_REFRESH_SECRET.length >= 32);
+
     const valid = validateEnvConfig({
       ...base,
       JWT_SECRET: 'prod-access-secret-minimum-32-characters-long-alpha',
