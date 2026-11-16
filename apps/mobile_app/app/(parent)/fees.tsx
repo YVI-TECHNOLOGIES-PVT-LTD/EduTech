@@ -3,14 +3,16 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme';
 import { useMyChildrenFees } from '../../src/features/parent/hooks/useMyChildrenFees';
 import { EnrolledChildFeeCard } from '../../src/components/parent/EnrolledChildFeeCard';
@@ -19,6 +21,7 @@ import { feesApi } from '../../src/api/fees.api';
 
 export default function ParentFeesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const searchParams = useLocalSearchParams<{
     status?: string;
@@ -158,10 +161,19 @@ export default function ParentFeesScreen() {
     }
   };
 
+  // Safe area insets with guaranteed Android status bar & bottom bar clearance
+  const androidStatusHeight = StatusBar.currentHeight || 24;
+  const topSafeInset =
+    insets.top > 0 ? insets.top : Platform.OS === 'android' ? androidStatusHeight : 16;
+  const bottomSafeInset = Math.max(insets.bottom, 16);
+
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <View className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex-row items-center justify-between">
+      <View
+        style={{ paddingTop: topSafeInset + 8 }}
+        className="px-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex-row items-center justify-between"
+      >
         <View className="flex-row items-center flex-1 mr-2">
           <TouchableOpacity
             onPress={handleBack}
@@ -318,6 +330,6 @@ export default function ParentFeesScreen() {
           />
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

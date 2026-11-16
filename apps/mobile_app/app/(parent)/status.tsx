@@ -523,7 +523,7 @@ export default function AdmissionStatusScreen() {
   ]);
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -1258,7 +1258,7 @@ export default function AdmissionStatusScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1268,7 +1268,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 88,
   },
   refreshButton: {
     width: 38,

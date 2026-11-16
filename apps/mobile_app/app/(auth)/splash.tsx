@@ -1,16 +1,24 @@
 import React from 'react';
-import { View, Text, StatusBar, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StatusBar, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ROUTES } from '../../src/constants/routes';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const topSafe = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 16,
+  );
+  const bottomSafe = Math.max(insets.bottom, 16);
 
   return (
     <View className="flex-1 bg-[#3730a3]">
       <StatusBar barStyle="light-content" />
-      
+
       {/* Background Royal Blue/Purple Gradient Overlay Container */}
       <View className="absolute inset-0 bg-[#312e81]">
         {/* Faint Background Line Illustration Accents */}
@@ -25,7 +33,10 @@ export default function SplashScreen() {
         </View>
       </View>
 
-      <SafeAreaView className="flex-1 justify-between px-6 py-6 z-10">
+      <View
+        style={{ paddingTop: topSafe + 16, paddingBottom: bottomSafe + 16 }}
+        className="flex-1 justify-between px-6 z-10"
+      >
         {/* Top Header Logo Bar */}
         <View className="items-center mt-6">
           <View className="flex-row items-center justify-center">
@@ -33,9 +44,7 @@ export default function SplashScreen() {
               <Ionicons name="school" size={28} color="#ffffff" />
             </View>
             <View>
-              <Text className="text-2xl font-black text-white tracking-tight">
-                EduTrack
-              </Text>
+              <Text className="text-2xl font-black text-white tracking-tight">EduTrack</Text>
               <Text className="text-xs font-semibold text-indigo-200 tracking-wider">
                 School ERP
               </Text>
@@ -55,7 +64,8 @@ export default function SplashScreen() {
           </Text>
 
           <Text className="text-sm font-medium text-indigo-100/90 leading-relaxed mb-8 max-w-sm">
-            A complete school management solution for students, teachers, parents and administrators.
+            A complete school management solution for students, teachers, parents and
+            administrators.
           </Text>
 
           <TouchableOpacity
@@ -67,7 +77,7 @@ export default function SplashScreen() {
             <Ionicons name="arrow-forward" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

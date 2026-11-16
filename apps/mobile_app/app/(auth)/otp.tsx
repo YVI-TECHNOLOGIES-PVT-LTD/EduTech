@@ -4,13 +4,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ROUTES } from '../../src/constants/routes';
 import { useVerifyOtp } from '../../src/features/auth';
 import { useAuthStore } from '../../src/stores/auth.store';
@@ -19,6 +20,7 @@ import { Button } from '../../src/components/ui/atoms/Button';
 
 export default function OtpScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ email?: string; phone?: string }>();
   const { colors } = useTheme();
   const { isAuthenticated, isHydrating } = useAuthStore();
@@ -99,8 +101,15 @@ export default function OtpScreen() {
         bounces={false}
       >
         {/* Top Header */}
-        <View className="h-44 bg-indigo-950 justify-center px-6 relative">
-          <SafeAreaView>
+        <View
+          style={{
+            paddingTop:
+              Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 16) +
+              12,
+          }}
+          className="pb-6 bg-indigo-950 justify-center px-6 relative"
+        >
+          <View>
             <TouchableOpacity
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/20 mb-2"
@@ -115,7 +124,7 @@ export default function OtpScreen() {
             <Text className="text-xs font-bold text-white mt-0.5">
               {params.email || 'your registered email'}
             </Text>
-          </SafeAreaView>
+          </View>
         </View>
 
         {/* Bottom Sheet */}

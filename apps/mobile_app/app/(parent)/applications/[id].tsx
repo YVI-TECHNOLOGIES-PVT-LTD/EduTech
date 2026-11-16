@@ -35,7 +35,7 @@ export default function ApplicationDetailScreen() {
   // Invalid or Missing ID State
   if (!appId) {
     return (
-      <SafeAreaView
+      <View
         style={[
           styles.safeArea,
           { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -90,14 +90,14 @@ export default function ApplicationDetailScreen() {
             />
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Loading State
   if (isLoading) {
     return (
-      <SafeAreaView
+      <View
         style={[
           styles.safeArea,
           { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -107,14 +107,14 @@ export default function ApplicationDetailScreen() {
         <View style={styles.loadingPadding}>
           <ParentLoadingSkeleton type="details" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Error State (Screen 6 Reference)
   if (isError || !application) {
     return (
-      <SafeAreaView
+      <View
         style={[
           styles.safeArea,
           { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -179,7 +179,7 @@ export default function ApplicationDetailScreen() {
             </View>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -203,7 +203,7 @@ export default function ApplicationDetailScreen() {
   const docCount = documents.length;
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -510,7 +510,7 @@ export default function ApplicationDetailScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

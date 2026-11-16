@@ -34,7 +34,7 @@ export default function ParentApplicationsScreen() {
   } = useMyApplications();
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -119,7 +119,7 @@ export default function ParentApplicationsScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: DESIGN_TOKENS.spacing.standard,
-    paddingBottom: 40,
+    paddingBottom: 88,
   },
   newAppButton: {
     flexDirection: 'row',

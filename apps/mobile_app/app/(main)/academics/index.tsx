@@ -3,13 +3,15 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Platform,
+  StatusBar,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChildStore } from '../../../src/stores/child.store';
 import { useAcademicsStore, AcademicsTab } from '../../../src/stores/academics.store';
 import { SelectedChildCard } from '../../../src/components/child/SelectedChildCard';
@@ -19,6 +21,7 @@ import { EnrolledChild } from '../../../src/types/child.types';
 import { DESIGN_TOKENS } from '../../../src/theme/tokens/designTokens';
 
 export default function AcademicsHubScreen() {
+  const insets = useSafeAreaInsets();
   const activeChild = useChildStore((s) => s.getSelectedChild());
   const isEnrolled = activeChild?.kind === 'enrolled';
   const enrolledStudent = isEnrolled ? (activeChild as EnrolledChild) : null;
@@ -77,10 +80,22 @@ export default function AcademicsHubScreen() {
     { key: 'exams', label: 'Exams', icon: 'ribbon-outline' },
   ];
 
+  // Safe area insets with guaranteed Android status bar & bottom bar clearance
+  const androidStatusHeight = StatusBar.currentHeight || 24;
+  const topSafeInset =
+    insets.top > 0 ? insets.top : Platform.OS === 'android' ? androidStatusHeight : 16;
+  const bottomSafeInset = Math.max(insets.bottom, Platform.OS === 'android' ? 10 : 16);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: topSafeInset + 8,
+            paddingBottom: bottomSafeInset + 84,
+          },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -602,7 +617,7 @@ export default function AcademicsHubScreen() {
 
       {/* Child Switcher Bottom Sheet */}
       <ChildSwitcherSheet visible={switcherVisible} onClose={() => setSwitcherVisible(false)} />
-    </SafeAreaView>
+    </View>
   );
 }
 

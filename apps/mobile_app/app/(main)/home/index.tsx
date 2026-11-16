@@ -5,11 +5,13 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
+  Platform,
+  StatusBar,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../../src/stores/auth.store';
 import { useChildStore } from '../../../src/stores/child.store';
 import { useAcademicsStore } from '../../../src/stores/academics.store';
@@ -30,6 +32,7 @@ import { ROUTES } from '../../../src/constants/routes';
 
 export default function HomeDashboardScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const activeChild = useChildStore((s) => s.getSelectedChild());
   const syncChildren = useChildStore((s) => s.syncChildren);
@@ -75,10 +78,22 @@ export default function HomeDashboardScreen() {
   const parentName =
     user?.first_name || user?.fullName?.split(' ')[0] || user?.full_name?.split(' ')[0] || 'Parent';
 
+  // Safe area insets with guaranteed Android status bar & bottom bar clearance
+  const androidStatusHeight = StatusBar.currentHeight || 24;
+  const topSafeInset =
+    insets.top > 0 ? insets.top : Platform.OS === 'android' ? androidStatusHeight : 16;
+  const bottomSafeInset = Math.max(insets.bottom, Platform.OS === 'android' ? 10 : 16);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: topSafeInset + 8,
+            paddingBottom: bottomSafeInset + 84,
+          },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing || isChildLoading}
@@ -156,7 +171,7 @@ export default function HomeDashboardScreen() {
 
       {/* Global Child Switcher Sheet */}
       <ChildSwitcherSheet visible={switcherVisible} onClose={() => setSwitcherVisible(false)} />
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -102,7 +102,7 @@ export default function ParentDashboardScreen() {
     activeChild?.kind === 'applicant' ? (activeChild as ApplicantChild) : null;
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -473,7 +473,7 @@ export default function ParentDashboardScreen() {
 
       {/* Child Switcher Bottom Sheet */}
       <ChildSwitcherSheet visible={switcherVisible} onClose={() => setSwitcherVisible(false)} />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: DESIGN_TOKENS.spacing.standard,
     paddingTop: 14,
-    paddingBottom: 40,
+    paddingBottom: 88,
   },
   notificationButton: {
     width: 38,

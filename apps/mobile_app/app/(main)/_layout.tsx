@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,8 +15,8 @@ export default function MainLayout() {
   const { data: unreadCount } = useUnreadNotificationCount();
   useNotificationRealtime();
 
-  const bottomInset = Math.max(insets.bottom, 8);
-  const tabHeight = 58 + bottomInset;
+  const bottomInset = insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 10 : 14;
+  const tabHeight = 60 + bottomInset;
 
   return (
     <ProtectedRoute>

@@ -79,7 +79,7 @@ export default function ParentNotificationsScreen() {
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -282,7 +282,7 @@ export default function ParentNotificationsScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -297,7 +297,7 @@ export default function AdmissionWizardScreen() {
   const bottomActionPadding = Math.max(insets.bottom, 12);
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -505,7 +505,7 @@ export default function AdmissionWizardScreen() {
           )}
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

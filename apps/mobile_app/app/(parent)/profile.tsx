@@ -62,7 +62,7 @@ export default function ParentProfileScreen() {
       .join('') || 'PG';
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
         { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
@@ -287,7 +287,7 @@ export default function ParentProfileScreen() {
           <Button title="Sign Out of Account" variant="danger" size="lg" onPress={handleLogout} />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 88,
   },
   profileCard: {
     borderRadius: DESIGN_TOKENS.radius.featureCard,

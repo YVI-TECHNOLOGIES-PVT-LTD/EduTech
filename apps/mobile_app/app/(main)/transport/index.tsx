@@ -3,13 +3,15 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
   Linking,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChildStore } from '../../../src/stores/child.store';
 import { SelectedChildCard } from '../../../src/components/child/SelectedChildCard';
 import { Badge } from '../../../src/components/ui/atoms/Badge';
@@ -17,6 +19,7 @@ import { transportApi, TransportAllocation } from '../../../src/api/transport.ap
 
 export default function TransportScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const activeChild = useChildStore((s) => s.getSelectedChild());
   const isEnrolled = activeChild?.kind === 'enrolled';
   const studentId = isEnrolled ? activeChild.studentId : null;
@@ -47,10 +50,20 @@ export default function TransportScreen() {
     }
   };
 
+  // Safe area insets with guaranteed Android status bar & bottom bar clearance
+  const androidStatusHeight = StatusBar.currentHeight || 24;
+  const topSafeInset =
+    insets.top > 0 ? insets.top : Platform.OS === 'android' ? androidStatusHeight : 16;
+  const bottomSafeInset = Math.max(insets.bottom, 16);
+
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: topSafeInset + 8,
+          paddingBottom: bottomSafeInset + 40,
+        }}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchTransport} />}
         showsVerticalScrollIndicator={false}
       >
@@ -185,6 +198,6 @@ export default function TransportScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

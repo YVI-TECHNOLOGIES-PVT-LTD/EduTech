@@ -1,4 +1,5 @@
 import React from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GlobalErrorBoundary } from '../core/errors/error-boundary';
 import { QueryProvider } from './QueryProvider';
 import { ThemeProvider } from './ThemeProvider';
@@ -12,21 +13,23 @@ import { ToastProvider } from './ToastProvider';
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <GlobalErrorBoundary>
-      <QueryProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <TenantProvider>
-              <PermissionProvider>
-                <NetworkProvider>
-                  <NotificationProvider>
-                    <ToastProvider>{children}</ToastProvider>
-                  </NotificationProvider>
-                </NetworkProvider>
-              </PermissionProvider>
-            </TenantProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </QueryProvider>
+      <SafeAreaProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <TenantProvider>
+                <PermissionProvider>
+                  <NetworkProvider>
+                    <NotificationProvider>
+                      <ToastProvider>{children}</ToastProvider>
+                    </NotificationProvider>
+                  </NetworkProvider>
+                </PermissionProvider>
+              </TenantProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryProvider>
+      </SafeAreaProvider>
     </GlobalErrorBoundary>
   );
 };

@@ -4,15 +4,16 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ROUTES } from '../../src/constants/routes';
 import { useRegister } from '../../src/features/auth';
 import { useAuthStore } from '../../src/stores/auth.store';
@@ -26,6 +27,7 @@ import { Button } from '../../src/components/ui/atoms/Button';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [isSecure, setIsSecure] = useState(true);
   const [isConfirmSecure, setIsConfirmSecure] = useState(true);
@@ -80,8 +82,15 @@ export default function RegisterScreen() {
         bounces={false}
       >
         {/* Top Header Background */}
-        <View className="h-36 bg-indigo-950 justify-center px-6 relative">
-          <SafeAreaView>
+        <View
+          style={{
+            paddingTop:
+              Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 16) +
+              12,
+          }}
+          className="pb-6 bg-indigo-950 justify-center px-6 relative"
+        >
+          <View>
             <TouchableOpacity
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/20 mb-2"
@@ -95,7 +104,7 @@ export default function RegisterScreen() {
             <Text className="text-xs font-medium text-indigo-200">
               Register to apply for student admission
             </Text>
-          </SafeAreaView>
+          </View>
         </View>
 
         {/* Bottom Sheet Card */}

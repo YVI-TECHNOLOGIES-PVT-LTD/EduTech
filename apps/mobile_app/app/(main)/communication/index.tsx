@@ -3,13 +3,15 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
+  Platform,
+  StatusBar,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { notificationsApi } from '../../../src/api/notifications.api';
 import { NotificationItem } from '../../../src/types/notification.types';
 import { Badge } from '../../../src/components/ui/atoms/Badge';
@@ -18,6 +20,7 @@ import { ROUTES } from '../../../src/constants/routes';
 
 export default function CommunicationFeedScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'notices' | 'feed'>('notices');
   const [categoryFilter, setCategoryFilter] = useState<
     'all' | 'academics' | 'administrative' | 'events' | 'urgent'
@@ -102,10 +105,22 @@ export default function CommunicationFeedScreen() {
     },
   ];
 
+  // Safe area insets with guaranteed Android status bar & bottom bar clearance
+  const androidStatusHeight = StatusBar.currentHeight || 24;
+  const topSafeInset =
+    insets.top > 0 ? insets.top : Platform.OS === 'android' ? androidStatusHeight : 16;
+  const bottomSafeInset = Math.max(insets.bottom, Platform.OS === 'android' ? 10 : 16);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: topSafeInset + 8,
+            paddingBottom: bottomSafeInset + 84,
+          },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -340,7 +355,7 @@ export default function CommunicationFeedScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

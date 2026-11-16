@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface BottomSheetProps {
   visible: boolean;
@@ -8,16 +9,17 @@ export interface BottomSheetProps {
   children: React.ReactNode;
 }
 
-export const BottomSheet: React.FC<BottomSheetProps> = ({
-  visible,
-  onClose,
-  title,
-  children,
-}) => {
+export const BottomSheet: React.FC<BottomSheetProps> = ({ visible, onClose, title, children }) => {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 16) + 8;
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white dark:bg-slate-900 rounded-t-3xl p-5 min-h-[300px]">
+        <View
+          style={{ paddingBottom: bottomPadding }}
+          className="bg-white dark:bg-slate-900 rounded-t-3xl p-5 min-h-[300px]"
+        >
           <View className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full self-center mb-4" />
           {title && (
             <View className="flex-row justify-between items-center pb-3 mb-3 border-b border-slate-200 dark:border-slate-800">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,8 +37,11 @@ export const ParentPortalHeader: React.FC<ParentPortalHeaderProps> = ({
     }
   };
 
-  // Safe area top padding: ensure at least 8px padding or safe area on notches
-  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 12 : 16);
+  // Safe area top padding: ensure proper clearance below device status bar and cutouts
+  const androidStatusHeight = StatusBar.currentHeight || 24;
+  const topSafeInset =
+    insets.top > 0 ? insets.top : Platform.OS === 'android' ? androidStatusHeight : 16;
+  const topPadding = topSafeInset + 8;
 
   return (
     <View
