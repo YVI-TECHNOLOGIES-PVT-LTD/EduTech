@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 
 export interface BadgeProps {
   label: string;
-  variant?: 'success' | 'warning' | 'error' | 'info' | 'primary' | 'default';
+  variant?: 'success' | 'warning' | 'error' | 'info' | 'primary' | 'default' | 'neutral';
 }
 
 export const Badge: React.FC<BadgeProps> = ({ label, variant = 'default' }) => {
@@ -19,6 +19,8 @@ export const Badge: React.FC<BadgeProps> = ({ label, variant = 'default' }) => {
         return 'bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/20';
       case 'primary':
         return 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+      case 'neutral':
+      case 'default':
       default:
         return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
     }

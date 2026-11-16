@@ -60,6 +60,12 @@ export class DomTranslationRuntime {
       return;
     }
 
+    if (lang === 'en') {
+      // Pristine English is the native React baseline. Skip observer and sweeps to keep rendering immediate.
+      this.stop();
+      return;
+    }
+
     if (!this.observer) {
       this.observer = new MutationObserver(this.handleMutations.bind(this));
     }
@@ -99,9 +105,23 @@ export class DomTranslationRuntime {
     if (typeof document === 'undefined') return;
 
     if (lang === 'en') {
+      this.stop();
       // Revert all registered nodes to their pristine canonical English baseline
       this.restoreEnglishBaseline();
     } else {
+      if (!this.isObserving && document.body) {
+        if (!this.observer) {
+          this.observer = new MutationObserver(this.handleMutations.bind(this));
+        }
+        this.observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: ['placeholder', 'aria-label', 'title', 'alt'],
+        });
+        this.isObserving = true;
+      }
       // Sweep and translate all visible nodes into the new target language
       this.sweepDocument();
     }
@@ -112,13 +132,14 @@ export class DomTranslationRuntime {
    */
   public sweepDocument(): void {
     if (typeof document === 'undefined' || !document.body) return;
+    if (this.currentLang === 'en') return;
 
     // Scan main document tree
     this.scanSubtree(document.body);
 
     // Scan any React portals outside body main hierarchy (modals, popovers, tooltips)
     const portals = document.querySelectorAll(
-      '[data-radix-popper-content-wrapper], [role="dialog"], [role="menu"], [role="tooltip"], [data-state="open"]'
+      '[data-radix-popper-content-wrapper], [role="dialog"], [role="menu"], [role="tooltip"], [data-state="open"]',
     );
     portals.forEach((portal) => {
       this.scanSubtree(portal);
@@ -153,7 +174,10 @@ export class DomTranslationRuntime {
           this.processTextNode(mutation.target);
         }
       } else if (mutation.type === 'attributes' && mutation.target.nodeType === Node.ELEMENT_NODE) {
-        this.processElementAttributes(mutation.target as Element, mutation.attributeName || undefined);
+        this.processElementAttributes(
+          mutation.target as Element,
+          mutation.attributeName || undefined,
+        );
       }
     }
 
@@ -178,24 +202,20 @@ export class DomTranslationRuntime {
       }
     });
 
-    const walker = document.createTreeWalker(
-      root,
-      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-      {
-        acceptNode: (node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            if (this.isExplicitlyProtectedElement(node as Element)) {
-              return NodeFilter.FILTER_REJECT;
-            }
-            return NodeFilter.FILTER_SKIP;
-          }
-          if (node.nodeType === Node.TEXT_NODE) {
-            return NodeFilter.FILTER_ACCEPT;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (this.isExplicitlyProtectedElement(node as Element)) {
+            return NodeFilter.FILTER_REJECT;
           }
           return NodeFilter.FILTER_SKIP;
-        },
-      }
-    );
+        }
+        if (node.nodeType === Node.TEXT_NODE) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_SKIP;
+      },
+    });
 
     let currentNode = walker.nextNode();
     while (currentNode) {
@@ -243,7 +263,9 @@ export class DomTranslationRuntime {
    * Processes translatable attributes on an element (placeholder, aria-label, title, alt).
    */
   private processElementAttributes(el: Element, specificAttr?: string): void {
-    const targetAttrs = specificAttr ? [specificAttr] : ['placeholder', 'aria-label', 'title', 'alt'];
+    const targetAttrs = specificAttr
+      ? [specificAttr]
+      : ['placeholder', 'aria-label', 'title', 'alt'];
 
     let attrMap = this.canonicalAttrMap.get(el);
     if (!attrMap) {
@@ -314,7 +336,10 @@ export class DomTranslationRuntime {
     const isRtl = this.currentLang === 'ar' || this.currentLang === 'ur';
 
     try {
-      const translationResults = await translationManager.translateBatch(uniqueTexts, this.currentLang);
+      const translationResults = await translationManager.translateBatch(
+        uniqueTexts,
+        this.currentLang,
+      );
 
       for (const [canonicalText, items] of queuedSnapshots.entries()) {
         const translatedText = translationResults.get(canonicalText) || canonicalText;
@@ -436,7 +461,20 @@ export class DomTranslationRuntime {
     }
 
     // SVG geometry is protected, but SVG <text> elements are permitted
-    if (['PATH', 'RECT', 'CIRCLE', 'LINE', 'POLYGON', 'POLYLINE', 'CLIPPATH', 'DEFS', 'MASK', 'G'].includes(tagName)) {
+    if (
+      [
+        'PATH',
+        'RECT',
+        'CIRCLE',
+        'LINE',
+        'POLYGON',
+        'POLYLINE',
+        'CLIPPATH',
+        'DEFS',
+        'MASK',
+        'G',
+      ].includes(tagName)
+    ) {
       return true;
     }
 
@@ -463,7 +501,9 @@ export class DomTranslationRuntime {
     }
 
     // Reject standalone UUIDs
-    if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed)) {
+    if (
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed)
+    ) {
       return false;
     }
 

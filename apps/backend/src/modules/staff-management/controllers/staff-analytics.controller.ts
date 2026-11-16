@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { StaffAnalyticsService } from '../services/staff.analytics.service';
+import { getAuthenticatedOrgId } from '../../../utils/tenant-context';
 
 export class StaffAnalyticsController {
   static async getDashboard(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || undefined;
+      const orgId = getAuthenticatedOrgId(req);
       const result = await StaffAnalyticsService.getDashboardMetrics(orgId);
       return res.json(result);
     } catch (error: any) {

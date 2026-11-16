@@ -7,6 +7,7 @@ export type UserRole =
   | 'ACADEMIC_COORDINATOR'
   | 'TEACHER'
   | 'PARENT'
+  | 'ENROLLED_PARENT'
   | 'STUDENT'
   | 'ACCOUNTANT'
   | 'HR'

@@ -135,7 +135,7 @@ export class StaffController {
   static async getCounsellors(req: Request, res: Response) {
     try {
       const orgId =
-        (req.query.org_id as string) ||
+        (req as any).tenantOrgId ||
         (req as any).context?.user?.org_id ||
         (req as any).context?.user?.school_id ||
         (req as any).user?.org_id;
@@ -150,7 +150,7 @@ export class StaffController {
   static async getExaminers(req: Request, res: Response) {
     try {
       const orgId =
-        (req.query.org_id as string) ||
+        (req as any).tenantOrgId ||
         (req as any).context?.user?.org_id ||
         (req as any).context?.user?.school_id ||
         (req as any).user?.org_id;

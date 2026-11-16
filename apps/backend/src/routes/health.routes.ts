@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { supabase } from '../config/supabase';
+import prisma from '../lib/prismaClient';
 import { cacheService } from '../cache/cache.service';
 import { jobService } from '../jobs/job.service';
 import { metricsService } from '../observability/metrics.service';
@@ -12,13 +12,7 @@ healthRouter.get('/', async (req: Request, res: Response) => {
   let dbError = null;
 
   try {
-    const { error } = await supabase
-      .from('users')
-      .select('user_id', { count: 'exact', head: true });
-    if (error) {
-      dbStatus = 'error';
-      dbError = error.message;
-    }
+    await prisma.$queryRaw`SELECT 1`;
   } catch (e: any) {
     dbStatus = 'error';
     dbError = e.message;
@@ -26,6 +20,7 @@ healthRouter.get('/', async (req: Request, res: Response) => {
 
   const cacheMetrics = await cacheService.getMetrics();
   const queueMetrics = await jobService.getMetrics();
+  const queueRuntime = jobService.getRuntimeStatus();
   const apiMetrics = metricsService.getMetrics();
 
   res.json({
@@ -38,6 +33,7 @@ healthRouter.get('/', async (req: Request, res: Response) => {
     },
     cache: cacheMetrics,
     queues: queueMetrics,
+    queueRuntime,
     metrics: apiMetrics,
   });
 });
@@ -54,13 +50,11 @@ healthRouter.get('/live', (req: Request, res: Response) => {
 // Readiness Probe (ready to serve traffic)
 healthRouter.get('/ready', async (req: Request, res: Response) => {
   try {
-    const { error } = await supabase
-      .from('users')
-      .select('user_id', { count: 'exact', head: true });
-    if (error) throw error;
+    await prisma.$queryRaw`SELECT 1`;
 
     const cacheMetrics = await cacheService.getMetrics();
     const queueMetrics = await jobService.getMetrics();
+    const queueRuntime = jobService.getRuntimeStatus();
     const apiMetrics = metricsService.getMetrics();
 
     res.status(200).json({
@@ -69,6 +63,7 @@ healthRouter.get('/ready', async (req: Request, res: Response) => {
       database: 'connected',
       cache: cacheMetrics.status,
       queues: queueMetrics,
+      queueRuntime,
       metrics: apiMetrics,
     });
   } catch (e: any) {

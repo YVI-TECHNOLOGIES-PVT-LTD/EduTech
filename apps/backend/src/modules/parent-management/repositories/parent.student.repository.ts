@@ -25,7 +25,22 @@ export class ParentStudentRepository {
         created_by: createdBy || undefined,
       },
       include: {
-        students: true,
+        students: {
+          include: {
+            student_enrollments: {
+              orderBy: { enrollment_date: 'desc' },
+              include: {
+                sections: true,
+                academic_year_grades: {
+                  include: {
+                    grades: true,
+                    academic_years: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -45,7 +60,23 @@ export class ParentStudentRepository {
     return db.student_parents.findMany({
       where: { parent_id },
       include: {
-        students: true,
+        students: {
+          include: {
+            student_enrollments: {
+              orderBy: { enrollment_date: 'desc' },
+              include: {
+                sections: true,
+                academic_year_grades: {
+                  include: {
+                    grades: true,
+                    academic_years: true,
+                  },
+                },
+              },
+            },
+            admissions_applications: true,
+          },
+        },
       },
     });
   }

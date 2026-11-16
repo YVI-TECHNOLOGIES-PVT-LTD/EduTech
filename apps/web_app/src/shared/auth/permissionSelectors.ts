@@ -1,4 +1,5 @@
 import type { RootState } from '@/app/store';
+import { LandingResolver } from '@/services/LandingResolver';
 
 export const selectUser = (state: RootState) => state.auth.user;
 export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
@@ -22,8 +23,12 @@ export const selectHasPermission = (state: RootState, permissionCode: string): b
   const user = state.auth.user;
   if (!user) return false;
 
-  const roles = selectUserRoles(state);
-  if (roles.some((r) => r.toUpperCase() === 'SUPERADMIN' || r.toUpperCase() === 'ADMIN')) {
+  const roles = selectUserRoles(state).map((r) => LandingResolver.normalizeRole(r));
+  if (
+    roles.some(
+      (r) => r === 'SUPERADMIN' || r === 'SUPER_ADMIN' || r === 'ADMIN' || r === 'ORG_ADMIN',
+    )
+  ) {
     return true;
   }
 
@@ -32,8 +37,9 @@ export const selectHasPermission = (state: RootState, permissionCode: string): b
 };
 
 export const selectHasRole = (state: RootState, roleName: string): boolean => {
-  const roles = selectUserRoles(state);
-  return roles.some((r) => r.toUpperCase() === roleName.toUpperCase());
+  const target = LandingResolver.normalizeRole(roleName);
+  const roles = selectUserRoles(state).map((r) => LandingResolver.normalizeRole(r));
+  return roles.some((r) => r === target);
 };
 
 export const selectCanAccessModule = (state: RootState, moduleKey: string): boolean => {

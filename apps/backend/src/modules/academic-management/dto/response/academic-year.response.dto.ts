@@ -1,3 +1,5 @@
+import { AcademicYearGradeResponseDto } from './academic-year-grade.response.dto';
+
 export interface AcademicYearResponseDto {
   academic_year_id: string;
   id: string;
@@ -8,6 +10,7 @@ export interface AcademicYearResponseDto {
   status: string;
   created_at: string;
   updated_at: string;
+  grade_offerings?: AcademicYearGradeResponseDto[];
 }
 
 export interface PaginatedResponse<T> {
@@ -15,9 +18,7 @@ export interface PaginatedResponse<T> {
   meta: {
     total: number;
     page: number;
-    pageSize: number;
+    limit: number;
     totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
   };
 }

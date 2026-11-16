@@ -3,6 +3,7 @@ import { View, Text, Image } from 'react-native';
 
 export interface AvatarProps {
   source?: string;
+  uri?: string | null;
   name?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showOnlineStatus?: boolean;
@@ -10,10 +11,13 @@ export interface AvatarProps {
 
 export const Avatar: React.FC<AvatarProps> = ({
   source,
+  uri,
   name = 'U',
   size = 'md',
   showOnlineStatus = false,
 }) => {
+  const imageSource = source || uri;
+
   const getSizeStyle = () => {
     switch (size) {
       case 'sm':
@@ -28,20 +32,22 @@ export const Avatar: React.FC<AvatarProps> = ({
     }
   };
 
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2);
+  const initials =
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2) || 'U';
 
   return (
     <View className="relative">
       <View
         className={`rounded-full bg-indigo-600 border-2 border-white dark:border-slate-800 items-center justify-center overflow-hidden shadow-sm ${getSizeStyle()}`}
       >
-        {source ? (
-          <Image source={{ uri: source }} className="w-full h-full" resizeMode="cover" />
+        {imageSource ? (
+          <Image source={{ uri: imageSource }} className="w-full h-full" resizeMode="cover" />
         ) : (
           <Text className="font-extrabold text-white tracking-wider">{initials}</Text>
         )}

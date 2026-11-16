@@ -1,83 +1,116 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DepartmentService = void 0;
-const supabase_1 = require("../../config/supabase");
-// Service handling Department entities
+const prismaClient_1 = __importDefault(require("../../lib/prismaClient"));
+function mapDepartment(dept) {
+    return {
+        id: dept.department_id,
+        department_id: dept.department_id,
+        school_id: dept.org_id,
+        org_id: dept.org_id,
+        name: dept.department_name,
+        department_name: dept.department_name,
+        description: dept.description ?? null,
+        is_active: dept.is_active ?? true,
+        created_at: dept.created_at instanceof Date ? dept.created_at.toISOString() : dept.created_at,
+        updated_at: dept.updated_at instanceof Date ? dept.updated_at.toISOString() : dept.updated_at,
+    };
+}
+// Service handling Department entities strictly aligned with schema.prisma
 class DepartmentService {
     static async getAll(schoolId) {
-        // Also fetch reference counts if possible, but for now simple list
-        const { data, error } = await supabase_1.supabase
-            .from('departments')
-            .select('*')
-            .eq('school_id', schoolId)
-            .order('name');
-        if (error)
-            throw new Error(error.message);
-        return data;
+        const records = await prismaClient_1.default.departments.findMany({
+            where: { org_id: schoolId },
+            orderBy: { department_name: 'asc' },
+        });
+        return records.map(mapDepartment);
     }
-    static async create(schoolId, name) {
-        // Check duplicate
-        // Supabase UNIQUE constraint will handle it, but we can check explicitly for clean error
-        const { data: existing } = await supabase_1.supabase
-            .from('departments')
-            .select('id')
-            .eq('school_id', schoolId)
-            .ilike('name', name) // Case insensitive check
-            .maybeSingle();
-        if (existing)
-            throw new Error(`Department '${name}' already exists.`);
-        const { data, error } = await supabase_1.supabase
-            .from('departments')
-            .insert({ school_id: schoolId, name })
-            .select()
-            .single();
-        if (error) {
-            if (error.code === '23505')
-                throw new Error(`Department '${name}' already exists.`);
-            throw new Error(error.message);
+    static async create(schoolId, name, description) {
+        const trimmedName = name.trim();
+        // Check duplicate department_name within org
+        const existing = await prismaClient_1.default.departments.findFirst({
+            where: {
+                org_id: schoolId,
+                department_name: {
+                    equals: trimmedName,
+                    mode: 'insensitive',
+                },
+            },
+        });
+        if (existing) {
+            throw new Error(`Department '${trimmedName}' already exists.`);
         }
-        return data;
+        const created = await prismaClient_1.default.departments.create({
+            data: {
+                org_id: schoolId,
+                department_name: trimmedName,
+                description: description ?? null,
+                is_active: true,
+            },
+        });
+        return mapDepartment(created);
     }
-    static async update(id, schoolId, name) {
-        const { data, error } = await supabase_1.supabase
-            .from('departments')
-            .update({ name })
-            .eq('id', id)
-            .eq('school_id', schoolId) // Safety
-            .select()
-            .single();
-        if (error) {
-            if (error.code === '23505')
-                throw new Error(`Department '${name}' already exists.`);
-            throw new Error(error.message);
+    static async update(id, schoolId, name, description) {
+        const trimmedName = name.trim();
+        const existing = await prismaClient_1.default.departments.findFirst({
+            where: {
+                department_id: id,
+                org_id: schoolId,
+            },
+        });
+        if (!existing) {
+            throw new Error('Department not found.');
         }
-        return data;
+        // Check duplicate name within org excluding self
+        const duplicate = await prismaClient_1.default.departments.findFirst({
+            where: {
+                org_id: schoolId,
+                department_name: {
+                    equals: trimmedName,
+                    mode: 'insensitive',
+                },
+                NOT: {
+                    department_id: id,
+                },
+            },
+        });
+        if (duplicate) {
+            throw new Error(`Department '${trimmedName}' already exists.`);
+        }
+        const updated = await prismaClient_1.default.departments.update({
+            where: { department_id: id },
+            data: {
+                department_name: trimmedName,
+                ...(description !== undefined ? { description } : {}),
+            },
+        });
+        return mapDepartment(updated);
     }
     static async delete(id, schoolId) {
-        // Safety Check: Dependencies
-        // Check Faculty
-        const { count: facCount } = await supabase_1.supabase
-            .from('faculty_profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('department_id', id);
-        if (facCount && facCount > 0) {
-            throw new Error(`Cannot delete department. It is assigned to ${facCount} faculty members.`);
+        const dept = await prismaClient_1.default.departments.findFirst({
+            where: {
+                department_id: id,
+                org_id: schoolId,
+            },
+        });
+        if (!dept) {
+            throw new Error('Department not found.');
         }
-        // Check Staff
-        const { count: staffCount } = await supabase_1.supabase
-            .from('staff_profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('department_id', id);
-        if (staffCount && staffCount > 0) {
+        // Safety check: staff assigned to this department
+        const staffCount = await prismaClient_1.default.staff.count({
+            where: {
+                department_id: id,
+            },
+        });
+        if (staffCount > 0) {
             throw new Error(`Cannot delete department. It is assigned to ${staffCount} staff members.`);
         }
-        const { error } = await supabase_1.supabase
-            .from('departments')
-            .delete()
-            .eq('id', id)
-            .eq('school_id', schoolId);
-        if (error)
-            throw new Error(error.message);
+        await prismaClient_1.default.departments.delete({
+            where: { department_id: id },
+        });
         return true;
     }
 }

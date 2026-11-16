@@ -22,6 +22,12 @@ export const authRequestInterceptor = async (config: any) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  // If payload is FormData, remove Content-Type header so the browser automatically computes the boundary
+  if (config.data instanceof FormData && config.headers) {
+    delete config.headers['Content-Type'];
+    delete config.headers['content-type'];
+  }
+
   return config;
 };
 export default authRequestInterceptor;

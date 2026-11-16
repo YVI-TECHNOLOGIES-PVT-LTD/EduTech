@@ -1,16 +1,19 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Platform, Image } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { DocumentType } from '../../../../types/admission.types';
-import { useTheme } from '../../../../theme';
 
 export interface WizardStep5DocumentsProps {
   documentTypes: DocumentType[];
-  attachedFiles: Record<string, { uri: string; name: string; type: string; size?: number }>;
+  attachedFiles: Record<
+    string,
+    { uri: string; name: string; type: string; size?: number; rawFile?: any }
+  >;
   onAttachFile: (
     docTypeId: string,
-    file: { uri: string; name: string; type: string; size?: number },
+    file: { uri: string; name: string; type: string; size?: number; rawFile?: any },
   ) => void;
   onRemoveFile: (docTypeId: string) => void;
 }
@@ -56,39 +59,138 @@ export const WizardStep5Documents: React.FC<WizardStep5DocumentsProps> = ({
   onAttachFile,
   onRemoveFile,
 }) => {
-  const { colors } = useTheme();
-
   const typesList = documentTypes.length > 0 ? documentTypes : DEFAULT_DOC_TYPES;
 
   const handlePickDocument = async (docTypeId: string, maxMb = 10) => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
-        copyToCacheDirectory: true,
-      });
+    // 1. Direct Native Browser File Picker for Web / Desktop / Mobile Browser
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.jpg,.jpeg,.png';
+      input.onchange = (e: any) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const sizeMb = (asset.size || 0) / (1024 * 1024);
+        if (file.size === 0) {
+          Alert.alert(
+            'Empty File',
+            'The selected file is empty (0 bytes). Please select a valid document.',
+          );
+          return;
+        }
 
+        const sizeMb = file.size / (1024 * 1024);
         if (sizeMb > maxMb) {
           Alert.alert(
             'File Too Large',
-            `The selected file is ${sizeMb.toFixed(1)}MB. Maximum allowed is ${maxMb}MB.`,
+            `The selected file is ${sizeMb.toFixed(1)}MB. Maximum allowed limit is ${maxMb}MB.`,
+          );
+          return;
+        }
+
+        const lastDot = file.name.lastIndexOf('.');
+        const ext = lastDot !== -1 ? file.name.substring(lastDot).toLowerCase() : '';
+        if (!['.pdf', '.jpg', '.jpeg', '.png'].includes(ext)) {
+          Alert.alert(
+            'Unsupported File Format',
+            'Please select a valid PDF, JPG, or PNG document.',
           );
           return;
         }
 
         onAttachFile(docTypeId, {
-          uri: asset.uri,
-          name: asset.name,
-          type: asset.mimeType || 'application/octet-stream',
-          size: asset.size,
+          uri: URL.createObjectURL(file),
+          name: file.name,
+          type: file.type || 'application/octet-stream',
+          size: file.size,
+          rawFile: file,
         });
-      }
-    } catch (err) {
-      console.warn('Document picking cancelled or failed', err);
+      };
+      input.click();
+      return;
     }
+
+    // 2. Native Mobile Picker Helpers
+    const pickFromGallery = async () => {
+      try {
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: false,
+          quality: 0.9,
+        });
+        if (!res.canceled && res.assets && res.assets.length > 0) {
+          const asset = res.assets[0];
+          const sizeMb = (asset.fileSize || 0) / (1024 * 1024);
+          if (sizeMb > maxMb) {
+            Alert.alert(
+              'File Too Large',
+              `The selected photo is ${sizeMb.toFixed(1)}MB. Maximum allowed is ${maxMb}MB.`,
+            );
+            return;
+          }
+          const fileName = asset.fileName || `document_${Date.now()}.jpg`;
+          onAttachFile(docTypeId, {
+            uri: asset.uri,
+            name: fileName,
+            type: asset.mimeType || 'image/jpeg',
+            size: asset.fileSize,
+          });
+        }
+      } catch (err) {
+        console.warn('Gallery picking cancelled or failed', err);
+      }
+    };
+
+    const pickFromFileSystem = async () => {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'image/jpeg', 'image/png'],
+          copyToCacheDirectory: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const sizeMb = (asset.size || 0) / (1024 * 1024);
+
+          if (sizeMb > maxMb) {
+            Alert.alert(
+              'File Too Large',
+              `The selected file is ${sizeMb.toFixed(1)}MB. Maximum allowed is ${maxMb}MB.`,
+            );
+            return;
+          }
+
+          onAttachFile(docTypeId, {
+            uri: asset.uri,
+            name: asset.name,
+            type: asset.mimeType || 'application/octet-stream',
+            size: asset.size,
+          });
+        }
+      } catch (err) {
+        console.warn('Document picking cancelled or failed', err);
+      }
+    };
+
+    // Prompt user for local photo gallery vs local files to avoid forcing cloud drive
+    Alert.alert(
+      'Select Document Source',
+      'Choose where you would like to select this document from on your device:',
+      [
+        {
+          text: 'Device Photo Gallery',
+          onPress: pickFromGallery,
+        },
+        {
+          text: 'Browse Local Files',
+          onPress: pickFromFileSystem,
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+    );
   };
 
   return (
@@ -99,13 +201,19 @@ export const WizardStep5Documents: React.FC<WizardStep5DocumentsProps> = ({
           Document Uploads
         </Text>
         <Text className="text-xs text-slate-400 mt-0.5">
-          Attach required certificates for admission verification (PDF or Image under 10MB)
+          Attach required certificates from your local device (PDF or Image under 10MB)
         </Text>
       </View>
 
       {/* Document Checklist Items */}
       {typesList.map((docType) => {
         const attached = attachedFiles[docType.document_type_id];
+        const isImage =
+          attached &&
+          (attached.type.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(attached.name));
+        const formattedSize = attached?.size
+          ? `${(attached.size / (1024 * 1024)).toFixed(2)} MB`
+          : undefined;
 
         return (
           <View
@@ -146,7 +254,7 @@ export const WizardStep5Documents: React.FC<WizardStep5DocumentsProps> = ({
                 <View className="flex-row items-center bg-emerald-100 dark:bg-emerald-900/60 px-2.5 py-1 rounded-full">
                   <Ionicons name="checkmark-circle" size={14} color="#10b981" />
                   <Text className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-200 ml-1">
-                    Attached
+                    Selected
                   </Text>
                 </View>
               ) : (
@@ -159,22 +267,41 @@ export const WizardStep5Documents: React.FC<WizardStep5DocumentsProps> = ({
               )}
             </View>
 
-            {/* Attached File Bar or Upload Button */}
+            {/* Attached File Preview or Select Button */}
             {attached ? (
               <View className="flex-row items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-2xl border border-emerald-200 dark:border-emerald-800 mt-2">
                 <View className="flex-row items-center flex-1 mr-2">
-                  <Feather name="file-text" size={18} color="#10b981" />
-                  <Text
-                    className="text-xs font-semibold text-slate-800 dark:text-slate-200 ml-2 flex-1"
-                    numberOfLines={1}
-                  >
-                    {attached.name}
-                  </Text>
+                  {isImage && attached.uri ? (
+                    <Image
+                      source={{ uri: attached.uri }}
+                      style={{ width: 36, height: 36, borderRadius: 8 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 items-center justify-center">
+                      <Feather name="file-text" size={18} color="#4f46e5" />
+                    </View>
+                  )}
+                  <View className="ml-2.5 flex-1">
+                    <Text
+                      className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate"
+                      numberOfLines={1}
+                    >
+                      {attached.name}
+                    </Text>
+                    {formattedSize && (
+                      <Text className="text-[10px] text-slate-400 mt-0.5">
+                        {formattedSize} • Local File
+                      </Text>
+                    )}
+                  </View>
                 </View>
+
+                {/* Remove File Button */}
                 <TouchableOpacity
                   onPress={() => onRemoveFile(docType.document_type_id)}
                   accessibilityLabel={`Remove ${docType.document_name}`}
-                  className="p-1"
+                  className="p-1.5"
                 >
                   <Ionicons name="close-circle" size={20} color="#ef4444" />
                 </TouchableOpacity>
@@ -184,7 +311,7 @@ export const WizardStep5Documents: React.FC<WizardStep5DocumentsProps> = ({
                 activeOpacity={0.8}
                 onPress={() => handlePickDocument(docType.document_type_id, docType.max_size_mb)}
                 accessibilityRole="button"
-                accessibilityLabel={`Upload ${docType.document_name}`}
+                accessibilityLabel={`Select Document File for ${docType.document_name}`}
                 className="mt-2 py-3 px-4 bg-indigo-50 dark:bg-indigo-950/60 rounded-2xl border border-indigo-200 dark:border-indigo-800 flex-row items-center justify-center space-x-2"
               >
                 <Feather name="upload-cloud" size={16} color="#4f46e5" />

@@ -21,7 +21,10 @@ export const ProtectedRoute = () => {
 
   // Must be authenticated with active user profile
   if (!isAuthenticated || !user || boundaryState !== 'stable') {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const redirectState = location.pathname.startsWith('/app/unauthorized')
+      ? undefined
+      : { from: location };
+    return <Navigate to="/login" state={redirectState} replace />;
   }
 
   return (
@@ -40,12 +43,13 @@ export const LoginApprovalGate = ({ children }: { children: React.ReactNode }) =
   // Resolve user roles canonically
   const rawRoles =
     user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const normalizedRoles = rawRoles.map((r: string) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
+  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
 
   // Institutional Staff and Admin roles always bypass the Parent Login Approval Gate
   const isStaffOrAdmin = normalizedRoles.some((r: string) =>
     [
       'ADMIN',
+      'ORG_ADMIN',
       'SUPERADMIN',
       'SUPER_ADMIN',
       'FRONT_OFFICE',
@@ -53,14 +57,18 @@ export const LoginApprovalGate = ({ children }: { children: React.ReactNode }) =
       'FRONT_OFFICE_STAFF',
       'STAFF',
       'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
       'HOI',
       'PRINCIPAL',
       'HEAD_OF_INSTITUTE',
       'TEACHER',
+      'FACULTY',
       'FINANCE',
       'FINANCE_OFFICER',
+      'FINANCE_MANAGER',
+      'ACCOUNTANT',
       'EXAM_CELL_ADMIN',
       'EXAM_CELL',
     ].includes(r),
@@ -183,6 +191,20 @@ export const AnyPermissionGuard = ({
   return <>{children}</>;
 };
 
+function getNormalizedGuardRoles(user: any): string[] {
+  const rawRoles = user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || ''];
+  return rawRoles.map((r: string) => LandingResolver.normalizeRole(r)).filter(Boolean);
+}
+
+function getPersonaFallbackRoute(user: any, currentPathname: string): string {
+  const rawRoles = user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || ''];
+  const destination = LandingResolver.resolveLandingRoute(rawRoles, [], user);
+  if (destination && destination !== currentPathname) {
+    return destination;
+  }
+  return currentPathname === '/app/profile' ? '/app/unauthorized' : '/app/profile';
+}
+
 /**
  * Front Office Route Guard
  * Strictly protects all Front Office workspace, desk, and operations routes.
@@ -190,6 +212,7 @@ export const AnyPermissionGuard = ({
  */
 export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -203,14 +226,13 @@ export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode 
     return <Navigate to="/login" replace />;
   }
 
-  const rawRoles =
-    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const normalizedRoles = getNormalizedGuardRoles(user);
 
   const isStaffOrAdmin = normalizedRoles.some((r: string) =>
     [
       'FRONT_OFFICE',
       'FO',
+      'FRONT_OFFICE_STAFF',
       'RECEPTIONIST',
       'STAFF',
       'ADMISSION_OFFICER',
@@ -237,20 +259,7 @@ export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode 
     return <>{children}</>;
   }
 
-  // If user is Parent / Guardian persona without staff roles, redirect to Parent Dashboard immediately
-  const isParent = normalizedRoles.some((r: string) =>
-    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
-  );
-  if (isParent) {
-    return <Navigate to="/app/parent/dashboard" replace />;
-  }
-
-  // If Student persona, redirect to Student Dashboard immediately
-  if (normalizedRoles.includes('STUDENT')) {
-    return <Navigate to="/app/student/dashboard" replace />;
-  }
-
-  return <Navigate to="/app/unauthorized" replace />;
+  return <Navigate to={getPersonaFallbackRoute(user, location.pathname)} replace />;
 };
 
 /**
@@ -260,6 +269,7 @@ export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode 
  */
 export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -273,32 +283,24 @@ export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) =>
     return <Navigate to="/login" replace />;
   }
 
-  const rawRoles =
-    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const normalizedRoles = getNormalizedGuardRoles(user);
 
-  // If user holds staff/operations roles (and not solely parent), redirect to Front Office
-  const isFrontOfficeStaff = normalizedRoles.some((r: string) =>
+  const hasNonParentPrimaryPersona = normalizedRoles.some((r: string) =>
     [
+      'FINANCE',
+      'FINANCE_OFFICER',
+      'ACCOUNTANT',
+      'FINANCE_MANAGER',
+      'BURSAR',
       'FRONT_OFFICE',
       'FO',
+      'FRONT_OFFICE_STAFF',
       'RECEPTIONIST',
       'STAFF',
       'ADMISSION_OFFICER',
       'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
-    ].includes(r),
-  );
-
-  if (isFrontOfficeStaff) {
-    return <Navigate to="/app/front-office/dashboard" replace />;
-  }
-
-  const isAdmin = normalizedRoles.some((r: string) =>
-    [
       'ADMIN',
       'SUPERADMIN',
       'SUPER_ADMIN',
@@ -306,26 +308,24 @@ export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) =>
       'HOI',
       'PRINCIPAL',
       'HEAD_OF_INSTITUTE',
+      'TEACHER',
+      'FACULTY',
+      'EXAM_CELL',
+      'EXAM_CELL_ADMIN',
+      'STUDENT',
     ].includes(r),
   );
 
-  if (isAdmin) {
-    return <Navigate to="/app/admin/dashboard" replace />;
+  if (!hasNonParentPrimaryPersona) {
+    const isParent = normalizedRoles.some((r: string) =>
+      ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+    );
+    if (isParent) {
+      return <>{children}</>;
+    }
   }
 
-  if (normalizedRoles.includes('STUDENT')) {
-    return <Navigate to="/app/student/dashboard" replace />;
-  }
-
-  const isParent = normalizedRoles.some((r: string) =>
-    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
-  );
-
-  if (isParent) {
-    return <>{children}</>;
-  }
-
-  return <Navigate to="/app/unauthorized" replace />;
+  return <Navigate to={getPersonaFallbackRoute(user, location.pathname)} replace />;
 };
 
 /**
@@ -334,6 +334,7 @@ export const ParentRouteGuard = ({ children }: { children: React.ReactNode }) =>
  */
 export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -347,9 +348,7 @@ export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => 
     return <Navigate to="/login" replace />;
   }
 
-  const rawRoles =
-    user.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
-  const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const normalizedRoles = getNormalizedGuardRoles(user);
 
   const isAdmin = normalizedRoles.some((r: string) =>
     [
@@ -367,39 +366,75 @@ export const AdminRouteGuard = ({ children }: { children: React.ReactNode }) => 
     return <>{children}</>;
   }
 
-  // Non-admin redirect to persona landing
-  const isFrontOffice = normalizedRoles.some((r: string) =>
+  return <Navigate to={getPersonaFallbackRoute(user, location.pathname)} replace />;
+};
+
+export const SuperAdminRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loading message="Validating Super Admin authorization..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const normalizedRoles = getNormalizedGuardRoles(user);
+
+  const isSuperAdmin = normalizedRoles.some((r: string) =>
+    ['SUPERADMIN', 'SUPER_ADMIN'].includes(r),
+  );
+
+  if (isSuperAdmin) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to={getPersonaFallbackRoute(user, location.pathname)} replace />;
+};
+
+export const TeacherRouteGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loading message="Loading Teacher workspace..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const normalizedRoles = getNormalizedGuardRoles(user);
+
+  const isTeacherOrAdmin = normalizedRoles.some((r: string) =>
     [
-      'FRONT_OFFICE',
-      'FO',
-      'RECEPTIONIST',
-      'STAFF',
-      'ADMISSION_OFFICER',
-      'ADMISSIONS_OFFICER',
-      'COUNSELLOR',
-      'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
+      'TEACHER',
+      'FACULTY',
+      'ADMIN',
+      'SUPERADMIN',
+      'SUPER_ADMIN',
+      'ORG_ADMIN',
+      'HOI',
+      'PRINCIPAL',
+      'HEAD_OF_INSTITUTE',
     ].includes(r),
   );
 
-  if (isFrontOffice) {
-    return <Navigate to="/app/front-office/dashboard" replace />;
+  if (isTeacherOrAdmin) {
+    return <>{children}</>;
   }
 
-  const isParent = normalizedRoles.some((r: string) =>
-    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
-  );
-
-  if (isParent) {
-    return <Navigate to="/app/parent/dashboard" replace />;
-  }
-
-  if (normalizedRoles.includes('STUDENT')) {
-    return <Navigate to="/app/student/dashboard" replace />;
-  }
-
-  return <Navigate to="/app/unauthorized" replace />;
+  return <Navigate to={getPersonaFallbackRoute(user, location.pathname)} replace />;
 };
 
 export const ExamOperationGuard = ({ children }: { children: React.ReactNode }) => {

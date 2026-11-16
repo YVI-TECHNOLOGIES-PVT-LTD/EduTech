@@ -31,9 +31,29 @@ function getStoredTheme(): ThemeMode {
   return 'system';
 }
 
-function applyThemeToDocument(resolved: ResolvedTheme) {
+let transitionTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function applyThemeToDocument(resolved: ResolvedTheme, animate: boolean = false) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
+
+  if (animate) {
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!prefersReducedMotion) {
+      if (transitionTimeoutId) {
+        clearTimeout(transitionTimeoutId);
+      }
+      root.classList.add('theme-transitioning');
+      transitionTimeoutId = setTimeout(() => {
+        root.classList.remove('theme-transitioning');
+        transitionTimeoutId = null;
+      }, 350);
+    }
+  }
+
   if (resolved === 'dark') {
     root.classList.add('dark');
     root.style.colorScheme = 'dark';
@@ -57,6 +77,8 @@ export const ThemeProvider: React.FC<{
     return initialTheme === 'system' ? getSystemPreference() : initialTheme;
   });
 
+  const isMountedRef = React.useRef(false);
+
   const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
     try {
@@ -66,21 +88,24 @@ export const ThemeProvider: React.FC<{
 
     const resolved = newTheme === 'system' ? getSystemPreference() : newTheme;
     setResolvedTheme(resolved);
-    applyThemeToDocument(resolved);
+    applyThemeToDocument(resolved, true);
   }, []);
 
   // Update DOM and resolved theme on theme change or system preference change
   useEffect(() => {
-    const resolved = theme === 'system' ? getSystemPreference() : theme;
-    setResolvedTheme(resolved);
-    applyThemeToDocument(resolved);
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      const resolved = theme === 'system' ? getSystemPreference() : theme;
+      setResolvedTheme(resolved);
+      applyThemeToDocument(resolved, false);
+    }
 
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleMediaChange = (e: MediaQueryListEvent) => {
         const nextResolved: ResolvedTheme = e.matches ? 'dark' : 'light';
         setResolvedTheme(nextResolved);
-        applyThemeToDocument(nextResolved);
+        applyThemeToDocument(nextResolved, true);
       };
 
       mediaQuery.addEventListener('change', handleMediaChange);
@@ -97,7 +122,7 @@ export const ThemeProvider: React.FC<{
           setThemeState(newTheme);
           const resolved = newTheme === 'system' ? getSystemPreference() : newTheme;
           setResolvedTheme(resolved);
-          applyThemeToDocument(resolved);
+          applyThemeToDocument(resolved, true);
         }
       }
     };

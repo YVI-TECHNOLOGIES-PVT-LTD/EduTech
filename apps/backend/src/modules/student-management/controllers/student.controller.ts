@@ -1,10 +1,14 @@
 import { Request, Response } from 'express';
 import { StudentService } from '../services/student.service';
+import { StudentIdentityLinkageService } from '../services/student-identity-linkage.service';
+import { getAuthenticatedOrgId, requireAuthenticatedOrgId } from '../../../utils/tenant-context';
 import { createStudentSchema } from '../dto/request/create-student.dto';
 import { updateStudentSchema } from '../dto/request/update-student.dto';
 import { updateStudentStatusSchema } from '../dto/request/update-status.dto';
 import { searchStudentSchema } from '../dto/request/search-student.dto';
 import { StudentError } from '../errors/student.errors';
+import { ParentStudentLifecycleService } from '../../parent-management/services/parent.student-lifecycle.service';
+import { ParentError } from '../../parent-management/errors/parent.errors';
 
 export class StudentController {
   static async create(req: Request, res: Response) {
@@ -31,9 +35,23 @@ export class StudentController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user = (req as any).context?.user || (req as any).user;
+      const isParentOnly =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r: string) =>
+          ['ADMIN', 'SUPERADMIN', 'ADMISSION_OFFICER', 'STAFF', 'FRONT_OFFICE'].includes(r),
+        );
+
+      if (isParentOnly && user?.id) {
+        await ParentStudentLifecycleService.assertParentCanAccessStudent(user.id, id, user.org_id);
+      }
+
       const result = await StudentService.getStudentById(id);
       return res.json(result);
     } catch (error: any) {
+      if (error instanceof ParentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
       if (error instanceof StudentError) {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });
       }
@@ -119,12 +137,7 @@ export class StudentController {
   static async getApprovedApplications(req: Request, res: Response) {
     try {
       const user = req.context?.user;
-      const orgId =
-        user?.org_id ||
-        user?.school_id ||
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const search = req.query.search as string | undefined;
 
       const result = await StudentService.getApprovedApplications(orgId, search);
@@ -153,6 +166,68 @@ export class StudentController {
         return res.status(error.statusCode).json({ error: error.message, code: error.code });
       }
       return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async getIdentityLinkageAudit(req: Request, res: Response) {
+    try {
+      const orgId = requireAuthenticatedOrgId(req);
+      const report = await StudentIdentityLinkageService.getLinkageAudit(orgId);
+      return res.json(report);
+    } catch (error: any) {
+      if (error instanceof StudentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(error.statusCode || 500).json({
+        error: error.message || 'Internal server error',
+        code: error.code || 'INTERNAL_ERROR',
+      });
+    }
+  }
+
+  static async dryRunIdentityProvisioning(req: Request, res: Response) {
+    try {
+      const orgId = requireAuthenticatedOrgId(req);
+      const limit = req.query.limit ? Number(req.query.limit) : 100;
+      const plan = await StudentIdentityLinkageService.dryRunProvisioningPlan(orgId, limit);
+      return res.json(plan);
+    } catch (error: any) {
+      if (error instanceof StudentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(error.statusCode || 500).json({
+        error: error.message || 'Internal server error',
+        code: error.code || 'INTERNAL_ERROR',
+      });
+    }
+  }
+
+  static async linkVerifiedUser(req: Request, res: Response) {
+    try {
+      const orgId = requireAuthenticatedOrgId(req);
+      const { id } = req.params;
+      const targetUserId = req.body?.user_id;
+      const actorId = req.context?.user?.id || null;
+
+      if (!targetUserId || typeof targetUserId !== 'string') {
+        return res.status(400).json({ error: 'user_id is required', code: 'VALIDATION_FAILED' });
+      }
+
+      const linked = await StudentIdentityLinkageService.linkExistingUserToStudent(
+        orgId,
+        id,
+        targetUserId,
+        actorId,
+      );
+      return res.json(linked);
+    } catch (error: any) {
+      if (error instanceof StudentError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      return res.status(error.statusCode || 500).json({
+        error: error.message || 'Internal server error',
+        code: error.code || 'INTERNAL_ERROR',
+      });
     }
   }
 }

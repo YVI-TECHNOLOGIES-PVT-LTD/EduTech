@@ -1,12 +1,16 @@
 import { FinanceEventType } from '../events/finance.events';
 
 export interface FinanceTemplateDefinition {
+  id: string;
   key: string;
+  name: string;
   eventType: FinanceEventType;
   titleTemplate: string;
   bodyTemplate: string;
+  messageTemplate: string;
   supportedChannels: Array<'in_app' | 'email' | 'sms' | 'whatsapp'>;
   description: string;
+  allowlistedVariables: string[];
 }
 
 export const ALLOWED_TEMPLATE_VARIABLES = new Set([
@@ -31,111 +35,173 @@ export const ALLOWED_TEMPLATE_VARIABLES = new Set([
   'notes',
 ]);
 
+function createTemplateDef(params: {
+  key: string;
+  name: string;
+  eventType: FinanceEventType;
+  titleTemplate: string;
+  bodyTemplate: string;
+  supportedChannels: Array<'in_app' | 'email' | 'sms' | 'whatsapp'>;
+  description: string;
+  allowlistedVariables?: string[];
+}): FinanceTemplateDefinition {
+  const matches = (params.titleTemplate + ' ' + params.bodyTemplate).matchAll(
+    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
+  );
+  const extracted = Array.from(new Set(Array.from(matches, (m) => m[1])));
+  const vars =
+    params.allowlistedVariables && params.allowlistedVariables.length > 0
+      ? params.allowlistedVariables
+      : extracted;
+
+  return {
+    id: params.key,
+    key: params.key,
+    name: params.name,
+    eventType: params.eventType,
+    titleTemplate: params.titleTemplate,
+    bodyTemplate: params.bodyTemplate,
+    messageTemplate: params.bodyTemplate,
+    supportedChannels: params.supportedChannels,
+    description: params.description,
+    allowlistedVariables: vars,
+  };
+}
+
 export const STANDARD_FINANCE_TEMPLATES: Record<FinanceEventType, FinanceTemplateDefinition> = {
-  [FinanceEventType.FEE_ASSESSMENT_CREATED]: {
+  [FinanceEventType.FEE_ASSESSMENT_CREATED]: createTemplateDef({
     key: 'fee_assessment_created',
+    name: 'Fee Assessment Created',
     eventType: FinanceEventType.FEE_ASSESSMENT_CREATED,
     titleTemplate: 'New Fee Assessment: {{studentName}}',
-    bodyTemplate: 'A new fee assessment of {{amount}} has been posted for {{studentName}} ({{admissionNo}}). Due date: {{dueDate}}.',
+    bodyTemplate:
+      'A new fee assessment of {{amount}} has been posted for {{studentName}} ({{admissionNo}}). Due date: {{dueDate}}.',
     supportedChannels: ['in_app', 'email', 'sms'],
-    description: 'Triggered when a new fee assessment or charge demand is posted to a student ledger.',
-  },
-  [FinanceEventType.FEE_DUE_SOON]: {
+    description:
+      'Triggered when a new fee assessment or charge demand is posted to a student ledger.',
+  }),
+  [FinanceEventType.FEE_DUE_SOON]: createTemplateDef({
     key: 'fee_due_soon',
+    name: 'Fee Due Reminder',
     eventType: FinanceEventType.FEE_DUE_SOON,
     titleTemplate: 'Upcoming Fee Due: {{studentName}}',
-    bodyTemplate: 'Fee obligation of {{amount}} for {{studentName}} ({{admissionNo}}) is due on {{dueDate}}. Please settle prior to the deadline.',
+    bodyTemplate:
+      'Fee obligation of {{amount}} for {{studentName}} ({{admissionNo}}) is due on {{dueDate}}. Please settle prior to the deadline.',
     supportedChannels: ['in_app', 'email', 'sms', 'whatsapp'],
     description: 'Sent 3–7 days before an upcoming fee installment due date.',
-  },
-  [FinanceEventType.FEE_OVERDUE]: {
+  }),
+  [FinanceEventType.FEE_OVERDUE]: createTemplateDef({
     key: 'fee_overdue',
+    name: 'Fee Overdue Notice',
     eventType: FinanceEventType.FEE_OVERDUE,
     titleTemplate: 'Overdue Fee Notice: {{studentName}}',
-    bodyTemplate: 'Outstanding fee obligation of {{outstandingAmount}} for {{studentName}} ({{admissionNo}}) is past due ({{daysOverdue}} days overdue). Please clear the dues promptly.',
+    bodyTemplate:
+      'Outstanding fee obligation of {{outstandingAmount}} for {{studentName}} ({{admissionNo}}) is past due ({{daysOverdue}} days overdue). Please clear the dues promptly.',
     supportedChannels: ['in_app', 'email', 'sms', 'whatsapp'],
     description: 'Sent when an active fee due date has passed with an unpaid balance.',
-  },
-  [FinanceEventType.PAYMENT_INITIATED]: {
+  }),
+  [FinanceEventType.PAYMENT_INITIATED]: createTemplateDef({
     key: 'payment_initiated',
+    name: 'Payment Order Initiated',
     eventType: FinanceEventType.PAYMENT_INITIATED,
     titleTemplate: 'Payment Order Initiated: {{orderReference}}',
-    bodyTemplate: 'A payment attempt of {{amount}} for {{studentName}} has been initiated (Reference: {{orderReference}}). Status: Pending.',
+    bodyTemplate:
+      'A payment attempt of {{amount}} for {{studentName}} has been initiated (Reference: {{orderReference}}). Status: Pending.',
     supportedChannels: ['in_app', 'email'],
-    description: 'Notice confirming payment checkout initiation (never reported as successful until verified).',
-  },
-  [FinanceEventType.PAYMENT_SUCCESS]: {
+    description:
+      'Notice confirming payment checkout initiation (never reported as successful until verified).',
+  }),
+  [FinanceEventType.PAYMENT_SUCCESS]: createTemplateDef({
     key: 'payment_success',
+    name: 'Payment Confirmed',
     eventType: FinanceEventType.PAYMENT_SUCCESS,
     titleTemplate: 'Payment Confirmed: ₹{{amount}} Received',
-    bodyTemplate: 'Payment of {{amount}} for {{studentName}} ({{admissionNo}}) was successfully confirmed (Order: {{orderReference}}). Thank you.',
+    bodyTemplate:
+      'Payment of {{amount}} for {{studentName}} ({{admissionNo}}) was successfully confirmed (Order: {{orderReference}}). Thank you.',
     supportedChannels: ['in_app', 'email', 'sms', 'whatsapp'],
     description: 'Emitted only after payment is durably verified and committed in PostgreSQL.',
-  },
-  [FinanceEventType.PAYMENT_FAILED]: {
+  }),
+  [FinanceEventType.PAYMENT_FAILED]: createTemplateDef({
     key: 'payment_failed',
+    name: 'Payment Failed',
     eventType: FinanceEventType.PAYMENT_FAILED,
     titleTemplate: 'Payment Incomplete: Order {{orderReference}}',
-    bodyTemplate: 'The payment attempt of {{amount}} for {{studentName}} could not be completed. You may retry or contact the school finance desk.',
+    bodyTemplate:
+      'The payment attempt of {{amount}} for {{studentName}} could not be completed. You may retry or contact the school finance desk.',
     supportedChannels: ['in_app', 'email'],
     description: 'Emitted when a payment transaction is confirmed failed by gateway or cashier.',
-  },
-  [FinanceEventType.PAYMENT_RECEIPT_AVAILABLE]: {
+  }),
+  [FinanceEventType.PAYMENT_RECEIPT_AVAILABLE]: createTemplateDef({
     key: 'payment_receipt_available',
+    name: 'Payment Receipt Available',
     eventType: FinanceEventType.PAYMENT_RECEIPT_AVAILABLE,
     titleTemplate: 'Receipt Available: Receipt #{{receiptNumber}}',
-    bodyTemplate: 'Payment receipt #{{receiptNumber}} for {{studentName}} is ready. You can view or download it from the finance portal.',
+    bodyTemplate:
+      'Payment receipt #{{receiptNumber}} for {{studentName}} is ready. You can view or download it from the finance portal.',
     supportedChannels: ['in_app', 'email'],
     description: 'Sent once an official verified payment receipt document is generated.',
-  },
-  [FinanceEventType.CONCESSION_SUBMITTED]: {
+  }),
+  [FinanceEventType.CONCESSION_SUBMITTED]: createTemplateDef({
     key: 'concession_submitted',
+    name: 'Concession Submitted',
     eventType: FinanceEventType.CONCESSION_SUBMITTED,
     titleTemplate: 'Scholarship/Concession Recommended: {{studentName}}',
-    bodyTemplate: 'A scholarship recommendation of {{concessionPercentage}}% ({{concessionName}}) has been submitted for {{studentName}}.',
+    bodyTemplate:
+      'A scholarship recommendation of {{concessionPercentage}}% ({{concessionName}}) has been submitted for {{studentName}}.',
     supportedChannels: ['in_app', 'email'],
     description: 'Emitted when a scholarship or fee waiver application is recommended.',
-  },
-  [FinanceEventType.CONCESSION_APPROVED]: {
+  }),
+  [FinanceEventType.CONCESSION_APPROVED]: createTemplateDef({
     key: 'concession_approved',
+    name: 'Concession Approved',
     eventType: FinanceEventType.CONCESSION_APPROVED,
     titleTemplate: 'Scholarship/Concession Approved: {{studentName}}',
-    bodyTemplate: 'Scholarship award {{concessionName}} ({{approvedPercentage}}%) for {{studentName}} has been approved by the institution authority.',
+    bodyTemplate:
+      'Scholarship award {{concessionName}} ({{approvedPercentage}}%) for {{studentName}} has been approved by the institution authority.',
     supportedChannels: ['in_app', 'email'],
     description: 'Emitted when an authorized officer approves a scholarship award.',
-  },
-  [FinanceEventType.CONCESSION_REJECTED]: {
+  }),
+  [FinanceEventType.CONCESSION_REJECTED]: createTemplateDef({
     key: 'concession_rejected',
+    name: 'Concession Rejected',
     eventType: FinanceEventType.CONCESSION_REJECTED,
     titleTemplate: 'Scholarship/Concession Decision: {{studentName}}',
-    bodyTemplate: 'The scholarship request {{concessionName}} for {{studentName}} was not approved. Remarks: {{notes}}.',
+    bodyTemplate:
+      'The scholarship request {{concessionName}} for {{studentName}} was not approved. Remarks: {{notes}}.',
     supportedChannels: ['in_app', 'email'],
     description: 'Emitted when a concession recommendation is rejected.',
-  },
-  [FinanceEventType.CONCESSION_APPLIED]: {
+  }),
+  [FinanceEventType.CONCESSION_APPLIED]: createTemplateDef({
     key: 'concession_applied',
+    name: 'Concession Applied to Ledger',
     eventType: FinanceEventType.CONCESSION_APPLIED,
     titleTemplate: 'Concession Applied to Ledger: {{studentName}}',
-    bodyTemplate: 'Approved scholarship {{concessionName}} has been applied to dues for {{studentName}}. Ledger balances have been adjusted.',
+    bodyTemplate:
+      'Approved scholarship {{concessionName}} has been applied to dues for {{studentName}}. Ledger balances have been adjusted.',
     supportedChannels: ['in_app', 'email'],
     description: 'Emitted when an approved concession is applied directly to dues.',
-  },
-  [FinanceEventType.COLLECTION_FOLLOW_UP_REQUIRED]: {
+  }),
+  [FinanceEventType.COLLECTION_FOLLOW_UP_REQUIRED]: createTemplateDef({
     key: 'collection_follow_up_required',
+    name: 'Collection Follow-Up Required',
     eventType: FinanceEventType.COLLECTION_FOLLOW_UP_REQUIRED,
     titleTemplate: 'Collection Follow-Up Required: {{studentName}}',
-    bodyTemplate: 'Account {{admissionNo}} ({{studentName}}, {{gradeName}}) has an overdue balance of {{outstandingAmount}} requiring staff follow-up.',
+    bodyTemplate:
+      'Account {{admissionNo}} ({{studentName}}, {{gradeName}}) has an overdue balance of {{outstandingAmount}} requiring staff follow-up.',
     supportedChannels: ['in_app'],
     description: 'Internal notification alerting finance staff to high-risk overdue accounts.',
-  },
-  [FinanceEventType.FINANCE_NOTIFICATION_DELIVERY_FAILED]: {
+  }),
+  [FinanceEventType.FINANCE_NOTIFICATION_DELIVERY_FAILED]: createTemplateDef({
     key: 'finance_notification_delivery_failed',
+    name: 'Notification Delivery Failed',
     eventType: FinanceEventType.FINANCE_NOTIFICATION_DELIVERY_FAILED,
     titleTemplate: 'Notification Dispatch Warning: {{studentName}}',
-    bodyTemplate: 'External notification dispatch for {{studentName}} encountered an issue: {{notes}}.',
+    bodyTemplate:
+      'External notification dispatch for {{studentName}} encountered an issue: {{notes}}.',
     supportedChannels: ['in_app'],
-    description: 'Alerts finance administrators when an external SMS or Email provider rejects dispatch.',
-  },
+    description:
+      'Alerts finance administrators when an external SMS or Email provider rejects dispatch.',
+  }),
 };
 
 export class FinanceTemplateRenderer {
@@ -208,10 +274,7 @@ export class FinanceTemplateRenderer {
   /**
    * Renders a template string by interpolating allowlisted variables with safe escaping.
    */
-  public static renderString(
-    templateStr: string,
-    variables: Record<string, any> = {}
-  ): string {
+  public static renderString(templateStr: string, variables: Record<string, any> = {}): string {
     return templateStr.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, varName) => {
       if (!ALLOWED_TEMPLATE_VARIABLES.has(varName)) {
         return `[UNKNOWN_VAR: ${varName}]`;
@@ -236,7 +299,7 @@ export class FinanceTemplateRenderer {
    */
   public static renderEventNotification(
     eventType: FinanceEventType,
-    variables: Record<string, any>
+    variables: Record<string, any>,
   ): { title: string; message: string; templateKey: string } {
     const templateDef = STANDARD_FINANCE_TEMPLATES[eventType];
     if (!templateDef) {
@@ -262,7 +325,7 @@ export class FinanceTemplateRenderer {
    */
   public static previewTemplate(
     templateKey: string,
-    customVariables?: Record<string, any>
+    customVariables?: Record<string, any>,
   ): { title: string; message: string; variablesUsed: Record<string, any> } {
     // Find matching definition by key or eventType (flexible normalization)
     const normalizedTarget = templateKey.toLowerCase().replace(/[\._]/g, '');

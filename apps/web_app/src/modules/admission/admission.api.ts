@@ -140,10 +140,11 @@ export const admissionApi = {
     const form = new FormData();
     form.append('file', file);
     form.append('application_id', id);
+    form.append('document_type_id', type);
     form.append('document_type_code', type);
-    return apiClient.post('/v1/admission/application/documents/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    form.append('document_code', type);
+    form.append('document_type', type);
+    return apiClient.post(`/v1/applications/${id}/documents`, form);
   },
 
   billing: (id: string, legacyStructureId: string) =>

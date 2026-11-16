@@ -2,7 +2,12 @@ import { PERMISSIONS } from '../../../rbac/permissions';
 
 export class ParentPolicy {
   static canView(): string {
-    return PERMISSIONS.ADMISSION_VIEW_ALL || PERMISSIONS.ADMISSION_LEADS_MANAGE;
+    return (
+      PERMISSIONS.ADMISSION_VIEW_ALL ||
+      PERMISSIONS.ADMISSION_LEADS_MANAGE ||
+      PERMISSIONS.ADMISSION_VIEW_SELF ||
+      'admission.view_own'
+    );
   }
 
   static canCreate(): string {

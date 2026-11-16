@@ -60,7 +60,7 @@ export function detectBufferMimeType(buffer: Buffer): string | null {
 }
 
 export function validateFileBufferSignature(file: Express.Multer.File): void {
-  if (!file || !file.buffer) {
+  if (!file || !file.buffer || file.buffer.length === 0) {
     throw new ApplicationValidationError('File content is empty or unreadable.');
   }
 

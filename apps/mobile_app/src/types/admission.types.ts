@@ -274,3 +274,81 @@ export interface AdmissionConfigResponse {
   };
   requirements?: DocumentType[];
 }
+
+export interface ChildFeeDueItem {
+  due_id: string;
+  charge_id: string;
+  charge_description: string;
+  component_name: string;
+  term_name: string;
+  amount_due: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  due_date: string;
+  is_overdue: boolean;
+  status: string;
+}
+
+export interface ChildPaymentHistoryItem {
+  transaction_id: string;
+  order_id: string | null;
+  payment_method: string;
+  amount: number;
+  currency: string;
+  status: string;
+  transaction_reference: string | null;
+  created_at: string;
+}
+
+export interface ChildFeeOverview {
+  student_id: string;
+  admission_no: string;
+  first_name: string;
+  last_name: string | null;
+  full_name: string;
+  grade_name: string | null;
+  academic_year_name: string | null;
+  section_name: string | null;
+  roll_number?: string | null;
+  roll_no?: string | null;
+  enrollment_id: string | null;
+  is_assigned: boolean;
+  assignment_id: string | null;
+  fee_structure_name: string | null;
+  installment_plan_name: string | null;
+  summary: {
+    total_assessed: number;
+    total_paid: number;
+    outstanding_balance: number;
+    balance?: number;
+    overdue_amount: number;
+    next_due_date?: string | null;
+    next_due_amount?: number | null;
+    total_dues_count: number;
+    unpaid_dues_count: number;
+    status: 'fully_paid' | 'partially_paid' | 'pending' | 'overdue' | 'no_fees_assigned';
+  };
+  components?: Array<{
+    component_id?: string;
+    component_name: string;
+    component_code: string;
+    amount: number;
+    paid_amount?: number;
+    outstanding_amount?: number;
+    status?: string;
+    description: string | null;
+  }>;
+  dues?: ChildFeeDueItem[];
+  payment_history?: ChildPaymentHistoryItem[];
+}
+
+export interface ParentChildrenFeesResponse {
+  success: boolean;
+  parent_id: string | null;
+  parent_name: string | null;
+  parent_email: string | null;
+  children_count: number;
+  children: ChildFeeOverview[];
+  data?: ChildFeeOverview[];
+  message?: string;
+}

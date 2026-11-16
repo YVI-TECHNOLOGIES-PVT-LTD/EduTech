@@ -23,6 +23,10 @@ export class JobService {
   async getMetrics() {
     return queueAdapter.getMetrics();
   }
+
+  getRuntimeStatus() {
+    return queueAdapter.getRuntimeMetadata();
+  }
 }
 
 export const jobService = JobService.getInstance();

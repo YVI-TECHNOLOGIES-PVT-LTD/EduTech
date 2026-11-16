@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api-client';
+import { ParentDashboardService } from '../modules/dashboard/services/ParentDashboardService';
 import { EnrichedUser } from '../types/auth';
 import { useAppDispatch, useAppSelector } from '../app/store';
 import {
@@ -19,6 +20,7 @@ import {
   getCurrentSessionGeneration,
   getNextSessionGeneration,
 } from '../lib/auth/sessionReset';
+import { LandingResolver } from '../services/LandingResolver';
 
 export type AuthBoundaryState = 'initializing' | 'stable' | 'switching' | 'signed_out';
 
@@ -36,7 +38,7 @@ export interface AuthContextType {
   systemMode: 'UAT' | 'PRODUCTION';
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -88,6 +90,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (res.data?.user) {
           const enrichedUser: EnrichedUser = res.data.user;
+          const userRoles = Array.from(
+            new Set(
+              (enrichedUser.roles || [])
+                .map((r: string) => LandingResolver.normalizeRole(r))
+                .filter(Boolean),
+            ),
+          );
+          enrichedUser.roles = userRoles;
+          const isParent = userRoles.some((r) =>
+            ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+          );
+
+          // If parent and post-admission status not explicitly true, check overview as fallback
+          if (isParent && !enrichedUser.hasEnrolledStudent && !enrichedUser.isPostAdmission) {
+            try {
+              const overviewRes = await apiClient.get('/dashboard/parent/overview', {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
+              ParentDashboardService.setCachedOverview(overviewRes.data);
+              const children = overviewRes.data?.children || [];
+              if (children.length > 0) {
+                enrichedUser.hasEnrolledStudent = true;
+                enrichedUser.isPostAdmission = true;
+                if (!userRoles.includes('ENROLLED_PARENT')) {
+                  userRoles.push('ENROLLED_PARENT');
+                  enrichedUser.roles = userRoles;
+                }
+              }
+            } catch {
+              // Non-blocking fallback
+            }
+          }
+
           const tenantId = enrichedUser.school_id || '';
           const primaryRole = enrichedUser.roles?.[0] || (enrichedUser as any)?.role || '';
           const newBoundary = `${enrichedUser.id}:${tenantId}:${primaryRole}`;
@@ -179,12 +214,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Initial Supabase Session Sync or Native JWT restoration
-      const storedToken = localStorage.getItem('edutrack_access_token');
       const {
         data: { session: initSession },
       } = await supabase.auth.getSession();
 
       if (!isMounted) return;
+
+      // Re-read native token AFTER async network/session awaits so a concurrent
+      // native login is never clobbered back to 'signed_out'.
+      const storedToken = localStorage.getItem('edutrack_access_token');
 
       if (initSession?.access_token) {
         setSession(initSession);
@@ -240,15 +278,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserProfile(currentSession.access_token);
         }
       } else {
+        const hasNativeToken = Boolean(localStorage.getItem('edutrack_access_token'));
+        if (event === 'INITIAL_SESSION' && hasNativeToken) {
+          // Native JWT mode: do not reset client state on Supabase empty INITIAL_SESSION!
+          return;
+        }
+
         // If transitioning to signed out from an authenticated session
-        if (profileFetchTracker.current) {
+        if (profileFetchTracker.current && event === 'SIGNED_OUT') {
           await resetAuthenticatedClientState('session_expired_or_signed_out');
           profileFetchTracker.current = null;
           currentAuthBoundaryRef.current = null;
         }
         setSession(null);
-        setBoundaryState('signed_out');
-        dispatch(setInitializing(false));
+        if (!hasNativeToken) {
+          setBoundaryState('signed_out');
+          dispatch(setInitializing(false));
+        }
       }
     });
 
@@ -281,40 +327,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = useCallback(
     (code: string): boolean => {
+      const rawPermissions =
+        userPermissions && userPermissions.length > 0 ? userPermissions : user?.permissions || [];
+      if (rawPermissions.includes(code)) {
+        return true;
+      }
+
       const rawRoles =
         userRoles && userRoles.length > 0
           ? userRoles
           : user?.roles || ((user as any)?.role ? [(user as any).role] : []);
-      const normalized = rawRoles.map((r: string) =>
-        String(r)
-          .toUpperCase()
-          .replace(/[\s_-]+/g, '_'),
-      );
+      const normalized = rawRoles
+        .map((r: string) => LandingResolver.normalizeRole(r))
+        .filter(Boolean);
+
+      // Strictly scope wildcard access to institutional admin leadership only
       if (
-        normalized.includes('ADMIN') ||
-        normalized.includes('SUPERADMIN') ||
-        normalized.includes('SUPER_ADMIN') ||
-        normalized.includes('ORG_ADMIN') ||
-        normalized.includes('EXAM_CELL_ADMIN')
-      )
-        return true;
-      if (
-        normalized.includes('FRONT_OFFICE') ||
-        normalized.includes('FO') ||
-        normalized.includes('RECEPTIONIST') ||
-        normalized.includes('FRONT_OFFICE_STAFF') ||
-        normalized.includes('STAFF') ||
-        normalized.includes('FACULTY') ||
-        normalized.includes('ADMISSION_OFFICER') ||
-        normalized.includes('ADMISSIONS_OFFICER') ||
-        normalized.includes('COUNSELLOR') ||
-        normalized.includes('COUNSELOR') ||
-        normalized.includes('HOI') ||
-        normalized.includes('HEAD_OF_INSTITUTE') ||
-        normalized.includes('PRINCIPAL')
+        normalized.some((r: string) =>
+          [
+            'ADMIN',
+            'SUPERADMIN',
+            'SUPER_ADMIN',
+            'ORG_ADMIN',
+            'HOI',
+            'PRINCIPAL',
+            'HEAD_OF_INSTITUTE',
+          ].includes(r),
+        )
       ) {
         return true;
       }
+
+      if (normalized.some((r: string) => ['TEACHER', 'FACULTY'].includes(r))) {
+        const teacherPermissions = [
+          'DASHBOARD_VIEW_FACULTY',
+          'faculty.dashboard.view',
+          'ACADEMIC_VIEW',
+          'CLASS_VIEW',
+          'SECTION_VIEW',
+          'TIMETABLE_VIEW',
+        ];
+        if (teacherPermissions.includes(code)) return true;
+      }
+
+      if (
+        normalized.some((r: string) =>
+          ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+        )
+      ) {
+        const financePermissions = [
+          'fees.dashboard.view',
+          'fees.view',
+          'fees.structure.view',
+          'fees.structure.manage',
+          'fees.demand.view',
+          'fees.demand.generate',
+          'fees.payment.view',
+          'fees.payment.collect',
+          'fees.receipt.generate',
+          'fees.waiver.approve',
+          'fees.refund.process',
+        ];
+        if (financePermissions.includes(code) || code.startsWith('fees.')) return true;
+      }
+
       if (normalized.includes('PARENT') || normalized.includes('GUARDIAN')) {
         const parentPermissions = [
           'admission.view_own',
@@ -328,38 +404,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ];
         if (parentPermissions.includes(code)) return true;
       }
-      const rawPermissions =
-        userPermissions && userPermissions.length > 0 ? userPermissions : user?.permissions || [];
-      return rawPermissions.includes(code) ?? false;
+
+      if (normalized.includes('STUDENT')) {
+        const studentPermissions = ['student.dashboard.view', 'STUDENT_VIEW_SELF'];
+        if (studentPermissions.includes(code)) return true;
+      }
+
+      return false;
     },
     [userPermissions, userRoles, user],
   );
 
   const hasRole = useCallback(
     (role: string): boolean => {
-      const searchNorm = role.toUpperCase().replace(/[\s_-]+/g, '_');
+      const searchNorm = LandingResolver.normalizeRole(role);
       const rawRoles =
         userRoles && userRoles.length > 0
           ? userRoles
           : user?.roles || ((user as any)?.role ? [(user as any).role] : []);
-      return (
-        rawRoles.some(
-          (r: string) =>
-            String(r)
-              .toUpperCase()
-              .replace(/[\s_-]+/g, '_') === searchNorm,
-        ) ?? false
-      );
+      return rawRoles.some((r: string) => LandingResolver.normalizeRole(r) === searchNorm);
     },
     [userRoles, user],
   );
+
+  const hasNativeAuthenticatedSession = Boolean(reduxIsAuthenticated && user && accessToken);
+  const effectiveBoundaryState: AuthBoundaryState =
+    boundaryState === 'switching'
+      ? 'switching'
+      : hasNativeAuthenticatedSession &&
+          (boundaryState === 'signed_out' || initialSessionResolvedRef.current)
+        ? 'stable'
+        : boundaryState;
+  const effectiveLoading = effectiveBoundaryState === 'stable' ? false : isInitializing;
 
   const value: AuthContextType = {
     session,
     user,
     accessToken,
-    loading: isInitializing,
-    boundaryState,
+    loading: effectiveLoading,
+    boundaryState: effectiveBoundaryState,
     isAuthenticated: Boolean((session || accessToken) && user && reduxIsAuthenticated),
     signOut,
     hasPermission,

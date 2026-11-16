@@ -319,8 +319,12 @@ export class StudentService {
       throw new StudentValidationError(`Application not found: ${applicationId}`);
     }
 
-    // IDEMPOTENCY CHECK: If already converted to student, return existing record without duplicate creation!
-    if (app.students) {
+    // IDEMPOTENCY CHECK: If already converted and enrolled in student_enrollments, return existing!
+    if (
+      app.students &&
+      app.students.student_enrollments &&
+      app.students.student_enrollments.length > 0
+    ) {
       logger.info(
         `Application ${applicationId} is already enrolled. Returning existing student ${app.students.student_id}`,
       );
@@ -329,7 +333,7 @@ export class StudentService {
         success: true,
         is_existing: true,
         student: existingStudent || app.students,
-        enrollment: app.students.student_enrollments?.[0] || null,
+        enrollment: app.students.student_enrollments[0],
       };
     }
 
@@ -382,30 +386,6 @@ export class StudentService {
     const parentName = lead?.contact_name || 'Parent';
     const authorUuid = isValidUuid(performedBy) ? performedBy : undefined;
 
-    let parent = await prisma.parents.findFirst({
-      where: {
-        org_id: app.org_id,
-        phone: parentPhone,
-      },
-    });
-
-    if (!parent) {
-      const nameParts = parentName.trim().split(' ');
-      const pFirstName = nameParts[0] || 'Parent';
-      const pLastName = nameParts.slice(1).join(' ') || undefined;
-
-      parent = await prisma.parents.create({
-        data: {
-          org_id: app.org_id,
-          first_name: pFirstName,
-          last_name: pLastName,
-          phone: parentPhone,
-          email: parentEmail,
-          created_by: authorUuid,
-        },
-      });
-    }
-
     // Generate collision-checked admission_no
     const year = new Date().getFullYear();
     let count = await prisma.students.count({ where: { org_id: app.org_id } });
@@ -421,28 +401,67 @@ export class StudentService {
       attempts += 1;
     }
 
-    // ATOMIC PRISMA TRANSACTION for Student + Parent Link + Student Enrollment + Application & Lead Status
+    // ATOMIC PRISMA TRANSACTION for Parent + Student + Parent Link + Student Enrollment + Application & Lead Status
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create Student Master Record
-      const student = await tx.students.create({
-        data: {
+      // 0. Resolve or create Parent record atomically with Student & Enrollment
+      let parent = await tx.parents.findFirst({
+        where: {
           org_id: app.org_id,
-          application_id: applicationId,
-          admission_no: admissionNo,
-          first_name: studentFirstName,
-          last_name: studentLastName,
-          dob,
-          gender,
-          admission_date: new Date(),
-          status: 'active',
-          created_by: authorUuid,
+          phone: parentPhone,
         },
       });
 
+      if (!parent) {
+        const nameParts = parentName.trim().split(' ');
+        const pFirstName = nameParts[0] || 'Parent';
+        const pLastName = nameParts.slice(1).join(' ') || undefined;
+
+        parent = await tx.parents.create({
+          data: {
+            org_id: app.org_id,
+            first_name: pFirstName,
+            last_name: pLastName,
+            phone: parentPhone,
+            email: parentEmail,
+            created_by: authorUuid,
+          },
+        });
+      }
+
+      // 1. Create or resolve existing Student Master Record
+      let student: any = app.students;
+      if (!student) {
+        student = await tx.students.create({
+          data: {
+            org_id: app.org_id,
+            application_id: applicationId,
+            admission_no: admissionNo,
+            first_name: studentFirstName,
+            last_name: studentLastName,
+            dob,
+            gender,
+            admission_date: new Date(),
+            status: 'active',
+            created_by: authorUuid,
+          },
+        });
+      }
+
       // 2. Link Parent Record in student_parents
       const relationshipEnum = lead?.contact_relationship || 'guardian';
-      await tx.student_parents.create({
-        data: {
+      await tx.student_parents.upsert({
+        where: {
+          student_id_parent_id: {
+            student_id: student.student_id,
+            parent_id: (parent as any).parent_id,
+          },
+        },
+        update: {
+          relationship: relationshipEnum as any,
+          is_primary_contact: true,
+          updated_at: new Date(),
+        },
+        create: {
           student_id: student.student_id,
           parent_id: (parent as any).parent_id,
           relationship: relationshipEnum as any,
@@ -488,11 +507,12 @@ export class StudentService {
         });
       }
 
-      return { student, enrollment };
+      return { student, enrollment, parent };
     });
 
     // ADMISSION STUDENT PHOTOGRAPH COPYING (Post-Student Creation)
-    const targetUserId = result.student?.user_id || app.created_by || (parent as any)?.user_id;
+    const targetUserId =
+      result.student?.user_id || app.created_by || (result.parent as any)?.user_id;
     if (targetUserId) {
       try {
         // Look up canonical document type for Student Photograph

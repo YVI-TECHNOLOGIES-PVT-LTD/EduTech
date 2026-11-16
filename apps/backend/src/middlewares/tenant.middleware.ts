@@ -1,153 +1,202 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prismaClient';
+import { logger } from '../utils/logger';
+import { normalizeRoles } from '../rbac/role-normalization';
 
 export interface TenantRequest extends Request {
   tenantOrgId?: string;
+  tenantResolutionSource?: string;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PLACEHOLDER_TENANT_VALUES = new Set(['', 'undefined', 'null', 'school-main', 'org-main']);
+
+function sanitizeCandidate(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || PLACEHOLDER_TENANT_VALUES.has(trimmed.toLowerCase())) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+function getExplicitHeaderTenant(req: Request): string | undefined {
+  return (
+    sanitizeCandidate(req.headers['x-tenant-id']) ||
+    sanitizeCandidate(req.headers['x-school-id']) ||
+    sanitizeCandidate(req.headers['x-org-id'])
+  );
+}
+
+function getExplicitQueryTenant(req: Request): string | undefined {
+  return sanitizeCandidate(req.query?.org_id) || sanitizeCandidate(req.query?.school_id);
+}
+
+function getExplicitBodyTenant(req: Request): string | undefined {
+  if (!req.body || typeof req.body !== 'object') return undefined;
+  return sanitizeCandidate(req.body.org_id) || sanitizeCandidate(req.body.school_id);
+}
+
+function hasSuperAdminPrivilege(user: { roles?: string[] } | undefined): boolean {
+  if (!user?.roles?.length) return false;
+  const normalized = normalizeRoles(user.roles);
+  return normalized.includes('SUPERADMIN') || normalized.includes('SUPER_ADMIN');
+}
+
+async function resolveActiveOrgByIdentifier(identifier: string): Promise<string | null> {
+  if (UUID_REGEX.test(identifier)) {
+    const org = await prisma.organizations.findFirst({
+      where: { org_id: identifier, status: 'active' },
+      select: { org_id: true },
+    });
+    return org?.org_id || null;
+  }
+
+  const orgByCode = await prisma.organizations.findFirst({
+    where: { org_code: { equals: identifier, mode: 'insensitive' }, status: 'active' },
+    select: { org_id: true },
+  });
+  return orgByCode?.org_id || null;
+}
+
+/**
+ * Strict Tenant Isolation Middleware for Authenticated Routes.
+ *
+ * Security invariants:
+ * 1. Never falls back to DEFAULT_ORG_ID, DEV_DEFAULT_ORG_ID, or an arbitrary active DB org.
+ * 2. Trusted tenant identity originates strictly from verified req.context.user (DB-backed session).
+ * 3. Rejects malformed tenant IDs (400) and cross-tenant header/query overrides from non-superadmin callers (403).
+ */
 export const resolveTenantMiddleware = async (
   req: TenantRequest,
   res: Response,
   next: NextFunction,
-): Promise<void> => {
-  const requestId = (req.headers['x-request-id'] ||
-    req.headers['x-correlation-id'] ||
-    crypto.randomUUID()) as string;
-
+) => {
   try {
-    const host = req.headers.host || '';
-    let resolvedOrgId: string | null = null;
-    let resolutionSource: string = 'none';
-
-    // 1. Check authenticated user context if present (from authenticate / authenticateOptional)
-    if (req.context?.user?.org_id || req.context?.user?.school_id) {
-      resolvedOrgId = req.context.user.org_id || req.context.user.school_id;
-      resolutionSource = 'user_context';
+    const user = req.context?.user;
+    if (!user?.id) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'Authenticated user session is required before tenant resolution.',
+      });
     }
 
-    // 2. Check explicit request headers or query/body parameters
-    if (!resolvedOrgId) {
-      const explicitOrg = (req.headers['x-tenant-id'] ||
-        req.headers['x-school-id'] ||
-        req.headers['x-org-id'] ||
-        req.query.school_id ||
-        req.query.org_id ||
-        (req.body && (req.body.school_id || req.body.org_id))) as string;
+    const sessionOrgId = sanitizeCandidate(user.org_id || user.school_id);
+    if (!sessionOrgId || !UUID_REGEX.test(sessionOrgId)) {
+      logger.warn('[TenantMiddleware] Authenticated user lacks a valid organization binding', {
+        userId: user.id,
+        path: req.originalUrl,
+      });
+      return res.status(403).json({
+        error: 'TENANT_CONTEXT_MISSING',
+        message: 'Authenticated account is not bound to a valid active organization.',
+      });
+    }
 
-      if (explicitOrg && typeof explicitOrg === 'string') {
-        const validOrg = await prisma.organizations.findFirst({
-          where: {
-            OR: [
-              { org_id: explicitOrg },
-              { org_code: { equals: explicitOrg, mode: 'insensitive' } },
-            ],
-          },
-          select: { org_id: true },
+    const headerCandidate = getExplicitHeaderTenant(req);
+    const queryCandidate = getExplicitQueryTenant(req);
+    const isSuperAdmin = hasSuperAdminPrivilege(user);
+
+    for (const candidate of [headerCandidate, queryCandidate]) {
+      if (!candidate) continue;
+      if (!UUID_REGEX.test(candidate)) {
+        return res.status(400).json({
+          error: 'INVALID_TENANT_ID',
+          message: 'Provided tenant identifier is not a valid UUID.',
         });
-        if (validOrg) {
-          resolvedOrgId = validOrg.org_id;
-          resolutionSource = 'explicit_header_or_param';
-        }
       }
-    }
-
-    // 3. Resolve via Host / Domain mapping if host is provided
-    if (!resolvedOrgId && host) {
-      const hostname = host.split(':')[0].toLowerCase();
-      const subdomain = hostname.split('.')[0];
-      // Skip generic cloud host subdomains (e.g. render, onrender, netlify, localhost, vercel)
-      const isCloudOrLocal =
-        subdomain === 'localhost' ||
-        subdomain === '127' ||
-        subdomain === 'edutrack' ||
-        hostname.includes('onrender.com') ||
-        hostname.includes('netlify.app') ||
-        hostname.includes('vercel.app');
-
-      if (subdomain && !isCloudOrLocal) {
-        const org = await prisma.organizations.findFirst({
-          where: {
-            OR: [
-              { org_code: { equals: subdomain, mode: 'insensitive' } },
-              { website: { contains: hostname, mode: 'insensitive' } },
-            ],
-            status: 'active',
-          },
-          select: { org_id: true },
+      if (candidate !== sessionOrgId && !isSuperAdmin) {
+        logger.warn('[TenantMiddleware] Blocked cross-tenant header/query spoofing attempt', {
+          userId: user.id,
+          sessionOrgId,
+          attemptedOrgId: candidate,
+          path: req.originalUrl,
         });
-        if (org) {
-          resolvedOrgId = org.org_id;
-          resolutionSource = 'subdomain_match';
-        }
+        return res.status(403).json({
+          error: 'TENANT_MISMATCH',
+          message: 'Cross-tenant access denied: tenant override does not match user organization.',
+        });
       }
     }
 
-    // 4. Environment-configured default fallback
-    if (!resolvedOrgId) {
-      if (process.env.DEFAULT_ORG_ID) {
-        resolvedOrgId = process.env.DEFAULT_ORG_ID;
-        resolutionSource = 'env_DEFAULT_ORG_ID';
-      } else if (process.env.DEV_DEFAULT_ORG_ID) {
-        resolvedOrgId = process.env.DEV_DEFAULT_ORG_ID;
-        resolutionSource = 'env_DEV_DEFAULT_ORG_ID';
-      }
-    }
+    const targetOrgId =
+      isSuperAdmin && (headerCandidate || queryCandidate)
+        ? (headerCandidate || queryCandidate)!
+        : sessionOrgId;
 
-    // 5. Active database organization fallback (ensures public forms work on cloud hosting platforms)
-    if (!resolvedOrgId) {
-      const activeOrg =
-        (await prisma.organizations.findFirst({
-          where: { status: 'active' },
-          select: { org_id: true },
-        })) ||
-        (await prisma.organizations.findFirst({
-          select: { org_id: true },
-        }));
-
-      if (activeOrg) {
-        resolvedOrgId = activeOrg.org_id;
-        resolutionSource = 'active_db_fallback';
-      }
-    }
-
-    console.log('[TENANT-RESOLVE-AUDIT]', {
-      requestId,
-      resolvedOrgId,
-      resolutionSource,
-      hasAuthUser: !!req.context?.user,
-      authUserId: req.context?.user?.id || 'anonymous',
-      path: req.path,
-      host,
+    const orgExists = await prisma.organizations.findFirst({
+      where: { org_id: targetOrgId, status: 'active' },
+      select: { org_id: true },
     });
 
+    if (!orgExists) {
+      return res.status(403).json({
+        error: 'TENANT_INACTIVE_OR_NOT_FOUND',
+        message: 'Resolved organization is inactive or does not exist.',
+      });
+    }
+
+    req.tenantOrgId = targetOrgId;
+    req.tenantResolutionSource =
+      targetOrgId !== sessionOrgId ? 'super_admin_override' : 'authenticated_session';
+    user.org_id = targetOrgId;
+    user.school_id = targetOrgId;
+
+    return next();
+  } catch (err: any) {
+    logger.error('[TenantMiddleware] Tenant resolution error:', err);
+    return res.status(500).json({
+      error: 'TENANT_RESOLUTION_FAILED',
+      message: 'Failed to verify tenant context.',
+    });
+  }
+};
+
+/**
+ * Explicit Tenant Resolution Middleware for Public / Optional-Auth Onboarding Routes
+ * (e.g., public parent registration, admission enquiries, public chatbot).
+ *
+ * - If authenticated, enforces identical strict isolation via resolveTenantMiddleware.
+ * - If anonymous, requires an explicit org_id / school_id / org_code identifier and
+ *   verifies it against active organizations. Zero silent DB/env fallbacks.
+ */
+export const resolvePublicTenantMiddleware = async (
+  req: TenantRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (req.context?.user?.id) {
+      return resolveTenantMiddleware(req, res, next);
+    }
+
+    const explicitIdentifier =
+      getExplicitHeaderTenant(req) || getExplicitQueryTenant(req) || getExplicitBodyTenant(req);
+
+    if (!explicitIdentifier) {
+      return res.status(400).json({
+        error: 'TENANT_REQUIRED',
+        message:
+          'Explicit organization identifier (org_id, school_id, or x-tenant-id) is required.',
+      });
+    }
+
+    const resolvedOrgId = await resolveActiveOrgByIdentifier(explicitIdentifier);
     if (!resolvedOrgId) {
-      console.error('[TENANT-RESOLVE-FAILED-400]', {
-        requestId,
-        path: req.path,
-        host,
+      return res.status(404).json({
+        error: 'TENANT_NOT_FOUND',
+        message: 'Specified organization was not found or is inactive.',
       });
-      res.status(400).json({
-        error: 'Tenant Context Resolution Failed',
-        message: 'Could not resolve a valid tenant organization for this domain.',
-        requestId,
-      });
-      return;
     }
 
     req.tenantOrgId = resolvedOrgId;
-    (req as any).context = {
-      ...(req.context || {}),
-      school_id: resolvedOrgId,
-      org_id: resolvedOrgId,
-    };
-
-    next();
-  } catch (error: any) {
-    console.error('[Tenant Middleware Error]:', {
-      requestId,
-      error: error?.message || error,
-      stack: error?.stack,
+    req.tenantResolutionSource = 'explicit_public_identifier';
+    return next();
+  } catch (err: any) {
+    logger.error('[TenantMiddleware] Public tenant resolution error:', err);
+    return res.status(500).json({
+      error: 'TENANT_RESOLUTION_FAILED',
+      message: 'Failed to resolve target organization.',
     });
-    res.status(500).json({ error: 'Tenant resolution error', message: error.message, requestId });
   }
 };

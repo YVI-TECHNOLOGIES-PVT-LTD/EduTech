@@ -60,9 +60,19 @@ export const DemandManagement = () => {
         apiClient.get('/fees/structures'),
         apiClient.get('/academic/classes').catch(() => ({ data: [] })),
       ]);
-      setDemands(demRes.data || []);
-      setStructures(strRes.data || []);
-      setClasses(clsRes.data || []);
+      const demandsList = Array.isArray(demRes.data)
+        ? demRes.data
+        : demRes.data?.data || demRes.data?.demands || [];
+      const structuresList = Array.isArray(strRes.data)
+        ? strRes.data
+        : strRes.data?.items || strRes.data?.structures || strRes.data?.data || [];
+      const classesList = Array.isArray(clsRes.data)
+        ? clsRes.data
+        : clsRes.data?.data || clsRes.data?.classes || [];
+
+      setDemands(demandsList);
+      setStructures(structuresList);
+      setClasses(classesList);
     } catch {
       toast.error('Failed to load demands');
     } finally {
@@ -72,8 +82,11 @@ export const DemandManagement = () => {
 
   const fetchSections = async (classId: string) => {
     try {
-      const { data } = await apiClient.get(`/academic/sections?class_id=${classId}`);
-      setSections(data || []);
+      const res = await apiClient.get(`/academic/sections?class_id=${classId}`);
+      const sectionsList = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data || res.data?.sections || [];
+      setSections(sectionsList);
     } catch {
       setSections([]);
     }
@@ -341,7 +354,7 @@ export const DemandManagement = () => {
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/30"
                   >
                     <option value="">Select class</option>
-                    {classes.map((c: any) => (
+                    {(Array.isArray(classes) ? classes : []).map((c: any) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
@@ -362,7 +375,7 @@ export const DemandManagement = () => {
                       className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
                     >
                       <option value="">Select</option>
-                      {classes.map((c: any) => (
+                      {(Array.isArray(classes) ? classes : []).map((c: any) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>
@@ -379,7 +392,7 @@ export const DemandManagement = () => {
                       className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
                     >
                       <option value="">Select</option>
-                      {sections.map((s: any) => (
+                      {(Array.isArray(sections) ? sections : []).map((s: any) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
                         </option>
@@ -412,7 +425,7 @@ export const DemandManagement = () => {
                   className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/30"
                 >
                   <option value="">Select structure</option>
-                  {structures.map((s: any) => (
+                  {(Array.isArray(structures) ? structures : []).map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.name} v{s.version}
                     </option>

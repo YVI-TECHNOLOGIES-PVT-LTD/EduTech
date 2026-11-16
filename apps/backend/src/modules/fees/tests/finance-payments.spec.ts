@@ -31,89 +31,68 @@ export async function runFinancePaymentTests() {
   // 1. Validation & Input Sanitization Tests
   // -------------------------------------------------------------------------
   await test('getEligibleObligations rejects missing tenant organization ID', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.getEligibleObligations('', mockStudentId);
-      },
-      /Tenant organization ID is required/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.getEligibleObligations('', mockStudentId);
+    }, /Tenant organization ID is required/);
   });
 
   await test('getEligibleObligations rejects invalid student UUID format', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.getEligibleObligations(mockTenantA, 'not-a-valid-uuid');
-      },
-      /Invalid student identifier/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.getEligibleObligations(mockTenantA, 'not-a-valid-uuid');
+    }, /Invalid student identifier/);
   });
 
   await test('recordOfflinePayment rejects missing tenant ID', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.recordOfflinePayment('', null, {
-          studentId: mockStudentId,
-          studentChargeDueId: mockDueId,
-          amount: 500,
-          paymentMethod: 'cash',
-        });
-      },
-      /Tenant organization ID is required/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.recordOfflinePayment('', null, {
+        studentId: mockStudentId,
+        studentChargeDueId: mockDueId,
+        amount: 500,
+        paymentMethod: 'cash',
+      });
+    }, /Tenant organization ID is required/);
   });
 
   await test('recordOfflinePayment rejects zero and negative amounts', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
-          studentId: mockStudentId,
-          studentChargeDueId: mockDueId,
-          amount: 0,
-          paymentMethod: 'cash',
-        });
-      },
-      /must be a positive number/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
+        studentId: mockStudentId,
+        studentChargeDueId: mockDueId,
+        amount: 0,
+        paymentMethod: 'cash',
+      });
+    }, /must be a positive number/);
 
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
-          studentId: mockStudentId,
-          studentChargeDueId: mockDueId,
-          amount: -100,
-          paymentMethod: 'cash',
-        });
-      },
-      /must be a positive number/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
+        studentId: mockStudentId,
+        studentChargeDueId: mockDueId,
+        amount: -100,
+        paymentMethod: 'cash',
+      });
+    }, /must be a positive number/);
   });
 
   await test('recordOfflinePayment rejects excessive decimal precision (> 2 decimals)', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
-          studentId: mockStudentId,
-          studentChargeDueId: mockDueId,
-          amount: 100.555,
-          paymentMethod: 'cash',
-        });
-      },
-      /excessive precision/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
+        studentId: mockStudentId,
+        studentChargeDueId: mockDueId,
+        amount: 100.555,
+        paymentMethod: 'cash',
+      });
+    }, /excessive precision/);
   });
 
   await test('recordOfflinePayment rejects unsupported payment method', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
-          studentId: mockStudentId,
-          studentChargeDueId: mockDueId,
-          amount: 500,
-          paymentMethod: 'crypto_currency' as any,
-        });
-      },
-      /Invalid offline payment method/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.recordOfflinePayment(mockTenantA, null, {
+        studentId: mockStudentId,
+        studentChargeDueId: mockDueId,
+        amount: 500,
+        paymentMethod: 'crypto_currency' as any,
+      });
+    }, /Invalid offline payment method/);
   });
 
   await test('recordOfflinePayment returns 404 for non-existent student in tenant', async () => {
@@ -126,7 +105,7 @@ export async function runFinancePaymentTests() {
           paymentMethod: 'cash',
         });
       },
-      (err: any) => err.statusCode === 404
+      (err: any) => err.statusCode === 404,
     );
   });
 
@@ -143,22 +122,19 @@ export async function runFinancePaymentTests() {
           razorpaySignature: 'sig_123',
         });
       },
-      (err: any) => err.statusCode === 404
+      (err: any) => err.statusCode === 404,
     );
   });
 
   await test('createOnlinePaymentOrder validates online payment methods', async () => {
-    await assert.rejects(
-      async () => {
-        await PaymentCollectionService.createOnlinePaymentOrder(mockTenantA, null, {
-          studentId: mockStudentId,
-          studentChargeDueId: mockDueId,
-          amount: 500,
-          paymentMethod: 'invalid_method' as any,
-        });
-      },
-      /Invalid online payment method/
-    );
+    await assert.rejects(async () => {
+      await PaymentCollectionService.createOnlinePaymentOrder(mockTenantA, null, {
+        studentId: mockStudentId,
+        studentChargeDueId: mockDueId,
+        amount: 500,
+        paymentMethod: 'invalid_method' as any,
+      });
+    }, /Invalid online payment method/);
   });
 
   // -------------------------------------------------------------------------
@@ -168,7 +144,7 @@ export async function runFinancePaymentTests() {
   let orgWithDues: any = null;
   try {
     const dueRecord = await prisma.student_charge_dues.findFirst({
-      where: { status: { notIn: ['cancelled', 'waived'] } },
+      where: { status: { notIn: ['cancelled', 'waived', 'paid'] } },
       include: {
         student_charges: {
           include: {
@@ -208,7 +184,7 @@ export async function runFinancePaymentTests() {
     await test('getEligibleObligations returns verified unpaid dues with remaining balance', async () => {
       const res = await PaymentCollectionService.getEligibleObligations(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
       assert.strictEqual(res.student.student_id, student.student_id);
@@ -219,7 +195,7 @@ export async function runFinancePaymentTests() {
         assert.ok(ob.remaining_payable_amount > 0);
         assert.strictEqual(
           ob.remaining_payable_amount,
-          PaymentCollectionService.roundMoney(ob.amount_due - ob.previously_allocated_amount)
+          PaymentCollectionService.roundMoney(ob.amount_due - ob.previously_allocated_amount),
         );
       }
     });
@@ -229,22 +205,19 @@ export async function runFinancePaymentTests() {
         async () => {
           await PaymentCollectionService.getEligibleObligations(mockTenantB, student.student_id);
         },
-        (err: any) => err.statusCode === 404
+        (err: any) => err.statusCode === 404,
       );
     });
 
     await test('recordOfflinePayment rejects payment amount exceeding remaining due balance', async () => {
-      await assert.rejects(
-        async () => {
-          await PaymentCollectionService.recordOfflinePayment(orgWithDues.org_id, null, {
-            studentId: student.student_id,
-            studentChargeDueId: targetDue.student_charge_due_id,
-            amount: 99999999.0, // Huge amount exceeding balance
-            paymentMethod: 'cash',
-          });
-        },
-        /exceeds eligible remaining balance/
-      );
+      await assert.rejects(async () => {
+        await PaymentCollectionService.recordOfflinePayment(orgWithDues.org_id, null, {
+          studentId: student.student_id,
+          studentChargeDueId: targetDue.student_charge_due_id,
+          amount: 99999999.0, // Huge amount exceeding balance
+          paymentMethod: 'cash',
+        });
+      }, /exceeds eligible remaining balance/);
     });
 
     // Test a valid small partial payment recording
@@ -254,21 +227,17 @@ export async function runFinancePaymentTests() {
     await test('recordOfflinePayment successfully records payment transaction and allocation', async () => {
       const beforeSummary = await StudentLedgerService.getStudentLedgerSummary(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
-      const res = await PaymentCollectionService.recordOfflinePayment(
-        orgWithDues.org_id,
-        null,
-        {
-          studentId: student.student_id,
-          studentChargeDueId: targetDue.student_charge_due_id,
-          amount: testPaymentAmount,
-          paymentMethod: 'cash',
-          transactionReference: 'TEST-CASH-SLIP-001',
-          notes: 'Automated test offline collection',
-        }
-      );
+      const res = await PaymentCollectionService.recordOfflinePayment(orgWithDues.org_id, null, {
+        studentId: student.student_id,
+        studentChargeDueId: targetDue.student_charge_due_id,
+        amount: testPaymentAmount,
+        paymentMethod: 'cash',
+        transactionReference: 'TEST-CASH-SLIP-001',
+        notes: 'Automated test offline collection',
+      });
 
       assert.strictEqual(res.success, true);
       assert.strictEqual(res.transaction.amount, testPaymentAmount);
@@ -283,16 +252,20 @@ export async function runFinancePaymentTests() {
       // Invariant: Ledger must reflect the payment allocation immediately
       const afterSummary = await StudentLedgerService.getStudentLedgerSummary(
         orgWithDues.org_id,
-        student.student_id
+        student.student_id,
       );
 
       assert.strictEqual(
         afterSummary.summary.total_paid_amount,
-        StudentLedgerService.roundMoney(beforeSummary.summary.total_paid_amount + testPaymentAmount)
+        StudentLedgerService.roundMoney(
+          beforeSummary.summary.total_paid_amount + testPaymentAmount,
+        ),
       );
       assert.strictEqual(
         afterSummary.summary.outstanding_balance,
-        StudentLedgerService.roundMoney(beforeSummary.summary.outstanding_balance - testPaymentAmount)
+        StudentLedgerService.roundMoney(
+          beforeSummary.summary.outstanding_balance - testPaymentAmount,
+        ),
       );
     });
 
@@ -301,7 +274,7 @@ export async function runFinancePaymentTests() {
 
       const receipt = await PaymentCollectionService.getReceiptDetails(
         orgWithDues.org_id,
-        recordedTxId
+        recordedTxId,
       );
 
       assert.strictEqual(receipt.payment_transaction_id, recordedTxId);
@@ -318,7 +291,7 @@ export async function runFinancePaymentTests() {
         async () => {
           await PaymentCollectionService.getReceiptDetails(mockTenantB, recordedTxId);
         },
-        (err: any) => err.statusCode === 404
+        (err: any) => err.statusCode === 404,
       );
     });
 
@@ -336,7 +309,9 @@ export async function runFinancePaymentTests() {
       assert.strictEqual(found?.status, 'success');
     });
   } else {
-    console.log('  [Notice] Live DB does not contain students with active charges/dues; offline payment schema validation and sanitization tests passed.');
+    console.log(
+      '  [Notice] Live DB does not contain students with active charges/dues; offline payment schema validation and sanitization tests passed.',
+    );
   }
 
   console.log(`\nFinance Phase 5 tests complete: ${passed} passed, ${failed} failed.`);

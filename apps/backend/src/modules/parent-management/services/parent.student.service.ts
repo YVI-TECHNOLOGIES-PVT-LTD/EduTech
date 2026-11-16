@@ -67,6 +67,30 @@ export class ParentStudentService {
       throw new ParentNotFoundError(parentId);
     }
 
-    return ParentStudentRepository.findStudentsByParentId(parentId);
+    const records = await ParentStudentRepository.findStudentsByParentId(parentId);
+    return records.map((record: any) => {
+      const student = record.students;
+      const enrollments = student?.student_enrollments || [];
+      const latestEnrollment = enrollments[0] || null;
+      const isEnrolled = Boolean(latestEnrollment);
+
+      return {
+        ...record,
+        student_id: student?.student_id,
+        first_name: student?.first_name,
+        last_name: student?.last_name,
+        full_name: `${student?.first_name || ''} ${student?.last_name || ''}`.trim(),
+        admission_no: student?.admission_no,
+        is_enrolled: isEnrolled,
+        lifecycle_type: isEnrolled ? 'POST_ADMISSION' : 'PRE_ADMISSION',
+        enrollment_status: latestEnrollment?.status || null,
+        enrollment_id: latestEnrollment?.enrollment_id || null,
+        grade_level: latestEnrollment?.academic_year_grades?.grades?.grade_name || null,
+        section_name: latestEnrollment?.sections?.section_name || null,
+        academic_year:
+          latestEnrollment?.academic_year_grades?.academic_years?.academic_year_name || null,
+        roll_number: latestEnrollment?.roll_number || null,
+      };
+    });
   }
 }

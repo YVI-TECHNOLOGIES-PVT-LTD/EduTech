@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resolveCounselorNames = exports.mapLeadToApiRecord = exports.mapEnquiryToApiRecord = exports.resolveAssignmentHistory = void 0;
+exports.resolveAssignmentHistory = resolveAssignmentHistory;
+exports.mapEnquiryToApiRecord = mapEnquiryToApiRecord;
+exports.mapLeadToApiRecord = mapLeadToApiRecord;
+exports.resolveCounselorNames = resolveCounselorNames;
 const supabase_1 = require("../../../../config/supabase");
 /** Latest counselor assignment from status_history (LeadCounselorAssigned). */
 async function resolveAssignmentHistory(leadIds) {
@@ -49,7 +52,6 @@ async function resolveAssignmentHistory(leadIds) {
     }
     return result;
 }
-exports.resolveAssignmentHistory = resolveAssignmentHistory;
 async function mapEnquiryToApiRecord(enquiry, lead, applicationId, counselorName, assignment) {
     return {
         id: enquiry.id,
@@ -77,7 +79,6 @@ async function mapEnquiryToApiRecord(enquiry, lead, applicationId, counselorName
         application_id: applicationId ?? null,
     };
 }
-exports.mapEnquiryToApiRecord = mapEnquiryToApiRecord;
 async function mapLeadToApiRecord(lead, enquiry, applicationId, counselorName, assignment) {
     if (enquiry) {
         const base = await mapEnquiryToApiRecord(enquiry, lead, applicationId, counselorName, assignment);
@@ -103,7 +104,6 @@ async function mapLeadToApiRecord(lead, enquiry, applicationId, counselorName, a
         updated_at: lead.updatedAt.toISOString(),
     };
 }
-exports.mapLeadToApiRecord = mapLeadToApiRecord;
 async function resolveCounselorNames(counselorIds) {
     const uniqueIds = [...new Set(counselorIds.filter(Boolean))];
     if (!uniqueIds.length)
@@ -114,4 +114,3 @@ async function resolveCounselorNames(counselorIds) {
         .in('id', uniqueIds);
     return new Map((data ?? []).map(row => [row.id, row.full_name]));
 }
-exports.resolveCounselorNames = resolveCounselorNames;

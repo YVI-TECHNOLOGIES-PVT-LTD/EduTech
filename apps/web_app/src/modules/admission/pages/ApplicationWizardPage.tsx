@@ -532,9 +532,7 @@ export function ApplicationWizardPage() {
           formDataBody.append('document_code', docTypeId);
           formDataBody.append('document_type', docTypeId);
 
-          await apiClient.post(`/v1/applications/${targetAppId}/documents`, formDataBody, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
+          await apiClient.post(`/v1/applications/${targetAppId}/documents`, formDataBody);
         } catch (uploadErr: any) {
           console.error(`Document upload failed for ${docTypeId}:`, uploadErr);
           failedDocs.push(docTypeId);

@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -73,7 +74,16 @@ export default function ReceiptScreen() {
             <Text className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Payment Receipt
             </Text>
-            <Text className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+            <Text
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400"
+              style={{
+                fontFamily: Platform.select({
+                  ios: 'Menlo',
+                  android: 'monospace',
+                  default: 'monospace',
+                }),
+              }}
+            >
               {receipt.receipt_number || 'REC-2026-001'}
             </Text>
           </View>
@@ -104,14 +114,23 @@ export default function ReceiptScreen() {
           <View className="py-4 space-y-2.5 border-b border-dashed border-slate-200 dark:border-slate-800">
             <View className="flex-row justify-between">
               <Text className="text-xs text-slate-500 font-medium">Receipt No</Text>
-              <Text className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100">
+              <Text
+                className="text-xs font-bold text-slate-900 dark:text-slate-100"
+                style={{
+                  fontFamily: Platform.select({
+                    ios: 'Menlo',
+                    android: 'monospace',
+                    default: 'monospace',
+                  }),
+                }}
+              >
                 {receipt.receipt_number}
               </Text>
             </View>
 
             <View className="flex-row justify-between">
               <Text className="text-xs text-slate-500 font-medium">Application No</Text>
-              <Text className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+              <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
                 {receipt.application_number}
               </Text>
             </View>
@@ -146,7 +165,16 @@ export default function ReceiptScreen() {
 
             <View className="flex-row justify-between">
               <Text className="text-xs text-slate-500 font-medium">Transaction Ref</Text>
-              <Text className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+              <Text
+                className="text-xs font-bold text-slate-700 dark:text-slate-300"
+                style={{
+                  fontFamily: Platform.select({
+                    ios: 'Menlo',
+                    android: 'monospace',
+                    default: 'monospace',
+                  }),
+                }}
+              >
                 {receipt.transaction_reference || 'N/A'}
               </Text>
             </View>

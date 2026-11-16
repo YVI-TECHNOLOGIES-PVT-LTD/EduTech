@@ -154,12 +154,7 @@ export class LeadController {
       }
 
       const user = req.context?.user;
-      const orgId =
-        user?.org_id ||
-        user?.school_id ||
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const payload = { ...parsed.data, org_id: orgId || parsed.data.org_id };
 
       const result = await LeadService.searchLeads(payload);
@@ -274,12 +269,7 @@ export class LeadController {
   static async getDashboard(req: Request, res: Response) {
     try {
       const user = req.context?.user;
-      const orgId =
-        user?.org_id ||
-        user?.school_id ||
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const result = await LeadService.getDashboardMetrics(orgId);
       return res.json(result);
     } catch (error: any) {
@@ -290,12 +280,7 @@ export class LeadController {
   static async getCounsellingMetrics(req: Request, res: Response) {
     try {
       const user = req.context?.user;
-      const orgId =
-        user?.org_id ||
-        user?.school_id ||
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const result = await CounsellingDashboardQuery.execute(orgId);
       return res.json(result);
     } catch (error: any) {

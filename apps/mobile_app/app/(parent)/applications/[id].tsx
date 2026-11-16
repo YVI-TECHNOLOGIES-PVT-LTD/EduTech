@@ -1,27 +1,24 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { applicationsApi } from '../../../src/api/applications.api';
 import { QUERY_KEYS } from '../../../src/api/query-keys';
 import { getApplicationStatusConfig } from '../../../src/utils/status-mapper';
 import { useTheme } from '../../../src/theme';
+import { DESIGN_TOKENS } from '../../../src/theme/tokens/designTokens';
+import { ParentPortalHeader } from '../../../src/components/common/ParentPortalHeader';
+import { ParentLoadingSkeleton } from '../../../src/components/common/ParentLoadingSkeleton';
 import { Button } from '../../../src/components/ui/atoms/Button';
 
 export default function ApplicationDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors } = useTheme();
+  const { isDark } = useTheme();
 
-  const appId = id || '';
+  const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const appId = rawId && rawId !== '[id]' ? rawId : '';
 
   const {
     data: application,
@@ -35,35 +32,158 @@ export default function ApplicationDetailScreen() {
     enabled: Boolean(appId),
   });
 
-  if (isLoading) {
+  // Invalid or Missing ID State
+  if (!appId) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text className="text-xs font-bold text-slate-500 mt-3">Loading application hub...</Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (isError || !application) {
-    return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 justify-center">
-        <View className="bg-red-50 dark:bg-red-950/40 p-6 rounded-3xl border border-red-200 dark:border-red-800 items-center text-center">
-          <Ionicons name="alert-circle" size={32} color="#ef4444" />
-          <Text className="text-base font-black text-red-700 dark:text-red-300 mt-2">
-            Failed to Load Application
-          </Text>
-          <Text className="text-xs text-red-600 dark:text-red-400 mt-1 text-center leading-relaxed">
-            {error?.message || 'The application could not be found or you do not have permission.'}
-          </Text>
-          <View className="flex-row space-x-3 mt-5">
-            <Button title="Try Again" variant="outline" size="sm" onPress={() => refetch()} />
-            <Button title="Go Back" variant="primary" size="sm" onPress={() => router.back()} />
+      <SafeAreaView
+        style={[
+          styles.safeArea,
+          { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+        ]}
+      >
+        <ParentPortalHeader title="Application Details" showBack={true} />
+        <View style={styles.errorContainer}>
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.errorIconContainer,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(245, 158, 11, 0.2)'
+                    : DESIGN_TOKENS.colors.warningLight,
+                  borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#FDE68A',
+                },
+              ]}
+            >
+              <Feather name="alert-triangle" size={28} color={DESIGN_TOKENS.colors.warning} />
+            </View>
+            <Text
+              style={[
+                styles.errorTitle,
+                { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+              ]}
+            >
+              Invalid Application Reference
+            </Text>
+            <Text
+              style={[
+                styles.errorDescription,
+                { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+              ]}
+            >
+              The application reference is missing or invalid. Please select an application from
+              your dashboard.
+            </Text>
+            <Button
+              title="Return to Applications"
+              variant="primary"
+              size="md"
+              onPress={() => router.replace('/(parent)/applications' as any)}
+            />
           </View>
         </View>
       </SafeAreaView>
     );
   }
 
+  // Loading State
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.safeArea,
+          { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+        ]}
+      >
+        <ParentPortalHeader title="Loading Application Hub..." showBack={true} />
+        <View style={styles.loadingPadding}>
+          <ParentLoadingSkeleton type="details" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error State (Screen 6 Reference)
+  if (isError || !application) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.safeArea,
+          { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+        ]}
+      >
+        <ParentPortalHeader title="Application Hub" showBack={true} />
+        <View style={styles.errorContainer}>
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.errorIconContainer,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(220, 38, 38, 0.2)'
+                    : DESIGN_TOKENS.colors.errorLight,
+                  borderColor: isDark ? 'rgba(220, 38, 38, 0.4)' : '#FECACA',
+                },
+              ]}
+            >
+              <Feather name="alert-circle" size={28} color={DESIGN_TOKENS.colors.error} />
+            </View>
+            <Text
+              style={[
+                styles.errorTitle,
+                { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+              ]}
+            >
+              Failed to Load Application
+            </Text>
+            <Text
+              style={[
+                styles.errorDescription,
+                { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+              ]}
+            >
+              {error?.message ||
+                'The application could not be retrieved from the admissions system. Please check your network and try again.'}
+            </Text>
+            <View style={styles.errorButtonsRow}>
+              <Button
+                title="Try Again"
+                variant="outline"
+                size="md"
+                onPress={() => refetch()}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Go Back"
+                variant="primary"
+                size="md"
+                onPress={() => router.back()}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Resolved Data Values
   const studentName =
     application.student_name ||
     (application.student_first_name
@@ -79,220 +199,491 @@ export default function ApplicationDetailScreen() {
       .toUpperCase()}`;
 
   const statusConfig = getApplicationStatusConfig(application.status);
-  const submittedDate =
-    application.application_date || application.created_at
-      ? new Date(application.application_date || application.created_at!).toLocaleDateString()
-      : 'Recently';
-
   const documents = application.admission_documents || (application as any).documents || [];
   const docCount = documents.length;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDark ? '#0B0F19' : DESIGN_TOKENS.colors.background },
+      ]}
+    >
       {/* Top Header */}
-      <View className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1 mr-2">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mr-3"
-            accessibilityLabel="Back"
+      <ParentPortalHeader
+        title={studentName}
+        subtitle={appNumber}
+        showBack={true}
+        rightAction={
+          <View
+            style={[
+              styles.statusPill,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(81, 70, 229, 0.2)'
+                  : DESIGN_TOKENS.colors.primaryLight,
+                borderColor: isDark ? 'rgba(81, 70, 229, 0.4)' : '#C7D2FE',
+              },
+            ]}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.iconSecondary} />
-          </TouchableOpacity>
-          <View className="flex-1">
-            <Text
-              className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight"
-              numberOfLines={1}
-            >
-              {studentName}
-            </Text>
-            <Text className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
-              {appNumber}
-            </Text>
+            <Text style={styles.statusPillText}>{statusConfig.label}</Text>
           </View>
-        </View>
+        }
+      />
 
-        {/* Status Badge */}
-        <View
-          className={`px-3 py-1 rounded-full border ${statusConfig.badgeBg} ${statusConfig.badgeBorder}`}
-        >
-          <Text
-            className={`text-[10px] font-extrabold uppercase tracking-wider ${statusConfig.badgeText}`}
-          >
-            {statusConfig.label}
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Status Alert Banner */}
-        <View className="bg-indigo-600 dark:bg-indigo-900/60 rounded-3xl p-5 mb-5 shadow-sm">
-          <View className="flex-row items-center justify-between mb-1.5">
-            <Text className="text-xs font-bold uppercase tracking-wider text-indigo-200">
-              Current Application State
-            </Text>
-            <Text className="text-[10px] font-extrabold text-white bg-white/20 px-2.5 py-0.5 rounded-full">
-              {statusConfig.progress}% Completed
-            </Text>
+        <View
+          style={[
+            styles.bannerCard,
+            { backgroundColor: isDark ? '#1E1B4B' : DESIGN_TOKENS.colors.primary },
+          ]}
+        >
+          <View style={styles.bannerHeaderRow}>
+            <Text style={styles.bannerSessionText}>Current Application State</Text>
+            <View style={styles.progressPill}>
+              <Text style={styles.progressPillText}>{statusConfig.progress}% Completed</Text>
+            </View>
           </View>
-          <Text className="text-lg font-black text-white">{statusConfig.label}</Text>
-          <Text className="text-xs text-indigo-100 mt-1 leading-relaxed">
-            {statusConfig.description}
-          </Text>
+          <Text style={styles.bannerStatusLabel}>{statusConfig.label}</Text>
+          <Text style={styles.bannerDescription}>{statusConfig.description}</Text>
         </View>
 
         {/* Action Hub Portals */}
-        <View className="mb-5">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+        <View style={styles.portalsSection}>
+          <Text
+            style={[
+              styles.portalsTitle,
+              { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+            ]}
+          >
             Application Portals & Actions
           </Text>
 
-          <View className="space-y-3">
+          <View style={styles.portalsList}>
             {/* 1. Document Center */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push(`/(parent)/applications/${appId}/documents` as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+              style={[
+                styles.portalCard,
+                {
+                  backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                  borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Document Center"
             >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 items-center justify-center mr-3 border border-indigo-100 dark:border-indigo-900">
-                  <Ionicons name="document-attach" size={20} color="#4f46e5" />
+              <View style={styles.portalContent}>
+                <View
+                  style={[
+                    styles.portalIconContainer,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(81, 70, 229, 0.2)'
+                        : DESIGN_TOKENS.colors.primaryLight,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="file-text"
+                    size={20}
+                    color={isDark ? '#818CF8' : DESIGN_TOKENS.colors.primary}
+                  />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <View style={styles.portalTextContainer}>
+                  <Text
+                    style={[
+                      styles.portalHeading,
+                      { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                    ]}
+                  >
                     Document Center
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
+                  <Text
+                    style={[
+                      styles.portalSubtext,
+                      { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                    ]}
+                  >
                     {docCount} {docCount === 1 ? 'document' : 'documents'} attached • View & upload
                   </Text>
                 </View>
               </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             {/* 2. Fees & Payments */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push(`/(parent)/applications/${appId}/fees` as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+              style={[
+                styles.portalCard,
+                {
+                  backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                  borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Fee Statement and Settlement"
             >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-teal-50 dark:bg-teal-950/60 items-center justify-center mr-3 border border-teal-100 dark:border-teal-900">
-                  <Ionicons name="card" size={20} color="#0d9488" />
+              <View style={styles.portalContent}>
+                <View
+                  style={[
+                    styles.portalIconContainer,
+                    {
+                      backgroundColor: isDark ? 'rgba(13, 148, 136, 0.2)' : '#CCFBF1',
+                    },
+                  ]}
+                >
+                  <Feather name="credit-card" size={20} color={isDark ? '#2DD4BF' : '#0D9488'} />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <View style={styles.portalTextContainer}>
+                  <Text
+                    style={[
+                      styles.portalHeading,
+                      { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                    ]}
+                  >
                     Fee Statement & Settlement
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
+                  <Text
+                    style={[
+                      styles.portalSubtext,
+                      { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                    ]}
+                  >
                     Admission charges, payments & receipts
                   </Text>
                 </View>
               </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             {/* 3. Assessment Tracker */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push(`/(parent)/applications/${appId}/assessment` as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+              style={[
+                styles.portalCard,
+                {
+                  backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                  borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Assessment Tracker"
             >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/60 items-center justify-center mr-3 border border-purple-100 dark:border-purple-900">
-                  <Ionicons name="school" size={20} color="#9333ea" />
+              <View style={styles.portalContent}>
+                <View
+                  style={[
+                    styles.portalIconContainer,
+                    {
+                      backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF',
+                    },
+                  ]}
+                >
+                  <Feather name="award" size={20} color={isDark ? '#C084FC' : '#9333EA'} />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <View style={styles.portalTextContainer}>
+                  <Text
+                    style={[
+                      styles.portalHeading,
+                      { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                    ]}
+                  >
                     Assessment Tracker
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
-                    Entrance test schedule, venue & scores
+                  <Text
+                    style={[
+                      styles.portalSubtext,
+                      { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                    ]}
+                  >
+                    Entrance test schedule & evaluation results
                   </Text>
                 </View>
               </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
-            {/* 4. Decision Tracker */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push(`/(parent)/applications/${appId}/decision` as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 items-center justify-center mr-3 border border-amber-100 dark:border-amber-900">
-                  <Ionicons name="ribbon" size={20} color="#d97706" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    Admission Decision
-                  </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
-                    Official admission outcome & offer letter
-                  </Text>
-                </View>
-              </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-
-            {/* 5. Status Timeline */}
+            {/* 4. Timeline Tracker */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push(`/(parent)/applications/${appId}/timeline` as any)}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex-row items-center justify-between mb-3"
+              style={[
+                styles.portalCard,
+                {
+                  backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                  borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Application Timeline"
             >
-              <View className="flex-row items-center flex-1">
-                <View className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 items-center justify-center mr-3 border border-blue-100 dark:border-blue-900">
-                  <Ionicons name="git-commit" size={20} color="#2563eb" />
+              <View style={styles.portalContent}>
+                <View
+                  style={[
+                    styles.portalIconContainer,
+                    {
+                      backgroundColor: isDark ? 'rgba(2, 132, 199, 0.2)' : '#E0F2FE',
+                    },
+                  ]}
+                >
+                  <Feather name="clock" size={20} color={isDark ? '#38BDF8' : '#0284C7'} />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    Milestone Timeline
+                <View style={styles.portalTextContainer}>
+                  <Text
+                    style={[
+                      styles.portalHeading,
+                      { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                    ]}
+                  >
+                    Application Timeline
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
-                    Chronological admission events & history
+                  <Text
+                    style={[
+                      styles.portalSubtext,
+                      { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                    ]}
+                  >
+                    Submission history & admission desk status logs
                   </Text>
                 </View>
               </View>
-              <Feather name="chevron-right" size={18} color="#94a3b8" />
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
             </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Section: Applicant Information */}
-        <View className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-4">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-            Applicant Summary
-          </Text>
-          <View className="space-y-2">
-            <View className="flex-row justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-              <Text className="text-xs text-slate-500">Applicant</Text>
-              <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                {studentName}
-              </Text>
-            </View>
-            <View className="flex-row justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-              <Text className="text-xs text-slate-500">Grade Applied</Text>
-              <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                {application.grade_applied_for || 'Grade 1'}
-              </Text>
-            </View>
-            <View className="flex-row justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-              <Text className="text-xs text-slate-500">Primary Contact</Text>
-              <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                {application.parent_name || 'N/A'} ({application.parent_phone || 'N/A'})
-              </Text>
-            </View>
-            <View className="flex-row justify-between py-1.5">
-              <Text className="text-xs text-slate-500">Submission Date</Text>
-              <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                {submittedDate}
-              </Text>
-            </View>
+            {/* 5. Admission Decision */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push(`/(parent)/applications/${appId}/decision` as any)}
+              style={[
+                styles.portalCard,
+                {
+                  backgroundColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.surface,
+                  borderColor: isDark ? '#334155' : DESIGN_TOKENS.colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Admission Decision"
+            >
+              <View style={styles.portalContent}>
+                <View
+                  style={[
+                    styles.portalIconContainer,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(245, 158, 11, 0.2)'
+                        : DESIGN_TOKENS.colors.warningLight,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="check-circle"
+                    size={20}
+                    color={isDark ? '#FBBF24' : DESIGN_TOKENS.colors.warning}
+                  />
+                </View>
+                <View style={styles.portalTextContainer}>
+                  <Text
+                    style={[
+                      styles.portalHeading,
+                      { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+                    ]}
+                  >
+                    Admission Decision & Offer
+                  </Text>
+                  <Text
+                    style={[
+                      styles.portalSubtext,
+                      { color: isDark ? '#94A3B8' : DESIGN_TOKENS.colors.textSecondary },
+                    ]}
+                  >
+                    Enrollment offer letter, acceptance & decision letter
+                  </Text>
+                </View>
+              </View>
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  loadingPadding: {
+    padding: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  errorCard: {
+    padding: 28,
+    borderRadius: DESIGN_TOKENS.radius.featureCard,
+    borderWidth: 1,
+    alignItems: 'center',
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  errorIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorDescription: {
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 24,
+    maxWidth: 280,
+  },
+  errorButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  statusPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bannerCard: {
+    borderRadius: DESIGN_TOKENS.radius.featureCard,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  bannerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  bannerSessionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.85)',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  progressPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 9999,
+  },
+  progressPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bannerStatusLabel: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  bannerDescription: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 17,
+  },
+  portalsSection: {
+    marginTop: 4,
+  },
+  portalsTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  portalsList: {
+    gap: 12,
+  },
+  portalCard: {
+    borderRadius: DESIGN_TOKENS.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: DESIGN_TOKENS.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+    minHeight: 68,
+  },
+  portalContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  portalIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  portalTextContainer: {
+    flex: 1,
+  },
+  portalHeading: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  portalSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+});

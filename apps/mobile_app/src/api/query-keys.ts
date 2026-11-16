@@ -31,6 +31,8 @@ export const QUERY_KEYS = {
   fees: {
     summary: (appId: string) => ['fees', 'summary', appId] as const,
     receipt: (appId: string) => ['fees', 'receipt', appId] as const,
+    myChildren: () => ['fees', 'myChildren'] as const,
+    childDetails: (studentId: string) => ['fees', 'childDetails', studentId] as const,
   },
   timeline: {
     byApplication: (appId: string) => ['timeline', 'application', appId] as const,

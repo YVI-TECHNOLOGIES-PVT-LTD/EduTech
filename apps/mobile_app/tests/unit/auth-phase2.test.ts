@@ -326,6 +326,17 @@ describe('Phase 2 — Authentication & Parent Session Verification Suite', () =>
         permissions: [],
       };
       expect(isParentUser(parentUser)).toBe(true);
+
+      const enrolledParentUser = {
+        id: 'usr_par_2',
+        email: 'enrolled@edutrack.com',
+        full_name: 'Siddharth Iyer',
+        roles: ['PARENT', 'ENROLLED_PARENT'],
+        hasEnrolledStudent: true,
+        isPostAdmission: true,
+        permissions: [],
+      };
+      expect(isParentUser(enrolledParentUser)).toBe(true);
     });
 
     it('20. should reject non-parent accounts (e.g. TEACHER, ADMIN)', () => {
@@ -346,6 +357,26 @@ describe('Phase 2 — Authentication & Parent Session Verification Suite', () =>
 
       expect(isParentUser(teacherUser)).toBe(false);
       expect(isParentUser(adminUser)).toBe(false);
+    });
+
+    it('21. should preserve hasEnrolledStudent and isPostAdmission in auth store', () => {
+      useAuthStore.getState().setAuth(
+        {
+          id: 'usr_par_siddharth',
+          email: 'syn.parent.siddharth.iyer.77@synthetic.edutrack.internal',
+          full_name: 'Siddharth Iyer',
+          roles: ['PARENT', 'ENROLLED_PARENT'],
+          hasEnrolledStudent: true,
+          isPostAdmission: true,
+          permissions: ['fees.view', 'fees.payment.view'],
+        },
+        { accessToken: 'test-token', refreshToken: 'test-refresh' },
+      );
+
+      const storedUser = useAuthStore.getState().user;
+      expect(storedUser?.hasEnrolledStudent).toBe(true);
+      expect(storedUser?.isPostAdmission).toBe(true);
+      expect(storedUser?.roles).toContain('ENROLLED_PARENT');
     });
   });
 

@@ -4,8 +4,8 @@
  * Capability-based visibility determines accessible views (Dashboard, Admissions, People, School, Settings).
  */
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api-client';
 import {
@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { ICON_MAP } from '../config/menu_registry';
 import { FrontOfficeExecutiveDashboard } from '../modules/admission/components/dashboard/FrontOfficeExecutiveDashboard';
+import { StaffHrDashboard } from '../modules/dashboard/components/StaffHrDashboard';
 import { SpotlightCard } from '@/components/react-bits/SpotlightCard';
 import { FadeContent } from '@/components/react-bits/FadeContent';
 import { SpecularButton } from '@/components/react-bits/SpecularButton';
@@ -47,9 +48,23 @@ import { SpecularButton } from '@/components/react-bits/SpecularButton';
 export function SchoolOperationsWorkspace() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getInitialTab = (): 'dashboard' | 'admissions' | 'people' | 'school' | 'settings' => {
+    const path = location.pathname.toLowerCase();
+    if (path.includes('people') || path.includes('staff')) return 'people';
+    if (path.includes('school')) return 'school';
+    if (path.includes('admission') && !path.includes('front-office/dashboard')) return 'admissions';
+    return 'dashboard';
+  };
+
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'admissions' | 'people' | 'school' | 'settings'
-  >('dashboard');
+  >(getInitialTab);
+
+  useEffect(() => {
+    setActiveTab(getInitialTab());
+  }, [location.pathname]);
 
   const capabilityContext: UserCapabilityContext = {
     permissions: user?.permissions || [],
@@ -124,6 +139,11 @@ export function SchoolOperationsWorkspace() {
   // If on Executive Dashboard tab, render the full-stack Command Center
   if (activeTab === 'dashboard') {
     return <FrontOfficeExecutiveDashboard customTabs={moduleTabs} />;
+  }
+
+  // If on People / HR tab, render the dedicated Staff & HR Dashboard
+  if (activeTab === 'people') {
+    return <StaffHrDashboard customTabs={moduleTabs} />;
   }
 
   return (
@@ -261,74 +281,6 @@ export function SchoolOperationsWorkspace() {
                 </SpotlightCard>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* People Directory Tab */}
-      {activeTab === 'people' && (
-        <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-sm space-y-6">
-          <div className="border-b border-border/60 pb-4">
-            <h2 className="text-lg font-extrabold text-foreground">People Directory</h2>
-            <p className="text-xs text-muted-foreground">
-              Access student profiles, parent/guardian records, and staff directory.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <SpotlightCard
-              spotlightColor="rgba(6, 63, 64, 0.08)"
-              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
-            >
-              <div>
-                <GraduationCap className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
-                <h3 className="font-bold text-foreground text-sm">Student Directory</h3>
-                <p className="text-xs text-muted-foreground mt-1 mb-4">
-                  View enrolled students, section assignments, and academic status.
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/app/people/students')}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-              >
-                View Students <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </SpotlightCard>
-            <SpotlightCard
-              spotlightColor="rgba(6, 63, 64, 0.08)"
-              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
-            >
-              <div>
-                <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
-                <h3 className="font-bold text-foreground text-sm">Parent Directory</h3>
-                <p className="text-xs text-muted-foreground mt-1 mb-4">
-                  Manage guardian profiles, contact details, and linked wards.
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/app/people/parents')}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-              >
-                View Parents <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </SpotlightCard>
-            <SpotlightCard
-              spotlightColor="rgba(6, 63, 64, 0.08)"
-              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
-            >
-              <div>
-                <Briefcase className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
-                <h3 className="font-bold text-foreground text-sm">Staff Directory</h3>
-                <p className="text-xs text-muted-foreground mt-1 mb-4">
-                  View operational staff members, departments, and roles.
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/app/people/staff')}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-              >
-                View Staff <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </SpotlightCard>
           </div>
         </div>
       )}

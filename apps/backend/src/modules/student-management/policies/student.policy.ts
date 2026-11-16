@@ -2,6 +2,10 @@ import { PERMISSIONS } from '../../../rbac/permissions';
 
 export class StudentPolicy {
   static canView(): string {
+    return PERMISSIONS.ADMISSION_VIEW_SELF;
+  }
+
+  static canViewAll(): string {
     return PERMISSIONS.ADMISSION_VIEW_ALL || PERMISSIONS.ADMISSION_LEADS_MANAGE;
   }
 

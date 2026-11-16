@@ -9,6 +9,8 @@ export interface EnrichedUser {
   avatar_url?: string | null;
   login_status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
   login_decision_reason?: string;
+  hasEnrolledStudent?: boolean;
+  isPostAdmission?: boolean;
   enabledFeatures?: {
     dashboard: boolean;
     finance: boolean;

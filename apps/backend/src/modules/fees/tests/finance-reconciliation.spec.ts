@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { ReconciliationService } from '../services/ReconciliationService';
 import { ReconciliationRepository } from '../repositories/ReconciliationRepository';
-import { prisma } from '../../../lib/prisma';
+import prisma from '../../../lib/prismaClient';
 
 export async function runFinanceReconciliationTests() {
   console.log('=====================================================');
@@ -89,7 +89,7 @@ export async function runFinanceReconciliationTests() {
       gatewayStatus: 'captured',
       internalStatus: 'completed',
       gatewayAmount: 5000,
-      internalAmount: 4999.50,
+      internalAmount: 4999.5,
       gatewayCurrency: 'INR',
       internalCurrency: 'INR',
     });
@@ -187,7 +187,11 @@ export async function runFinanceReconciliationTests() {
     const concessionAmount = 5000;
     // Ensuring our calculation does NOT do: netDue - concessionAmount - allocations
     const remaining = ReconciliationService.calculateRemainingDue(netDue, 0);
-    assert.strictEqual(remaining, 25000, 'Remaining due must equal net due when no allocations are present');
+    assert.strictEqual(
+      remaining,
+      25000,
+      'Remaining due must equal net due when no allocations are present',
+    );
   });
 
   // 15. Over-allocation detection
@@ -278,29 +282,24 @@ export async function runFinanceReconciliationTests() {
   // 22. Out-of-order capture and failure events
   await test('22. Out-of-order events cannot overwrite authoritative capture with earlier failure', () => {
     const resolvedStatus = ReconciliationService.resolveEventState('captured', 'payment.failed');
-    assert.strictEqual(resolvedStatus, 'captured', 'Authoritative capture must not be regressed to failed');
+    assert.strictEqual(
+      resolvedStatus,
+      'captured',
+      'Authoritative capture must not be regressed to failed',
+    );
   });
 
   // 23. Tenant isolation for every relevant endpoint
   await test('23. Tenant isolation rejects requests with empty or foreign tenant orgId', async () => {
-    await assert.rejects(
-      async () => {
-        await ReconciliationService.getSummary('');
-      },
-      /Tenant organization ID is required/
-    );
-    await assert.rejects(
-      async () => {
-        await ReconciliationService.getTransactions('', {});
-      },
-      /Tenant organization ID is required/
-    );
-    await assert.rejects(
-      async () => {
-        await ReconciliationService.getExceptions('', {});
-      },
-      /Tenant organization ID is required/
-    );
+    await assert.rejects(async () => {
+      await ReconciliationService.getSummary('');
+    }, /Tenant organization ID is required/);
+    await assert.rejects(async () => {
+      await ReconciliationService.getTransactions('', {});
+    }, /Tenant organization ID is required/);
+    await assert.rejects(async () => {
+      await ReconciliationService.getExceptions('', {});
+    }, /Tenant organization ID is required/);
   });
 
   // 24. Unauthorized access rejection
@@ -316,7 +315,7 @@ export async function runFinanceReconciliationTests() {
   await test('25. Invalid filter and pagination input is sanitized with safe defaults', async () => {
     const result = await ReconciliationService.getTransactions(validTenant, {
       limit: 1000, // Should be clamped to 100
-      offset: -5,  // Should be clamped to 0
+      offset: -5, // Should be clamped to 0
       startDate: 'invalid-date',
     });
     assert.ok(Array.isArray(result.transactions));
@@ -327,7 +326,11 @@ export async function runFinanceReconciliationTests() {
   await test('26. CSV export sanitizes spreadsheet formula injection prefixes (=, +, -, @)', () => {
     const rawMalicious = '=cmd|"/C calc"!A0';
     const sanitized = ReconciliationService.sanitizeCsvField(rawMalicious);
-    assert.strictEqual(sanitized, `"'${rawMalicious.replace(/"/g, '""')}"`, 'Must prepend single quote to neutralize formula');
+    assert.strictEqual(
+      sanitized,
+      `"'${rawMalicious.replace(/"/g, '""')}"`,
+      'Must prepend single quote to neutralize formula',
+    );
 
     const rawPlus = '+12345678';
     assert.strictEqual(ReconciliationService.sanitizeCsvField(rawPlus), `"'${rawPlus}"`);
@@ -346,7 +349,9 @@ export async function runFinanceReconciliationTests() {
 
   // 27. Correct matching when authoritative settlement data exists
   await test('27. Correct matching when authoritative settlement data exists in gateway_settlements', async () => {
-    const settlementRecords = await ReconciliationRepository.getSettlementRecords(validTenant, { limit: 10 });
+    const settlementRecords = await ReconciliationRepository.getSettlementRecords(validTenant, {
+      limit: 10,
+    });
     assert.ok(Array.isArray(settlementRecords), 'Settlement records must return an array');
     if (settlementRecords.length > 0) {
       const first = settlementRecords[0];
@@ -358,7 +363,10 @@ export async function runFinanceReconciliationTests() {
   // 28. Correctly reporting settlement data as unavailable when it does not exist
   await test('28. Correctly reporting settlement data as unavailable when records do not exist', async () => {
     const nonExistentTenant = '00000000-9999-9999-9999-000000000000';
-    const settlementRecords = await ReconciliationRepository.getSettlementRecords(nonExistentTenant, {});
+    const settlementRecords = await ReconciliationRepository.getSettlementRecords(
+      nonExistentTenant,
+      {},
+    );
     assert.strictEqual(settlementRecords.length, 0);
 
     const summary = await ReconciliationService.getSummary(nonExistentTenant);

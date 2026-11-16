@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { apiClient } from '../../../lib/api-client';
+import { Modal } from '../../../components/ui/modal';
 import {
   Layers,
   Plus,
@@ -140,7 +141,9 @@ export const FeeStructureManagement: React.FC = () => {
 
   // Filtering & Pagination
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'inactive'>(
+    'all',
+  );
   const [academicYearFilter, setAcademicYearFilter] = useState<string>('all');
   const [gradeFilter, setGradeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -256,7 +259,10 @@ export const FeeStructureManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[FeeStructureManagement] Error loading structures:', err);
-      setLoadError(err.response?.data?.message || 'Failed to load fee structures. Please check connection and retry.');
+      setLoadError(
+        err.response?.data?.message ||
+          'Failed to load fee structures. Please check connection and retry.',
+      );
       toast.error('Could not load fee structures.');
     } finally {
       setIsLoading(false);
@@ -310,7 +316,9 @@ export const FeeStructureManagement: React.FC = () => {
       return;
     }
     if (formComponents.some((c) => c.component_name.trim().toLowerCase() === normName)) {
-      toast.error(`A component with name "${draftCompName.trim()}" already exists in this structure.`);
+      toast.error(
+        `A component with name "${draftCompName.trim()}" already exists in this structure.`,
+      );
       return;
     }
 
@@ -526,8 +534,8 @@ export const FeeStructureManagement: React.FC = () => {
             </span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-            Configure academic grade fee schedules, define component breakdowns with decimal accuracy, and preview
-            installment allocations.
+            Configure academic grade fee schedules, define component breakdowns with decimal
+            accuracy, and preview installment allocations.
           </p>
         </div>
 
@@ -557,7 +565,9 @@ export const FeeStructureManagement: React.FC = () => {
           {/* Card 1: Total Structures */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Structures</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Total Structures
+              </span>
               <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                 <Layers className="w-5 h-5" />
               </div>
@@ -582,7 +592,9 @@ export const FeeStructureManagement: React.FC = () => {
           {/* Card 2: Published Structures */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Published</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Active Published
+              </span>
               <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
@@ -594,14 +606,19 @@ export const FeeStructureManagement: React.FC = () => {
               <span className="text-xs font-medium text-slate-500">for student billing</span>
             </div>
             <div className="mt-2 text-xs text-slate-500">
-              Total active annual value: <strong className="text-slate-800 dark:text-slate-200">₹{summaryMetrics.totalPublishedValue.toLocaleString('en-IN')}</strong>
+              Total active annual value:{' '}
+              <strong className="text-slate-800 dark:text-slate-200">
+                ₹{summaryMetrics.totalPublishedValue.toLocaleString('en-IN')}
+              </strong>
             </div>
           </div>
 
           {/* Card 3: Fee Components */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Fee Components</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Fee Components
+              </span>
               <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                 <ListPlus className="w-5 h-5" />
               </div>
@@ -620,7 +637,9 @@ export const FeeStructureManagement: React.FC = () => {
           {/* Card 4: Grade Coverage */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Grade Coverage</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Grade Coverage
+              </span>
               <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
                 <GraduationCap className="w-5 h-5" />
               </div>
@@ -684,7 +703,9 @@ export const FeeStructureManagement: React.FC = () => {
 
           {/* Status Filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Status:
+            </span>
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -707,12 +728,16 @@ export const FeeStructureManagement: React.FC = () => {
         {isLoading ? (
           <div className="p-12 text-center space-y-4">
             <RefreshCw className="w-8 h-8 mx-auto text-indigo-500 animate-spin" />
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Loading fee structures...</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Loading fee structures...
+            </p>
           </div>
         ) : loadError ? (
           <div className="p-12 text-center space-y-3">
             <AlertCircle className="w-10 h-10 mx-auto text-rose-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Unable to Load Structures</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Unable to Load Structures
+            </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">{loadError}</p>
             <button
               onClick={handleRefresh}
@@ -727,9 +752,12 @@ export const FeeStructureManagement: React.FC = () => {
               <Layers className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">No Fee Structures Configured</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                No Fee Structures Configured
+              </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-                No fee structures match the current filters. Create a new fee structure to start defining academic fees.
+                No fee structures match the current filters. Create a new fee structure to start
+                defining academic fees.
               </p>
             </div>
             <button
@@ -874,7 +902,8 @@ export const FeeStructureManagement: React.FC = () => {
         {totalCount > 0 && (
           <div className="py-3.5 px-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex items-center justify-between text-xs text-slate-500">
             <span>
-              Showing {(currentPage - 1) * 15 + 1} to {Math.min(currentPage * 15, totalCount)} of {totalCount} structures
+              Showing {(currentPage - 1) * 15 + 1} to {Math.min(currentPage * 15, totalCount)} of{' '}
+              {totalCount} structures
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -900,345 +929,339 @@ export const FeeStructureManagement: React.FC = () => {
       </div>
 
       {/* ── CREATE / EDIT STRUCTURE MODAL ───────────────────────────────── */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        size="xl"
+        title={editModeStructureId ? 'Edit Fee Structure' : 'Create New Fee Structure'}
+        description="Define structural fee breakdown for target academic grade."
+        icon={<Sparkles className="w-5 h-5 text-indigo-600" />}
+      >
+        <div className="space-y-6">
+          {/* Form Base Fields */}
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                Structure Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Standard Annual Fee Structure 2026-27"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                maxLength={150}
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+
+            {!editModeStructureId && (
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-600" />
-                  <span>{editModeStructureId ? 'Edit Fee Structure' : 'Create New Fee Structure'}</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Define structural fee breakdown for target academic grade.
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                  Target Academic Grade <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={formAcademicYearGradeId}
+                  onChange={(e) => setFormAcademicYearGradeId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
+                >
+                  <option value="">-- Select Grade & Academic Year --</option>
+                  {academicYearGrades.map((g) => (
+                    <option
+                      key={g.academic_year_grade_id}
+                      value={g.academic_year_grade_id}
+                      disabled={g.is_configured}
+                    >
+                      {g.grade_name} ({g.grade_code}) • {g.academic_year_name}
+                      {g.is_configured ? ' [ALREADY CONFIGURED]' : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedGradeOption?.is_configured && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    Note: A fee structure ({selectedGradeOption.existing_structure?.name}) is
+                    already assigned to this grade.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                Description / Notes (Optional)
+              </label>
+              <textarea
+                placeholder="Additional context regarding payment rules, concessions, or inclusions..."
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                rows={2}
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+          </div>
+
+          {/* ── INTERACTIVE COMPONENT BUILDER ───────────────────────── */}
+          <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Fee Components
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Add required and optional components. Each must have a unique code and positive
+                  amount.
                 </p>
               </div>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Form Base Fields */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
-                  Structure Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Standard Annual Fee Structure 2026-27"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  maxLength={150}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                />
-              </div>
-
-              {!editModeStructureId && (
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
-                    Target Academic Grade <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={formAcademicYearGradeId}
-                    onChange={(e) => setFormAcademicYearGradeId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
-                  >
-                    <option value="">-- Select Grade & Academic Year --</option>
-                    {academicYearGrades.map((g) => (
-                      <option
-                        key={g.academic_year_grade_id}
-                        value={g.academic_year_grade_id}
-                        disabled={g.is_configured}
-                      >
-                        {g.grade_name} ({g.grade_code}) • {g.academic_year_name}
-                        {g.is_configured ? ' [ALREADY CONFIGURED]' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedGradeOption?.is_configured && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                      Note: A fee structure ({selectedGradeOption.existing_structure?.name}) is already assigned to this grade.
-                    </p>
-                  )}
+              <div className="text-right">
+                <span className="text-xs text-slate-400">Total Calculated Fee:</span>
+                <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+                  ₹{formTotalAmount.toLocaleString('en-IN')}
                 </div>
-              )}
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
-                  Description / Notes (Optional)
-                </label>
-                <textarea
-                  placeholder="Additional context regarding payment rules, concessions, or inclusions..."
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  rows={2}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                />
               </div>
             </div>
 
-            {/* ── INTERACTIVE COMPONENT BUILDER ───────────────────────── */}
-            <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Fee Components
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Add required and optional components. Each must have a unique code and positive amount.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-slate-400">Total Calculated Fee:</span>
-                  <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">
-                    ₹{formTotalAmount.toLocaleString('en-IN')}
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Preset Buttons */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Add Presets:</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {COMPONENT_PRESETS.map((p) => (
-                    <button
-                      key={p.code}
-                      type="button"
-                      onClick={() => handleApplyPreset(p)}
-                      className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-semibold transition-colors"
-                    >
-                      + {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Add New Component Row */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                      Component Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Science Lab Fee"
-                      value={draftCompName}
-                      onChange={(e) => setDraftCompName(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                      Component Code
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. LAB_SCI"
-                      value={draftCompCode}
-                      onChange={(e) => setDraftCompCode(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                      Amount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 5000"
-                      min="1"
-                      step="1"
-                      value={draftCompAmount}
-                      onChange={(e) => setDraftCompAmount(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={draftCompMandatory}
-                      onChange={(e) => setDraftCompMandatory(e.target.checked)}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span>Mandatory Component</span>
-                  </label>
-
+            {/* Quick Preset Buttons */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Quick Add Presets:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {COMPONENT_PRESETS.map((p) => (
                   <button
+                    key={p.code}
                     type="button"
-                    onClick={handleAddComponent}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all"
+                    onClick={() => handleApplyPreset(p)}
+                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-semibold transition-colors"
                   >
-                    + Add Component
+                    + {p.name}
                   </button>
-                </div>
-              </div>
-
-              {/* Component List */}
-              <div className="space-y-2">
-                {formComponents.map((c, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 flex items-center justify-center text-[10px] font-bold">
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                          <span>{c.component_name}</span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-mono">
-                            {c.component_code}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {c.is_mandatory ? 'Mandatory' : 'Optional'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <span className="font-black text-slate-900 dark:text-white text-sm">
-                        ₹{Number(c.amount).toLocaleString('en-IN')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveComponent(idx)}
-                        className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
                 ))}
               </div>
             </div>
 
-            {/* ── INSTALLMENT SCHEDULE PREVIEW ────────────────────────── */}
-            <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between">
+            {/* Add New Component Row */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-indigo-500" />
-                    <span>Installment Schedule Preview</span>
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Preview of installment plan terms linked to this academic year.
-                  </p>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Component Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Science Lab Fee"
+                    value={draftCompName}
+                    onChange={(e) => setDraftCompName(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Component Code
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. LAB_SCI"
+                    value={draftCompCode}
+                    onChange={(e) => setDraftCompCode(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 5000"
+                    min="1"
+                    step="1"
+                    value={draftCompAmount}
+                    onChange={(e) => setDraftCompAmount(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none"
+                  />
                 </div>
               </div>
 
-              {installmentPlans.length > 0 ? (
-                <div className="space-y-3">
-                  {installmentPlans.map((plan) => (
-                    <div
-                      key={plan.id}
-                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 text-xs space-y-2"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{plan.plan_name}</span>
-                        <span className="text-[10px] font-semibold text-slate-400">{plan.terms_count} terms</span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                        {plan.terms.map((term, tIdx) => {
-                          const termAmount = Math.round(((term.percentage / 100) * formTotalAmount + Number.EPSILON) * 100) / 100;
-                          return (
-                            <div
-                              key={tIdx}
-                              className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800"
-                            >
-                              <div className="font-bold text-slate-700 dark:text-slate-300">{term.term_name}</div>
-                              <div className="text-[10px] text-slate-400">{term.percentage}% of total</div>
-                              <div className="font-black text-indigo-600 dark:text-indigo-400 mt-1">
-                                ₹{termAmount.toLocaleString('en-IN')}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex items-center gap-2">
-                  <Info className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>
-                    No published installment plans configured for this academic year. Total fee will apply as a one-time full billing demand.
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between gap-4">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draftCompMandatory}
+                    onChange={(e) => setDraftCompMandatory(e.target.checked)}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Mandatory Component</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleAddComponent}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all"
+                >
+                  + Add Component
+                </button>
+              </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveStructure}
-                disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 disabled:opacity-50 transition-all flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <span>{editModeStructureId ? 'Update Fee Structure' : 'Save as Draft'}</span>
-                )}
-              </button>
+            {/* Component List */}
+            <div className="space-y-2">
+              {formComponents.map((c, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 flex items-center justify-center text-[10px] font-bold">
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>{c.component_name}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-mono">
+                          {c.component_code}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {c.is_mandatory ? 'Mandatory' : 'Optional'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="font-black text-slate-900 dark:text-white text-sm">
+                      ₹{Number(c.amount).toLocaleString('en-IN')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveComponent(idx)}
+                      className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ── DETAILS READ-ONLY MODAL ─────────────────────────────────────── */}
-      {isDetailsModalOpen && selectedStructure && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6">
-            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+          {/* ── INSTALLMENT SCHEDULE PREVIEW ────────────────────────── */}
+          <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedStructure.name}</h2>
-                  {selectedStructure.status === 'published' ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
-                      Published
-                    </span>
-                  ) : selectedStructure.status === 'draft' ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
-                      Draft
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                      Inactive
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  {selectedStructure.grade?.name} ({selectedStructure.grade?.code}) • {selectedStructure.academic_year?.name}
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-indigo-500" />
+                  <span>Installment Schedule Preview</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Preview of installment plan terms linked to this academic year.
                 </p>
               </div>
-              <button
-                onClick={() => setIsDetailsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            </div>
+
+            {installmentPlans.length > 0 ? (
+              <div className="space-y-3">
+                {installmentPlans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 text-xs space-y-2"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {plan.plan_name}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        {plan.terms_count} terms
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                      {plan.terms.map((term, tIdx) => {
+                        const termAmount =
+                          Math.round(
+                            ((term.percentage / 100) * formTotalAmount + Number.EPSILON) * 100,
+                          ) / 100;
+                        return (
+                          <div
+                            key={tIdx}
+                            className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800"
+                          >
+                            <div className="font-bold text-slate-700 dark:text-slate-300">
+                              {term.term_name}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {term.percentage}% of total
+                            </div>
+                            <div className="font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                              ₹{termAmount.toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex items-center gap-2">
+                <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>
+                  No published installment plans configured for this academic year. Total fee will
+                  apply as a one-time full billing demand.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveStructure}
+              disabled={isSubmitting}
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 disabled:opacity-50 transition-all flex items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>{editModeStructureId ? 'Update Fee Structure' : 'Save as Draft'}</span>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── DETAILS READ-ONLY MODAL ─────────────────────────────────────── */}
+      <Modal
+        isOpen={Boolean(isDetailsModalOpen && selectedStructure)}
+        onClose={() => setIsDetailsModalOpen(false)}
+        size="lg"
+        title={selectedStructure?.name}
+        description={`Structural review of fee components and active terms (${selectedStructure?.grade?.name || 'All Grades'}).`}
+      >
+        {selectedStructure && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 pb-2">
+              {selectedStructure.status === 'published' ? (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200">
+                  Published
+                </span>
+              ) : selectedStructure.status === 'draft' ? (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200">
+                  Draft
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200">
+                  Inactive
+                </span>
+              )}
             </div>
 
             {selectedStructure.description && (
@@ -1249,7 +1272,9 @@ export const FeeStructureManagement: React.FC = () => {
 
             {/* Component Breakdown Table */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Component Breakdown</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Component Breakdown
+              </h3>
               <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-bold">
@@ -1280,7 +1305,10 @@ export const FeeStructureManagement: React.FC = () => {
                   </tbody>
                   <tfoot className="bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800">
                     <tr>
-                      <td colSpan={3} className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200 text-right">
+                      <td
+                        colSpan={3}
+                        className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200 text-right"
+                      >
                         Total Fee:
                       </td>
                       <td className="py-3 px-3 text-right font-black text-indigo-600 dark:text-indigo-400 text-sm">
@@ -1310,82 +1338,82 @@ export const FeeStructureManagement: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── CONFIRM PUBLISH DIALOG ─────────────────────────────────────── */}
-      {structureToPublish && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Publish Fee Structure?
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Publishing <strong>"{structureToPublish.name}"</strong> will activate this fee schedule for student assignment and ledger demand billing for the academic grade.
-              </p>
-            </div>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setStructureToPublish(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPublish}
-                disabled={isSubmitting}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
-              >
-                {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Confirm & Publish</span>
-              </button>
-            </div>
+      <Modal
+        isOpen={Boolean(structureToPublish)}
+        onClose={() => setStructureToPublish(null)}
+        size="sm"
+        title="Publish Fee Structure?"
+        description={
+          structureToPublish
+            ? `Publishing "${structureToPublish.name}" will activate this fee schedule for student assignment and ledger demand billing.`
+            : ''
+        }
+        icon={
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
+        }
+      >
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+          <button
+            type="button"
+            onClick={() => setStructureToPublish(null)}
+            className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmPublish}
+            disabled={isSubmitting}
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
+          >
+            {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+            <span>Confirm & Publish</span>
+          </button>
         </div>
-      )}
+      </Modal>
 
       {/* ── CONFIRM DEACTIVATE DIALOG ──────────────────────────────────── */}
-      {structureToDeactivate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <Archive className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Deactivate Fee Structure?
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Deactivating <strong>"{structureToDeactivate.name}"</strong> will archive this structure. Historical payments and existing student ledgers will not be altered.
-              </p>
-            </div>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setStructureToDeactivate(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeactivate}
-                disabled={isSubmitting}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
-              >
-                {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Deactivate Structure</span>
-              </button>
-            </div>
+      <Modal
+        isOpen={Boolean(structureToDeactivate)}
+        onClose={() => setStructureToDeactivate(null)}
+        size="sm"
+        title="Deactivate Fee Structure?"
+        description={
+          structureToDeactivate
+            ? `Deactivating "${structureToDeactivate.name}" will archive this structure. Historical payments and existing student ledgers will not be altered.`
+            : ''
+        }
+        icon={
+          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <Archive className="w-5 h-5" />
           </div>
+        }
+      >
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+          <button
+            type="button"
+            onClick={() => setStructureToDeactivate(null)}
+            className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDeactivate}
+            disabled={isSubmitting}
+            className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
+          >
+            {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+            <span>Deactivate Structure</span>
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

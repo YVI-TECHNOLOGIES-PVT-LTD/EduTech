@@ -22,6 +22,7 @@ export * from './palettes/dark.palette';
 export * from './spacing/spacing';
 export * from './typography/typography';
 export * from './tokens/radius';
+export * from './tokens/designTokens';
 export * from './elevation/shadows';
 export * from './animations/animations';
 export * from './hooks/useTheme';

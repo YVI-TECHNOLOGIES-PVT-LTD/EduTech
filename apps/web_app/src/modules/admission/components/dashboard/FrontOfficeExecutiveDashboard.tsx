@@ -141,7 +141,18 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       (appDashboard?.applications_by_status?.under_review || 0) +
       (appDashboard?.applications_by_status?.docs_pending || 0);
 
-    const feesCollected = 0;
+    const apps = applicationsResponse?.data || [];
+    let feesCollected = 0;
+    apps.forEach((app: any) => {
+      const fee = app.total_fee || app.application_fee || app.feePaidAmount || 0;
+      if (
+        app.payment_status === 'PAID' ||
+        app.payment_status === 'paid' ||
+        app.payment_status === 'COMPLETED'
+      ) {
+        feesCollected += Number(fee);
+      }
+    });
 
     const admissionsEnrolled =
       leadDashboard?.converted_leads || appDashboard?.applications_by_status?.enrolled || 0;
@@ -154,10 +165,8 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       feesCollected,
       admissionsEnrolled,
       currency: '₹',
-      inquiriesTrend: totalInquiries > 0 ? 12.5 : undefined,
-      applicationsTrend: totalApplications > 0 ? 8.2 : undefined,
     };
-  }, [leadDashboard, appDashboard]);
+  }, [leadDashboard, appDashboard, applicationsResponse?.data]);
 
   // 3. Admissions Overview Time Trend Data
   const trendData: TrendDataPoint[] = useMemo(() => {
@@ -345,9 +354,22 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
 
   // 9. Fee Collection Data
   const feeData: FeeCollectionData = useMemo(() => {
-    const totalApps = appDashboard?.total_applications || 0;
-    const collected = 0;
-    const expected = totalApps * 1000 || 0;
+    const apps = applicationsResponse?.data || [];
+    let collected = 0;
+    let expected = 0;
+
+    apps.forEach((app: any) => {
+      const fee = Number(app.total_fee || app.application_fee || app.feePaidAmount || 0);
+      expected += fee;
+      if (
+        app.payment_status === 'PAID' ||
+        app.payment_status === 'paid' ||
+        app.payment_status === 'COMPLETED'
+      ) {
+        collected += fee;
+      }
+    });
+
     const pending = Math.max(expected - collected, 0);
 
     return {
@@ -357,7 +379,7 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
       currency: '₹',
       collectionRate: expected > 0 ? Math.round((collected / expected) * 100) : 0,
     };
-  }, [appDashboard?.total_applications]);
+  }, [applicationsResponse?.data]);
 
   // 10. Document Verification Data
   const docVerificationData: DocumentVerificationData = useMemo(() => {
@@ -439,21 +461,37 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
 
   // 14. Counsellor Leaderboard Data
   const counsellorMetrics: CounsellorMetricItem[] = useMemo(() => {
+    const apps = applicationsResponse?.data || [];
+    const staffAppMap: Record<string, { apps: number; conversions: number }> = {};
+
+    apps.forEach((app: any) => {
+      const assignedId = app.assigned_to || app.reviewer_id || app.counselor_id || app.created_by;
+      if (assignedId) {
+        if (!staffAppMap[assignedId]) staffAppMap[assignedId] = { apps: 0, conversions: 0 };
+        staffAppMap[assignedId].apps += 1;
+        if (app.status === 'approved' || app.status === 'enrolled') {
+          staffAppMap[assignedId].conversions += 1;
+        }
+      }
+    });
+
     return staffList.slice(0, 5).map((s: any, idx: number) => {
+      const staffId = s.staff_id || s.id || `staff-${idx}`;
       const name =
         s.name ||
         (s.first_name
           ? `${s.first_name} ${s.last_name || ''}`.trim()
           : s.employee_code || `Staff ${idx + 1}`);
+      const metrics = staffAppMap[staffId] || { apps: 0, conversions: 0 };
       return {
-        id: s.staff_id || s.id || `staff-${idx}`,
+        id: staffId,
         name,
-        leadsCount: 15 + idx * 3,
-        appsCount: 8 + idx * 2,
-        conversionsCount: 4 + idx,
+        leadsCount: metrics.apps,
+        appsCount: metrics.apps,
+        conversionsCount: metrics.conversions,
       };
     });
-  }, [staffList]);
+  }, [staffList, applicationsResponse?.data]);
 
   // 15. Micro-conversion Rates
   const conversionMetrics: ConversionMetricsData = useMemo(() => {

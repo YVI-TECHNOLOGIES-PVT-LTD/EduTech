@@ -73,6 +73,12 @@
 
   --radius: 0.75rem;
 
+  /* Standardized Transition & Timing Tokens */
+  --transition-fast: 160ms;
+  --transition-normal: 240ms;
+  --transition-smooth: 320ms;
+  --transition-easing: cubic-bezier(0.22, 1, 0.36, 1);
+
   /* Chart Color Tokens (8-category palette) */
   --chart-1: 181 83% 28%;
   --chart-2: 217 91% 53%;
@@ -192,6 +198,28 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==================================================
+   Coordinated Enterprise Theme Transitions
+   ================================================== */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color !important;
+  transition-duration: 300ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  transition-delay: 0s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: none !important;
+  }
+}
+
 button,
 input,
 optgroup,
@@ -259,6 +287,38 @@ textarea {
   animation: fadeIn 0.35s ease forwards;
 }
 
+/* Navigation & Skeleton Shimmer Keyframes (1.6s Duration) */
+@keyframes nav-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-nav-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.35) 25%,
+    rgba(226, 232, 240, 0.75) 50%,
+    rgba(226, 232, 240, 0.35) 75%
+  );
+  background-size: 200% 100%;
+  animation: nav-shimmer 1.6s infinite linear;
+}
+
+.dark .animate-nav-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.35) 25%,
+    rgba(51, 65, 85, 0.7) 50%,
+    rgba(30, 41, 59, 0.35) 75%
+  );
+  background-size: 200% 100%;
+  animation: nav-shimmer 1.6s infinite linear;
+}
+
 /* Stagger Animation Delays */
 .stagger-1 {
   animation-delay: 100ms;
@@ -299,27 +359,53 @@ textarea {
 
 /* Glassmorphism Classes */
 .bg-glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
 .dark .bg-glass {
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
 .bg-glass-card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid rgba(226, 232, 240, 0.8);
 }
 .dark .bg-glass-card {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.glass-surface {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border-color: rgba(226, 232, 240, 0.8);
+}
+.dark .glass-surface {
+  background-color: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+@supports not (backdrop-filter: blur(16px)) {
+  .bg-glass,
+  .bg-glass-card,
+  .glass-surface {
+    background-color: #ffffff !important;
+  }
+  .dark .bg-glass,
+  .dark .bg-glass-card,
+  .dark .glass-surface {
+    background-color: #0f172a !important;
+  }
 }
 
 /* Premium Shadows & Elevations */

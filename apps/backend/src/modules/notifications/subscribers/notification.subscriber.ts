@@ -64,15 +64,14 @@ export class NotificationSubscriber {
     // 6. Action performer (if valid user UUID)
     if (isUuid(performedBy)) return performedBy;
 
-    // 7. Organization fallback: any active staff/admin user in org
+    // 7. Organization fallback: active staff member in org
     try {
-      const orgStaff = await db.users.findFirst({
-        where: { org_id: app.org_id, status: 'active' },
-        select: { user_id: true, id: true },
+      const orgStaff = await db.staff.findFirst({
+        where: { org_id: app.org_id, is_active: true },
+        select: { user_id: true },
       });
-      const staffUserId = orgStaff?.user_id || orgStaff?.id;
-      if (isUuid(staffUserId)) {
-        return staffUserId;
+      if (isUuid(orgStaff?.user_id)) {
+        return orgStaff.user_id;
       }
     } catch {
       // Continue
@@ -130,11 +129,12 @@ export class NotificationSubscriber {
         }
 
         if (!recipient) {
-          const fallback = await db.users.findFirst({
-            where: { org_id: lead.org_id, status: 'active' },
-            select: { user_id: true, id: true },
+          const fallbackStaff = await db.staff.findFirst({
+            where: { org_id: lead.org_id, is_active: true },
+            select: { user_id: true },
           });
-          recipient = fallback?.user_id || fallback?.id || null;
+          recipient =
+            fallbackStaff?.user_id && isUuid(fallbackStaff.user_id) ? fallbackStaff.user_id : null;
         }
 
         if (!recipient) {
@@ -332,11 +332,12 @@ export class NotificationSubscriber {
 
         let recipient = student.user_id || student.created_by || payload.performedBy;
         if (!recipient) {
-          const fallback = await db.users.findFirst({
-            where: { org_id: student.org_id, status: 'active' },
-            select: { user_id: true, id: true },
+          const fallbackStaff = await db.staff.findFirst({
+            where: { org_id: student.org_id, is_active: true },
+            select: { user_id: true },
           });
-          recipient = fallback?.user_id || fallback?.id || null;
+          recipient =
+            fallbackStaff?.user_id && isUuid(fallbackStaff.user_id) ? fallbackStaff.user_id : null;
         }
 
         if (!recipient) {

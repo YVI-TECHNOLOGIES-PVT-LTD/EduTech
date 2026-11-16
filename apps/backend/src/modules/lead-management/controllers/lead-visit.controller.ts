@@ -64,12 +64,7 @@ export class LeadVisitController {
   static async getQueue(req: Request, res: Response) {
     try {
       const user = req.context?.user;
-      const orgId =
-        user?.org_id ||
-        user?.school_id ||
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const staff_id =
         (req.query.staff_id as string) || (req.query.counsellor_id as string) || undefined;
       const vType = (req.query.visit_type as string) || (req.query.type as string);
@@ -78,7 +73,8 @@ export class LeadVisitController {
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const pageSize = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
 
-      const searchStr = (req.query.search as string) || (req.query.searchText as string) || undefined;
+      const searchStr =
+        (req.query.search as string) || (req.query.searchText as string) || undefined;
 
       const result = await LeadVisitService.getQueue({
         org_id: orgId,

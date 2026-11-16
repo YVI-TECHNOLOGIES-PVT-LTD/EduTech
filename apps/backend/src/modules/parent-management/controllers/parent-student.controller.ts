@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ParentStudentService } from '../services/parent.student.service';
 import { linkStudentSchema } from '../dto/request/link-student.dto';
 import { ParentError } from '../errors/parent.errors';
+import prisma from '../../../lib/prismaClient';
 
 export class ParentStudentController {
   static async linkStudent(req: Request, res: Response) {
@@ -43,7 +44,31 @@ export class ParentStudentController {
   static async getStudents(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await ParentStudentService.getStudentsByParent(id);
+      const user = (req as any).context?.user || (req as any).user;
+      const isParentOnly =
+        user?.roles?.includes('PARENT') &&
+        !user?.roles?.some((r: string) => ['ADMIN', 'SUPERADMIN', 'FRONT_OFFICE'].includes(r));
+
+      let targetParentId = id;
+      if (isParentOnly && user?.id) {
+        const parentRecord = await prisma.parents.findFirst({
+          where: {
+            OR: [
+              { parent_id: id },
+              { user_id: user.id },
+              ...(user.email ? [{ email: user.email }] : []),
+            ],
+          },
+        });
+        if (!parentRecord) {
+          return res
+            .status(403)
+            .json({ error: 'FORBIDDEN', message: 'Unauthorized parent record access' });
+        }
+        targetParentId = parentRecord.parent_id;
+      }
+
+      const result = await ParentStudentService.getStudentsByParent(targetParentId);
       return res.json(result);
     } catch (error: any) {
       if (error instanceof ParentError) {

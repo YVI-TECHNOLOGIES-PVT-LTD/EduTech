@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { AdmissionApplication } from '../../types/admission.types';
 import { getApplicationStatusConfig } from '../../utils/status-mapper';
@@ -90,7 +90,16 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({
             </Text>
             <View className="flex-row items-center mt-0.5">
               <View className="bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 mr-2">
-                <Text className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300">
+                <Text
+                  className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300"
+                  style={{
+                    fontFamily: Platform.select({
+                      ios: 'Menlo',
+                      android: 'monospace',
+                      default: 'monospace',
+                    }),
+                  }}
+                >
                   {appNumber}
                 </Text>
               </View>

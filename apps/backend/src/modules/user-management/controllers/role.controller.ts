@@ -55,7 +55,11 @@ export class RoleController {
 
   static async getAll(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || undefined;
+      const orgId =
+        (req as any).tenantOrgId ||
+        (req as any).context?.user?.org_id ||
+        (req as any).context?.user?.school_id ||
+        undefined;
       const result = await RoleService.getAllRoles(orgId);
       return res.json(result);
     } catch (error: any) {

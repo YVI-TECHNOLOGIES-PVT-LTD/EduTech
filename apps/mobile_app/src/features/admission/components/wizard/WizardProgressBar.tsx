@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { DESIGN_TOKENS } from '../../../../theme/tokens/designTokens';
+import { useTheme } from '../../../../theme';
 
 export interface WizardProgressBarProps {
   currentStep: number;
@@ -7,13 +9,13 @@ export interface WizardProgressBarProps {
 }
 
 const STEP_TITLES = [
-  'Guidelines',
+  'Admission Guidelines',
   'Student Details',
   'Parent Details',
-  'Academics',
-  'Documents',
+  'Academic Preferences',
+  'Document Uploads',
   'Fee Statement',
-  'Review & Submit',
+  'Review & Declaration',
   'Confirmation',
 ];
 
@@ -21,26 +23,99 @@ export const WizardProgressBar: React.FC<WizardProgressBarProps> = ({
   currentStep,
   totalSteps = 8,
 }) => {
+  const { isDark } = useTheme();
   const progressPercent = Math.min(Math.round((currentStep / totalSteps) * 100), 100);
   const currentTitle = STEP_TITLES[currentStep - 1] || `Step ${currentStep}`;
 
   return (
-    <View className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200/80 dark:border-slate-800">
-      {/* Step Info */}
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-          Step {currentStep} of {totalSteps}
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: isDark ? '#0F172A' : DESIGN_TOKENS.colors.surface,
+          borderBottomColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.border,
+        },
+      ]}
+    >
+      {/* Step Info Row */}
+      <View style={styles.infoRow}>
+        <View style={styles.stepBadge}>
+          <Text style={styles.stepBadgeText}>
+            Step {currentStep} of {totalSteps}
+          </Text>
+        </View>
+        <Text
+          style={[
+            styles.titleText,
+            { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
+          ]}
+        >
+          {currentTitle}
         </Text>
-        <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">{currentTitle}</Text>
+        <Text style={styles.percentText}>{progressPercent}%</Text>
       </View>
 
       {/* Progress Track */}
-      <View className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+      <View style={[styles.track, { backgroundColor: isDark ? '#1E293B' : '#E2E8F0' }]}>
         <View
-          style={{ width: `${progressPercent}%` }}
-          className="h-full bg-indigo-600 dark:bg-indigo-400 rounded-full"
+          style={[
+            styles.fill,
+            {
+              width: `${progressPercent}%`,
+              backgroundColor: DESIGN_TOKENS.colors.primary,
+            },
+          ]}
         />
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  stepBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  stepBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  titleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+  percentText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+  },
+  track: {
+    height: 6,
+    width: '100%',
+    borderRadius: 9999,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 9999,
+  },
+});

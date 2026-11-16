@@ -1,5 +1,19 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { LandingResolver } from '../services/LandingResolver';
 import Dashboard from '../pages/Dashboard';
+import { AcademicOverviewPage } from '../modules/academic/pages/AcademicOverviewPage';
+import { AcademicStructurePage } from '../modules/academic/pages/AcademicStructurePage';
+import { GradesAndSectionsPage } from '../modules/academic/pages/GradesAndSectionsPage';
+import { SubjectsCatalogPage } from '../modules/academic/pages/SubjectsCatalogPage';
+import { FacultyWorkloadPage } from '../modules/academic/pages/FacultyWorkloadPage';
+import { TimetableMasterPage } from '../modules/academic/pages/TimetableMasterPage';
+import { AcademicCalendarPage } from '../modules/academic/pages/AcademicCalendarPage';
+import { CurriculumSyllabusPage } from '../modules/academic/pages/CurriculumSyllabusPage';
+import { LessonPlanningPage } from '../modules/academic/pages/LessonPlanningPage';
+import { DigitalResourcesPage } from '../modules/academic/pages/DigitalResourcesPage';
+import { AcademicReadinessPage } from '../modules/academic/pages/AcademicReadinessPage';
 import { Profile } from '../pages/Profile';
 import { Settings } from '../pages/Settings';
 import { BulkOperations } from '../modules/admin/pages/BulkOperations';
@@ -17,7 +31,11 @@ import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashbo
 import WorkspaceDashboard from '../modules/admission/pages/Workspace';
 import Applicant360Page from '../modules/admission/pages/Applicant360';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
-import { ApplicationsManagementPage } from '../modules/admission/pages/front-office/ApplicationsManagementPage';
+const ApplicationsManagementPage = React.lazy(() =>
+  import('../modules/admission/pages/front-office/ApplicationsManagementPage').then((m) => ({
+    default: m.ApplicationsManagementPage,
+  })),
+);
 import { CounsellingPage } from '../modules/admission/pages/front-office/CounsellingPage';
 import { DocumentVerificationPage } from '../modules/admission/pages/front-office/DocumentVerificationPage';
 import { FeeCollectionPage } from '../modules/admission/pages/front-office/FeeCollectionPage';
@@ -26,13 +44,79 @@ import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWiz
 import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
 import { AdmissionDecisionPage } from '../modules/admission/pages/AdmissionDecisionPage';
 
-import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
+const ParentDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/ParentDashboard').then((m) => ({
+    default: m.ParentDashboard,
+  })),
+);
 import { ParentDashboardPage } from '../modules/admission/pages/parent/ParentDashboardPage';
 import { ParentDashboardRouter } from '../pages/ParentDashboardRouter';
-import { ParentDocumentCenterPage } from '../modules/admission/pages/parent/ParentDocumentCenterPage';
-import { ParentFeePaymentPage } from '../modules/admission/pages/parent/ParentFeePaymentPage';
-import { ParentAdmissionStatusPage } from '../modules/admission/pages/parent/ParentAdmissionStatusPage';
-import { ParentSubmittedApplicationPage } from '../modules/admission/pages/parent/ParentSubmittedApplicationPage';
+import { ParentFeesRouter } from '../pages/ParentFeesRouter';
+const ParentDocumentCenterPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentDocumentCenterPage').then((m) => ({
+    default: m.ParentDocumentCenterPage,
+  })),
+);
+const ParentFeePaymentPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentFeePaymentPage').then((m) => ({
+    default: m.ParentFeePaymentPage,
+  })),
+);
+const ParentChildrenPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentChildrenPage').then((m) => ({
+    default: m.ParentChildrenPage,
+  })),
+);
+const ParentTimetablePage = React.lazy(() =>
+  import('../modules/parent/pages/ParentTimetablePage').then((m) => ({
+    default: m.ParentTimetablePage,
+  })),
+);
+const ParentAcademicProgressPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentAcademicProgressPage').then((m) => ({
+    default: m.ParentAcademicProgressPage,
+  })),
+);
+const ParentSubjectsCurriculumPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentSubjectsCurriculumPage').then((m) => ({
+    default: m.ParentSubjectsCurriculumPage,
+  })),
+);
+const ParentLearningResourcesPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentLearningResourcesPage').then((m) => ({
+    default: m.ParentLearningResourcesPage,
+  })),
+);
+const ParentAcademicCalendarPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentAcademicCalendarPage').then((m) => ({
+    default: m.ParentAcademicCalendarPage,
+  })),
+);
+const ParentNotificationsPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentNotificationsPage').then((m) => ({
+    default: m.ParentNotificationsPage,
+  })),
+);
+const ParentCommunicationPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentCommunicationPage').then((m) => ({
+    default: m.ParentCommunicationPage,
+  })),
+);
+const ParentSettingsPage = React.lazy(() =>
+  import('../modules/parent/pages/ParentSettingsPage').then((m) => ({
+    default: m.ParentSettingsPage,
+  })),
+);
+const ParentAdmissionStatusPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentAdmissionStatusPage').then((m) => ({
+    default: m.ParentAdmissionStatusPage,
+  })),
+);
+const ParentSubmittedApplicationPage = React.lazy(() =>
+  import('../modules/admission/pages/parent/ParentSubmittedApplicationPage').then((m) => ({
+    default: m.ParentSubmittedApplicationPage,
+  })),
+);
 
 import { SchoolOperationsWorkspace } from '../pages/SchoolOperationsWorkspace';
 import { FinanceConfigurationPage } from '../modules/fees/pages/FinanceConfiguration';
@@ -51,7 +135,136 @@ import { FinanceAccounting } from '../modules/fees/pages/FinanceAccounting';
 import { FinancePlanning } from '../modules/fees/pages/FinancePlanning';
 import { FinanceAudit } from '../modules/fees/pages/FinanceAudit';
 import { FinanceOperations } from '../modules/fees/pages/FinanceOperations';
+const FinanceCommunicationFeeds = React.lazy(() =>
+  import('../modules/fees/pages/FinanceCommunicationFeeds').then((m) => ({
+    default: m.FinanceCommunicationFeeds,
+  })),
+);
+const FinanceCommunicationHelpdesk = React.lazy(() =>
+  import('../modules/fees/pages/FinanceCommunicationHelpdesk').then((m) => ({
+    default: m.FinanceCommunicationHelpdesk,
+  })),
+);
+import { FinanceCommunicationEscalation } from '../modules/fees/pages/FinanceCommunicationEscalation';
 import { RazorpayCheckoutDemo } from '../modules/fees/pages/RazorpayCheckoutDemo';
+import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
+const MyFees = React.lazy(() =>
+  import('../modules/fees/pages/MyFees').then((m) => ({ default: m.MyFees })),
+);
+
+const SuperAdminDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/SuperAdminDashboard').then((m) => ({
+    default: m.SuperAdminDashboard,
+  })),
+);
+
+const TeacherDashboard = React.lazy(() =>
+  import('../modules/dashboard/pages/TeacherDashboard').then((m) => ({
+    default: m.TeacherDashboard,
+  })),
+);
+
+const TeacherClassesPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherClassesPage').then((m) => ({
+    default: m.TeacherClassesPage,
+  })),
+);
+
+const TeacherTimetablePage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherTimetablePage').then((m) => ({
+    default: m.TeacherTimetablePage,
+  })),
+);
+
+const TeacherSubjectsPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherSubjectsPage').then((m) => ({
+    default: m.TeacherSubjectsPage,
+  })),
+);
+
+const TeacherClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/TeacherClassroomPage').then((m) => ({
+    default: m.TeacherClassroomPage,
+  })),
+);
+
+const AdminClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/AdminClassroomPage').then((m) => ({
+    default: m.AdminClassroomPage,
+  })),
+);
+
+const StudentClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/StudentClassroomPage').then((m) => ({
+    default: m.StudentClassroomPage,
+  })),
+);
+
+const ParentClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/ParentClassroomPage').then((m) => ({
+    default: m.ParentClassroomPage,
+  })),
+);
+
+const TeacherLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/TeacherLearningActivitiesPage').then((m) => ({
+    default: m.TeacherLearningActivitiesPage,
+  })),
+);
+
+const StudentLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/StudentLearningActivitiesPage').then((m) => ({
+    default: m.StudentLearningActivitiesPage,
+  })),
+);
+
+const ParentLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/ParentLearningActivitiesPage').then((m) => ({
+    default: m.ParentLearningActivitiesPage,
+  })),
+);
+
+const AdminLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/AdminLearningActivitiesPage').then((m) => ({
+    default: m.AdminLearningActivitiesPage,
+  })),
+);
+
+const TeacherAiCopilotPage = React.lazy(() =>
+  import('../modules/ai-teacher-copilot/pages/TeacherAiCopilotPage').then((m) => ({
+    default: m.TeacherAiCopilotPage,
+  })),
+);
+
+const StudentStudyAssistantPage = React.lazy(() =>
+  import('../modules/ai-teacher-copilot/pages/StudentStudyAssistantPage').then((m) => ({
+    default: m.StudentStudyAssistantPage,
+  })),
+);
+
+const AdminAiOversightPage = React.lazy(() =>
+  import('../modules/ai-teacher-copilot/pages/AdminAiOversightPage').then((m) => ({
+    default: m.AdminAiOversightPage,
+  })),
+);
+
+const TeacherCurriculumPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherCurriculumPage').then((m) => ({
+    default: m.TeacherCurriculumPage,
+  })),
+);
+
+const TeacherLessonPlansPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherLessonPlansPage').then((m) => ({
+    default: m.TeacherLessonPlansPage,
+  })),
+);
+
+const TeacherWorkloadPage = React.lazy(() =>
+  import('../modules/teacher/pages/TeacherWorkloadPage').then((m) => ({
+    default: m.TeacherWorkloadPage,
+  })),
+);
 
 export interface RouteConfig {
   path: string;
@@ -66,8 +279,52 @@ export interface RouteConfig {
     | 'front_office'
     | 'parent'
     | 'admin'
+    | 'super_admin'
+    | 'teacher'
     | 'none';
 }
+
+const AdmissionsWorkspaceDispatcher: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalized = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const isParentOnly = normalized.every((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParentOnly) {
+    return <Navigate to="/app/admissions/dashboard" replace />;
+  }
+  return <ApplicationsManagementPage />;
+};
+
+const AdmissionsDashboardDispatcher: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalized = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const isParentOnly = normalized.every((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParentOnly) {
+    return <ParentDashboardPage />;
+  }
+  return <ApplicationsManagementPage />;
+};
+
+const AdmissionsFeesDispatcher: React.FC = () => {
+  const { user } = useAuth();
+  const rawRoles =
+    user?.roles && user.roles.length > 0 ? user.roles : [(user as any)?.role || 'PARENT'];
+  const normalized = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+  const isParentOnly = normalized.every((r: string) =>
+    ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
+  );
+  if (isParentOnly) {
+    return <ParentFeePaymentPage />;
+  }
+  return <PaymentEntry />;
+};
 
 export const ROUTE_REGISTRY: RouteConfig[] = [
   // ─── 1. CANONICAL ROLE DASHBOARDS ──────────────────────────────────────────
@@ -90,11 +347,129 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     guardType: 'parent',
   },
   {
+    path: 'admin',
+    element: <Navigate to="/app/admin/dashboard" replace />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
     path: 'admin/dashboard',
     element: <AdminDashboard />,
     layout: 'dashboard',
     permission: 'admin.dashboard.view',
     guardType: 'admin',
+  },
+  {
+    path: 'admin/classroom',
+    element: <AdminClassroomPage />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
+    path: 'admin/learning-activities',
+    element: <AdminLearningActivitiesPage />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
+    path: 'admin/ai-oversight',
+    element: <AdminAiOversightPage />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
+    path: 'super-admin/dashboard',
+    element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/organizations',
+    element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/academic-overview',
+    element: <AcademicOverviewPage />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/audit',
+    element: <SuperAdminDashboard />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'super-admin/settings',
+    element: <Settings />,
+    layout: 'dashboard',
+    guardType: 'super_admin',
+  },
+  {
+    path: 'teacher/dashboard',
+    element: <TeacherDashboard />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/classes',
+    element: <TeacherClassesPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/classroom',
+    element: <TeacherClassroomPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/learning-activities',
+    element: <TeacherLearningActivitiesPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/ai-copilot',
+    element: <TeacherAiCopilotPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/timetable',
+    element: <TeacherTimetablePage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/subjects',
+    element: <TeacherSubjectsPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/curriculum',
+    element: <TeacherCurriculumPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/lesson-plans',
+    element: <TeacherLessonPlansPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/workload',
+    element: <TeacherWorkloadPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
   },
   {
     path: 'faculty/dashboard',
@@ -104,6 +479,24 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   {
     path: 'student/dashboard',
     element: <StudentDashboard />,
+    layout: 'dashboard',
+    permission: 'student.dashboard.view',
+  },
+  {
+    path: 'student/classroom',
+    element: <StudentClassroomPage />,
+    layout: 'dashboard',
+    permission: 'student.dashboard.view',
+  },
+  {
+    path: 'student/learning-activities',
+    element: <StudentLearningActivitiesPage />,
+    layout: 'dashboard',
+    permission: 'student.dashboard.view',
+  },
+  {
+    path: 'student/ai-study-assistant',
+    element: <StudentStudyAssistantPage />,
     layout: 'dashboard',
     permission: 'student.dashboard.view',
   },
@@ -123,12 +516,26 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     layout: 'dashboard',
   },
 
-  // ─── 3. PARENT & APPLICANT PORTAL ROUTES (GUARDED BY PARENT GUARD) ─────────
+  // ─── 3. ADMISSIONS & APPLICANT PORTAL ROUTES ───────────────────────────────
+  {
+    path: 'admissions',
+    element: <AdmissionsWorkspaceDispatcher />,
+    layout: 'admission_workspace',
+  },
+  {
+    path: 'students',
+    element: <Navigate to="/app/people/students" replace />,
+    layout: 'dashboard',
+  },
+  {
+    path: 'fees/payments',
+    element: <Navigate to="/app/finance/payments" replace />,
+    layout: 'dashboard',
+  },
   {
     path: 'admissions/dashboard',
-    element: <ParentDashboardPage />,
+    element: <AdmissionsDashboardDispatcher />,
     layout: 'parent_admission',
-    guardType: 'parent',
   },
   {
     path: 'admissions/my',
@@ -162,9 +569,8 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'admissions/fees',
-    element: <ParentFeePaymentPage />,
+    element: <AdmissionsFeesDispatcher />,
     layout: 'parent_admission',
-    guardType: 'parent',
   },
   {
     path: 'admissions/payments',
@@ -187,8 +593,74 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
 
   // Post-Admission Enrolled Parent Routes
   {
+    path: 'parent/children',
+    element: <ParentChildrenPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
     path: 'parent/my-child',
-    element: <ParentDashboard />,
+    element: <Navigate to="/app/parent/children" replace />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/timetable',
+    element: <ParentTimetablePage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/classroom',
+    element: <ParentClassroomPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/learning-activities',
+    element: <ParentLearningActivitiesPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/academic-progress',
+    element: <ParentAcademicProgressPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/subjects',
+    element: <ParentSubjectsCurriculumPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/learning-resources',
+    element: <ParentLearningResourcesPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/academic-calendar',
+    element: <ParentAcademicCalendarPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/communication',
+    element: <ParentCommunicationPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/profile',
+    element: <Profile />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/settings',
+    element: <ParentSettingsPage />,
     layout: 'dashboard',
     guardType: 'parent',
   },
@@ -218,8 +690,20 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'parent/fees',
-    element: <ParentFeePaymentPage />,
-    layout: 'parent_admission',
+    element: <ParentFeesRouter />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'fees/my',
+    element: <MyFees />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/my-fees',
+    element: <MyFees />,
+    layout: 'dashboard',
     guardType: 'parent',
   },
   {
@@ -230,8 +714,8 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'parent/notifications',
-    element: <MyApplications />,
-    layout: 'parent_admission',
+    element: <ParentNotificationsPage />,
+    layout: 'dashboard',
     guardType: 'parent',
   },
 
@@ -533,6 +1017,106 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     guardType: 'admin',
   },
 
+  // ─── 5A. ADMIN ACADEMIC MANAGEMENT ROUTES ──────────────────────────────────
+  {
+    path: 'academic',
+    element: <Navigate to="/app/academic/dashboard" replace />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/dashboard',
+    element: <AcademicOverviewPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/structure',
+    element: <AcademicStructurePage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_SETUP',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/classes',
+    element: <GradesAndSectionsPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/subjects',
+    element: <SubjectsCatalogPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/faculty',
+    element: <FacultyWorkloadPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/timetable',
+    element: <TimetableMasterPage />,
+    layout: 'dashboard',
+    permission: 'TIMETABLE_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/calendar',
+    element: <AcademicCalendarPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/curriculum',
+    element: <CurriculumSyllabusPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/curriculum/:id',
+    element: <CurriculumSyllabusPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/lesson-planning',
+    element: <LessonPlanningPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'teacher',
+  },
+  {
+    path: 'academic/resources',
+    element: <DigitalResourcesPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'teacher',
+  },
+  {
+    path: 'academic/readiness',
+    element: <AcademicReadinessPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+  {
+    path: 'academic/readiness/:academicYearId',
+    element: <AcademicReadinessPage />,
+    layout: 'dashboard',
+    permission: 'ACADEMIC_VIEW',
+    guardType: 'admin',
+  },
+
   // ─── 6. IMPORT TOOLKIT (GUARDED BY ADMIN GUARD) ────────────────────────────
   {
     path: 'import/history',
@@ -572,6 +1156,12 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <DemandManagement />,
     layout: 'dashboard',
     permissions: ['fees.demand.view', 'fees.demand.generate', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/assignments',
+    element: <StudentFeeAssignment />,
+    layout: 'dashboard',
+    permissions: ['fees.demand.generate', 'fees.view', 'admin.dashboard.view'],
   },
   {
     path: 'finance/payments',
@@ -644,6 +1234,39 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     element: <FinanceOperations />,
     layout: 'dashboard',
     permissions: ['fees.view', 'fees.demand.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/communication/feeds',
+    element: <FinanceCommunicationFeeds />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/communication/helpdesk',
+    element: <FinanceCommunicationHelpdesk />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'finance/communication/escalation',
+    element: <FinanceCommunicationEscalation />,
+    layout: 'dashboard',
+    permissions: ['fees.view', 'admin.dashboard.view'],
+  },
+  {
+    path: 'communication/feeds',
+    element: <FinanceCommunicationFeeds />,
+    layout: 'dashboard',
+  },
+  {
+    path: 'communication/helpdesk',
+    element: <FinanceCommunicationHelpdesk />,
+    layout: 'dashboard',
+  },
+  {
+    path: 'communication/escalation',
+    element: <FinanceCommunicationEscalation />,
+    layout: 'dashboard',
   },
   {
     path: 'finance/checkout',

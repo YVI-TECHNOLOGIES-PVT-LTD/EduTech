@@ -46,79 +46,7 @@ export const LoginPage: React.FC = () => {
   const isRouteAllowedForUser = (
     routePath: string | undefined,
     normalizedRoles: string[],
-  ): boolean => {
-    if (
-      !routePath ||
-      routePath === '/app' ||
-      routePath === '/app/' ||
-      routePath === '/app/dashboard' ||
-      routePath === '/login'
-    ) {
-      return false;
-    }
-
-    const isStaffOrAdmin = normalizedRoles.some((r) =>
-      [
-        'FRONT_OFFICE',
-        'FO',
-        'RECEPTIONIST',
-        'STAFF',
-        'ADMISSION_OFFICER',
-        'ADMISSIONS_OFFICER',
-        'COUNSELLOR',
-        'COUNSELOR',
-        'FINANCE',
-        'FINANCE_OFFICER',
-        'ADMIN',
-        'SUPERADMIN',
-        'SUPER_ADMIN',
-        'ORG_ADMIN',
-        'HOI',
-        'PRINCIPAL',
-        'HEAD_OF_INSTITUTE',
-        'EXAM_CELL',
-        'EXAM_CELL_ADMIN',
-        'FACULTY',
-        'TEACHER',
-      ].includes(r),
-    );
-
-    const isParent = normalizedRoles.some((r) =>
-      ['PARENT', 'GUARDIAN', 'ENROLLED_PARENT'].includes(r),
-    );
-
-    // Front Office & Staff cannot be routed to Parent portal
-    if (isStaffOrAdmin) {
-      if (
-        routePath.startsWith('/app/parent') ||
-        routePath.startsWith('/app/admissions/dashboard') ||
-        routePath.startsWith('/app/admissions/my') ||
-        routePath.startsWith('/app/admissions/wizard') ||
-        routePath.startsWith('/app/admissions/documents') ||
-        routePath.startsWith('/app/admissions/fees') ||
-        routePath.startsWith('/app/admissions/status')
-      ) {
-        return false;
-      }
-      return true;
-    }
-
-    // Parents cannot be routed to Front Office / Workspace / Operations
-    if (isParent) {
-      if (
-        routePath.startsWith('/app/front-office') ||
-        routePath.startsWith('/app/workspace') ||
-        routePath.startsWith('/app/admin') ||
-        routePath.startsWith('/app/school') ||
-        routePath.startsWith('/app/people')
-      ) {
-        return false;
-      }
-      return true;
-    }
-
-    return true;
-  };
+  ): boolean => LandingResolver.isRouteAllowedForRoles(routePath, normalizedRoles);
 
   const {
     register,
@@ -144,19 +72,52 @@ export const LoginPage: React.FC = () => {
           ? [rawUser.role]
           : [];
 
+      let initialPermissions: string[] =
+        Array.isArray(rawUser.permissions) && rawUser.permissions.length > 0
+          ? rawUser.permissions
+          : Array.isArray(res.permissions) && res.permissions.length > 0
+            ? res.permissions
+            : [];
+
+      const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
+      if (
+        initialPermissions.length === 0 &&
+        normalizedRoles.some((r: string) =>
+          ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+        )
+      ) {
+        initialPermissions = [
+          'fees.dashboard.view',
+          'fees.view',
+          'fees.structure.view',
+          'fees.structure.manage',
+          'fees.demand.view',
+          'fees.demand.generate',
+          'fees.payment.view',
+          'fees.payment.collect',
+          'fees.receipt.generate',
+          'fees.waiver.approve',
+          'fees.refund.process',
+        ];
+      }
+
       const enrichedUser: EnrichedUser = {
         id: rawUser.id || rawUser.user_id || 'user-1',
         email: rawUser.email || data.email,
         school_id: rawUser.school_id || rawUser.organizationId || rawUser.tenantId || 'school-main',
         roles: rawRoles,
-        permissions: Array.isArray(rawUser.permissions)
-          ? rawUser.permissions
-          : res.permissions || [],
+        permissions: initialPermissions,
         full_name: rawUser.full_name || rawUser.firstName || rawUser.name || '',
         phone_number: rawUser.phone_number || rawUser.phone,
         login_status: rawUser.login_status || 'APPROVED',
         login_decision_reason: rawUser.login_decision_reason,
         enabledFeatures: rawUser.enabledFeatures,
+        hasEnrolledStudent: Boolean(rawUser.hasEnrolledStudent),
+        isPostAdmission: Boolean(
+          rawUser.isPostAdmission ||
+          rawUser.hasEnrolledStudent ||
+          rawRoles.includes('ENROLLED_PARENT'),
+        ),
       };
 
       dispatch(
@@ -185,7 +146,6 @@ export const LoginPage: React.FC = () => {
       }
 
       const targetDestination = LandingResolver.resolveLandingRoute(rawRoles, [], enrichedUser);
-      const normalizedRoles = rawRoles.map((r: string) => LandingResolver.normalizeRole(r));
       const dest =
         rawFrom && isRouteAllowedForUser(rawFrom, normalizedRoles) ? rawFrom : targetDestination;
 

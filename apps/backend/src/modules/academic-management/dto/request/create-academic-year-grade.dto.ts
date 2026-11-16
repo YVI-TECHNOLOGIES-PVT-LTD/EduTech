@@ -7,4 +7,4 @@ export const createAcademicYearGradeSchema = z.object({
   is_active: z.boolean().optional().default(true),
 });
 
-export type CreateAcademicYearGradeDto = z.infer<typeof createAcademicYearGradeSchema>;
+export type CreateAcademicYearGradeDto = z.input<typeof createAcademicYearGradeSchema>;

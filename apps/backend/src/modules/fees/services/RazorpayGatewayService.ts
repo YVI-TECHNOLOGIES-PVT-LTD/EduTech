@@ -80,14 +80,16 @@ export class RazorpayGatewayService {
     if (!creds.isConfigured) {
       if (creds.isProduction) {
         const err: any = new Error(
-          'Payment Gateway Error: Razorpay credentials are not configured in production environment.'
+          'Payment Gateway Error: Razorpay credentials are not configured in production environment.',
         );
         err.statusCode = 503;
         throw err;
       }
 
       // Safe non-production development fallback
-      logger.warn('[RazorpayGatewayService] Non-production environment without keys; generating development order reference');
+      logger.warn(
+        '[RazorpayGatewayService] Non-production environment without keys; generating development order reference',
+      );
       const simOrderId = `order_sim_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`;
       return {
         gateway_order_id: simOrderId,
@@ -119,7 +121,7 @@ export class RazorpayGatewayService {
             'Content-Type': 'application/json',
           },
           timeout: 8000,
-        }
+        },
       );
 
       return {
@@ -140,7 +142,7 @@ export class RazorpayGatewayService {
       });
 
       const error: any = new Error(
-        `Failed to create payment order with gateway: ${errorDescription}`
+        `Failed to create payment order with gateway: ${errorDescription}`,
       );
       error.statusCode = status === 401 ? 502 : 500;
       throw error;
@@ -206,7 +208,8 @@ export class RazorpayGatewayService {
   public static async fetchAndVerifyPayment(
     paymentId: string,
     expectedOrderId: string,
-    expectedAmountRupees: number
+    expectedAmountRupees: number,
+    expectedCurrency: string = 'INR',
   ): Promise<{
     verified: boolean;
     status: string;
@@ -255,7 +258,8 @@ export class RazorpayGatewayService {
           status: 'authorized',
           amount: data.amount / 100,
           raw: data,
-          error: 'Payment is authorized but not captured. Payment cannot be committed until captured.',
+          error:
+            'Payment is authorized but not captured. Payment cannot be committed until captured.',
         };
       }
 
@@ -292,14 +296,15 @@ export class RazorpayGatewayService {
         };
       }
 
-      // Check 4: Currency match
-      if (data.currency !== 'INR') {
+      // Check 4: Currency match (P0 - PI-02)
+      const targetCurrency = (expectedCurrency || 'INR').toUpperCase();
+      if ((data.currency || '').toUpperCase() !== targetCurrency) {
         return {
           verified: false,
           status: data.status,
           amount: data.amount / 100,
           raw: data,
-          error: `Gateway currency mismatch: expected INR, got ${data.currency}`,
+          error: `Gateway currency mismatch: expected ${targetCurrency}, got ${data.currency}`,
         };
       }
 
@@ -370,11 +375,13 @@ export class RazorpayGatewayService {
   public static async processWebhook(
     rawBody: Buffer | string,
     signature: string,
-    eventPayload: any
+    eventPayload: any,
   ): Promise<WebhookProcessingResult> {
     // 0. Strict Raw Body Verification
     if (!rawBody || (Buffer.isBuffer(rawBody) && rawBody.length === 0)) {
-      const err: any = new Error('Raw body is required for cryptographic webhook signature verification');
+      const err: any = new Error(
+        'Raw body is required for cryptographic webhook signature verification',
+      );
       err.statusCode = 400;
       err.code = 'RAW_BODY_UNAVAILABLE';
       throw err;
@@ -465,7 +472,7 @@ export class RazorpayGatewayService {
    */
   public static async executeWebhookEventProcessing(
     webhookRecord: any,
-    eventPayload: any
+    eventPayload: any,
   ): Promise<WebhookProcessingResult> {
     const eventId = webhookRecord.provider_event_id;
     const eventType = webhookRecord.event_type;
@@ -481,7 +488,8 @@ export class RazorpayGatewayService {
         if (paymentEntity?.status === 'authorized') {
           await PaymentRepository.updateWebhookEventStatus(webhookRecord.payment_webhook_event_id, {
             status: 'ignored',
-            processingError: 'Payment is authorized but not captured; skipping allocation until capture event',
+            processingError:
+              'Payment is authorized but not captured; skipping allocation until capture event',
           });
           return {
             success: true,
@@ -507,7 +515,8 @@ export class RazorpayGatewayService {
         }
 
         // Find associated local payment transaction & order
-        const localTx = await PaymentRepository.findTransactionWithOrderAndDueByGatewayRef(gatewayOrderId);
+        const localTx =
+          await PaymentRepository.findTransactionWithOrderAndDueByGatewayRef(gatewayOrderId);
 
         if (!localTx) {
           logger.warn('[RazorpayGatewayService] Webhook payment order not found locally', {
@@ -549,10 +558,7 @@ export class RazorpayGatewayService {
         }
 
         // Idempotency: If already recorded as captured-unallocated pending reconciliation
-        if (
-          localTx.status === 'pending' &&
-          localTx.failure_code === 'EXCEEDS_REMAINING_DUE'
-        ) {
+        if (localTx.status === 'pending' && localTx.failure_code === 'EXCEEDS_REMAINING_DUE') {
           await PaymentRepository.updateWebhookEventStatus(webhookRecord.payment_webhook_event_id, {
             status: 'processed',
             processingError: localTx.failure_message,
@@ -570,184 +576,287 @@ export class RazorpayGatewayService {
         // Atomically allocate and update transaction to success
         const order = localTx.payment_orders;
         const amount = Number(order.amount.toString());
+        const expectedPaise = Math.round(amount * 100);
+        const expectedCurrency = (order.currency_code || 'INR').toUpperCase();
+        const gatewayAmount = paymentEntity?.amount;
+        const gatewayCurrency = (paymentEntity?.currency || '').toUpperCase();
 
-        const commitResult = await prisma.$transaction(async (tx: any) => {
-          // Concurrency protection: Lock and re-read transaction state inside transaction boundary
-          const currentTxRows: any = await tx.$queryRaw`
+        // Security check (P0 - PI-01): Validate webhook captured amount matches order amount exactly
+        if (
+          gatewayAmount !== undefined &&
+          gatewayAmount !== null &&
+          gatewayAmount !== expectedPaise
+        ) {
+          logger.error('[RazorpayGatewayService] Webhook captured amount mismatch against order', {
+            expectedPaise,
+            gatewayAmount,
+            orderId: order.payment_order_id,
+          });
+          await PaymentRepository.updateWebhookEventStatus(webhookRecord.payment_webhook_event_id, {
+            status: 'failed',
+            processingError: `Gateway captured amount (${gatewayAmount} paise) does not match order amount (${expectedPaise} paise)`,
+          });
+          return {
+            success: false,
+            event_id: eventId,
+            event_type: eventType,
+            status: 'failed',
+            message: `Amount mismatch: expected ${expectedPaise} paise, got ${gatewayAmount} paise`,
+            transaction_id: localTx.payment_transaction_id,
+          };
+        }
+
+        // Security check (P0 - PI-02): Validate webhook currency matches order currency
+        if (gatewayCurrency && gatewayCurrency !== expectedCurrency) {
+          logger.error('[RazorpayGatewayService] Webhook currency mismatch against order', {
+            expectedCurrency,
+            gatewayCurrency,
+            orderId: order.payment_order_id,
+          });
+          await PaymentRepository.updateWebhookEventStatus(webhookRecord.payment_webhook_event_id, {
+            status: 'failed',
+            processingError: `Gateway currency (${gatewayCurrency}) does not match order currency (${expectedCurrency})`,
+          });
+          return {
+            success: false,
+            event_id: eventId,
+            event_type: eventType,
+            status: 'failed',
+            message: `Currency mismatch: expected ${expectedCurrency}, got ${gatewayCurrency}`,
+            transaction_id: localTx.payment_transaction_id,
+          };
+        }
+
+        // Security check (P0 - PI-03): Replay protection - Verify gatewayPaymentId is not already bound to another transaction
+        if (gatewayPaymentId) {
+          const duplicateTx = await prisma.payment_transactions.findFirst({
+            where: {
+              gateway_transaction_id: gatewayPaymentId,
+              status: 'success',
+              payment_transaction_id: { not: localTx.payment_transaction_id },
+            },
+            select: { payment_transaction_id: true },
+          });
+
+          if (duplicateTx) {
+            logger.warn(
+              '[RazorpayGatewayService] Webhook payment ID already bound to another transaction',
+              {
+                gatewayPaymentId,
+                existingTxId: duplicateTx.payment_transaction_id,
+                attemptedTxId: localTx.payment_transaction_id,
+              },
+            );
+            await PaymentRepository.updateWebhookEventStatus(
+              webhookRecord.payment_webhook_event_id,
+              {
+                status: 'failed',
+                processingError: `Gateway payment ID ${gatewayPaymentId} is already settled on transaction ${duplicateTx.payment_transaction_id}`,
+              },
+            );
+            return {
+              success: false,
+              event_id: eventId,
+              event_type: eventType,
+              status: 'failed',
+              message: 'Gateway payment ID is already settled on another transaction',
+              transaction_id: localTx.payment_transaction_id,
+            };
+          }
+        }
+
+        const commitResult = await prisma.$transaction(
+          async (tx: any) => {
+            // Concurrency protection: Lock and re-read transaction state inside transaction boundary
+            const currentTxRows: any = await tx.$queryRaw`
             SELECT payment_transaction_id, status
             FROM payment_transactions
             WHERE payment_transaction_id = ${localTx.payment_transaction_id}::uuid
             FOR UPDATE;
           `;
-          const currentTx = currentTxRows[0];
-          if (currentTx && currentTx.status === 'success') {
-            await PaymentRepository.updateWebhookEventStatus(
-              webhookRecord.payment_webhook_event_id,
-              { status: 'processed' },
-              tx
-            );
-            return { alreadyCommitted: true };
-          }
+            const currentTx = currentTxRows[0];
+            if (currentTx && currentTx.status === 'success') {
+              await PaymentRepository.updateWebhookEventStatus(
+                webhookRecord.payment_webhook_event_id,
+                { status: 'processed' },
+                tx,
+              );
+              return { alreadyCommitted: true };
+            }
 
-          // Concurrency control: Row-level lock on student_charge_dues to serialize concurrent allocations on same fee due
-          if (order.student_charge_due_id) {
-            const lockedDues: any[] = await tx.$queryRaw`
+            // Concurrency control: Row-level lock on student_charge_dues to serialize concurrent allocations on same fee due
+            if (order.student_charge_due_id) {
+              const lockedDues: any[] = await tx.$queryRaw`
               SELECT student_charge_due_id, amount_due, status
               FROM student_charge_dues
               WHERE student_charge_due_id = ${order.student_charge_due_id}::uuid
               FOR UPDATE;
             `;
-            if (lockedDues.length > 0) {
-              const dueRow = lockedDues[0];
-              const dueAmount = Number(dueRow.amount_due);
+              if (lockedDues.length > 0) {
+                const dueRow = lockedDues[0];
+                const dueAmount = Number(dueRow.amount_due);
 
-              if (dueRow.status === 'cancelled' || dueRow.status === 'waived') {
-                await PaymentRepository.updatePaymentTransaction(
-                  localTx.payment_transaction_id,
-                  {
-                    status: 'pending',
-                    gatewayTransactionId: gatewayPaymentId || localTx.gateway_transaction_id,
-                    failureCode: 'DUE_INELIGIBLE',
-                    failureMessage: `Payment of ₹${amount} was captured at gateway (${gatewayPaymentId}), but fee due is ${dueRow.status}. Reconciliation required.`,
-                    gatewayResponse: {
-                      ...eventPayload,
-                      gateway_captured: true,
-                      ledger_allocated: false,
-                      reconciliation_required: true,
-                      reconciliation_reason: 'DUE_INELIGIBLE',
-                      due_status: dueRow.status,
+                if (dueRow.status === 'cancelled' || dueRow.status === 'waived') {
+                  await PaymentRepository.updatePaymentTransaction(
+                    localTx.payment_transaction_id,
+                    {
+                      status: 'pending',
+                      gatewayTransactionId: gatewayPaymentId || localTx.gateway_transaction_id,
+                      failureCode: 'DUE_INELIGIBLE',
+                      failureMessage: `Payment of ₹${amount} was captured at gateway (${gatewayPaymentId}), but fee due is ${dueRow.status}. Reconciliation required.`,
+                      gatewayResponse: {
+                        ...eventPayload,
+                        gateway_captured: true,
+                        ledger_allocated: false,
+                        reconciliation_required: true,
+                        reconciliation_reason: 'DUE_INELIGIBLE',
+                        due_status: dueRow.status,
+                      },
                     },
-                  },
-                  tx
-                );
-                await PaymentRepository.updatePaymentOrderStatus(order.payment_order_id, 'pending', null, tx);
-                await PaymentRepository.updateWebhookEventStatus(
-                  webhookRecord.payment_webhook_event_id,
-                  {
-                    status: 'processed',
-                    processingError: `Fee due is ${dueRow.status}; cannot receive allocations; flagged for reconciliation`,
-                  },
-                  tx
-                );
-                return { alreadyCommitted: false, rejectedReason: 'DUE_INELIGIBLE', dueStatus: dueRow.status };
-              }
-
-              const totalAllocatedBefore = await PaymentRepository.getTotalAllocatedForDue(
-                order.student_charge_due_id,
-                tx
-              );
-              const remainingDue = dueAmount - totalAllocatedBefore;
-
-              if (amount > remainingDue + 0.001) {
-                logger.warn('[RazorpayGatewayService] Webhook allocation exceeds remaining due balance', {
-                  dueId: order.student_charge_due_id,
-                  remainingDue,
-                  amount,
-                });
-
-                // Preserve gateway capture in payment_transactions with status: 'pending' (NOT 'failed'!)
-                await PaymentRepository.updatePaymentTransaction(
-                  localTx.payment_transaction_id,
-                  {
-                    status: 'pending',
-                    gatewayTransactionId: gatewayPaymentId || localTx.gateway_transaction_id,
-                    failureCode: 'EXCEEDS_REMAINING_DUE',
-                    failureMessage: `Payment allocation of ₹${amount} was captured at gateway (${gatewayPaymentId}), but exceeds eligible remaining due balance of ₹${remainingDue}. Reconciliation required.`,
-                    gatewayResponse: {
-                      ...eventPayload,
-                      gateway_captured: true,
-                      ledger_allocated: false,
-                      reconciliation_required: true,
-                      reconciliation_reason: 'EXCEEDS_REMAINING_DUE',
-                      attempted_amount: amount,
-                      remaining_due: remainingDue,
+                    tx,
+                  );
+                  await PaymentRepository.updatePaymentOrderStatus(
+                    order.payment_order_id,
+                    'pending',
+                    null,
+                    tx,
+                  );
+                  await PaymentRepository.updateWebhookEventStatus(
+                    webhookRecord.payment_webhook_event_id,
+                    {
+                      status: 'processed',
+                      processingError: `Fee due is ${dueRow.status}; cannot receive allocations; flagged for reconciliation`,
                     },
-                  },
-                  tx
-                );
+                    tx,
+                  );
+                  return {
+                    alreadyCommitted: false,
+                    rejectedReason: 'DUE_INELIGIBLE',
+                    dueStatus: dueRow.status,
+                  };
+                }
 
-                await PaymentRepository.updatePaymentOrderStatus(
-                  order.payment_order_id,
-                  'pending',
-                  null,
-                  tx
+                const totalAllocatedBefore = await PaymentRepository.getTotalAllocatedForDue(
+                  order.student_charge_due_id,
+                  tx,
                 );
+                const remainingDue = dueAmount - totalAllocatedBefore;
 
-                await PaymentRepository.updateWebhookEventStatus(
-                  webhookRecord.payment_webhook_event_id,
-                  {
-                    status: 'processed',
-                    processingError: `Payment allocation of ₹${amount} exceeds remaining due balance of ₹${remainingDue}; flagged for reconciliation`,
-                  },
-                  tx
-                );
+                if (amount > remainingDue + 0.001) {
+                  logger.warn(
+                    '[RazorpayGatewayService] Webhook allocation exceeds remaining due balance',
+                    {
+                      dueId: order.student_charge_due_id,
+                      remainingDue,
+                      amount,
+                    },
+                  );
 
-                return { alreadyCommitted: false, exceedsDue: true, remainingDue };
+                  // Preserve gateway capture in payment_transactions with status: 'pending' (NOT 'failed'!)
+                  await PaymentRepository.updatePaymentTransaction(
+                    localTx.payment_transaction_id,
+                    {
+                      status: 'pending',
+                      gatewayTransactionId: gatewayPaymentId || localTx.gateway_transaction_id,
+                      failureCode: 'EXCEEDS_REMAINING_DUE',
+                      failureMessage: `Payment allocation of ₹${amount} was captured at gateway (${gatewayPaymentId}), but exceeds eligible remaining due balance of ₹${remainingDue}. Reconciliation required.`,
+                      gatewayResponse: {
+                        ...eventPayload,
+                        gateway_captured: true,
+                        ledger_allocated: false,
+                        reconciliation_required: true,
+                        reconciliation_reason: 'EXCEEDS_REMAINING_DUE',
+                        attempted_amount: amount,
+                        remaining_due: remainingDue,
+                      },
+                    },
+                    tx,
+                  );
+
+                  await PaymentRepository.updatePaymentOrderStatus(
+                    order.payment_order_id,
+                    'pending',
+                    null,
+                    tx,
+                  );
+
+                  await PaymentRepository.updateWebhookEventStatus(
+                    webhookRecord.payment_webhook_event_id,
+                    {
+                      status: 'processed',
+                      processingError: `Payment allocation of ₹${amount} exceeds remaining due balance of ₹${remainingDue}; flagged for reconciliation`,
+                    },
+                    tx,
+                  );
+
+                  return { alreadyCommitted: false, exceedsDue: true, remainingDue };
+                }
               }
             }
-          }
 
-          // Update transaction to success
-          await PaymentRepository.updatePaymentTransaction(
-            localTx.payment_transaction_id,
-            {
-              status: 'success',
-              gatewayTransactionId: gatewayPaymentId || localTx.gateway_transaction_id,
-              transactionDate: new Date(),
-              gatewayResponse: eventPayload,
-            },
-            tx
-          );
+            // Update transaction to success
+            await PaymentRepository.updatePaymentTransaction(
+              localTx.payment_transaction_id,
+              {
+                status: 'success',
+                gatewayTransactionId: gatewayPaymentId || localTx.gateway_transaction_id,
+                transactionDate: new Date(),
+                gatewayResponse: eventPayload,
+              },
+              tx,
+            );
 
-          // Update order to paid
-          await PaymentRepository.updatePaymentOrderStatus(
-            order.payment_order_id,
-            'paid',
-            null,
-            tx
-          );
+            // Update order to paid
+            await PaymentRepository.updatePaymentOrderStatus(
+              order.payment_order_id,
+              'paid',
+              null,
+              tx,
+            );
 
-          // Create allocation
-          await PaymentRepository.createPaymentAllocation(
-            {
-              paymentTransactionId: localTx.payment_transaction_id,
-              studentChargeDueId: order.student_charge_due_id,
-              allocatedAmount: amount,
-              notes: `Allocated via Razorpay webhook (${eventId})`,
-            },
-            tx
-          );
+            // Create allocation
+            await PaymentRepository.createPaymentAllocation(
+              {
+                paymentTransactionId: localTx.payment_transaction_id,
+                studentChargeDueId: order.student_charge_due_id,
+                allocatedAmount: amount,
+                notes: `Allocated via Razorpay webhook (${eventId})`,
+              },
+              tx,
+            );
 
-          // Update due status based on cumulative verified allocations
-          const due = order.student_charge_dues;
-          const dueAmount = Number(due.amount_due.toString());
-          const totalAllocated = await PaymentRepository.getTotalAllocatedForDue(
-            order.student_charge_due_id,
-            tx
-          );
-          const newDueStatus = totalAllocated >= dueAmount ? 'paid' : 'partially_paid';
+            // Update due status based on cumulative verified allocations
+            const due = order.student_charge_dues;
+            const dueAmount = Number(due.amount_due.toString());
+            const totalAllocated = await PaymentRepository.getTotalAllocatedForDue(
+              order.student_charge_due_id,
+              tx,
+            );
+            const newDueStatus = totalAllocated >= dueAmount ? 'paid' : 'partially_paid';
 
-          await PaymentRepository.updateDueStatus(
-            due.student_charge_due_id,
-            newDueStatus,
-            null,
-            tx
-          );
+            await PaymentRepository.updateDueStatus(
+              due.student_charge_due_id,
+              newDueStatus,
+              null,
+              tx,
+            );
 
-          // Update webhook event status to processed ONLY after financial changes succeed
-          await PaymentRepository.updateWebhookEventStatus(
-            webhookRecord.payment_webhook_event_id,
-            {
-              status: 'processed',
-            },
-            tx
-          );
+            // Update webhook event status to processed ONLY after financial changes succeed
+            await PaymentRepository.updateWebhookEventStatus(
+              webhookRecord.payment_webhook_event_id,
+              {
+                status: 'processed',
+              },
+              tx,
+            );
 
-          return { alreadyCommitted: false };
-        }, {
-          maxWait: 20000,
-          timeout: 45000,
-        });
+            return { alreadyCommitted: false };
+          },
+          {
+            maxWait: 20000,
+            timeout: 45000,
+          },
+        );
 
         if (commitResult?.exceedsDue) {
           return {
@@ -780,33 +889,46 @@ export class RazorpayGatewayService {
 
           FinanceNotificationService.publishEvent({
             eventType: FinanceEventType.PAYMENT_SUCCESS,
-            orgId: localTx.payment_orders?.org_id || studentObj?.org_id || '00000000-0000-0000-0000-000000000001',
+            orgId:
+              localTx.payment_orders?.org_id ||
+              studentObj?.org_id ||
+              '00000000-0000-0000-0000-000000000001',
             sourceEntityId: localTx.payment_transaction_id,
             sourceWorkflow: 'razorpay_webhook_capture',
             timestamp: new Date().toISOString(),
             correlationId: order.order_reference,
             idempotencyKey: `pay_succ_${localTx.payment_transaction_id}`,
             studentId,
-            studentName: studentObj ? `${studentObj.first_name} ${studentObj.last_name || ''}`.trim() : 'Student',
+            studentName: studentObj
+              ? `${studentObj.first_name} ${studentObj.last_name || ''}`.trim()
+              : 'Student',
             admissionNo: studentObj?.admission_no || '',
             amount,
             paymentMethod: 'Razorpay Online',
             orderReference: order.order_reference,
             receiptNumber: `RCPT-${order.order_reference}`,
           }).catch((err) => {
-            logger.error('[RazorpayGatewayService] Webhook payment success notification error:', err);
+            logger.error(
+              '[RazorpayGatewayService] Webhook payment success notification error:',
+              err,
+            );
           });
 
           FinanceNotificationService.publishEvent({
             eventType: FinanceEventType.PAYMENT_RECEIPT_AVAILABLE,
-            orgId: localTx.payment_orders?.org_id || studentObj?.org_id || '00000000-0000-0000-0000-000000000001',
+            orgId:
+              localTx.payment_orders?.org_id ||
+              studentObj?.org_id ||
+              '00000000-0000-0000-0000-000000000001',
             sourceEntityId: localTx.payment_transaction_id,
             sourceWorkflow: 'razorpay_webhook_capture',
             timestamp: new Date().toISOString(),
             correlationId: `rcpt_${order.order_reference}`,
             idempotencyKey: `rcpt_${order.order_reference}`,
             studentId,
-            studentName: studentObj ? `${studentObj.first_name} ${studentObj.last_name || ''}`.trim() : 'Student',
+            studentName: studentObj
+              ? `${studentObj.first_name} ${studentObj.last_name || ''}`.trim()
+              : 'Student',
             admissionNo: studentObj?.admission_no || '',
             amount,
             receiptNumber: `RCPT-${order.order_reference}`,
@@ -829,19 +951,24 @@ export class RazorpayGatewayService {
         const gatewayOrderId = paymentEntity?.order_id;
 
         if (gatewayOrderId) {
-          const localTx: any = await PaymentRepository.findTransactionWithOrderAndDueByGatewayRef(gatewayOrderId);
+          const localTx: any =
+            await PaymentRepository.findTransactionWithOrderAndDueByGatewayRef(gatewayOrderId);
 
           if (localTx) {
             // CRITICAL: An out-of-order failed event MUST NOT regress an already successful transaction!
             if (localTx.status === 'success') {
               logger.warn(
                 '[RazorpayGatewayService] Late payment.failed event received for already successful transaction; ignoring downgrade',
-                { gatewayOrderId }
+                { gatewayOrderId },
               );
-              await PaymentRepository.updateWebhookEventStatus(webhookRecord.payment_webhook_event_id, {
-                status: 'ignored',
-                processingError: 'Late failure event received after successful allocation; ignored to prevent financial regression',
-              });
+              await PaymentRepository.updateWebhookEventStatus(
+                webhookRecord.payment_webhook_event_id,
+                {
+                  status: 'ignored',
+                  processingError:
+                    'Late failure event received after successful allocation; ignored to prevent financial regression',
+                },
+              );
               return {
                 success: true,
                 event_id: eventId,
@@ -872,7 +999,10 @@ export class RazorpayGatewayService {
               amount: Number(localTx.amount || 0),
               notes: paymentEntity?.error_description || 'Payment failed at gateway',
             }).catch((err) => {
-              logger.error('[RazorpayGatewayService] Webhook payment failed notification error:', err);
+              logger.error(
+                '[RazorpayGatewayService] Webhook payment failed notification error:',
+                err,
+              );
             });
           }
         }
@@ -922,7 +1052,9 @@ export class RazorpayGatewayService {
   /**
    * Reprocesses an incomplete or failed webhook event safely by its primary key ID.
    */
-  public static async reprocessWebhookEvent(webhookEventId: string): Promise<WebhookProcessingResult> {
+  public static async reprocessWebhookEvent(
+    webhookEventId: string,
+  ): Promise<WebhookProcessingResult> {
     const webhookRecord = await PaymentRepository.findWebhookEventById(webhookEventId);
     if (!webhookRecord) {
       const err: any = new Error(`Webhook event with ID '${webhookEventId}' not found`);
@@ -964,7 +1096,7 @@ export class RazorpayGatewayService {
       'razorpay',
       'received',
       limit,
-      olderThanMs
+      olderThanMs,
     );
 
     let failedEvents: any[] = [];
@@ -973,7 +1105,7 @@ export class RazorpayGatewayService {
         'razorpay',
         'failed',
         limit - stuckEvents.length,
-        olderThanMs
+        olderThanMs,
       );
     }
 

@@ -36,13 +36,27 @@ export interface DashboardSummary {
   [key: string]: any;
 }
 
+export interface AdminOverviewStats {
+  students: number;
+  classes: number;
+  exams: number;
+  pendingAdmissions: number;
+  totalApplications: number;
+  feeCollection: number;
+  attendanceRate: string;
+}
+
 export const dashboardApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getDashboardSummary: builder.query<DashboardSummary, void>({
       query: () => '/dashboard/summary',
       providesTags: ['Lead', 'Application', 'Student', 'FeePayment'],
     }),
+    getAdminOverview: builder.query<AdminOverviewStats, void>({
+      query: () => '/dashboard/admin/overview',
+      providesTags: ['Student', 'Application', 'FeePayment'],
+    }),
   }),
 });
 
-export const { useGetDashboardSummaryQuery } = dashboardApi;
+export const { useGetDashboardSummaryQuery, useGetAdminOverviewQuery } = dashboardApi;

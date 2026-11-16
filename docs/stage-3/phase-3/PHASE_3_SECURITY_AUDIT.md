@@ -1,0 +1,29 @@
+# EduTrack ERP — Stage 3 Phase 3: Security, RBAC & Multi-Tenant Isolation Audit
+
+> **Policy Layer:** [`classroom.policy.ts`](file:///Users/sathish/Documents/GitHub/EduTech/apps/backend/src/modules/classroom/classroom.policy.ts)  
+> **Middleware Chain:** [`authenticate`](file:///Users/sathish/Documents/GitHub/EduTech/apps/backend/src/routes.ts) -> [`checkLoginApproval`](file:///Users/sathish/Documents/GitHub/EduTech/apps/backend/src/routes.ts) -> [`resolveTenantMiddleware`](file:///Users/sathish/Documents/GitHub/EduTech/apps/backend/src/routes.ts) -> [`ClassroomPolicy`](file:///Users/sathish/Documents/GitHub/EduTech/apps/backend/src/modules/classroom/classroom.policy.ts)
+
+---
+
+## 1. Defense-in-Depth Control Summary
+
+| Threat Vector                                                | Enforcement Layer(s)                                                                                                                                                                                        | Verification Result                                                |
+| :----------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
+| Unauthenticated access                                       | Global `authenticate` + `extractClassroomAuthContext` (`401`)                                                                                                                                               | Verified in `classroom.spec.ts` Group 1                            |
+| Cross-tenant spoofing (`x-tenant-id` / foreign IDs)          | `resolveTenantMiddleware` + `org_id = $1::uuid` in EVERY SQL query + PG composite FKs + RLS (`403`/`404`)                                                                                                   | Verified in `classroom.spec.ts` Group 9 (`NPS` Principal -> `404`) |
+| Role escalation across Teacher / Admin / Student / Parent    | Separate router sub-trees with strict `ClassroomPolicy.require*Role()` (`getEffectiveRoles`) and `ParentPortalPolicy.requireParentRole()` (`403`)                                                           | Verified in `classroom.spec.ts` Groups 1 & 9                       |
+| Cross-teacher session IDOR                                   | `findRawSessionOwnedByTeacher` scopes by `fa.staff_id` matching logged-in staff (`403` when owned by another teacher in same org)                                                                           | Verified in `classroom.spec.ts` Group 9 (`tch006` -> `403`)        |
+| Cross-section student IDOR                                   | `listStudentOrParentSessions`, `getStudentSessionDetail`, `joinStudentClassroomSession` validate active `student_enrollments` for `section_id` on `session_date` (`403`)                                    | Verified in `classroom.spec.ts` Group 6 (`Student 2` -> `403`)     |
+| Unlinked-parent IDOR                                         | `ParentPortalPolicy.requireParentRole()` + `verifyParentChildOwnership` (`student_parents` + user/email match -> `403`)                                                                                     | Verified in `classroom.spec.ts` Group 9 (unlinked parent -> `403`) |
+| Premature / Parent `meeting_url` exposure                    | Masked on SQL read (`NULL`) when `session_status <> 'in_progress'` or parent view; never broadcast over WebSockets or notifications metadata                                                                | Verified in `classroom.spec.ts` Groups 5 & 9                       |
+| Unsafe `meeting_url` injection (`javascript:`, `data:`)      | `isValidSafeMeetingUrl` in [`classroom.validation.ts`](file:///Users/sathish/Documents/GitHub/EduTech/apps/backend/src/modules/classroom/classroom.validation.ts) strictly allows `http:` and `https:` only | Verified in `classroom.spec.ts` Group 3 (`400`)                    |
+| SQL Injection                                                | 100% parameterized queries (`$1..$N::type`) — zero string concatenation of user input                                                                                                                       | Static review + runtime execution                                  |
+| Attendance manipulation outside live class or by non-teacher | Service checks `session_status === 'in_progress'` + PG trigger `s31_validate_session_attendance` checks live status, `recorded_by = assigned teacher`, valid enrollment, and mode rules                     | Verified in `classroom.spec.ts` Groups 7 & 8                       |
+| Post-completion / terminal state tampering                   | Service transition state machine + PG trigger `s31_validate_session_transition` + `s31_write_classroom_audit` immutable history                                                                             | Verified in `classroom.spec.ts` Group 8 (`409`)                    |
+
+---
+
+## 2. Frontend Route Guard & UI Separation
+
+- [`route_registry.tsx`](file:///Users/sathish/Documents/GitHub/EduTech/apps/web_app/src/config/route_registry.tsx) restricts `/app/teacher/classroom` (`TEACHER`, `FACULTY`), `/app/admin/classroom` (`ADMIN`, `ORG_ADMIN`, `SUPER_ADMIN`, `SUPERADMIN`, `PRINCIPAL`, `HOI`), `/app/student/classroom` (`STUDENT`), and `/app/parent/classroom` (`PARENT`, `ENROLLED_PARENT`).
+- [`LandingResolver.isRouteAllowedForRoles`](file:///Users/sathish/Documents/GitHub/EduTech/apps/web_app/src/services/LandingResolver.ts) denies cross-persona access deterministically without redirect loops (`classroom-portal.spec.tsx` Test Group 3).

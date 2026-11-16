@@ -1,4 +1,4 @@
-import { GradeRepository } from '../repositories/grade.repository';
+import { GradeRepository, FindAllGradesOptions } from '../repositories/grade.repository';
 import { AcademicValidator } from '../validators/academic.validator';
 import { GradeNotFoundError, DuplicateGradeError } from '../errors/academic.errors';
 import { CreateGradeDto } from '../dto/request/create-grade.dto';
@@ -10,29 +10,33 @@ import { logger } from '../../../utils/logger';
 
 export class GradeService {
   static async createGrade(
+    orgId: string,
     dto: CreateGradeDto,
     performedBy?: string | null,
   ): Promise<GradeResponseDto> {
+    dto.org_id = orgId;
     AcademicValidator.validateCreateGrade(dto);
 
-    const existing = await GradeRepository.findByCodeOrName(
-      dto.org_id,
-      dto.grade_code,
-      dto.grade_name,
-    );
-    if (existing) {
+    const existingByCode = await GradeRepository.findByCode(orgId, dto.grade_code);
+    if (existingByCode) {
       throw new DuplicateGradeError(dto.grade_code);
     }
 
-    const grade = await GradeRepository.create(dto, performedBy);
+    const existingByName = await GradeRepository.findByName(orgId, dto.grade_name);
+    if (existingByName) {
+      throw new DuplicateGradeError(dto.grade_name);
+    }
 
-    logger.info(`Grade created: ${grade.grade_id} (${grade.grade_code})`, {
+    const grade = await GradeRepository.create(orgId, dto, performedBy);
+
+    logger.info(`Grade created: ${grade.grade_id} (${grade.grade_code}) in org ${orgId}`, {
       gradeId: grade.grade_id,
       code: grade.grade_code,
+      name: grade.grade_name,
+      orgId,
       performedBy,
     });
 
-    // Post-commit event emission
     await AcademicEvents.publish(AcademicEventType.GRADE_CREATED, {
       entityId: grade.grade_id,
       code: grade.grade_code,
@@ -44,8 +48,8 @@ export class GradeService {
     return AcademicMapper.toGradeResponseDto(grade);
   }
 
-  static async getGradeById(id: string): Promise<GradeResponseDto> {
-    const grade = await GradeRepository.findById(id);
+  static async getGradeById(orgId: string, id: string): Promise<GradeResponseDto> {
+    const grade = await GradeRepository.findById(orgId, id);
     if (!grade) {
       throw new GradeNotFoundError(id);
     }
@@ -53,20 +57,38 @@ export class GradeService {
   }
 
   static async updateGrade(
+    orgId: string,
     id: string,
     dto: UpdateGradeDto,
     performedBy?: string | null,
   ): Promise<GradeResponseDto> {
-    const existing = await GradeRepository.findById(id);
+    const existing = await GradeRepository.findById(orgId, id);
     if (!existing) {
       throw new GradeNotFoundError(id);
     }
 
-    const updated = await GradeRepository.update(id, dto, performedBy);
+    if (dto.grade_code && dto.grade_code !== existing.grade_code) {
+      const duplicateCode = await GradeRepository.findByCode(orgId, dto.grade_code);
+      if (duplicateCode && duplicateCode.grade_id !== id) {
+        throw new DuplicateGradeError(dto.grade_code);
+      }
+    }
 
-    logger.info(`Grade updated: ${id}`, { gradeId: id, performedBy });
+    if (dto.grade_name && dto.grade_name !== existing.grade_name) {
+      const duplicateName = await GradeRepository.findByName(orgId, dto.grade_name);
+      if (duplicateName && duplicateName.grade_id !== id) {
+        throw new DuplicateGradeError(dto.grade_name);
+      }
+    }
 
-    // Post-commit event emission
+    const updated = await GradeRepository.update(orgId, id, dto, performedBy);
+
+    logger.info(`Grade updated: ${id} in org ${orgId}`, {
+      gradeId: id,
+      orgId,
+      performedBy,
+    });
+
     await AcademicEvents.publish(AcademicEventType.GRADE_UPDATED, {
       entityId: id,
       code: updated.grade_code,
@@ -78,8 +100,14 @@ export class GradeService {
     return AcademicMapper.toGradeResponseDto(updated);
   }
 
-  static async getAllGrades(orgId?: string): Promise<GradeResponseDto[]> {
-    const grades = await GradeRepository.findAll(orgId);
-    return grades.map(AcademicMapper.toGradeResponseDto);
+  static async getAllGrades(orgId: string, options: FindAllGradesOptions = {}) {
+    const result = await GradeRepository.findAll(orgId, options);
+    return {
+      items: result.items.map(AcademicMapper.toGradeResponseDto),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+    };
   }
 }

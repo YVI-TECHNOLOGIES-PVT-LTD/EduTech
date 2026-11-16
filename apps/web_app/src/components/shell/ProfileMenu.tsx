@@ -34,7 +34,11 @@ export const ProfileMenu: React.FC = () => {
   );
   const primaryRole = (normalizedRoles[0] || 'MEMBER').replace(/_/g, ' ').toUpperCase();
 
-  const isStaffOrAdmin = normalizedRoles.some((r) =>
+  const isFinance = normalizedRoles.some((r) =>
+    ['FINANCE', 'FINANCE_OFFICER', 'ACCOUNTANT', 'FINANCE_MANAGER', 'BURSAR'].includes(r),
+  );
+
+  const isFrontOfficeDesk = normalizedRoles.some((r) =>
     [
       'FRONT_OFFICE',
       'FO',
@@ -44,8 +48,6 @@ export const ProfileMenu: React.FC = () => {
       'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
       'ADMIN',
       'SUPERADMIN',
       'SUPER_ADMIN',
@@ -84,20 +86,23 @@ export const ProfileMenu: React.FC = () => {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open user menu"
-        className="flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-muted transition-colors focus:outline-none cursor-pointer"
+        className="flex items-center space-x-2.5 p-1 rounded-lg hover:bg-muted/80 border border-transparent hover:border-border/60 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer group"
       >
-        <Avatar size="sm" className="border border-border shrink-0">
+        <Avatar
+          size="sm"
+          className="border border-border/70 shrink-0 group-hover:scale-105 transition-transform duration-200"
+        >
           <AvatarImage src={avatarUrl} alt={displayName} />
           <AvatarFallback className="bg-primary/10 text-primary font-bold">
             {getInitials(displayName)}
           </AvatarFallback>
-          <AvatarBadge variant="online" size="sm" />
+          <AvatarBadge variant="online" size="sm" className="ring-2 ring-background" />
         </Avatar>
-        <div className="hidden sm:flex flex-col text-left min-w-0">
-          <span className="text-xs font-bold text-slate-900 dark:text-white leading-none truncate max-w-[140px]">
+        <div className="hidden sm:flex flex-col text-left min-w-0 pr-1">
+          <span className="text-xs font-bold text-foreground leading-none truncate max-w-[140px]">
             {displayName}
           </span>
-          <span className="text-[9px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wider">
+          <span className="text-[9px] text-muted-foreground font-semibold mt-0.5 uppercase tracking-wider">
             {primaryRole}
           </span>
         </div>
@@ -105,56 +110,68 @@ export const ProfileMenu: React.FC = () => {
 
       <DropdownMenuContent
         align="end"
-        className="w-56 rounded-2xl border-slate-100 p-1.5 shadow-xl"
+        className="w-60 rounded-[14px] border border-border/80 p-1.5 shadow-2xl bg-popover/90 backdrop-blur-2xl text-popover-foreground animate-in fade-in-50 zoom-in-95 duration-150"
       >
         <DropdownMenuLabel className="px-3 py-2">
-          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{displayName}</p>
-          <p className="text-[10px] text-slate-400 truncate">
-            {user?.email || 'user@edutrack.com'}
+          <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
+          <p className="text-[10px] text-muted-foreground font-mono truncate">
+            {user?.email || 'authenticated'}
           </p>
-          <Badge variant="info" className="mt-1 text-[9px] uppercase">
+          <Badge
+            variant="outline"
+            className="mt-1.5 text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary border-primary/20"
+          >
             {primaryRole}
           </Badge>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-slate-100" />
+        <DropdownMenuSeparator className="bg-border/60" />
         <DropdownMenuItem
-          onClick={() => navigate('/app/profile')}
-          className="text-xs font-semibold cursor-pointer rounded-xl"
+          onClick={() => navigate(isParent ? '/app/parent/profile' : '/app/profile')}
+          className="text-xs font-semibold cursor-pointer rounded-[10px] focus:bg-muted hover:bg-muted transition-colors py-2"
         >
-          <User className="w-4 h-4 mr-2 text-slate-400" />
+          <User className="w-4 h-4 mr-2.5 text-muted-foreground" />
           {t('common.profile', 'User Profile')}
         </DropdownMenuItem>
         {isParent && (
           <DropdownMenuItem
             onClick={() => navigate('/app/admissions/my')}
-            className="text-xs font-semibold cursor-pointer rounded-xl"
+            className="text-xs font-semibold cursor-pointer rounded-[10px] focus:bg-muted hover:bg-muted transition-colors py-2"
           >
-            <FileText className="w-4 h-4 mr-2 text-slate-400" />
+            <FileText className="w-4 h-4 mr-2.5 text-muted-foreground" />
             {t('navigation.myApplications', 'My Applications')}
           </DropdownMenuItem>
         )}
-        {isStaffOrAdmin && (
+        {isFinance && (
+          <DropdownMenuItem
+            onClick={() => navigate('/app/finance/dashboard')}
+            className="text-xs font-semibold cursor-pointer rounded-[10px] focus:bg-muted hover:bg-muted transition-colors py-2"
+          >
+            <FileText className="w-4 h-4 mr-2.5 text-muted-foreground" />
+            {t('navigation.financeDashboard', 'Finance Dashboard')}
+          </DropdownMenuItem>
+        )}
+        {isFrontOfficeDesk && (
           <DropdownMenuItem
             onClick={() => navigate('/app/front-office/dashboard')}
-            className="text-xs font-semibold cursor-pointer rounded-xl"
+            className="text-xs font-semibold cursor-pointer rounded-[10px] focus:bg-muted hover:bg-muted transition-colors py-2"
           >
-            <FileText className="w-4 h-4 mr-2 text-slate-400" />
+            <FileText className="w-4 h-4 mr-2.5 text-muted-foreground" />
             {t('navigation.frontOfficeDesk', 'Front Office Desk')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
-          onClick={() => navigate('/app/settings')}
-          className="text-xs font-semibold cursor-pointer rounded-xl"
+          onClick={() => navigate(isParent ? '/app/parent/settings' : '/app/settings')}
+          className="text-xs font-semibold cursor-pointer rounded-[10px] focus:bg-muted hover:bg-muted transition-colors py-2"
         >
-          <Settings className="w-4 h-4 mr-2 text-slate-400" />
+          <Settings className="w-4 h-4 mr-2.5 text-muted-foreground" />
           {t('common.settings', 'Settings')}
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-slate-100 dark:bg-zinc-800" />
+        <DropdownMenuSeparator className="bg-border/60" />
         <DropdownMenuItem
           onClick={() => signOut()}
-          className="text-xs font-bold text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer rounded-xl"
+          className="text-xs font-bold text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive cursor-pointer rounded-[10px] py-2 transition-colors"
         >
-          <LogOut className="w-4 h-4 mr-2 text-red-500" />
+          <LogOut className="w-4 h-4 mr-2.5 text-destructive" />
           {t('common.logout', 'Sign Out')}
         </DropdownMenuItem>
       </DropdownMenuContent>

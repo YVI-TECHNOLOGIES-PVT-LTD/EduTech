@@ -10,6 +10,9 @@ jest.mock('../../src/storage/secure-store', () => ({
     getRefreshToken: jest.fn(),
     setRefreshToken: jest.fn(),
     getWorkspaceId: jest.fn(),
+    setWorkspaceId: jest.fn(),
+    getUserProfile: jest.fn(),
+    setUserProfile: jest.fn(),
     clearSession: jest.fn(),
   },
 }));

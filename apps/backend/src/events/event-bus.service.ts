@@ -1,5 +1,10 @@
 import { logger } from '../utils/logger';
 
+/**
+ * @deprecated Unused legacy event bus stub with zero production callers.
+ * Active modules publish and subscribe through `apps/backend/src/workflows/event-bus.service.ts`.
+ * Retained solely for backward-compatible type imports until durable outbox workers are introduced.
+ */
 export type VersionedDomainEventName =
   | 'AdmissionCreated.v1'
   | 'StudentEnrolled.v1'
@@ -39,7 +44,10 @@ export class EventBusService {
     this.listeners.set(eventName, handlers);
   }
 
-  async publish<T>(eventName: VersionedDomainEventName, payload: T): Promise<DomainEventEnvelope<T>> {
+  async publish<T>(
+    eventName: VersionedDomainEventName,
+    payload: T,
+  ): Promise<DomainEventEnvelope<T>> {
     const eventEnvelope: DomainEventEnvelope<T> = {
       eventId: `evt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       eventName,

@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
+    "test": "node scripts/run-navigation-tests.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

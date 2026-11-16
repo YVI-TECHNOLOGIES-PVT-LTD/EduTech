@@ -32,3 +32,9 @@ export class ParentValidationError extends ParentError {
     super(message, 400, 'PARENT_VALIDATION_ERROR');
   }
 }
+
+export class ParentForbiddenError extends ParentError {
+  constructor(message: string = 'Access denied to requested student resource') {
+    super(message, 403, 'FORBIDDEN');
+  }
+}

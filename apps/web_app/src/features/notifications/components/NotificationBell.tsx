@@ -22,7 +22,7 @@ export const NotificationBell = forwardRef<HTMLButtonElement, NotificationBellPr
         aria-haspopup="dialog"
         title={ariaLabel}
         className={cn(
-          'relative p-2 rounded-xl transition-all duration-200 cursor-pointer select-none outline-hidden',
+          'relative p-2 rounded-lg transition-all duration-200 cursor-pointer select-none outline-hidden',
           'text-muted-foreground hover:text-foreground hover:bg-muted/80',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           isOpen && 'bg-muted text-foreground ring-1 ring-border/80 shadow-2xs',

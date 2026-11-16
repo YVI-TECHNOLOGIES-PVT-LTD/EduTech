@@ -4,9 +4,13 @@ import { checkIdempotency } from '../../../middlewares/idempotency.middleware';
 import { ParentController } from '../controllers/parent.controller';
 import { ParentStudentController } from '../controllers/parent-student.controller';
 import { ParentAnalyticsController } from '../controllers/parent-analytics.controller';
+import { ParentLifecycleController } from '../controllers/parent.lifecycle.controller';
 import { ParentPolicy } from '../policies/parent.policy';
 
 export const parentRouter = Router();
+
+// Student Lifecycle Classification for Authenticated Parent
+parentRouter.get('/lifecycle', ParentLifecycleController.getLifecycle);
 
 // Analytics & Dashboard
 parentRouter.get(

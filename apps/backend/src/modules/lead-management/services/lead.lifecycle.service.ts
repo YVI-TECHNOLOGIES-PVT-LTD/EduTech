@@ -7,6 +7,10 @@ import { LeadEvents, LeadEventType } from '../events/lead.events';
 import { LeadMapper } from '../mappers/lead.mapper';
 import { LeadResponseDto } from '../dto/response/lead.response.dto';
 import { logger } from '../../../utils/logger';
+import {
+  generateApplicationNumber,
+  isApplicationNumberUniqueConstraintError,
+} from '../../../utils/application-number.util';
 
 export class LeadLifecycleService {
   static async updateStatus(
@@ -149,74 +153,73 @@ export class LeadLifecycleService {
       throw new LeadValidationError('Academic year not configured for organization');
     }
 
-    // Generate collision-checked application_number
     const year = new Date().getFullYear();
-    let count = await prisma.admissions_applications.count({ where: { org_id: lead.org_id } });
-    let applicationNumber = `APP-${year}-${String(count + 1).padStart(5, '0')}`;
-    let attempts = 0;
-    while (attempts < 10) {
-      const exists = await prisma.admissions_applications.findUnique({
-        where: { application_number: applicationNumber },
-      });
-      if (!exists) break;
-      count += 1;
-      applicationNumber = `APP-${year}-${String(count + 1).padStart(5, '0')}`;
-      attempts += 1;
-    }
-
     // Atomic transaction for Application creation + Lead stage update + Activity record
     let application: any;
     let isNew = true;
+    const MAX_RETRIES = 3;
+    let lastError: any;
 
-    try {
-      application = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        const app = await tx.admissions_applications.create({
-          data: {
-            lead_id: leadId,
-            org_id: lead.org_id,
-            academic_year_id: academicYearId,
-            application_number: applicationNumber,
-            status: 'submitted',
-            created_by: performedBy || undefined,
-          },
-        });
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const applicationNumber = generateApplicationNumber(year);
+      try {
+        application = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+          const app = await tx.admissions_applications.create({
+            data: {
+              lead_id: leadId,
+              org_id: lead.org_id,
+              academic_year_id: academicYearId,
+              application_number: applicationNumber,
+              status: 'submitted',
+              created_by: performedBy || undefined,
+            },
+          });
 
-        await tx.leads.update({
-          where: { lead_id: leadId },
-          data: {
-            stage: lead_stage.application_submitted,
-            updated_at: new Date(),
-            updated_by: performedBy || undefined,
-          },
-        });
+          await tx.leads.update({
+            where: { lead_id: leadId },
+            data: {
+              stage: lead_stage.application_submitted,
+              updated_at: new Date(),
+              updated_by: performedBy || undefined,
+            },
+          });
 
-        await tx.lead_activities.create({
-          data: {
-            lead_id: leadId,
-            activity_type: lead_activity_type.application_submitted,
-            status: activity_status.completed,
-            activity_date: new Date(),
-            notes: `Application ${applicationNumber} created. Lead advanced to 'Application Submitted'.`,
-            created_by: performedBy || undefined,
-          },
-        });
+          await tx.lead_activities.create({
+            data: {
+              lead_id: leadId,
+              activity_type: lead_activity_type.application_submitted,
+              status: activity_status.completed,
+              activity_date: new Date(),
+              notes: `Application ${applicationNumber} created. Lead advanced to 'Application Submitted'.`,
+              created_by: performedBy || undefined,
+            },
+          });
 
-        return app;
-      });
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        const raceApp = await prisma.admissions_applications.findFirst({
-          where: { lead_id: leadId },
+          return app;
         });
-        if (raceApp) {
-          application = raceApp;
-          isNew = false;
-        } else {
-          throw err;
+        isNew = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        if (err?.code === 'P2002') {
+          const raceApp = await prisma.admissions_applications.findFirst({
+            where: { lead_id: leadId },
+          });
+          if (raceApp) {
+            application = raceApp;
+            isNew = false;
+            break;
+          }
+          if (isApplicationNumberUniqueConstraintError(err) && attempt < MAX_RETRIES) {
+            continue;
+          }
         }
-      } else {
         throw err;
       }
+    }
+
+    if (!application) {
+      throw lastError;
     }
 
     if (isNew) {

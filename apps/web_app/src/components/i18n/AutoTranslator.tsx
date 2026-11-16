@@ -20,8 +20,10 @@ export const AutoTranslator: React.FC = () => {
     domTranslationRuntime.sweepDocument();
   }, [language]);
 
-  // Trigger comprehensive sweep on route navigation
+  // Trigger comprehensive sweep on route navigation (only for translated non-English sessions)
   useEffect(() => {
+    if (language === 'en') return;
+
     // Immediate sweep
     domTranslationRuntime.sweepDocument();
 
@@ -31,7 +33,7 @@ export const AutoTranslator: React.FC = () => {
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, language]);
 
   // Periodic lightweight sweep for dynamic popovers, tooltips, and tab changes
   useEffect(() => {

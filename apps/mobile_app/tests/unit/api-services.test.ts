@@ -17,6 +17,11 @@ jest.mock('../../src/storage/secure-store', () => ({
     setRefreshToken: jest.fn(),
     clearSession: jest.fn(),
     getAccessToken: jest.fn(),
+    getRefreshToken: jest.fn(),
+    getWorkspaceId: jest.fn(),
+    setWorkspaceId: jest.fn(),
+    getUserProfile: jest.fn(),
+    setUserProfile: jest.fn(),
   },
 }));
 
@@ -153,6 +158,73 @@ describe('Canonical API Services', () => {
       const result = await feesApi.getFeeSummary('app_1');
       expect(apiClient.get).toHaveBeenCalledWith('/v1/applications/app_1/fee');
       expect(result).toEqual(mockFee);
+    });
+
+    it('should fetch parent multi-child enrolled fees from /v1/fees/my', async () => {
+      const mockResponse = {
+        success: true,
+        parent_id: 'par_123',
+        parent_name: 'John Parent',
+        children_count: 1,
+        children: [
+          {
+            student_id: 'stu_1',
+            admission_no: 'ADM-001',
+            first_name: 'Rahul',
+            last_name: 'Sharma',
+            full_name: 'Rahul Sharma',
+            grade_name: 'Grade 5',
+            summary: {
+              total_assessed: 45000,
+              total_paid: 20000,
+              outstanding_balance: 25000,
+              overdue_amount: 0,
+              status: 'partially_paid',
+            },
+          },
+        ],
+      };
+      jest.spyOn(apiClient, 'get').mockResolvedValueOnce(mockResponse);
+
+      const result = await feesApi.getMyChildrenFees();
+      expect(apiClient.get).toHaveBeenCalledWith('/v1/fees/my');
+      expect(result.success).toBe(true);
+      expect(result.children.length).toBe(1);
+      expect(result.children[0].admission_no).toBe('ADM-001');
+    });
+
+    it('should fetch specific child fee details from /v1/fees/my/children/:studentId', async () => {
+      const mockDetails = {
+        student_id: 'stu_1',
+        admission_no: 'ADM-001',
+        first_name: 'Rahul',
+        full_name: 'Rahul Sharma',
+        summary: {
+          total_assessed: 45000,
+          total_paid: 20000,
+          outstanding_balance: 25000,
+          overdue_amount: 0,
+          status: 'partially_paid',
+        },
+        dues: [
+          {
+            due_id: 'due_1',
+            term_name: 'Term 1',
+            amount_due: 25000,
+            paid_amount: 0,
+            outstanding_amount: 25000,
+            due_date: '2026-11-01',
+            is_overdue: false,
+            status: 'pending',
+          },
+        ],
+      };
+      jest.spyOn(apiClient, 'get').mockResolvedValueOnce({ data: mockDetails });
+
+      const result = await feesApi.getChildFeeDetails('stu_1');
+      expect(apiClient.get).toHaveBeenCalledWith('/v1/fees/my/children/stu_1');
+      expect(result.student_id).toBe('stu_1');
+      expect(result.dues?.length).toBe(1);
     });
   });
 

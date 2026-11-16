@@ -9,6 +9,9 @@ export interface CacheOptions {
 
 export interface CacheMetrics {
   provider: string;
+  mode: 'IN_MEMORY_SINGLE_INSTANCE';
+  durable: false;
+  maxEntries: number;
   hitCount: number;
   missCount: number;
   hitRate: number;
@@ -17,9 +20,9 @@ export interface CacheMetrics {
 }
 
 export const CacheTTL = {
-  SESSION: 15 * 60 * 1000,      // 15 minutes
-  PERMISSIONS: 30 * 60 * 1000,  // 30 minutes
-  ENQUIRIES: 10 * 60 * 1000,    // 10 minutes
+  SESSION: 15 * 60 * 1000, // 15 minutes
+  PERMISSIONS: 30 * 60 * 1000, // 30 minutes
+  ENQUIRIES: 10 * 60 * 1000, // 10 minutes
   MASTER_DATA: 24 * 60 * 60 * 1000, // 24 hours
 };
 

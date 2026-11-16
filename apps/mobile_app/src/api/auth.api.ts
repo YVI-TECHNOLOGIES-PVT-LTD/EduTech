@@ -22,6 +22,9 @@ export const authApi = {
     if (data.refreshToken) {
       await SecureStorage.setRefreshToken(data.refreshToken);
     }
+    if (data.user) {
+      await SecureStorage.setUserProfile(data.user);
+    }
     return data;
   },
 

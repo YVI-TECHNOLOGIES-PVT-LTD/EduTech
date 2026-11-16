@@ -11,13 +11,18 @@ import { logger } from '../../../utils/logger';
 
 export interface EligibleObligation {
   due_id: string;
+  student_charge_due_id?: string;
   charge_id: string;
+  student_charge_id?: string;
   description: string;
+  component_name?: string;
   fee_component_name: string;
   fee_component_code: string | null;
   installment_term_name: string;
+  installment_term?: string;
   due_date: string;
   amount_due: number;
+  original_amount?: number;
   previously_allocated_amount: number;
   remaining_payable_amount: number;
   status: string;
@@ -60,8 +65,12 @@ export interface PaymentHistoryFilter {
 }
 
 export interface ReceiptDocument {
+  id?: string;
   receipt_no: string;
+  receipt_type?: string;
   receipt_date: string;
+  created_at?: string | Date;
+  print_count?: number;
   student_id: string;
   student_name: string;
   admission_no: string;
@@ -78,6 +87,8 @@ export interface ReceiptDocument {
   installment_term: string;
   collected_by: string;
   status: string;
+  transaction?: any;
+  [key: string]: any;
 }
 
 export class PaymentCollectionService {
@@ -93,7 +104,7 @@ export class PaymentCollectionService {
    */
   public static async getEligibleObligations(
     orgId: string,
-    studentId: string
+    studentId: string,
   ): Promise<{
     student: any;
     obligations: EligibleObligation[];
@@ -143,13 +154,18 @@ export class PaymentCollectionService {
         totalRemaining = this.roundMoney(totalRemaining + ob.remaining_payable_amount);
         obligations.push({
           due_id: ob.student_charge_due_id,
+          student_charge_due_id: ob.student_charge_due_id,
           charge_id: ob.student_charge_id,
+          student_charge_id: ob.student_charge_id,
           description: ob.description,
+          component_name: ob.component_name || 'General Tuition',
           fee_component_name: ob.component_name || 'General Tuition',
           fee_component_code: ob.component_code || null,
           installment_term_name: ob.installment_term || 'Scheduled Due',
+          installment_term: ob.installment_term || 'Scheduled Due',
           due_date: ob.due_date,
           amount_due: ob.amount_due,
+          original_amount: ob.amount_due,
           previously_allocated_amount: ob.previously_allocated_amount,
           remaining_payable_amount: ob.remaining_payable_amount,
           status: ob.status,
@@ -182,12 +198,19 @@ export class PaymentCollectionService {
   public static async recordOfflinePayment(
     orgId: string,
     userId: string | null,
-    payload: RecordOfflinePaymentInput
+    payload: RecordOfflinePaymentInput | any,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
-    const safeStudentId = toSafeUuid(payload.studentId);
-    const safeDueId = toSafeUuid(payload.studentChargeDueId);
+    const studentIdRaw = payload.studentId || payload.student_id;
+    const dueIdRaw = payload.studentChargeDueId || payload.student_charge_due_id || payload.due_id;
+    const paymentMethodRaw = (payload.paymentMethod || payload.payment_method || '').toLowerCase();
+    const paymentDateRaw = payload.paymentDate || payload.payment_date;
+    const transactionReferenceRaw = payload.transactionReference || payload.transaction_reference;
+    const notesRaw = payload.notes || payload.remarks;
+
+    const safeStudentId = toSafeUuid(studentIdRaw);
+    const safeDueId = toSafeUuid(dueIdRaw);
     const safeUserId = toSafeUuid(userId);
 
     if (!safeStudentId) {
@@ -214,176 +237,190 @@ export class PaymentCollectionService {
     }
 
     const validMethods = ['cash', 'bank_transfer', 'other'];
-    if (!validMethods.includes(payload.paymentMethod)) {
+    if (!validMethods.includes(paymentMethodRaw)) {
       const err: any = new Error(
-        `Invalid offline payment method '${payload.paymentMethod}'. Supported: ${validMethods.join(', ')}`
+        `Invalid offline payment method '${paymentMethodRaw}'. Supported: ${validMethods.join(', ')}`,
       );
       err.statusCode = 400;
       throw err;
     }
 
     // Run within a Prisma transaction for concurrency safety & atomicity
-    const result = await prisma.$transaction(async (tx: any) => {
-      // 1. Verify Student belongs to tenant
-      const student = await tx.students.findFirst({
-        where: { student_id: safeStudentId, org_id: safeOrgId },
-        include: {
-          student_enrollments: {
-            where: { status: 'active' },
-            take: 1,
-            include: {
-              academic_year_grades: {
-                include: { academic_years: true, grades: true },
+    const result = await prisma.$transaction(
+      async (tx: any) => {
+        // 1. Verify Student belongs to tenant
+        const student = await tx.students.findFirst({
+          where: { student_id: safeStudentId, org_id: safeOrgId },
+          include: {
+            student_enrollments: {
+              where: { status: 'active' },
+              take: 1,
+              include: {
+                academic_year_grades: {
+                  include: { academic_years: true, grades: true },
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      if (!student) {
-        const err: any = new Error('Student not found in authorized organization');
-        err.statusCode = 404;
-        throw err;
-      }
+        if (!student) {
+          const err: any = new Error('Student not found in authorized organization');
+          err.statusCode = 404;
+          throw err;
+        }
 
-      // 2. Verify Due exists and belongs to this student via PaymentRepository
-      const due = await PaymentRepository.findDueWithAllocations(safeDueId, safeStudentId, tx);
+        // 2. Verify Due exists and belongs to this student via PaymentRepository
+        const due = await PaymentRepository.findDueWithAllocations(safeDueId, safeStudentId, tx);
 
-      if (!due) {
-        const err: any = new Error('Obligation due not found or does not belong to the selected student');
-        err.statusCode = 404;
-        throw err;
-      }
+        if (!due) {
+          const err: any = new Error(
+            'Obligation due not found or does not belong to the selected student',
+          );
+          err.statusCode = 404;
+          throw err;
+        }
 
-      if (due.status === 'cancelled' || due.status === 'waived') {
-        const err: any = new Error(`Cannot collect payment on obligation with status '${due.status}'`);
-        err.statusCode = 400;
-        throw err;
-      }
+        if (due.status === 'cancelled' || due.status === 'waived') {
+          const err: any = new Error(
+            `Cannot collect payment on obligation with status '${due.status}'`,
+          );
+          err.statusCode = 400;
+          throw err;
+        }
 
-      // 3. Recalculate remaining balance under transaction lock to prevent overpayment
-      const dueAmount = Number(due.amount_due);
-      const allocatedSoFar = Number(due.allocated_amount);
-      const remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocatedSoFar));
+        // 3. Recalculate remaining balance under transaction lock to prevent overpayment
+        const dueAmount = Number(due.amount_due);
+        const allocatedSoFar = Number(due.allocated_amount);
+        const remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocatedSoFar));
 
-      if (remainingPayable <= 0) {
-        const err: any = new Error('This obligation has already been fully paid and settled');
-        err.statusCode = 400;
-        throw err;
-      }
+        if (remainingPayable <= 0) {
+          const err: any = new Error('This obligation has already been fully paid and settled');
+          err.statusCode = 400;
+          throw err;
+        }
 
-      if (amount > remainingPayable) {
-        const err: any = new Error(
-          `Payment amount (${amount.toFixed(2)}) exceeds eligible remaining balance (${remainingPayable.toFixed(2)})`
+        if (amount > remainingPayable) {
+          const err: any = new Error(
+            `Payment amount (${amount.toFixed(2)}) exceeds eligible remaining balance (${remainingPayable.toFixed(2)})`,
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+
+        // 4. Generate unique order reference
+        const orderRef = `ORD-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+        // 5. Create Payment Order durably via PaymentRepository
+        const paymentOrder = await PaymentRepository.createPaymentOrder(
+          {
+            studentId: safeStudentId,
+            studentChargeDueId: safeDueId,
+            amount,
+            status: 'paid',
+            orderReference: orderRef,
+            description:
+              notesRaw?.trim() ||
+              `Offline ${paymentMethodRaw} payment for ${due.student_charges.description}`,
+            createdBy: safeUserId,
+          },
+          tx,
         );
-        err.statusCode = 400;
-        throw err;
-      }
 
-      // 4. Generate unique order reference
-      const orderRef = `ORD-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+        // 6. Create Payment Transaction durably via PaymentRepository
+        const paymentDate = paymentDateRaw ? new Date(paymentDateRaw) : new Date();
+        const gatewayTxId =
+          (transactionReferenceRaw && String(transactionReferenceRaw).trim()) ||
+          `REF-${Date.now()}`;
 
-      // 5. Create Payment Order durably via PaymentRepository
-      const paymentOrder = await PaymentRepository.createPaymentOrder(
-        {
-          studentId: safeStudentId,
-          studentChargeDueId: safeDueId,
-          amount,
-          status: 'paid',
-          orderReference: orderRef,
-          description: `Offline ${payload.paymentMethod} payment for ${due.student_charges.description}`,
-          createdBy: safeUserId,
-        },
-        tx
-      );
+        const paymentTx = await PaymentRepository.createPaymentTransaction(
+          {
+            paymentOrderId: paymentOrder.payment_order_id,
+            paymentMethod: paymentMethodRaw,
+            status: 'success',
+            amount,
+            transactionDate: paymentDate,
+            gatewayName: 'Offline Manual',
+            gatewayTransactionId: gatewayTxId,
+            createdBy: safeUserId,
+          },
+          tx,
+        );
 
-      // 6. Create Payment Transaction durably via PaymentRepository
-      const paymentDate = payload.paymentDate ? new Date(payload.paymentDate) : new Date();
-      const gatewayTxId = payload.transactionReference?.trim() || `REF-${Date.now()}`;
+        // 7. Create Payment Allocation durably via PaymentRepository
+        const allocation = await PaymentRepository.createPaymentAllocation(
+          {
+            paymentTransactionId: paymentTx.payment_transaction_id,
+            studentChargeDueId: safeDueId,
+            allocatedAmount: amount,
+            notes: notesRaw || `Collected via ${paymentMethodRaw} (Ref: ${gatewayTxId})`,
+            createdBy: safeUserId,
+          },
+          tx,
+        );
 
-      const paymentTx = await PaymentRepository.createPaymentTransaction(
-        {
-          paymentOrderId: paymentOrder.payment_order_id,
-          paymentMethod: payload.paymentMethod,
-          status: 'success',
-          amount,
-          transactionDate: paymentDate,
-          gatewayName: 'Offline Manual',
-          gatewayTransactionId: gatewayTxId,
-          createdBy: safeUserId,
-        },
-        tx
-      );
+        // 8. Update Due Status durably via PaymentRepository
+        const newTotalAllocated = this.roundMoney(allocatedSoFar + amount);
+        const isFullySettled = newTotalAllocated >= dueAmount;
+        const newDueStatus = isFullySettled ? 'paid' : 'partially_paid';
 
-      // 7. Create Payment Allocation durably via PaymentRepository
-      const allocation = await PaymentRepository.createPaymentAllocation(
-        {
-          paymentTransactionId: paymentTx.payment_transaction_id,
-          studentChargeDueId: safeDueId,
-          allocatedAmount: amount,
-          notes: payload.notes || `Collected via ${payload.paymentMethod} (Ref: ${gatewayTxId})`,
-          createdBy: safeUserId,
-        },
-        tx
-      );
+        await PaymentRepository.updateDueStatus(safeDueId, newDueStatus, safeUserId, tx);
 
-      // 8. Update Due Status durably via PaymentRepository
-      const newTotalAllocated = this.roundMoney(allocatedSoFar + amount);
-      const isFullySettled = newTotalAllocated >= dueAmount;
-      const newDueStatus = isFullySettled ? 'paid' : 'partially_paid';
+        // 9. Construct Receipt Data
+        const receiptNo = `RCPT-${new Date().getFullYear()}-${orderRef.split('-')[1] || Date.now().toString().slice(-6)}`;
+        const activeEnrollment = student.student_enrollments[0] || null;
 
-      await PaymentRepository.updateDueStatus(safeDueId, newDueStatus, safeUserId, tx);
-
-      // 9. Construct Receipt Data
-      const receiptNo = `RCPT-${new Date().getFullYear()}-${orderRef.split('-')[1] || Date.now().toString().slice(-6)}`;
-      const activeEnrollment = student.student_enrollments[0] || null;
-
-      const receipt: ReceiptDocument = {
-        receipt_no: receiptNo,
-        receipt_date: paymentDate.toISOString(),
-        student_id: student.student_id,
-        student_name: `${student.first_name} ${student.last_name || ''}`.trim(),
-        admission_no: student.admission_no,
-        grade_name: activeEnrollment?.academic_year_grades.grades.grade_name || 'N/A',
-        academic_year_name:
-          activeEnrollment?.academic_year_grades.academic_years.academic_year_name || 'N/A',
-        payment_transaction_id: paymentTx.payment_transaction_id,
-        payment_order_id: paymentOrder.payment_order_id,
-        order_reference: orderRef,
-        amount: amount,
-        currency: 'INR',
-        payment_method: payload.paymentMethod,
-        transaction_reference: gatewayTxId,
-        obligation_description: due.student_charges.description,
-        installment_term: due.installment_plan_terms?.term_name || 'Scheduled Term',
-        collected_by: userId ? 'Authorized Staff' : 'Cashier Desk',
-        status: 'GENERATED',
-      };
-
-      return {
-        success: true,
-        message: 'Payment recorded and allocated successfully',
-        transaction: {
-          transaction_id: paymentTx.payment_transaction_id,
-          order_id: paymentOrder.payment_order_id,
+        const receipt: ReceiptDocument = {
+          receipt_no: receiptNo,
+          receipt_date: paymentDate.toISOString(),
+          student_id: student.student_id,
+          student_name: `${student.first_name} ${student.last_name || ''}`.trim(),
+          admission_no: student.admission_no,
+          grade_name: activeEnrollment?.academic_year_grades.grades.grade_name || 'N/A',
+          academic_year_name:
+            activeEnrollment?.academic_year_grades.academic_years.academic_year_name || 'N/A',
+          payment_transaction_id: paymentTx.payment_transaction_id,
+          payment_order_id: paymentOrder.payment_order_id,
           order_reference: orderRef,
           amount: amount,
+          currency: 'INR',
           payment_method: payload.paymentMethod,
-          status: 'success',
-          transaction_date: paymentDate.toISOString(),
-          allocated_amount: amount,
-        },
-        allocation: {
-          allocation_id: allocation.payment_allocation_id,
-          due_id: due.student_charge_due_id,
-          allocated_amount: amount,
-          obligation_status: newDueStatus,
-          is_settled: isFullySettled,
-          remaining_due: Math.max(0, this.roundMoney(dueAmount - newTotalAllocated)),
-        },
-        receipt,
-      };
-    });
+          transaction_reference: gatewayTxId,
+          obligation_description: due.student_charges.description,
+          installment_term: due.installment_plan_terms?.term_name || 'Scheduled Term',
+          collected_by: userId ? 'Authorized Staff' : 'Cashier Desk',
+          status: 'GENERATED',
+        };
+
+        return {
+          success: true,
+          message: 'Payment recorded and allocated successfully',
+          transaction: {
+            transaction_id: paymentTx.payment_transaction_id,
+            order_id: paymentOrder.payment_order_id,
+            order_reference: orderRef,
+            amount: amount,
+            payment_method: payload.paymentMethod,
+            status: 'success',
+            transaction_date: paymentDate.toISOString(),
+            allocated_amount: amount,
+          },
+          allocation: {
+            allocation_id: allocation.payment_allocation_id,
+            due_id: due.student_charge_due_id,
+            allocated_amount: amount,
+            obligation_status: newDueStatus,
+            is_settled: isFullySettled,
+            remaining_due: Math.max(0, this.roundMoney(dueAmount - newTotalAllocated)),
+          },
+          receipt,
+        };
+      },
+      {
+        maxWait: 20000,
+        timeout: 45000,
+      },
+    );
 
     // Authoritative post-commit notification event emissions
     FinanceNotificationService.publishEvent({
@@ -404,7 +441,10 @@ export class PaymentCollectionService {
       receiptNumber: result.receipt.receipt_no,
       performedBy: safeUserId || undefined,
     }).catch((err) => {
-      logger.error('[PaymentCollectionService] Post-commit payment success notification error:', err);
+      logger.error(
+        '[PaymentCollectionService] Post-commit payment success notification error:',
+        err,
+      );
     });
 
     FinanceNotificationService.publishEvent({
@@ -435,12 +475,17 @@ export class PaymentCollectionService {
   public static async createOnlinePaymentOrder(
     orgId: string,
     userId: string | null,
-    payload: CreateOnlineOrderInput
+    payload: CreateOnlineOrderInput | any,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
-    const safeStudentId = toSafeUuid(payload.studentId);
-    const safeDueId = toSafeUuid(payload.studentChargeDueId);
+    const studentIdRaw = payload.studentId || payload.student_id;
+    const dueIdRaw = payload.studentChargeDueId || payload.student_charge_due_id || payload.due_id;
+    const paymentMethodRaw = (payload.paymentMethod || payload.payment_method || '').toLowerCase();
+    const notesRaw = payload.notes || payload.remarks;
+
+    const safeStudentId = toSafeUuid(studentIdRaw);
+    const safeDueId = toSafeUuid(dueIdRaw);
     const safeUserId = toSafeUuid(userId);
 
     if (!safeStudentId || !safeDueId) {
@@ -457,8 +502,8 @@ export class PaymentCollectionService {
     }
 
     const validOnlineMethods = ['upi', 'card', 'net_banking', 'wallet'];
-    if (!validOnlineMethods.includes(payload.paymentMethod)) {
-      const err: any = new Error(`Invalid online payment method '${payload.paymentMethod}'`);
+    if (!validOnlineMethods.includes(paymentMethodRaw)) {
+      const err: any = new Error(`Invalid online payment method '${paymentMethodRaw}'`);
       err.statusCode = 400;
       throw err;
     }
@@ -485,7 +530,9 @@ export class PaymentCollectionService {
     const allocated = Number(due.allocated_amount);
     const remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocated));
     if (amount > remainingPayable) {
-      const err: any = new Error(`Amount exceeds remaining payable balance of ${remainingPayable.toFixed(2)}`);
+      const err: any = new Error(
+        `Amount exceeds remaining payable balance of ${remainingPayable.toFixed(2)}`,
+      );
       err.statusCode = 400;
       throw err;
     }
@@ -499,7 +546,8 @@ export class PaymentCollectionService {
       amount,
       status: 'created',
       orderReference: orderRef,
-      description: `Online payment attempt for obligation ${due.student_charge_due_id}`,
+      description:
+        notesRaw?.trim() || `Online payment attempt for obligation ${due.student_charge_due_id}`,
       createdBy: safeUserId,
     });
 
@@ -518,7 +566,7 @@ export class PaymentCollectionService {
     // 3. Create payment transaction with status 'initiated' durably via PaymentRepository
     const paymentTx = await PaymentRepository.createPaymentTransaction({
       paymentOrderId: paymentOrder.payment_order_id,
-      paymentMethod: payload.paymentMethod,
+      paymentMethod: paymentMethodRaw,
       status: 'initiated',
       gatewayName: 'Razorpay',
       gatewayOrderId: rzpResult.gateway_order_id,
@@ -537,8 +585,9 @@ export class PaymentCollectionService {
         currency: rzpResult.currency,
         key_id: rzpResult.key_id,
         is_simulation: rzpResult.is_simulation,
-        payment_method: payload.paymentMethod,
+        payment_method: paymentMethodRaw,
         status: 'created',
+        checkout_url: `/api/v1/fees/razorpay/checkout/${paymentOrder.payment_order_id}`,
       },
       transaction: {
         payment_transaction_id: paymentTx.payment_transaction_id,
@@ -563,7 +612,10 @@ export class PaymentCollectionService {
       orderReference: orderRef,
       performedBy: safeUserId || undefined,
     }).catch((err) => {
-      logger.error('[PaymentCollectionService] Post-order payment initiated notification error:', err);
+      logger.error(
+        '[PaymentCollectionService] Post-order payment initiated notification error:',
+        err,
+      );
     });
 
     return result;
@@ -576,11 +628,16 @@ export class PaymentCollectionService {
   public static async verifyOnlinePayment(
     orgId: string,
     userId: string | null,
-    payload: VerifyOnlinePaymentInput
+    payload: VerifyOnlinePaymentInput | any,
   ) {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
-    const safeOrderId = toSafeUuid(payload.paymentOrderId);
+    const paymentOrderIdRaw = payload.paymentOrderId || payload.payment_order_id;
+    const razorpayPaymentIdRaw = payload.razorpayPaymentId || payload.razorpay_payment_id;
+    const razorpayOrderIdRaw = payload.razorpayOrderId || payload.razorpay_order_id;
+    const razorpaySignatureRaw = payload.razorpaySignature || payload.razorpay_signature;
+
+    const safeOrderId = toSafeUuid(paymentOrderIdRaw);
     const safeUserId = toSafeUuid(userId);
 
     if (!safeOrderId) {
@@ -608,7 +665,10 @@ export class PaymentCollectionService {
 
     // Idempotency: If already verified and successful, return existing confirmation
     if (txRecord.status === 'success') {
-      const existingReceipt = await PaymentRepository.getReceiptDetails(orgId, txRecord.payment_transaction_id);
+      const existingReceipt = await PaymentRepository.getReceiptDetails(
+        orgId,
+        txRecord.payment_transaction_id,
+      );
       return {
         success: true,
         message: 'Payment has already been verified and allocated',
@@ -621,7 +681,8 @@ export class PaymentCollectionService {
     // Idempotency: If already captured but unallocated (pending reconciliation)
     if (
       txRecord.status === 'pending' &&
-      (txRecord.failure_code === 'EXCEEDS_REMAINING_DUE' || (txRecord.gateway_response as any)?.reconciliation_required)
+      (txRecord.failure_code === 'EXCEEDS_REMAINING_DUE' ||
+        (txRecord.gateway_response as any)?.reconciliation_required)
     ) {
       return {
         success: false,
@@ -629,22 +690,54 @@ export class PaymentCollectionService {
         gateway_captured: true,
         ledger_updated: false,
         error: txRecord.failure_code || 'EXCEEDS_REMAINING_DUE',
-        message: txRecord.failure_message || 'Payment was captured at gateway, but cannot be allocated. Reconciliation required.',
+        message:
+          txRecord.failure_message ||
+          'Payment was captured at gateway, but cannot be allocated. Reconciliation required.',
         transaction_id: txRecord.payment_transaction_id,
         order_reference: order.order_reference,
         amount: Number(order.amount.toString()),
-        gateway_payment_id: txRecord.gateway_transaction_id || payload.razorpayPaymentId,
+        gateway_payment_id: txRecord.gateway_transaction_id || razorpayPaymentIdRaw,
         remaining_due: (txRecord.gateway_response as any)?.remaining_due ?? 0,
       };
     }
 
     const amount = Number(order.amount.toString());
+    const expectedCurrency = (order.currency_code || 'INR').toUpperCase();
+
+    // Security check (P0 - PI-03): Ensure submitted gateway payment ID is not already settled against another order
+    if (razorpayPaymentIdRaw) {
+      const duplicateTx = await prisma.payment_transactions.findFirst({
+        where: {
+          gateway_transaction_id: razorpayPaymentIdRaw,
+          status: 'success',
+          payment_transaction_id: { not: txRecord.payment_transaction_id },
+        },
+        select: { payment_transaction_id: true },
+      });
+
+      if (duplicateTx) {
+        logger.warn(
+          '[PaymentCollectionService] Payment ID replay detected across different transaction',
+          {
+            paymentId: razorpayPaymentIdRaw,
+            existingTxId: duplicateTx.payment_transaction_id,
+            attemptedTxId: txRecord.payment_transaction_id,
+          },
+        );
+        const err: any = new Error(
+          `Payment ID '${razorpayPaymentIdRaw}' is already settled against another order. Replay rejected.`,
+        );
+        err.statusCode = 400;
+        err.code = 'PAYMENT_ID_ALREADY_USED';
+        throw err;
+      }
+    }
 
     // 2. Cryptographic Checkout Signature Verification
     const isValidSignature = RazorpayGatewayService.verifyCheckoutSignature({
-      razorpayOrderId: payload.razorpayOrderId,
-      razorpayPaymentId: payload.razorpayPaymentId,
-      razorpaySignature: payload.razorpaySignature,
+      razorpayOrderId: razorpayOrderIdRaw,
+      razorpayPaymentId: razorpayPaymentIdRaw,
+      razorpaySignature: razorpaySignatureRaw,
     });
 
     if (!isValidSignature) {
@@ -685,7 +778,8 @@ export class PaymentCollectionService {
       const gatewayCheck = await RazorpayGatewayService.fetchAndVerifyPayment(
         payload.razorpayPaymentId,
         txRecord.gateway_order_id || payload.razorpayOrderId,
-        amount
+        amount,
+        expectedCurrency,
       );
 
       if (!gatewayCheck.verified) {
@@ -704,167 +798,236 @@ export class PaymentCollectionService {
     }
 
     // 4. Signature & Gateway Status are valid! Transactionally record success and allocation
-    const result = await prisma.$transaction(async (tx: any) => {
-      // Concurrency control: Row-level lock on transaction record
-      const lockedTx: any[] = await tx.$queryRaw`
+    const result = await prisma.$transaction(
+      async (tx: any) => {
+        // Concurrency control (Schema-freeze compatible):
+        // Acquire a transaction-level advisory lock on the gateway payment ID hash
+        // to serialize concurrent settlement attempts across different internal transactions.
+        if (razorpayPaymentIdRaw) {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${razorpayPaymentIdRaw}))`;
+
+          // Under advisory lock: Re-verify whether this gateway payment ID has already been committed elsewhere
+          const concurrentSettled = await tx.payment_transactions.findFirst({
+            where: {
+              gateway_transaction_id: razorpayPaymentIdRaw,
+              status: 'success',
+              payment_transaction_id: { not: txRecord.payment_transaction_id },
+            },
+            select: { payment_transaction_id: true },
+          });
+
+          if (concurrentSettled) {
+            logger.warn(
+              '[PaymentCollectionService] Concurrent payment ID replay blocked by advisory lock',
+              {
+                paymentId: razorpayPaymentIdRaw,
+                existingTxId: concurrentSettled.payment_transaction_id,
+                attemptedTxId: txRecord.payment_transaction_id,
+              },
+            );
+            const err: any = new Error(
+              `Payment ID '${razorpayPaymentIdRaw}' is already settled against another order. Replay rejected.`,
+            );
+            err.statusCode = 400;
+            err.code = 'PAYMENT_ID_ALREADY_USED';
+            throw err;
+          }
+        }
+
+        // Concurrency control: Row-level lock on transaction record
+        const lockedTx: any[] = await tx.$queryRaw`
         SELECT payment_transaction_id, status FROM payment_transactions
         WHERE payment_transaction_id = ${txRecord.payment_transaction_id}::uuid
         FOR UPDATE
       `;
 
-      if (lockedTx.length > 0 && lockedTx[0].status === 'success') {
-        const existingReceipt = await PaymentRepository.getReceiptDetails(orgId, txRecord.payment_transaction_id, tx);
-        return {
-          alreadyCommitted: true,
-          success: true,
-          message: 'Payment has already been verified and allocated',
-          status: 'success',
-          transaction_id: txRecord.payment_transaction_id,
-          order_reference: order.order_reference,
-          amount: amount,
-          gateway_payment_id: payload.razorpayPaymentId,
-          receipt: existingReceipt,
-        };
-      }
+        if (lockedTx.length > 0 && lockedTx[0].status === 'success') {
+          const existingReceipt = await PaymentRepository.getReceiptDetails(
+            orgId,
+            txRecord.payment_transaction_id,
+            tx,
+          );
+          return {
+            alreadyCommitted: true,
+            success: true,
+            message: 'Payment has already been verified and allocated',
+            status: 'success',
+            transaction_id: txRecord.payment_transaction_id,
+            order_reference: order.order_reference,
+            amount: amount,
+            gateway_payment_id: payload.razorpayPaymentId,
+            receipt: existingReceipt,
+          };
+        }
 
-      // Concurrency control: Row-level lock on student_charge_dues to serialize concurrent allocations on same fee due
-      if (order.student_charge_due_id) {
-        const lockedDues: any[] = await tx.$queryRaw`
+        // Concurrency control: Row-level lock on student_charge_dues to serialize concurrent allocations on same fee due
+        if (order.student_charge_due_id) {
+          const lockedDues: any[] = await tx.$queryRaw`
           SELECT student_charge_due_id, amount_due, status
           FROM student_charge_dues
           WHERE student_charge_due_id = ${order.student_charge_due_id}::uuid
           FOR UPDATE
         `;
 
-        if (lockedDues.length > 0) {
-          const dueRow = lockedDues[0];
-          const dueAmount = Number(dueRow.amount_due);
-          const totalAllocatedBefore = await PaymentRepository.getTotalAllocatedForDue(order.student_charge_due_id, tx);
-          const remainingDue = dueAmount - totalAllocatedBefore;
+          if (lockedDues.length > 0) {
+            const dueRow = lockedDues[0];
+            const dueAmount = Number(dueRow.amount_due);
+            const totalAllocatedBefore = await PaymentRepository.getTotalAllocatedForDue(
+              order.student_charge_due_id,
+              tx,
+            );
+            const remainingDue = dueAmount - totalAllocatedBefore;
 
-          if (dueRow.status === 'cancelled' || dueRow.status === 'waived') {
-            await PaymentRepository.updatePaymentTransaction(txRecord.payment_transaction_id, {
-              status: 'pending',
-              gatewayTransactionId: payload.razorpayPaymentId,
-              transactionDate: new Date(),
-              failureCode: 'DUE_INELIGIBLE',
-              failureMessage: `Payment of ₹${amount} was captured at gateway (${payload.razorpayPaymentId}), but fee due is ${dueRow.status}. Reconciliation required.`,
-              gatewayResponse: {
-                gateway_status: 'captured',
-                gateway_payment_id: payload.razorpayPaymentId,
-                gateway_captured: true,
-                ledger_allocated: false,
-                reconciliation_required: true,
-                reconciliation_reason: 'DUE_INELIGIBLE',
-                due_status: dueRow.status,
-              },
-              updatedBy: safeUserId,
-            }, tx);
-            await PaymentRepository.updatePaymentOrderStatus(order.payment_order_id, 'pending', safeUserId, tx);
-            return {
-              alreadyCommitted: false,
-              rejectedReason: 'DUE_INELIGIBLE',
-              dueStatus: dueRow.status,
-              transactionId: txRecord.payment_transaction_id,
-            };
-          }
+            if (dueRow.status === 'cancelled' || dueRow.status === 'waived') {
+              await PaymentRepository.updatePaymentTransaction(
+                txRecord.payment_transaction_id,
+                {
+                  status: 'pending',
+                  gatewayTransactionId: payload.razorpayPaymentId,
+                  transactionDate: new Date(),
+                  failureCode: 'DUE_INELIGIBLE',
+                  failureMessage: `Payment of ₹${amount} was captured at gateway (${payload.razorpayPaymentId}), but fee due is ${dueRow.status}. Reconciliation required.`,
+                  gatewayResponse: {
+                    gateway_status: 'captured',
+                    gateway_payment_id: payload.razorpayPaymentId,
+                    gateway_captured: true,
+                    ledger_allocated: false,
+                    reconciliation_required: true,
+                    reconciliation_reason: 'DUE_INELIGIBLE',
+                    due_status: dueRow.status,
+                  },
+                  updatedBy: safeUserId,
+                },
+                tx,
+              );
+              await PaymentRepository.updatePaymentOrderStatus(
+                order.payment_order_id,
+                'pending',
+                safeUserId,
+                tx,
+              );
+              return {
+                alreadyCommitted: false,
+                rejectedReason: 'DUE_INELIGIBLE',
+                dueStatus: dueRow.status,
+                transactionId: txRecord.payment_transaction_id,
+              };
+            }
 
-          if (amount > remainingDue + 0.001) {
-            await PaymentRepository.updatePaymentTransaction(txRecord.payment_transaction_id, {
-              status: 'pending',
-              gatewayTransactionId: payload.razorpayPaymentId,
-              transactionDate: new Date(),
-              failureCode: 'EXCEEDS_REMAINING_DUE',
-              failureMessage: `Payment allocation of ₹${amount} was captured at gateway (${payload.razorpayPaymentId}), but exceeds eligible remaining due balance of ₹${remainingDue}. Reconciliation required.`,
-              gatewayResponse: {
-                gateway_status: 'captured',
-                gateway_payment_id: payload.razorpayPaymentId,
-                gateway_captured: true,
-                ledger_allocated: false,
-                reconciliation_required: true,
-                reconciliation_reason: 'EXCEEDS_REMAINING_DUE',
-                attempted_amount: amount,
-                remaining_due: remainingDue,
-              },
-              updatedBy: safeUserId,
-            }, tx);
+            if (amount > remainingDue + 0.001) {
+              await PaymentRepository.updatePaymentTransaction(
+                txRecord.payment_transaction_id,
+                {
+                  status: 'pending',
+                  gatewayTransactionId: payload.razorpayPaymentId,
+                  transactionDate: new Date(),
+                  failureCode: 'EXCEEDS_REMAINING_DUE',
+                  failureMessage: `Payment allocation of ₹${amount} was captured at gateway (${payload.razorpayPaymentId}), but exceeds eligible remaining due balance of ₹${remainingDue}. Reconciliation required.`,
+                  gatewayResponse: {
+                    gateway_status: 'captured',
+                    gateway_payment_id: payload.razorpayPaymentId,
+                    gateway_captured: true,
+                    ledger_allocated: false,
+                    reconciliation_required: true,
+                    reconciliation_reason: 'EXCEEDS_REMAINING_DUE',
+                    attempted_amount: amount,
+                    remaining_due: remainingDue,
+                  },
+                  updatedBy: safeUserId,
+                },
+                tx,
+              );
 
-            await PaymentRepository.updatePaymentOrderStatus(order.payment_order_id, 'pending', safeUserId, tx);
+              await PaymentRepository.updatePaymentOrderStatus(
+                order.payment_order_id,
+                'pending',
+                safeUserId,
+                tx,
+              );
 
-            return {
-              alreadyCommitted: false,
-              exceedsDue: true,
-              remainingDue,
-              requestedAmount: amount,
-              transactionId: txRecord.payment_transaction_id,
-            };
+              return {
+                alreadyCommitted: false,
+                exceedsDue: true,
+                remainingDue,
+                requestedAmount: amount,
+                transactionId: txRecord.payment_transaction_id,
+              };
+            }
           }
         }
-      }
 
-      // Update transaction to success
-      const updatedTx = await PaymentRepository.updatePaymentTransaction(
-        txRecord.payment_transaction_id,
-        {
+        // Update transaction to success
+        const updatedTx = await PaymentRepository.updatePaymentTransaction(
+          txRecord.payment_transaction_id,
+          {
+            status: 'success',
+            gatewayTransactionId: payload.razorpayPaymentId,
+            transactionDate: new Date(),
+            updatedBy: safeUserId,
+          },
+          tx,
+        );
+
+        // Update order to paid
+        await PaymentRepository.updatePaymentOrderStatus(
+          order.payment_order_id,
+          'paid',
+          safeUserId,
+          tx,
+        );
+
+        // Create allocation
+        await PaymentRepository.createPaymentAllocation(
+          {
+            paymentTransactionId: updatedTx.payment_transaction_id,
+            studentChargeDueId: order.student_charge_due_id,
+            allocatedAmount: amount,
+            notes: `Verified online payment (Ref: ${payload.razorpayPaymentId})`,
+            createdBy: safeUserId,
+          },
+          tx,
+        );
+
+        // Update due status using cumulative allocation calculation
+        const due = order.student_charge_dues;
+        const dueAmount = Number(due.amount_due.toString());
+        const totalAllocated = await PaymentRepository.getTotalAllocatedForDue(
+          order.student_charge_due_id,
+          tx,
+        );
+        const newDueStatus = totalAllocated >= dueAmount ? 'paid' : 'partially_paid';
+
+        await PaymentRepository.updateDueStatus(
+          due.student_charge_due_id,
+          newDueStatus,
+          safeUserId,
+          tx,
+        );
+
+        // Build verified receipt document
+        const receipt = await PaymentRepository.getReceiptDetails(
+          orgId,
+          updatedTx.payment_transaction_id,
+          tx,
+        );
+
+        return {
+          alreadyCommitted: false,
+          success: true,
+          message: 'Online payment verified and allocated successfully',
           status: 'success',
-          gatewayTransactionId: payload.razorpayPaymentId,
-          transactionDate: new Date(),
-          updatedBy: safeUserId,
-        },
-        tx
-      );
-
-      // Update order to paid
-      await PaymentRepository.updatePaymentOrderStatus(
-        order.payment_order_id,
-        'paid',
-        safeUserId,
-        tx
-      );
-
-      // Create allocation
-      await PaymentRepository.createPaymentAllocation(
-        {
-          paymentTransactionId: updatedTx.payment_transaction_id,
-          studentChargeDueId: order.student_charge_due_id,
-          allocatedAmount: amount,
-          notes: `Verified online payment (Ref: ${payload.razorpayPaymentId})`,
-          createdBy: safeUserId,
-        },
-        tx
-      );
-
-      // Update due status using cumulative allocation calculation
-      const due = order.student_charge_dues;
-      const dueAmount = Number(due.amount_due.toString());
-      const totalAllocated = await PaymentRepository.getTotalAllocatedForDue(order.student_charge_due_id, tx);
-      const newDueStatus = totalAllocated >= dueAmount ? 'paid' : 'partially_paid';
-
-      await PaymentRepository.updateDueStatus(
-        due.student_charge_due_id,
-        newDueStatus,
-        safeUserId,
-        tx
-      );
-
-      // Build verified receipt document
-      const receipt = await PaymentRepository.getReceiptDetails(orgId, updatedTx.payment_transaction_id, tx);
-
-      return {
-        alreadyCommitted: false,
-        success: true,
-        message: 'Online payment verified and allocated successfully',
-        status: 'success',
-        transaction_id: updatedTx.payment_transaction_id,
-        order_reference: order.order_reference,
-        amount: amount,
-        gateway_payment_id: payload.razorpayPaymentId,
-        receipt,
-      };
-    }, {
-      maxWait: 20000,
-      timeout: 45000,
-    });
+          transaction_id: updatedTx.payment_transaction_id,
+          order_reference: order.order_reference,
+          amount: amount,
+          gateway_payment_id: payload.razorpayPaymentId,
+          receipt,
+        };
+      },
+      {
+        maxWait: 20000,
+        timeout: 45000,
+      },
+    );
 
     if (result.exceedsDue) {
       return {
@@ -917,7 +1080,10 @@ export class PaymentCollectionService {
         receiptNumber: result.receipt?.receipt_no || '',
         performedBy: safeUserId || undefined,
       }).catch((err) => {
-        logger.error('[PaymentCollectionService] Post-commit online payment success notification error:', err);
+        logger.error(
+          '[PaymentCollectionService] Post-commit online payment success notification error:',
+          err,
+        );
       });
 
       if (result.receipt) {
@@ -937,7 +1103,10 @@ export class PaymentCollectionService {
           receiptUrl: `/app/finance/receipts/view/${result.receipt.receipt_no}`,
           performedBy: safeUserId || undefined,
         }).catch((err) => {
-          logger.error('[PaymentCollectionService] Post-commit online receipt notification error:', err);
+          logger.error(
+            '[PaymentCollectionService] Post-commit online receipt notification error:',
+            err,
+          );
         });
       }
     }
@@ -948,7 +1117,11 @@ export class PaymentCollectionService {
   /**
    * Process Razorpay Webhook Event with durable idempotency.
    */
-  public static async processWebhookEvent(rawBody: Buffer | string, signature: string, payload: any) {
+  public static async processWebhookEvent(
+    rawBody: Buffer | string,
+    signature: string,
+    payload: any,
+  ) {
     return await RazorpayGatewayService.processWebhook(rawBody, signature, payload);
   }
 
@@ -962,25 +1135,49 @@ export class PaymentCollectionService {
   }
 
   /**
-   * Retrieve official receipt details for a transaction.
+   * Retrieve official receipt details for a transaction or receipt reference.
    */
-  public static async getReceiptDetails(orgId: string, transactionId: string): Promise<ReceiptDocument> {
+  public static async getReceiptDetails(
+    orgId: string,
+    transactionId: string,
+  ): Promise<ReceiptDocument> {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
-    const safeTxId = toSafeUuid(transactionId);
 
-    if (!safeTxId) {
-      const err: any = new Error('Valid transaction ID is required');
+    if (!transactionId || typeof transactionId !== 'string' || !transactionId.trim()) {
+      const err: any = new Error('Valid transaction ID or receipt reference is required');
       err.statusCode = 400;
       throw err;
     }
 
-    const receipt = await PaymentRepository.getReceiptDetails(safeOrgId, safeTxId);
+    const receipt = await PaymentRepository.getReceiptDetails(safeOrgId, transactionId.trim());
     if (!receipt) {
-      const err: any = new Error('Transaction not found in authorized organization');
+      const err: any = new Error('Transaction or receipt not found in authorized organization');
       err.statusCode = 404;
       throw err;
     }
     return receipt;
+  }
+
+  /**
+   * List official receipts for an organization with pagination and filters.
+   */
+  public static async listReceipts(
+    orgId: string,
+    filter: {
+      from?: string;
+      to?: string;
+      receipt_type?: string;
+      payment_mode?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+      page?: number;
+    } = {},
+  ): Promise<{ data: any[]; total: number }> {
+    if (!orgId) throw new Error('Tenant organization ID is required');
+    const safeOrgId = toSafeUuid(orgId) || orgId;
+    const { receipts, total } = await PaymentRepository.listReceipts(safeOrgId, filter);
+    return { data: receipts, total };
   }
 }

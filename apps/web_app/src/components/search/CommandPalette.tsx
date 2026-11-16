@@ -93,19 +93,39 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
     [navigate, onClose, recentSearches],
   );
 
+  // Keyboard navigation for results
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < displayResults.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : displayResults.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (displayResults[selectedIndex]) {
+        navigateTo(displayResults[selectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div
-      className={`w-full bg-card text-card-foreground border border-border rounded-2xl shadow-xl overflow-hidden ${className}`}
+      className={`w-full bg-popover/90 backdrop-blur-2xl text-popover-foreground border border-border/80 rounded-[14px] shadow-2xl overflow-hidden ring-1 ring-border/50 ${className}`}
     >
       {/* Search Input Bar */}
-      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border bg-card">
-        <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border/70 bg-card/60">
+        <Search className="w-4 h-4 text-primary shrink-0" />
         <input
           ref={inputRef}
           type="text"
           value={query}
+          onKeyDown={handleKeyDown}
           onChange={(e) => {
             setQuery(e.target.value);
             setSelectedIndex(0);
@@ -115,12 +135,13 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
         />
         {query && (
           <button
+            type="button"
             onClick={() => {
               setQuery('');
               setSelectedIndex(0);
               inputRef.current?.focus();
             }}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -147,17 +168,17 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
                 type="button"
                 onMouseEnter={() => setSelectedIndex(idx)}
                 onClick={() => navigateTo(item)}
-                className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-[10px] text-left transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-black text-white dark:bg-white dark:text-black font-bold shadow-xs'
-                    : 'text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                    ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
+                    : 'text-foreground hover:bg-muted/70'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                       isSelected
-                        ? 'bg-white text-black dark:bg-black dark:text-white'
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
                     }`}
                   >
@@ -165,14 +186,18 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
                   </div>
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`text-xs truncate ${isSelected ? 'text-white dark:text-black font-bold' : 'text-foreground font-semibold'}`}
+                      className={`text-xs truncate ${
+                        isSelected
+                          ? 'text-primary-foreground font-bold'
+                          : 'text-foreground font-semibold'
+                      }`}
                     >
                       {item.title}
                     </p>
                     {item.subtitle && (
                       <p
                         className={`text-[10px] truncate ${
-                          isSelected ? 'text-white/80 dark:text-black/80' : 'text-muted-foreground'
+                          isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'
                         }`}
                       >
                         {item.subtitle}
@@ -184,7 +209,7 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
                 <ArrowRight
                   className={`w-3.5 h-3.5 shrink-0 ${
                     isSelected
-                      ? 'text-white dark:text-black translate-x-0.5'
+                      ? 'text-primary-foreground translate-x-0.5'
                       : 'text-muted-foreground opacity-40'
                   } transition-transform`}
                 />
@@ -192,6 +217,33 @@ export function CommandPalette({ isOpen, onClose, className = '' }: CommandPalet
             );
           })
         )}
+      </div>
+
+      {/* Keyboard Shortcut Hints Footer */}
+      <div className="flex items-center justify-between px-4 py-2 bg-muted/40 border-t border-border/60 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-background rounded border border-border/70 text-[10px] font-mono shadow-2xs">
+              ↑
+            </kbd>
+            <kbd className="px-1.5 py-0.5 bg-background rounded border border-border/70 text-[10px] font-mono shadow-2xs">
+              ↓
+            </kbd>
+            <span>Navigate</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-background rounded border border-border/70 text-[10px] font-mono shadow-2xs">
+              ↵
+            </kbd>
+            <span>Select</span>
+          </span>
+        </div>
+        <span className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 bg-background rounded border border-border/70 text-[10px] font-mono shadow-2xs">
+            ESC
+          </kbd>
+          <span>Close</span>
+        </span>
       </div>
     </div>
   );

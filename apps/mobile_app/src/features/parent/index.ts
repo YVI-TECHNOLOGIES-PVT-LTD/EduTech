@@ -3,3 +3,5 @@ export interface Parent {
   name: string;
   childrenIds: string[];
 }
+
+export * from './hooks/useMyChildrenFees';
