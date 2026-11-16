@@ -386,30 +386,6 @@ export class StudentService {
     const parentName = lead?.contact_name || 'Parent';
     const authorUuid = isValidUuid(performedBy) ? performedBy : undefined;
 
-    let parent = await prisma.parents.findFirst({
-      where: {
-        org_id: app.org_id,
-        phone: parentPhone,
-      },
-    });
-
-    if (!parent) {
-      const nameParts = parentName.trim().split(' ');
-      const pFirstName = nameParts[0] || 'Parent';
-      const pLastName = nameParts.slice(1).join(' ') || undefined;
-
-      parent = await prisma.parents.create({
-        data: {
-          org_id: app.org_id,
-          first_name: pFirstName,
-          last_name: pLastName,
-          phone: parentPhone,
-          email: parentEmail,
-          created_by: authorUuid,
-        },
-      });
-    }
-
     // Generate collision-checked admission_no
     const year = new Date().getFullYear();
     let count = await prisma.students.count({ where: { org_id: app.org_id } });
@@ -425,8 +401,33 @@ export class StudentService {
       attempts += 1;
     }
 
-    // ATOMIC PRISMA TRANSACTION for Student + Parent Link + Student Enrollment + Application & Lead Status
+    // ATOMIC PRISMA TRANSACTION for Parent + Student + Parent Link + Student Enrollment + Application & Lead Status
     const result = await prisma.$transaction(async (tx) => {
+      // 0. Resolve or create Parent record atomically with Student & Enrollment
+      let parent = await tx.parents.findFirst({
+        where: {
+          org_id: app.org_id,
+          phone: parentPhone,
+        },
+      });
+
+      if (!parent) {
+        const nameParts = parentName.trim().split(' ');
+        const pFirstName = nameParts[0] || 'Parent';
+        const pLastName = nameParts.slice(1).join(' ') || undefined;
+
+        parent = await tx.parents.create({
+          data: {
+            org_id: app.org_id,
+            first_name: pFirstName,
+            last_name: pLastName,
+            phone: parentPhone,
+            email: parentEmail,
+            created_by: authorUuid,
+          },
+        });
+      }
+
       // 1. Create or resolve existing Student Master Record
       let student: any = app.students;
       if (!student) {
@@ -506,11 +507,12 @@ export class StudentService {
         });
       }
 
-      return { student, enrollment };
+      return { student, enrollment, parent };
     });
 
     // ADMISSION STUDENT PHOTOGRAPH COPYING (Post-Student Creation)
-    const targetUserId = result.student?.user_id || app.created_by || (parent as any)?.user_id;
+    const targetUserId =
+      result.student?.user_id || app.created_by || (result.parent as any)?.user_id;
     if (targetUserId) {
       try {
         // Look up canonical document type for Student Photograph

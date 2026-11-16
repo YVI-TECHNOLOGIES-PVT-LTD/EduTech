@@ -9,7 +9,7 @@
     "build": "prisma generate && tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
-    "test": "echo \"[Backend Test Platform] Standard tests passed\"",
+    "test": "node --env-file=.env -r ts-node/register src/tests/stage3-phase2-hardening.spec.ts && node --env-file=.env -r ts-node/register src/modules/academic-management/tests/verify_persistence.ts && node --env-file=.env -r ts-node/register src/modules/academic-management/tests/verify_concurrency.ts && node --env-file=.env -r ts-node/register src/modules/classroom/tests/classroom.spec.ts && node --env-file=.env -r ts-node/register src/modules/learning-activities/tests/learning-activities.spec.ts",
     "check-port": "netstat -ano | findstr :3000",
     "migrate": "npx ts-node scripts/migration-runner.ts",
     "migrate:status": "npx ts-node scripts/migration-runner.ts --status",

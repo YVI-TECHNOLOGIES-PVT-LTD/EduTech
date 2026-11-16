@@ -15,7 +15,7 @@ export class ParentLifecycleController {
         });
       }
 
-      const orgId = user?.org_id || user?.school_id || (req.query.org_id as string) || undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const result = await ParentStudentLifecycleService.getParentStudentLifecycle(userId, orgId);
 
       return res.json(result);

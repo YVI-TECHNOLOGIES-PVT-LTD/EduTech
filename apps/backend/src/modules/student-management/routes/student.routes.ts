@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { checkPermission } from '../../../rbac/rbac.middleware';
+import { PERMISSIONS } from '../../../rbac/permissions';
 import { checkIdempotency } from '../../../middlewares/idempotency.middleware';
 import { StudentController } from '../controllers/student.controller';
 import { StudentEnrollmentController } from '../controllers/student-enrollment.controller';
@@ -30,6 +31,23 @@ studentRouter.get(
   StudentAnalyticsController.getDashboard,
 );
 studentRouter.get('/search', checkPermission(StudentPolicy.canViewAll()), StudentController.search);
+
+// Student User Identity Linkage Audit & Safe Admin Linking (before :id catch-all)
+studentRouter.get(
+  '/identity-audit',
+  checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW),
+  StudentController.getIdentityLinkageAudit,
+);
+studentRouter.get(
+  '/identity-audit/dry-run',
+  checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW),
+  StudentController.dryRunIdentityProvisioning,
+);
+studentRouter.post(
+  '/:id/link-user',
+  checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW),
+  StudentController.linkVerifiedUser,
+);
 
 // Student Profile CRUD
 studentRouter.post(

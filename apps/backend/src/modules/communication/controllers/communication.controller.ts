@@ -12,16 +12,11 @@ export class CommunicationController {
       (req as any).context?.user?.org_id ||
       (req as any).context?.user?.school_id ||
       (req as any).user?.org_id ||
-      (req as any).user?.school_id ||
-      (req.headers['x-tenant-id'] as string) ||
-      (req.headers['x-school-id'] as string) ||
-      (req.headers['x-org-id'] as string) ||
-      process.env.DEFAULT_ORG_ID ||
-      '624efc1b-4144-43a4-90b8-552d945cbef7';
+      (req as any).user?.school_id;
     if (!orgId) {
       const err: any = new Error('Tenant organization could not be resolved from session');
-      err.status = 400;
-      err.code = 'TENANT_NOT_FOUND';
+      err.status = 403;
+      err.code = 'TENANT_CONTEXT_MISSING';
       throw err;
     }
     return orgId;

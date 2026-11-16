@@ -139,8 +139,19 @@ export function useNotificationRealtime() {
         hasConnectedRef.current = true;
         setStatus('CONNECTED');
         attemptsRef.current = 0;
-        // Invalidate tags on connect/reconnect so missed notifications while offline are loaded from DB
-        dispatch(apiSlice.util.invalidateTags(['Notification', 'NotificationCount']));
+        // Invalidate tags on connect/reconnect so missed notifications and classroom updates while offline are loaded from DB
+        dispatch(
+          apiSlice.util.invalidateTags([
+            'Notification',
+            'NotificationCount',
+            'ClassroomSession',
+            'ClassroomAttendance',
+            'ClassroomOverview',
+            'LearningActivity',
+            'LearningSubmission',
+            'LearningOverview',
+          ]),
+        );
       };
 
       ws.onmessage = (event) => {
@@ -196,6 +207,37 @@ export function useNotificationRealtime() {
           ) {
             dispatch(
               apiSlice.util.invalidateTags(['Student', 'Enrollment', 'Application', 'Lead']),
+            );
+          } else if (
+            type === 'classroom.session_scheduled' ||
+            type === 'classroom.session_updated' ||
+            type === 'classroom.session_started' ||
+            type === 'classroom.session_completed' ||
+            type === 'classroom.session_cancelled' ||
+            type === 'classroom.session_not_conducted' ||
+            type === 'classroom.attendance_updated'
+          ) {
+            dispatch(
+              apiSlice.util.invalidateTags([
+                'ClassroomSession',
+                'ClassroomAttendance',
+                'ClassroomOverview',
+              ]),
+            );
+          } else if (
+            type === 'learning_activity.published' ||
+            type === 'learning_activity.updated' ||
+            type === 'learning_activity.closed' ||
+            type === 'learning_submission.created' ||
+            type === 'learning_submission.reviewed' ||
+            type === 'learning_submission.resubmission_requested'
+          ) {
+            dispatch(
+              apiSlice.util.invalidateTags([
+                'LearningActivity',
+                'LearningSubmission',
+                'LearningOverview',
+              ]),
             );
           }
         } catch {

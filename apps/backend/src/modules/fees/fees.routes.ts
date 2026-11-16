@@ -452,14 +452,7 @@ feesRouter.get(
   async (req, res) => {
     try {
       const tenantOrgId =
-        (req as any).tenantOrgId ||
-        req.context?.user?.org_id ||
-        req.context?.user?.school_id ||
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        (req.headers['x-org-id'] as string) ||
-        (req.headers['x-tenant-id'] as string) ||
-        (req.headers['x-school-id'] as string);
+        (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
       if (!tenantOrgId) {
         return res.status(400).json({
           success: false,
@@ -738,14 +731,7 @@ feesRouter.get('/demands', checkPermission(PERMISSIONS.FEES_DEMAND_VIEW), async 
   try {
     const { status, studentId } = req.query;
     const tenantOrgId =
-      (req as any).tenantOrgId ||
-      req.context?.user?.org_id ||
-      req.context?.user?.school_id ||
-      (req.query.org_id as string) ||
-      (req.query.school_id as string) ||
-      (req.headers['x-org-id'] as string) ||
-      (req.headers['x-tenant-id'] as string) ||
-      (req.headers['x-school-id'] as string);
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
 
     const safeOrgId = toSafeUuid(tenantOrgId);
     const safeStudentId = toSafeUuid(studentId as string);
@@ -2210,14 +2196,7 @@ feesRouter.get('/admin/ledger', checkPermission(PERMISSIONS.FEES_VIEW), async (r
 feesRouter.get('/dashboard/kpis', checkPermission(PERMISSIONS.FEES_VIEW), async (req, res) => {
   try {
     const tenantOrgId =
-      (req as any).tenantOrgId ||
-      req.context?.user?.org_id ||
-      req.context?.user?.school_id ||
-      (req.query.org_id as string) ||
-      (req.query.school_id as string) ||
-      (req.headers['x-org-id'] as string) ||
-      (req.headers['x-tenant-id'] as string) ||
-      (req.headers['x-school-id'] as string);
+      (req as any).tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
     const today = new Date().toISOString().split('T')[0];
 
     // 1. Today's collections

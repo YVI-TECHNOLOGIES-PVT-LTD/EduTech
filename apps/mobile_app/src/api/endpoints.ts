@@ -81,12 +81,6 @@ export const ENDPOINTS = {
     EXAMS: (studentId: string) => `/v1/students/${studentId}/exams`,
     RESULTS: (studentId: string) => `/v1/students/${studentId}/results`,
   },
-  HELPDESK: {
-    TICKETS: '/v1/helpdesk/tickets',
-    BY_ID: (id: string) => `/v1/helpdesk/tickets/${id}`,
-    CREATE_TICKET: '/v1/helpdesk/tickets',
-    REPLIES: (id: string) => `/v1/helpdesk/tickets/${id}/replies`,
-  },
   TRANSPORT: {
     ALLOCATION: (studentId: string) => `/v1/students/${studentId}/transport`,
     ROUTES: '/public/transport-routes',
@@ -107,8 +101,10 @@ export const ENDPOINTS = {
     CATEGORIES: '/communication/helpdesk/categories',
     TICKETS: '/communication/helpdesk/tickets',
     TICKET_BY_ID: (id: string) => `/communication/helpdesk/tickets/${id}`,
+    BY_ID: (id: string) => `/communication/helpdesk/tickets/${id}`,
     CREATE_TICKET: '/communication/helpdesk/tickets',
     UPDATE_STATUS: (id: string) => `/communication/helpdesk/tickets/${id}/status`,
     MESSAGES: (id: string) => `/communication/helpdesk/tickets/${id}/messages`,
+    REPLIES: (id: string) => `/communication/helpdesk/tickets/${id}/messages`,
   },
 } as const;

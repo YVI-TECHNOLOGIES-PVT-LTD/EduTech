@@ -113,6 +113,18 @@ export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
         icon: Clock,
       },
       {
+        id: 'parent_classroom',
+        title: 'Hybrid Classroom',
+        url: '/app/parent/classroom',
+        icon: Layers,
+      },
+      {
+        id: 'parent_learning_activities',
+        title: 'Learning Activities',
+        url: '/app/parent/learning-activities',
+        icon: ClipboardList,
+      },
+      {
         id: 'parent_academic_progress',
         title: 'Academic Progress',
         url: '/app/parent/academic-progress',
@@ -669,6 +681,24 @@ export const ADMIN_NAVIGATION: NavigationGroup[] = [
         ],
       },
       {
+        id: 'adm_classroom',
+        title: 'Hybrid Classroom Oversight',
+        url: '/app/admin/classroom',
+        icon: Layers,
+      },
+      {
+        id: 'adm_learning_activities',
+        title: 'Learning Activities Oversight',
+        url: '/app/admin/learning-activities',
+        icon: ClipboardList,
+      },
+      {
+        id: 'adm_ai_oversight',
+        title: 'AI Oversight & Metrics',
+        url: '/app/admin/ai-oversight',
+        icon: Sparkles,
+      },
+      {
         id: 'adm_finance',
         title: 'Finance Command Center',
         url: '/app/finance/dashboard',
@@ -852,6 +882,46 @@ export const SUPER_ADMIN_NAVIGATION: NavigationGroup[] = [
   },
 ];
 
+export const STUDENT_NAVIGATION: NavigationGroup[] = [
+  {
+    id: 'student_main',
+    title: 'Student Workspace',
+    contextLabel: 'STUDENT PORTAL',
+    items: [
+      {
+        id: 'stu_dashboard',
+        title: 'Dashboard',
+        url: '/app/student/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        id: 'stu_classroom',
+        title: 'Hybrid Classroom',
+        url: '/app/student/classroom',
+        icon: Layers,
+      },
+      {
+        id: 'stu_learning_activities',
+        title: 'Learning Activities',
+        url: '/app/student/learning-activities',
+        icon: ClipboardList,
+      },
+      {
+        id: 'stu_ai_assistant',
+        title: 'AI Study Assistant',
+        url: '/app/student/ai-study-assistant',
+        icon: Sparkles,
+      },
+      {
+        id: 'stu_profile',
+        title: 'My Profile',
+        url: '/app/profile',
+        icon: User,
+      },
+    ],
+  },
+];
+
 export const TEACHER_NAVIGATION: NavigationGroup[] = [
   {
     id: 'teacher_main',
@@ -863,6 +933,24 @@ export const TEACHER_NAVIGATION: NavigationGroup[] = [
         title: 'Teacher Dashboard',
         url: '/app/teacher/dashboard',
         icon: LayoutDashboard,
+      },
+      {
+        id: 't_classroom',
+        title: 'Hybrid Classroom',
+        url: '/app/teacher/classroom',
+        icon: Layers,
+      },
+      {
+        id: 't_learning_activities',
+        title: 'Learning Activities',
+        url: '/app/teacher/learning-activities',
+        icon: ClipboardList,
+      },
+      {
+        id: 't_ai_copilot',
+        title: 'AI Teacher Copilot',
+        url: '/app/teacher/ai-copilot',
+        icon: Sparkles,
       },
       {
         id: 't_classes',
@@ -965,6 +1053,10 @@ export function getNavigationForUser(
       return POST_ADMISSION_PARENT_NAVIGATION;
     }
     return PARENT_NAVIGATION;
+  }
+
+  if (normalizedRoles.includes('STUDENT')) {
+    return STUDENT_NAVIGATION;
   }
 
   return GENERAL_NAVIGATION;

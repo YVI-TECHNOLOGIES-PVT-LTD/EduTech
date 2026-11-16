@@ -252,23 +252,26 @@ export class LearningResourceRepository {
   /**
    * Insert new learning resource record
    */
-  static async create(data: {
-    resourceId?: string;
-    orgId: string;
-    title: string;
-    description?: string | null;
-    resourceType: 'file' | 'external_link';
-    storageBucket?: string | null;
-    storagePath?: string | null;
-    fileName?: string | null;
-    fileSizeBytes?: number | bigint | null;
-    mimeType?: string | null;
-    externalUrl?: string | null;
-    categoryId?: string | null;
-    uploadedByStaffId: string;
-    resourceStatus?: 'draft' | 'published' | 'archived';
-    createdBy?: string | null;
-  }): Promise<LearningResourceRow> {
+  static async create(
+    data: {
+      resourceId?: string;
+      orgId: string;
+      title: string;
+      description?: string | null;
+      resourceType: 'file' | 'external_link';
+      storageBucket?: string | null;
+      storagePath?: string | null;
+      fileName?: string | null;
+      fileSizeBytes?: number | bigint | null;
+      mimeType?: string | null;
+      externalUrl?: string | null;
+      categoryId?: string | null;
+      uploadedByStaffId: string;
+      resourceStatus?: 'draft' | 'published' | 'archived';
+      createdBy?: string | null;
+    },
+    dbClient: any = prisma,
+  ): Promise<LearningResourceRow> {
     const sql = `
       INSERT INTO learning_resources (
         ${data.resourceId ? 'resource_id,' : ''}
@@ -324,7 +327,7 @@ export class LearningResourceRepository {
       data.createdBy || null,
     );
 
-    const rows = (await prisma.$queryRawUnsafe(sql, ...params)) as LearningResourceRow[];
+    const rows = (await dbClient.$queryRawUnsafe(sql, ...params)) as LearningResourceRow[];
     return rows[0];
   }
 
@@ -341,6 +344,7 @@ export class LearningResourceRepository {
       resourceStatus?: 'draft' | 'published' | 'archived';
       updatedBy?: string | null;
     },
+    dbClient: any = prisma,
   ): Promise<LearningResourceRow | null> {
     const sets: string[] = ['updated_at = now()'];
     const params: any[] = [resourceId, orgId];
@@ -377,7 +381,7 @@ export class LearningResourceRepository {
       RETURNING *;
     `;
 
-    const rows = (await prisma.$queryRawUnsafe(sql, ...params)) as LearningResourceRow[];
+    const rows = (await dbClient.$queryRawUnsafe(sql, ...params)) as LearningResourceRow[];
     return rows[0] || null;
   }
 
@@ -424,9 +428,14 @@ export class LearningResourceRepository {
   /**
    * Synchronize grade associations for a resource in learning_resource_grades
    */
-  static async syncGrades(orgId: string, resourceId: string, gradeIds: string[]): Promise<void> {
+  static async syncGrades(
+    orgId: string,
+    resourceId: string,
+    gradeIds: string[],
+    dbClient: any = prisma,
+  ): Promise<void> {
     // 1. Delete existing grade associations
-    await prisma.$executeRawUnsafe(
+    await dbClient.$executeRawUnsafe(
       `DELETE FROM learning_resource_grades WHERE resource_id = $1::uuid AND org_id = $2::uuid`,
       resourceId,
       orgId,
@@ -436,7 +445,7 @@ export class LearningResourceRepository {
     if (gradeIds && gradeIds.length > 0) {
       const uniqueGrades = Array.from(new Set(gradeIds));
       for (const gradeId of uniqueGrades) {
-        await prisma.$executeRawUnsafe(
+        await dbClient.$executeRawUnsafe(
           `INSERT INTO learning_resource_grades (resource_id, grade_id, org_id)
            VALUES ($1::uuid, $2::uuid, $3::uuid)
            ON CONFLICT DO NOTHING`,

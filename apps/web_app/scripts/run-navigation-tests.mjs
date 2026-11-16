@@ -103,7 +103,7 @@ async function main() {
 
   const vite = await createServer({
     root: webAppRoot,
-    server: { middlewareMode: true },
+    server: { middlewareMode: true, watch: null, hmr: false },
     appType: 'custom',
     logLevel: 'silent',
     optimizeDeps: { noDiscovery: true },
@@ -123,6 +123,48 @@ async function main() {
       console.log(`  ${line}`);
     }
     console.log(`\nAll ${summary.passed}/${summary.total} Academic navigation test groups passed.`);
+
+    console.log('\n=== 3/3 Running Hybrid Classroom Portal & Navigation Suite ===');
+    const classroomSpec = await vite.ssrLoadModule(
+      '/src/modules/classroom/__tests__/classroom-portal.spec.tsx',
+    );
+    const classroomSummary = await classroomSpec.runClassroomPortalFrontendTests(
+      renderElementToHtml,
+    );
+    for (const line of classroomSummary.results) {
+      console.log(`  ${line}`);
+    }
+    console.log(
+      `\nAll ${classroomSummary.passed}/${classroomSummary.total} Hybrid Classroom frontend test groups passed.`,
+    );
+
+    console.log('\n=== 4/5 Running Learning Activities Portal & Navigation Suite ===');
+    const learningSpec = await vite.ssrLoadModule(
+      '/src/modules/learning-activities/__tests__/learning-activities-portal.spec.tsx',
+    );
+    const learningSummary = await learningSpec.runLearningActivitiesPortalFrontendTests(
+      renderElementToHtml,
+    );
+    for (const line of learningSummary.results) {
+      console.log(`  ${line}`);
+    }
+    console.log(
+      `\nAll ${learningSummary.passed}/${learningSummary.total} Learning Activities frontend test groups passed.`,
+    );
+
+    console.log('\n=== 5/5 Running AI Teacher Copilot Portal & Navigation Suite ===');
+    const aiCopilotSpec = await vite.ssrLoadModule(
+      '/src/modules/ai-teacher-copilot/__tests__/ai-copilot-portal.spec.tsx',
+    );
+    const aiCopilotSummary = await aiCopilotSpec.runAiCopilotPortalFrontendTests(
+      renderElementToHtml,
+    );
+    for (const line of aiCopilotSummary.results) {
+      console.log(`  ${line}`);
+    }
+    console.log(
+      `\nAll ${aiCopilotSummary.passed}/${aiCopilotSummary.total} AI Teacher Copilot frontend test groups passed.`,
+    );
   } finally {
     await vite.close();
   }

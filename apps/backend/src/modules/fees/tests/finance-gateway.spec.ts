@@ -784,19 +784,23 @@ export async function runFinanceGatewayTests() {
   // -------------------------------------------------------------------------
   // 6. Finance Phase 6.1: Persistence Hardening & Concurrency Tests
   // -------------------------------------------------------------------------
-  await test('Missing Prisma delegate direct writes are strictly prohibited with Persistence Error', async () => {
+  await test('Real financial delegates validate schema directly while unmapped delegates throw PersistenceError', async () => {
     await assert.rejects(async () => {
       await (prisma as any).payment_orders.create({
         data: { amount: 100 },
       });
-    }, /\[Persistence Error\] Direct write on unmapped Prisma delegate 'payment_orders.create' is prohibited/);
+    }, /PrismaClientValidationError|Argument/i);
 
     await assert.rejects(async () => {
       await (prisma as any).payment_transactions.update({
         where: { payment_transaction_id: '00000000-0000-0000-0000-000000000001' },
         data: { status: 'success' },
       });
-    }, /\[Persistence Error\] Direct write on unmapped Prisma delegate 'payment_transactions.update' is prohibited/);
+    }, /PrismaClientValidationError|PrismaClientKnownRequestError|Record to update not found|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).unmapped_ram_financial_ledger.create({ data: { amount: 100 } });
+    }, /PRISMA_DELEGATE_UNAVAILABLE|PersistenceError/);
   });
 
   await test('PaymentRepository persists payment order and transaction durably to PostgreSQL and reloads them', async () => {

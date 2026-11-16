@@ -169,8 +169,8 @@ function StudentDashboardInner() {
   const quickActions = [
     {
       icon: CalendarCheck,
-      label: 'My Attendance',
-      href: '/app/attendance/my',
+      label: 'Hybrid Classroom',
+      href: '/app/student/classroom',
       color: 'bg-green-500/10 text-green-500 border border-green-500/20',
     },
     {

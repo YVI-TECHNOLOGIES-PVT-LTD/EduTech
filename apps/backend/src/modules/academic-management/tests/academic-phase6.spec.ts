@@ -450,82 +450,48 @@ export async function runAcademicPhase6Tests() {
   });
 
   // =========================================================================
-  // SUITE 9: Prisma Persistence Guard Enforcement
+  // SUITE 9: Prisma Strict Persistence & Unmapped Delegate Enforcement
   // =========================================================================
-  console.log('\n[Suite 9: Prisma Persistence Guard Enforcement]');
+  console.log('\n[Suite 9: Prisma Strict Persistence & Unmapped Delegate Enforcement]');
 
-  await test('Prisma guard blocks direct write on timetable_versions (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).timetable_versions.create({
-          data: { version_name: 'RAM Mock Timetable' },
-        });
-      },
-      (err: any) => {
-        assert.ok(err.message.includes('[Persistence Error]'));
-        assert.ok(err.message.includes('timetable_versions'));
-        return true;
-      },
-    );
+  await test('Real Prisma timetable delegates execute genuine schema validation (no RAM fallback)', async () => {
+    await assert.rejects(async () => {
+      await (prisma as any).timetable_versions.create({
+        data: { version_name: 'RAM Mock Timetable' },
+      });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).timetable_entries.create({
+        data: { weekday: 1 },
+      });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).bell_schedules.create({
+        data: { schedule_name: 'RAM Mock Schedule' },
+      });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).classrooms.create({
+        data: { room_code: 'RAM-01' },
+      });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).section_subject_faculty_assignments.create({
+        data: { assignment_role: 'primary' },
+      });
+    }, /PrismaClientValidationError|Argument/i);
   });
 
-  await test('Prisma guard blocks direct write on timetable_entries (throws Persistence Error)', async () => {
+  await test('Unmapped delegate fails fast with PersistenceError (PRISMA_DELEGATE_UNAVAILABLE)', async () => {
     await assert.rejects(
       async () => {
-        await (prisma as any).timetable_entries.create({
-          data: { weekday: 1 },
-        });
+        await (prisma as any).student_learning_paths.create({ data: { title: 'Unmapped' } });
       },
-      (err: any) => {
-        assert.ok(err.message.includes('[Persistence Error]'));
-        assert.ok(err.message.includes('timetable_entries'));
-        return true;
-      },
-    );
-  });
-
-  await test('Prisma guard blocks direct write on bell_schedules (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).bell_schedules.create({
-          data: { schedule_name: 'RAM Mock Schedule' },
-        });
-      },
-      (err: any) => {
-        assert.ok(err.message.includes('[Persistence Error]'));
-        assert.ok(err.message.includes('bell_schedules'));
-        return true;
-      },
-    );
-  });
-
-  await test('Prisma guard blocks direct write on classrooms (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).classrooms.create({
-          data: { room_code: 'RAM-01' },
-        });
-      },
-      (err: any) => {
-        assert.ok(err.message.includes('[Persistence Error]'));
-        assert.ok(err.message.includes('classrooms'));
-        return true;
-      },
-    );
-  });
-
-  await test('Prisma guard blocks direct write on section_subject_faculty_assignments (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).section_subject_faculty_assignments.create({
-          data: { assignment_role: 'primary' },
-        });
-      },
-      (err: any) => {
-        assert.ok(err.message.includes('[Persistence Error]'));
-        assert.ok(err.message.includes('section_subject_faculty_assignments'));
-        return true;
-      },
+      (err: any) => err.code === 'PRISMA_DELEGATE_UNAVAILABLE' && err.name === 'PersistenceError',
     );
   });
 

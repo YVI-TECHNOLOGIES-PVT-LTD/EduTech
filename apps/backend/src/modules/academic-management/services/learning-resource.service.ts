@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import prisma from '../../../lib/prismaClient';
 import { logger } from '../../../utils/logger';
 import { EventBus } from '../../../workflows/event-bus.service';
 import { StorageService } from '../../../services/storage.service';
@@ -87,7 +88,7 @@ export class LearningResourceService {
     userId?: string | null,
   ) {
     const dto = createResourceSchema.parse(rawDto);
-    // 1. Resolve uploader staff ID
+    // 1. Resolve uploader staff ID strictly from explicit verified staff_id or caller's own staff record
     let staffId = dto.uploaded_by_staff_id;
     if (staffId) {
       const staff = await LearningResourceRepository.findStaffById(orgId, staffId);
@@ -106,17 +107,14 @@ export class LearningResourceService {
     }
 
     if (!staffId) {
-      const fallbackStaff = await LearningResourceRepository.findFirstActiveStaff(orgId);
-      if (fallbackStaff) {
-        staffId = fallbackStaff.staff_id;
-      } else {
-        throw new AcademicError(
-          'No active staff member found in organization to associate as resource uploader',
-          400,
-          'NO_ACTIVE_STAFF',
-        );
-      }
+      throw new AcademicError(
+        'Authenticated user must have an active staff profile or specify a valid uploaded_by_staff_id in this organization',
+        403,
+        'STAFF_PROFILE_REQUIRED',
+      );
     }
+
+    const resolvedStaffId: string = staffId;
 
     // 2. Validate category if provided
     if (dto.category_id) {
@@ -198,30 +196,37 @@ export class LearningResourceService {
         mimeType: mime,
       });
 
-      // Persist metadata to PostgreSQL with automatic cleanup on failure
+      // Persist metadata + grade associations atomically in PostgreSQL with storage cleanup on failure
       let createdRow: LearningResourceRow;
       try {
-        createdRow = await LearningResourceRepository.create({
-          resourceId,
-          orgId,
-          title: dto.title,
-          description: dto.description,
-          resourceType: 'file',
-          storageBucket: bucket,
-          storagePath,
-          fileName: file.originalname,
-          fileSizeBytes: file.size,
-          mimeType: mime,
-          externalUrl: null,
-          categoryId: dto.category_id,
-          uploadedByStaffId: staffId,
-          resourceStatus: dto.resource_status || 'draft',
-          createdBy: userId,
-        });
+        createdRow = await prisma.$transaction(async (tx) => {
+          const row = await LearningResourceRepository.create(
+            {
+              resourceId,
+              orgId,
+              title: dto.title,
+              description: dto.description,
+              resourceType: 'file',
+              storageBucket: bucket,
+              storagePath,
+              fileName: file.originalname,
+              fileSizeBytes: file.size,
+              mimeType: mime,
+              externalUrl: null,
+              categoryId: dto.category_id,
+              uploadedByStaffId: resolvedStaffId,
+              resourceStatus: dto.resource_status || 'draft',
+              createdBy: userId,
+            },
+            tx,
+          );
 
-        if (dto.grade_ids && dto.grade_ids.length > 0) {
-          await LearningResourceRepository.syncGrades(orgId, resourceId, dto.grade_ids);
-        }
+          if (dto.grade_ids && dto.grade_ids.length > 0) {
+            await LearningResourceRepository.syncGrades(orgId, resourceId, dto.grade_ids, tx);
+          }
+
+          return row;
+        });
       } catch (dbErr: any) {
         // Rollback storage object on database write failure
         logger.error(
@@ -257,27 +262,34 @@ export class LearningResourceService {
         );
       }
 
-      const createdRow = await LearningResourceRepository.create({
-        resourceId,
-        orgId,
-        title: dto.title,
-        description: dto.description,
-        resourceType: 'external_link',
-        storageBucket: null,
-        storagePath: null,
-        fileName: null,
-        fileSizeBytes: null,
-        mimeType: null,
-        externalUrl: dto.external_url,
-        categoryId: dto.category_id,
-        uploadedByStaffId: staffId,
-        resourceStatus: dto.resource_status || 'draft',
-        createdBy: userId,
-      });
+      const createdRow = await prisma.$transaction(async (tx) => {
+        const row = await LearningResourceRepository.create(
+          {
+            resourceId,
+            orgId,
+            title: dto.title,
+            description: dto.description,
+            resourceType: 'external_link',
+            storageBucket: null,
+            storagePath: null,
+            fileName: null,
+            fileSizeBytes: null,
+            mimeType: null,
+            externalUrl: dto.external_url,
+            categoryId: dto.category_id,
+            uploadedByStaffId: resolvedStaffId,
+            resourceStatus: dto.resource_status || 'draft',
+            createdBy: userId,
+          },
+          tx,
+        );
 
-      if (dto.grade_ids && dto.grade_ids.length > 0) {
-        await LearningResourceRepository.syncGrades(orgId, resourceId, dto.grade_ids);
-      }
+        if (dto.grade_ids && dto.grade_ids.length > 0) {
+          await LearningResourceRepository.syncGrades(orgId, resourceId, dto.grade_ids, tx);
+        }
+
+        return row;
+      });
 
       logger.info(`External link resource created: ${resourceId} (${dto.title}) in org ${orgId}`, {
         resourceId,
@@ -365,17 +377,26 @@ export class LearningResourceService {
       }
     }
 
-    const updated = await LearningResourceRepository.update(orgId, resourceId, {
-      title: dto.title,
-      description: dto.description,
-      categoryId: dto.category_id,
-      resourceStatus: dto.resource_status,
-      updatedBy: userId,
-    });
+    const updated = await prisma.$transaction(async (tx) => {
+      const row = await LearningResourceRepository.update(
+        orgId,
+        resourceId,
+        {
+          title: dto.title,
+          description: dto.description,
+          categoryId: dto.category_id,
+          resourceStatus: dto.resource_status,
+          updatedBy: userId,
+        },
+        tx,
+      );
 
-    if (dto.grade_ids !== undefined) {
-      await LearningResourceRepository.syncGrades(orgId, resourceId, dto.grade_ids);
-    }
+      if (dto.grade_ids !== undefined) {
+        await LearningResourceRepository.syncGrades(orgId, resourceId, dto.grade_ids, tx);
+      }
+
+      return row;
+    });
 
     logger.info(`Learning resource updated: ${resourceId} in org ${orgId}`, {
       resourceId,

@@ -1,6 +1,7 @@
 import { TeacherContextRepository } from '../repositories/teacher-context.repository';
 import { LessonPlanningRepository } from '../repositories/lesson-planning.repository';
 import { AcademicError } from '../errors/academic.errors';
+import { normalizeRoles } from '../../../rbac/role-normalization';
 
 export class TeacherContextService {
   /**
@@ -14,7 +15,8 @@ export class TeacherContextService {
     requestedStaffId?: string,
     roles: string[] = [],
   ) {
-    const isAdministrative = roles.some((r) =>
+    const normalizedRoles = normalizeRoles(roles);
+    const isAdministrative = normalizedRoles.some((r) =>
       ['ADMIN', 'ORG_ADMIN', 'SUPERADMIN', 'SUPER_ADMIN', 'HOI', 'PRINCIPAL'].includes(r),
     );
 

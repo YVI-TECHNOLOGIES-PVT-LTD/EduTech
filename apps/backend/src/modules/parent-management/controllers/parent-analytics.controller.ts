@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { ParentAnalyticsService } from '../services/parent.analytics.service';
+import { getAuthenticatedOrgId } from '../../../utils/tenant-context';
 
 export class ParentAnalyticsController {
   static async getDashboard(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || undefined;
+      const orgId = getAuthenticatedOrgId(req);
       const result = await ParentAnalyticsService.getDashboardMetrics(orgId);
       return res.json(result);
     } catch (error: any) {

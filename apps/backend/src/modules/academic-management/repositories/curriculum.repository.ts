@@ -294,7 +294,7 @@ export class CurriculumRepository {
   }
 
   /**
-   * Transition curriculum plan status respecting database trigger lifecycle rules
+   * Transition curriculum plan status atomically respecting database trigger lifecycle rules
    */
   static async updateStatus(
     orgId: string,
@@ -302,60 +302,109 @@ export class CurriculumRepository {
     newStatus: string,
     actorId: string | null,
   ): Promise<CurriculumPlanRecord> {
-    const current = await this.findById(orgId, planId);
-    if (!current) {
-      throw new Error(`Curriculum plan with ID '${planId}' was not found`);
-    }
+    return prisma.$transaction(async (tx: any) => {
+      const locked = await tx.$queryRawUnsafe(
+        `SELECT curriculum_plan_id, status::text as status FROM curriculum_plans WHERE curriculum_plan_id = $1::uuid AND org_id = $2::uuid FOR UPDATE`,
+        planId,
+        orgId,
+      );
+      const current = locked?.[0];
+      if (!current) {
+        throw new Error(`Curriculum plan with ID '${planId}' was not found`);
+      }
 
-    const setClauses: string[] = ['status = $1::curriculum_plan_status', 'updated_at = NOW()'];
-    const params: any[] = [newStatus];
+      const setClauses: string[] = ['status = $1::curriculum_plan_status', 'updated_at = NOW()'];
+      const params: any[] = [newStatus];
 
-    if (actorId) {
-      params.push(actorId);
-      setClauses.push(`updated_by = $${params.length}::uuid`);
-    }
-
-    if (newStatus === 'review' && current.status === 'draft') {
-      setClauses.push('submitted_at = NOW()');
-    } else if (newStatus === 'approved') {
-      setClauses.push('approved_at = NOW()');
       if (actorId) {
         params.push(actorId);
-        setClauses.push(`approved_by = $${params.length}::uuid`);
+        setClauses.push(`updated_by = $${params.length}::uuid`);
       }
-    } else if (newStatus === 'published') {
-      setClauses.push('published_at = NOW()');
-      if (actorId) {
-        params.push(actorId);
-        setClauses.push(`published_by = $${params.length}::uuid`);
+
+      if (newStatus === 'review' && current.status === 'draft') {
+        setClauses.push('submitted_at = NOW()');
+      } else if (newStatus === 'approved') {
+        setClauses.push('approved_at = NOW()');
+        if (actorId) {
+          params.push(actorId);
+          setClauses.push(`approved_by = $${params.length}::uuid`);
+        }
+      } else if (newStatus === 'published') {
+        setClauses.push('published_at = NOW()');
+        if (actorId) {
+          params.push(actorId);
+          setClauses.push(`published_by = $${params.length}::uuid`);
+        }
+      } else if (newStatus === 'archived') {
+        setClauses.push('archived_at = NOW()');
       }
-    } else if (newStatus === 'archived') {
-      setClauses.push('archived_at = NOW()');
-    }
 
-    params.push(planId);
-    const planIdIdx = params.length;
-    params.push(orgId);
-    const orgIdIdx = params.length;
+      params.push(planId);
+      const planIdIdx = params.length;
+      params.push(orgId);
+      const orgIdIdx = params.length;
 
-    const sql = `
-      UPDATE curriculum_plans
-      SET ${setClauses.join(', ')}
-      WHERE curriculum_plan_id = $${planIdIdx}::uuid AND org_id = $${orgIdIdx}::uuid
-      RETURNING curriculum_plan_id
-    `;
+      const sql = `
+        UPDATE curriculum_plans
+        SET ${setClauses.join(', ')}
+        WHERE curriculum_plan_id = $${planIdIdx}::uuid AND org_id = $${orgIdIdx}::uuid
+        RETURNING curriculum_plan_id
+      `;
 
-    await prisma.$executeRawUnsafe(sql, ...params);
+      await tx.$executeRawUnsafe(sql, ...params);
 
-    const updated = await this.findById(orgId, planId);
-    if (!updated) {
-      throw new Error(`Failed to retrieve updated curriculum plan '${planId}'`);
-    }
-    return updated;
+      const readSql = `
+        SELECT
+          cp.curriculum_plan_id,
+          cp.org_id,
+          cp.academic_year_grade_subject_id,
+          cp.plan_title,
+          cp.plan_description,
+          cp.total_planned_hours,
+          cp.planned_start_date::text as planned_start_date,
+          cp.planned_end_date::text as planned_end_date,
+          cp.status::text as status,
+          cp.coordinator_staff_id,
+          cp.submitted_at::text as submitted_at,
+          cp.approved_by,
+          cp.approved_at::text as approved_at,
+          cp.published_by,
+          cp.published_at::text as published_at,
+          cp.archived_at::text as archived_at,
+          cp.created_at::text as created_at,
+          cp.updated_at::text as updated_at,
+          s.subject_id,
+          s.subject_code,
+          s.subject_name,
+          ayg.academic_year_grade_id,
+          g.grade_id,
+          g.grade_name,
+          g.grade_code,
+          ay.academic_year_id,
+          ay.academic_year_name,
+          CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as coordinator_name
+        FROM curriculum_plans cp
+        JOIN academic_year_grade_subjects aygs ON aygs.academic_year_grade_subject_id = cp.academic_year_grade_subject_id
+        JOIN subjects s ON s.subject_id = aygs.subject_id
+        JOIN academic_year_grades ayg ON ayg.academic_year_grade_id = aygs.academic_year_grade_id
+        JOIN grades g ON g.grade_id = ayg.grade_id
+        JOIN academic_years ay ON ay.academic_year_id = ayg.academic_year_id
+        LEFT JOIN staff st ON st.staff_id = cp.coordinator_staff_id
+        LEFT JOIN users u ON u.user_id = st.user_id
+        WHERE cp.curriculum_plan_id = $1::uuid AND cp.org_id = $2::uuid
+        LIMIT 1
+      `;
+      const updatedRows = await tx.$queryRawUnsafe(readSql, planId, orgId);
+      const updated = updatedRows?.[0];
+      if (!updated) {
+        throw new Error(`Failed to retrieve updated curriculum plan '${planId}'`);
+      }
+      return updated;
+    });
   }
 
   /**
-   * Update plan metadata (only allowed for draft status per trigger)
+   * Update plan metadata atomically (only allowed for draft status per trigger)
    */
   static async updatePlan(
     orgId: string,
@@ -363,63 +412,111 @@ export class CurriculumRepository {
     data: UpdateCurriculumPlanInput,
     actorId: string | null,
   ): Promise<CurriculumPlanRecord> {
-    const current = await this.findById(orgId, planId);
-    if (!current) {
-      throw new Error(`Curriculum plan with ID '${planId}' was not found`);
-    }
+    return prisma.$transaction(async (tx: any) => {
+      const locked = await tx.$queryRawUnsafe(
+        `SELECT curriculum_plan_id FROM curriculum_plans WHERE curriculum_plan_id = $1::uuid AND org_id = $2::uuid FOR UPDATE`,
+        planId,
+        orgId,
+      );
+      if (!locked?.[0]) {
+        throw new Error(`Curriculum plan with ID '${planId}' was not found`);
+      }
 
-    const setClauses: string[] = ['updated_at = NOW()'];
-    const params: any[] = [];
+      const setClauses: string[] = ['updated_at = NOW()'];
+      const params: any[] = [];
 
-    if (data.plan_title !== undefined) {
-      params.push(data.plan_title);
-      setClauses.push(`plan_title = $${params.length}`);
-    }
+      if (data.plan_title !== undefined) {
+        params.push(data.plan_title);
+        setClauses.push(`plan_title = $${params.length}`);
+      }
 
-    if (data.plan_description !== undefined) {
-      params.push(data.plan_description);
-      setClauses.push(`plan_description = $${params.length}`);
-    }
+      if (data.plan_description !== undefined) {
+        params.push(data.plan_description);
+        setClauses.push(`plan_description = $${params.length}`);
+      }
 
-    if (data.planned_start_date !== undefined) {
-      params.push(data.planned_start_date);
-      setClauses.push(`planned_start_date = $${params.length}::date`);
-    }
+      if (data.planned_start_date !== undefined) {
+        params.push(data.planned_start_date);
+        setClauses.push(`planned_start_date = $${params.length}::date`);
+      }
 
-    if (data.planned_end_date !== undefined) {
-      params.push(data.planned_end_date);
-      setClauses.push(`planned_end_date = $${params.length}::date`);
-    }
+      if (data.planned_end_date !== undefined) {
+        params.push(data.planned_end_date);
+        setClauses.push(`planned_end_date = $${params.length}::date`);
+      }
 
-    if (data.coordinator_staff_id !== undefined) {
-      params.push(data.coordinator_staff_id);
-      setClauses.push(`coordinator_staff_id = $${params.length}::uuid`);
-    }
+      if (data.coordinator_staff_id !== undefined) {
+        params.push(data.coordinator_staff_id);
+        setClauses.push(`coordinator_staff_id = $${params.length}::uuid`);
+      }
 
-    if (actorId) {
-      params.push(actorId);
-      setClauses.push(`updated_by = $${params.length}::uuid`);
-    }
+      if (actorId) {
+        params.push(actorId);
+        setClauses.push(`updated_by = $${params.length}::uuid`);
+      }
 
-    params.push(planId);
-    const planIdIdx = params.length;
-    params.push(orgId);
-    const orgIdIdx = params.length;
+      params.push(planId);
+      const planIdIdx = params.length;
+      params.push(orgId);
+      const orgIdIdx = params.length;
 
-    const sql = `
-      UPDATE curriculum_plans
-      SET ${setClauses.join(', ')}
-      WHERE curriculum_plan_id = $${planIdIdx}::uuid AND org_id = $${orgIdIdx}::uuid
-      RETURNING curriculum_plan_id
-    `;
+      const sql = `
+        UPDATE curriculum_plans
+        SET ${setClauses.join(', ')}
+        WHERE curriculum_plan_id = $${planIdIdx}::uuid AND org_id = $${orgIdIdx}::uuid
+        RETURNING curriculum_plan_id
+      `;
 
-    await prisma.$executeRawUnsafe(sql, ...params);
+      await tx.$executeRawUnsafe(sql, ...params);
 
-    const updated = await this.findById(orgId, planId);
-    if (!updated) {
-      throw new Error(`Failed to retrieve updated curriculum plan '${planId}'`);
-    }
-    return updated;
+      const readSql = `
+        SELECT
+          cp.curriculum_plan_id,
+          cp.org_id,
+          cp.academic_year_grade_subject_id,
+          cp.plan_title,
+          cp.plan_description,
+          cp.total_planned_hours,
+          cp.planned_start_date::text as planned_start_date,
+          cp.planned_end_date::text as planned_end_date,
+          cp.status::text as status,
+          cp.coordinator_staff_id,
+          cp.submitted_at::text as submitted_at,
+          cp.approved_by,
+          cp.approved_at::text as approved_at,
+          cp.published_by,
+          cp.published_at::text as published_at,
+          cp.archived_at::text as archived_at,
+          cp.created_at::text as created_at,
+          cp.updated_at::text as updated_at,
+          s.subject_id,
+          s.subject_code,
+          s.subject_name,
+          ayg.academic_year_grade_id,
+          g.grade_id,
+          g.grade_name,
+          g.grade_code,
+          ay.academic_year_id,
+          ay.academic_year_name,
+          CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as coordinator_name
+        FROM curriculum_plans cp
+        JOIN academic_year_grade_subjects aygs ON aygs.academic_year_grade_subject_id = cp.academic_year_grade_subject_id
+        JOIN subjects s ON s.subject_id = aygs.subject_id
+        JOIN academic_year_grades ayg ON ayg.academic_year_grade_id = aygs.academic_year_grade_id
+        JOIN grades g ON g.grade_id = ayg.grade_id
+        JOIN academic_years ay ON ay.academic_year_id = ayg.academic_year_id
+        LEFT JOIN staff st ON st.staff_id = cp.coordinator_staff_id
+        LEFT JOIN users u ON u.user_id = st.user_id
+        WHERE cp.curriculum_plan_id = $1::uuid AND cp.org_id = $2::uuid
+        LIMIT 1
+      `;
+      const updatedRows = await tx.$queryRawUnsafe(readSql, planId, orgId);
+      const updated = updatedRows?.[0];
+      if (!updated) {
+        throw new Error(`Failed to retrieve updated curriculum plan '${planId}'`);
+      }
+      return updated;
+    });
   }
 
   /**

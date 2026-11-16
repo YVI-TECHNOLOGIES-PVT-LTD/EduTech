@@ -180,6 +180,72 @@ const TeacherSubjectsPage = React.lazy(() =>
   })),
 );
 
+const TeacherClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/TeacherClassroomPage').then((m) => ({
+    default: m.TeacherClassroomPage,
+  })),
+);
+
+const AdminClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/AdminClassroomPage').then((m) => ({
+    default: m.AdminClassroomPage,
+  })),
+);
+
+const StudentClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/StudentClassroomPage').then((m) => ({
+    default: m.StudentClassroomPage,
+  })),
+);
+
+const ParentClassroomPage = React.lazy(() =>
+  import('../modules/classroom/pages/ParentClassroomPage').then((m) => ({
+    default: m.ParentClassroomPage,
+  })),
+);
+
+const TeacherLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/TeacherLearningActivitiesPage').then((m) => ({
+    default: m.TeacherLearningActivitiesPage,
+  })),
+);
+
+const StudentLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/StudentLearningActivitiesPage').then((m) => ({
+    default: m.StudentLearningActivitiesPage,
+  })),
+);
+
+const ParentLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/ParentLearningActivitiesPage').then((m) => ({
+    default: m.ParentLearningActivitiesPage,
+  })),
+);
+
+const AdminLearningActivitiesPage = React.lazy(() =>
+  import('../modules/learning-activities/pages/AdminLearningActivitiesPage').then((m) => ({
+    default: m.AdminLearningActivitiesPage,
+  })),
+);
+
+const TeacherAiCopilotPage = React.lazy(() =>
+  import('../modules/ai-teacher-copilot/pages/TeacherAiCopilotPage').then((m) => ({
+    default: m.TeacherAiCopilotPage,
+  })),
+);
+
+const StudentStudyAssistantPage = React.lazy(() =>
+  import('../modules/ai-teacher-copilot/pages/StudentStudyAssistantPage').then((m) => ({
+    default: m.StudentStudyAssistantPage,
+  })),
+);
+
+const AdminAiOversightPage = React.lazy(() =>
+  import('../modules/ai-teacher-copilot/pages/AdminAiOversightPage').then((m) => ({
+    default: m.AdminAiOversightPage,
+  })),
+);
+
 const TeacherCurriculumPage = React.lazy(() =>
   import('../modules/teacher/pages/TeacherCurriculumPage').then((m) => ({
     default: m.TeacherCurriculumPage,
@@ -244,6 +310,27 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     guardType: 'admin',
   },
   {
+    path: 'admin/classroom',
+    element: <AdminClassroomPage />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
+    path: 'admin/learning-activities',
+    element: <AdminLearningActivitiesPage />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
+    path: 'admin/ai-oversight',
+    element: <AdminAiOversightPage />,
+    layout: 'dashboard',
+    permission: 'admin.dashboard.view',
+    guardType: 'admin',
+  },
+  {
     path: 'super-admin/dashboard',
     element: <SuperAdminDashboard />,
     layout: 'dashboard',
@@ -258,6 +345,24 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   {
     path: 'teacher/classes',
     element: <TeacherClassesPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/classroom',
+    element: <TeacherClassroomPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/learning-activities',
+    element: <TeacherLearningActivitiesPage />,
+    layout: 'dashboard',
+    guardType: 'teacher',
+  },
+  {
+    path: 'teacher/ai-copilot',
+    element: <TeacherAiCopilotPage />,
     layout: 'dashboard',
     guardType: 'teacher',
   },
@@ -299,6 +404,24 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   {
     path: 'student/dashboard',
     element: <StudentDashboard />,
+    layout: 'dashboard',
+    permission: 'student.dashboard.view',
+  },
+  {
+    path: 'student/classroom',
+    element: <StudentClassroomPage />,
+    layout: 'dashboard',
+    permission: 'student.dashboard.view',
+  },
+  {
+    path: 'student/learning-activities',
+    element: <StudentLearningActivitiesPage />,
+    layout: 'dashboard',
+    permission: 'student.dashboard.view',
+  },
+  {
+    path: 'student/ai-study-assistant',
+    element: <StudentStudyAssistantPage />,
     layout: 'dashboard',
     permission: 'student.dashboard.view',
   },
@@ -396,6 +519,18 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   {
     path: 'parent/timetable',
     element: <ParentTimetablePage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/classroom',
+    element: <ParentClassroomPage />,
+    layout: 'dashboard',
+    guardType: 'parent',
+  },
+  {
+    path: 'parent/learning-activities',
+    element: <ParentLearningActivitiesPage />,
     layout: 'dashboard',
     guardType: 'parent',
   },

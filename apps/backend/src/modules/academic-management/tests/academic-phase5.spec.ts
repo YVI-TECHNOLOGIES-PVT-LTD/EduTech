@@ -560,46 +560,34 @@ export async function runAcademicPhase5Tests() {
   });
 
   // --------------------------------------------------------------------------
-  // SUITE 8: PRISMA PERSISTENCE GUARD ENFORCEMENT
+  // SUITE 8: PRISMA STRICT PERSISTENCE & UNMAPPED DELEGATE ENFORCEMENT
   // --------------------------------------------------------------------------
-  console.log('\n[Suite 8: Prisma Persistence Guard Enforcement]');
+  console.log('\n[Suite 8: Prisma Strict Persistence & Unmapped Delegate Enforcement]');
 
-  await test('Prisma guard blocks direct write on curriculum_plans (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).curriculum_plans.create({ data: { plan_title: 'Fake' } });
-      },
-      (err: any) =>
-        err.message.includes('[Persistence Error]') && err.message.includes('curriculum_plans'),
-    );
+  await test('Real Prisma delegates execute genuine schema validation (curriculum_plans, subjects, academic_calendars, academic_terms)', async () => {
+    await assert.rejects(async () => {
+      await (prisma as any).curriculum_plans.create({ data: { plan_title: 'Fake' } });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).subjects.create({ data: { subject_name: 'Fake' } });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).academic_calendars.create({ data: { status: 'draft' } });
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).academic_terms.create({ data: { term_name: 'Fake' } });
+    }, /PrismaClientValidationError|Argument/i);
   });
 
-  await test('Prisma guard blocks direct write on subjects (throws Persistence Error)', async () => {
+  await test('Unmapped Prisma delegate fails fast with PersistenceError (zero RAM fallback)', async () => {
     await assert.rejects(
       async () => {
-        await (prisma as any).subjects.create({ data: { subject_name: 'Fake' } });
+        await (prisma as any).assessments.create({ data: { title: 'RAM Mock Assessment' } });
       },
-      (err: any) => err.message.includes('[Persistence Error]') && err.message.includes('subjects'),
-    );
-  });
-
-  await test('Prisma guard blocks direct write on academic_calendars (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).academic_calendars.create({ data: { status: 'draft' } });
-      },
-      (err: any) =>
-        err.message.includes('[Persistence Error]') && err.message.includes('academic_calendars'),
-    );
-  });
-
-  await test('Prisma guard blocks direct write on academic_terms (throws Persistence Error)', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).academic_terms.create({ data: { term_name: 'Fake' } });
-      },
-      (err: any) =>
-        err.message.includes('[Persistence Error]') && err.message.includes('academic_terms'),
+      (err: any) => err.code === 'PRISMA_DELEGATE_UNAVAILABLE' && err.name === 'PersistenceError',
     );
   });
 

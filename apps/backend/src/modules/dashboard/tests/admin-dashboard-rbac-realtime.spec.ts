@@ -279,11 +279,13 @@ export async function runAdminDashboardRbacAndRealtimeTests() {
   const baseUrl = `http://127.0.0.1:${port}/api`;
 
   const origValidateSession = sessionService.validateSession;
+  const orgsAny: any = prisma.organizations;
   const studentsAny: any = prisma.students;
   const sectionsAny: any = prisma.sections;
   const appsAny: any = prisma.admissions_applications;
   const payAny: any = prisma.payment_transactions;
 
+  const origOrgsFindFirst = orgsAny.findFirst;
   const origStudentsCount = studentsAny.count;
   const origSectionsCount = sectionsAny.count;
   const origAppsCount = appsAny.count;
@@ -292,6 +294,12 @@ export async function runAdminDashboardRbacAndRealtimeTests() {
   const capturedOrgIds: string[] = [];
 
   try {
+    orgsAny.findFirst = async ({ where }: any) => {
+      if (where?.org_id === TENANT_A_ID || where?.org_id === TENANT_B_ID) {
+        return { org_id: where.org_id };
+      }
+      return origOrgsFindFirst.call(prisma.organizations, { where });
+    };
     const makeProfile = (
       id: string,
       roles: string[],
@@ -409,7 +417,7 @@ export async function runAdminDashboardRbacAndRealtimeTests() {
       assert.strictEqual(explicitFinRes.status, 200);
     });
 
-    await test('8. Unauthenticated -> 401; missing tenant -> 403; client org_id override ignored', async () => {
+    await test('8. Unauthenticated -> 401; missing tenant -> 403; cross-tenant override rejected with 403 TENANT_MISMATCH', async () => {
       const unauthRes = await httpRequest(baseUrl, '/dashboard/admin/overview');
       assert.strictEqual(unauthRes.status, 401);
 
@@ -427,7 +435,13 @@ export async function runAdminDashboardRbacAndRealtimeTests() {
           'x-tenant-id': TENANT_B_ID,
         },
       );
-      assert.strictEqual(spoofRes.status, 200);
+      assert.strictEqual(spoofRes.status, 403);
+      assert.strictEqual(capturedOrgIds.length, 0, 'Spoofed cross-tenant request must not hit DB');
+
+      const okRes = await httpRequest(baseUrl, '/dashboard/admin/overview', {
+        Authorization: 'Bearer tok-admin-canonical',
+      });
+      assert.strictEqual(okRes.status, 200);
       assert.ok(capturedOrgIds.length > 0);
       assert.ok(
         capturedOrgIds.every((id) => id === TENANT_A_ID),
@@ -576,6 +590,7 @@ export async function runAdminDashboardRbacAndRealtimeTests() {
     });
   } finally {
     sessionService.validateSession = origValidateSession;
+    orgsAny.findFirst = origOrgsFindFirst;
     studentsAny.count = origStudentsCount;
     sectionsAny.count = origSectionsCount;
     appsAny.count = origAppsCount;

@@ -1,10 +1,9 @@
-import { supabase } from '../config/supabase';
 import { env } from '../config/env';
 import { NativePassword, NativeJwt } from './crypto.utils';
 import prisma from '../lib/prismaClient';
 import { logger } from '../utils/logger';
 import { sessionService } from './session.service';
-import { normalizeRoleName, normalizeRoles } from '../rbac/role-normalization';
+import { normalizeRoles } from '../rbac/role-normalization';
 import {
   normalizePhoneNumber as sharedNormalizePhone,
   normalizeEmail as sharedNormalizeEmail,
@@ -76,85 +75,14 @@ export class AuthService {
       throw new Error('Invalid login credentials');
     }
 
-    // 3. Fetch User Roles & Permissions via database
-    console.log('Fetching roles and permissions...');
-    const roles: string[] = [];
-    const permissionsSet = new Set<string>();
-
-    try {
-      const { data: userRolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select(
-          `
-          roles (
-            role_name,
-            role_permissions (
-              permissions (
-                code
-              )
-            )
-          )
-        `,
-        )
-        .eq('user_id', user.user_id);
-
-      if (!rolesError && userRolesData) {
-        userRolesData.forEach((ur: any) => {
-          const roleObj = ur.roles;
-          if (roleObj) {
-            const canonical = normalizeRoleName(roleObj.role_name || roleObj.name);
-            if (canonical && !roles.includes(canonical)) {
-              roles.push(canonical);
-            }
-            roleObj.role_permissions?.forEach((rp: any) => {
-              if (rp.permissions?.code) {
-                permissionsSet.add(rp.permissions.code);
-              }
-            });
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('[AuthService] Supabase roles fetch exception, trying Prisma fallback');
-    }
-
-    // Prisma fallback if Supabase returns 0 roles
-    if (roles.length === 0) {
-      try {
-        const userRolesPrisma: any = await prisma.user_roles.findMany({
-          where: { user_id: user.user_id },
-          include: {
-            roles: true,
-          },
-        });
-
-        userRolesPrisma.forEach((ur: any) => {
-          if (ur.roles) {
-            const canonical = normalizeRoleName(ur.roles.role_name || ur.roles.name);
-            if (canonical && !roles.includes(canonical)) {
-              roles.push(canonical);
-            }
-          }
-        });
-      } catch (e) {
-        // Fallback silently if table not present in Prisma schema
-      }
-    }
-
-    if (roles.length === 0) {
-      const parentRecord = await prisma.parents.findUnique({
-        where: { user_id: user.user_id },
-      });
-      if (parentRecord) {
-        roles.push('PARENT');
-      }
-    }
-
-    if (roles.length === 0) {
+    // 3. Resolve authoritative roles, permissions, and persona IDs strictly from PostgreSQL
+    const initialProfile = await sessionService.validateUserById(user.user_id);
+    if (!initialProfile || initialProfile.roles.length === 0) {
       throw new Error('User account has no active assigned roles. Access denied.');
     }
 
-    const permissions = Array.from(permissionsSet);
+    const roles = initialProfile.roles;
+    const permissions = initialProfile.permissions;
 
     // 4. Update last_login_at timestamp via Prisma
     await prisma.users
@@ -179,25 +107,6 @@ export class AuthService {
       JWT_REFRESH_EXPIRES_IN_SECONDS,
     );
 
-    // Resolve authoritative user profile via SessionService
-    let resolvedRoles = roles;
-    let resolvedPermissions = permissions;
-    let sessionProfile: any = null;
-    try {
-      sessionProfile = await sessionService.validateSession(accessToken);
-      if (sessionProfile) {
-        resolvedRoles = sessionProfile.roles;
-        resolvedPermissions = sessionProfile.permissions;
-      }
-    } catch (e) {
-      logger.warn(
-        '[AuthService] sessionService validation failed during login response enrichment',
-        {
-          error: (e as Error)?.message || String(e),
-        },
-      );
-    }
-
     return {
       accessToken,
       refreshToken,
@@ -210,13 +119,17 @@ export class AuthService {
         org_id: user.org_id,
         first_name: user.first_name,
         last_name: user.last_name,
-        full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
+        full_name: initialProfile.full_name,
         phone: user.phone,
-        roles: resolvedRoles,
-        permissions: resolvedPermissions,
+        roles,
+        permissions,
         login_status: 'APPROVED',
-        hasEnrolledStudent: Boolean(sessionProfile?.hasEnrolledStudent),
-        isPostAdmission: Boolean(sessionProfile?.isPostAdmission),
+        hasEnrolledStudent: Boolean(initialProfile.hasEnrolledStudent),
+        isPostAdmission: Boolean(initialProfile.isPostAdmission),
+        staff_id: initialProfile.staff_id,
+        student_id: initialProfile.student_id,
+        parent_id: initialProfile.parent_id,
+        parent_student_ids: initialProfile.parent_student_ids,
       },
     };
   }
@@ -236,7 +149,7 @@ export class AuthService {
         throw new Error('User not found or inactive');
       }
 
-      const isValidSession = await sessionService.validateSession(refreshTokenInput);
+      const isValidSession = await sessionService.validateUserById(decoded.userId, decoded.roles);
       if (!isValidSession) {
         throw new Error('Invalid or revoked session');
       }

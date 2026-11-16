@@ -16,6 +16,10 @@ declare global {
           login_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
           hasEnrolledStudent?: boolean;
           isPostAdmission?: boolean;
+          staff_id?: string;
+          student_id?: string;
+          parent_id?: string;
+          parent_student_ids?: string[];
         };
         token: string;
       };
@@ -53,6 +57,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         login_status: userProfile.login_status,
         hasEnrolledStudent: userProfile.hasEnrolledStudent,
         isPostAdmission: userProfile.isPostAdmission,
+        staff_id: userProfile.staff_id,
+        student_id: userProfile.student_id,
+        parent_id: userProfile.parent_id,
+        parent_student_ids: userProfile.parent_student_ids,
       },
       token,
     };
@@ -87,6 +95,10 @@ export const authenticateOptional = async (req: Request, res: Response, next: Ne
           login_status: userProfile.login_status,
           hasEnrolledStudent: userProfile.hasEnrolledStudent,
           isPostAdmission: userProfile.isPostAdmission,
+          staff_id: userProfile.staff_id,
+          student_id: userProfile.student_id,
+          parent_id: userProfile.parent_id,
+          parent_student_ids: userProfile.parent_student_ids,
         },
         token,
       };

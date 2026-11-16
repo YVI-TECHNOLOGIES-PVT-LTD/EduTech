@@ -277,8 +277,12 @@ async function renderAppAtRoute(
     </ErrorBoundary>
   );
 
-  const rawHtml = await renderHtml(tree);
-  return decodeHtmlEntities(rawHtml);
+  try {
+    const rawHtml = await renderHtml(tree);
+    return decodeHtmlEntities(rawHtml);
+  } finally {
+    queryClient.clear();
+  }
 }
 
 function getActiveAcademicNavIds(html: string): string[] {

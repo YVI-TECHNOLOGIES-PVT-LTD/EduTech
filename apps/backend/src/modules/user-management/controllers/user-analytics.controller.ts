@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { UserAnalyticsService } from '../services/user.analytics.service';
+import { getAuthenticatedOrgId } from '../../../utils/tenant-context';
 
 export class UserAnalyticsController {
   static async getDashboard(req: Request, res: Response) {
     try {
-      const orgId = (req.query.org_id as string) || undefined;
+      const orgId = getAuthenticatedOrgId(req);
       const result = await UserAnalyticsService.getDashboardMetrics(orgId);
       return res.json(result);
     } catch (error: any) {

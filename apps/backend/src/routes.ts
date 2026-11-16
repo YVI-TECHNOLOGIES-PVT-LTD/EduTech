@@ -2,7 +2,10 @@ import { Router, Request, Response } from 'express';
 import { authenticate, authenticateOptional, checkLoginApproval } from './auth/auth.middleware';
 import { publicAuthRouter, protectedAuthRouter } from './auth/auth.routes';
 import { AuthController } from './auth/auth.controller';
-import { resolveTenantMiddleware } from './middlewares/tenant.middleware';
+import {
+  resolveTenantMiddleware,
+  resolvePublicTenantMiddleware,
+} from './middlewares/tenant.middleware';
 import { checkPermission } from './rbac/rbac.middleware';
 import { PERMISSIONS } from './rbac/permissions';
 import { crmRouter } from './modules/admission/crm.routes';
@@ -41,6 +44,10 @@ import { CommunicationController } from './modules/communication/controllers/com
 import { feesRouter } from './modules/fees/fees.routes';
 import { FinanceNotificationSubscriber } from './modules/fees/subscribers/finance-notification.subscriber';
 import { razorpayRouter } from './routes/razorpay.routes';
+import { classroomRouter } from './modules/classroom';
+import { learningActivitiesRouter } from './modules/learning-activities';
+import { aiCopilotRouter } from './modules/ai-teacher-copilot';
+import { AiCopilotController } from './modules/ai-teacher-copilot/ai-copilot.controller';
 
 NotificationSubscriber.register();
 FinanceNotificationSubscriber.register();
@@ -93,7 +100,7 @@ router.use('/auth', publicAuthRouter);
 router.use('/v1/auth', publicAuthRouter);
 
 // Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
-router.post('/v1/admission/register', resolveTenantMiddleware, AuthController.registerParent);
+router.post('/v1/admission/register', resolvePublicTenantMiddleware, AuthController.registerParent);
 router.post('/v1/admission/verify-otp', AuthController.verifyOtp);
 router.post('/v1/admission/public-apply', publicApplicationController.apply);
 router.post('/admissions/public-apply', publicApplicationController.apply);
@@ -106,13 +113,13 @@ router.get('/admission/query-types', enquiryController.getQueryTypes);
 router.post(
   '/v1/admission/crm/enquiries',
   authenticateOptional,
-  resolveTenantMiddleware,
+  resolvePublicTenantMiddleware,
   enquiryController.create,
 );
 router.post(
   '/v1/admission/enquiries',
   authenticateOptional,
-  resolveTenantMiddleware,
+  resolvePublicTenantMiddleware,
   enquiryController.create,
 );
 
@@ -586,39 +593,16 @@ router.get('/public/admission/config', admissionConfigHandler);
 // v1-prefixed alias — delegates to the SAME shared handler (zero implementation drift)
 router.get('/v1/public/admission/config', admissionConfigHandler);
 
-// Temporary RBAC debug endpoint
-router.get('/public/inspect-rbac', async (req: Request, res: Response) => {
-  try {
-    const user = await prisma.users.findFirst({
-      where: { email: 'examplatform@edu.in' },
-      include: {
-        user_roles_user_roles_user_idTousers: {
-          include: {
-            roles: true,
-          },
-        },
-      },
-    });
-
-    const allRoles = await prisma.roles.findMany();
-
-    res.json({
-      user: user || null,
-      userRoles: user?.user_roles_user_roles_user_idTousers || [],
-      permissions: [],
-      allRoles,
-      allPermsCount: 0,
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Public AI Copilot Service Health & Operational Status probe
+router.get('/v1/ai-teacher-copilot/status', AiCopilotController.getStatus);
+router.get('/ai-teacher-copilot/status', AiCopilotController.getStatus);
 
 // ======================================
-// PROTECTED (Global Guard)
+// PROTECTED (Global Guard: Auth -> Approval -> Strict Tenant Isolation)
 // ======================================
 router.use(authenticate);
 router.use(checkLoginApproval);
+router.use(resolveTenantMiddleware);
 
 // Protected Auth Router
 router.use('/auth', protectedAuthRouter);
@@ -750,22 +734,30 @@ router.use('/import', importRouter);
 router.use('/v1/workflows', workflowRouter);
 router.use('/v1/tasks', taskRouter);
 
-// System RBAC Audit Endpoint
+// System RBAC Audit Endpoint (Tenant-Scoped, Non-PII)
 router.get(
   '/system/rbac/audit',
   checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW),
   async (req: Request, res: Response) => {
     try {
+      const orgId = (req as any).tenantOrgId || req.context?.user?.org_id;
       const [dbRoles, dbUserRoles, dbUsers] = await Promise.all([
         prisma.roles.findMany({ select: { role_id: true, role_name: true, description: true } }),
-        prisma.user_roles.findMany({ select: { user_id: true, role_id: true } }),
-        prisma.users.findMany({ select: { user_id: true, email: true, status: true } }),
+        prisma.user_roles.findMany({
+          where: { users_user_roles_user_idTousers: { org_id: orgId } },
+          select: { user_id: true, role_id: true },
+        }),
+        prisma.users.findMany({
+          where: { org_id: orgId },
+          select: { user_id: true, status: true },
+        }),
       ]);
 
       const activeUsers = dbUsers.filter((u) => u.status === 'active');
 
       res.json({
         timestamp: new Date().toISOString(),
+        org_id: orgId,
         status: 'SECURE',
         summary: {
           total_roles: dbRoles.length,
@@ -794,64 +786,66 @@ router.use('/admin/bulk', bulkRouter);
 router.use('/admin/departments', departmentRouter);
 
 // Lead Management Module (Phase 3.1)
-router.use('/v1/leads', authenticate, leadRouter);
-router.use('/leads', authenticate, leadRouter);
+router.use('/v1/leads', leadRouter);
+router.use('/leads', leadRouter);
 
 // Admission Application Management Module (Phase 3.2)
-router.use('/v1/applications', authenticate, admissionManagementRouter);
-router.use('/applications', authenticate, admissionManagementRouter);
+router.use('/v1/applications', admissionManagementRouter);
+router.use('/applications', admissionManagementRouter);
 
 // Student Management Module (Phase 3.3)
-router.use('/v1/students', authenticate, studentManagementRouter);
-router.use('/students', authenticate, studentManagementRouter);
+router.use('/v1/students', studentManagementRouter);
+router.use('/students', studentManagementRouter);
 
 // Parent Management Module (Phase 3.4)
-router.use('/v1/parents', authenticate, parentManagementRouter);
-router.use('/parents', authenticate, parentManagementRouter);
-router.use('/v1/parent-portal', authenticate, parentManagementRouter);
-router.use('/parent-portal', authenticate, parentManagementRouter);
-router.use('/api/parent-portal', authenticate, parentManagementRouter);
+router.use('/v1/parents', parentManagementRouter);
+router.use('/parents', parentManagementRouter);
+router.use('/v1/parent-portal', parentManagementRouter);
+router.use('/parent-portal', parentManagementRouter);
+router.use('/api/parent-portal', parentManagementRouter);
 
 // Academic Structure Management Module (Phase 3.5)
-router.use('/v1/academic', authenticate, academicManagementRouter);
-router.use('/academic', authenticate, academicManagementRouter);
+router.use('/v1/academic', academicManagementRouter);
+router.use('/academic', academicManagementRouter);
 
 // Staff Management Module (Phase 3.6)
-router.use('/v1/staff', authenticate, staffManagementRouter);
-router.use('/staff', authenticate, staffManagementRouter);
+router.use('/v1/staff', staffManagementRouter);
+router.use('/staff', staffManagementRouter);
 
 // User & Role Administration Module (Phase 3.7)
-router.use('/v1/users', authenticate, userManagementRouter);
-router.use('/users', authenticate, userManagementRouter);
+router.use('/v1/users', userManagementRouter);
+router.use('/users', userManagementRouter);
 
 // Notification Management Module
-router.use('/v1/notifications', authenticate, notificationRouter);
-router.use('/notifications', authenticate, notificationRouter);
+router.use('/v1/notifications', notificationRouter);
+router.use('/notifications', notificationRouter);
 
 // Finance & Fees Management Module (Phase 1 & Phase 2)
-router.use('/v1/fees', authenticate, resolveTenantMiddleware, feesRouter);
-router.use('/fees', authenticate, resolveTenantMiddleware, feesRouter);
+router.use('/v1/fees', feesRouter);
+router.use('/fees', feesRouter);
 
 // Communication Module (Feeds & Engagement, Helpdesk, Escalation)
-router.use('/v1/communication', authenticate, resolveTenantMiddleware, communicationRouter);
-router.use('/communication', authenticate, resolveTenantMiddleware, communicationRouter);
-router.use('/v1/fees/communication', authenticate, resolveTenantMiddleware, communicationRouter);
-router.use('/fees/communication', authenticate, resolveTenantMiddleware, communicationRouter);
+router.use('/v1/communication', communicationRouter);
+router.use('/communication', communicationRouter);
+router.use('/v1/fees/communication', communicationRouter);
+router.use('/fees/communication', communicationRouter);
 
 // Parent Linked Students endpoint for portal and helpdesk
-router.get(
-  '/parent/students',
-  authenticate,
-  resolveTenantMiddleware,
-  CommunicationController.getChildrenForParent,
-);
-router.get(
-  '/v1/parent/students',
-  authenticate,
-  resolveTenantMiddleware,
-  CommunicationController.getChildrenForParent,
-);
+router.get('/parent/students', CommunicationController.getChildrenForParent);
+router.get('/v1/parent/students', CommunicationController.getChildrenForParent);
 
 // Parent Portal Stage 2 Academic Endpoints (Strictly Role & Ownership Scoped)
-router.use('/v1/parent', authenticate, parentPortalRouter);
-router.use('/parent', authenticate, parentPortalRouter);
+router.use('/v1/parent', parentPortalRouter);
+router.use('/parent', parentPortalRouter);
+
+// Stage 3 Phase 3 Hybrid Classroom Endpoints (Teacher, Admin, Student, Parent)
+router.use('/v1/classroom', classroomRouter);
+router.use('/classroom', classroomRouter);
+
+// Stage 3 Phase 4 Learning Activities & Submissions Endpoints (Teacher, Student, Parent, Admin)
+router.use('/v1/learning-activities', learningActivitiesRouter);
+router.use('/learning-activities', learningActivitiesRouter);
+
+// Stage 3 Phase 5 AI Teacher Copilot Endpoints (Teacher, Student, Admin)
+router.use('/v1/ai-teacher-copilot', aiCopilotRouter);
+router.use('/ai-teacher-copilot', aiCopilotRouter);

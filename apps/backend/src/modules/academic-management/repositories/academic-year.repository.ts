@@ -176,6 +176,12 @@ export class AcademicYearRepository {
 
   static async setCurrent(orgId: string, academic_year_id: string, updatedBy?: string | null) {
     return db.$transaction(async (tx: any) => {
+      // Serialize concurrent setCurrent transitions per tenant inside PostgreSQL transaction
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `academic_year_current:${orgId}`,
+      );
+
       // 1. Demote any currently teaching academic year to open
       await tx.academic_years.updateMany({
         where: {

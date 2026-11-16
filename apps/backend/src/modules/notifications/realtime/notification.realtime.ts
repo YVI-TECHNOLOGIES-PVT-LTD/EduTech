@@ -7,7 +7,24 @@ import { sessionService, UserProfile } from '../../../auth/session.service';
 import { logger } from '../../../utils/logger';
 
 export interface RealtimeNotificationEvent {
-  type: 'notification.created' | 'notification.updated' | 'notification.deleted' | 'connection.ack';
+  type:
+    | 'notification.created'
+    | 'notification.updated'
+    | 'notification.deleted'
+    | 'connection.ack'
+    | 'classroom.session_scheduled'
+    | 'classroom.session_updated'
+    | 'classroom.session_started'
+    | 'classroom.session_completed'
+    | 'classroom.session_cancelled'
+    | 'classroom.session_not_conducted'
+    | 'classroom.attendance_updated'
+    | 'learning_activity.published'
+    | 'learning_activity.updated'
+    | 'learning_activity.closed'
+    | 'learning_submission.created'
+    | 'learning_submission.reviewed'
+    | 'learning_submission.resubmission_requested';
   data?: any;
   userId?: string;
   orgId?: string;

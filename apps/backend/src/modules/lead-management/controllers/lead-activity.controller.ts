@@ -100,7 +100,7 @@ export class LeadActivityController {
   static async getDueFollowUps(req: Request, res: Response) {
     try {
       const user = req.context?.user;
-      const orgId = user?.org_id || user?.school_id || (req.query.org_id as string) || undefined;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
       const dateStr = req.query.date as string;
       const statusStr = req.query.status as any;
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;

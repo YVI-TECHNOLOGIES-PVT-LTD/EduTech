@@ -496,63 +496,42 @@ async function runPhase7Tests() {
     }
   });
 
-  // ── SUITE 7: Prisma Persistence Guard Enforcement ─────────────────────────
-  console.log('\n[Suite 7: Prisma Persistence Guard Enforcement]');
+  // ── SUITE 7: Prisma Strict Persistence & Unmapped Delegate Enforcement ────
+  console.log('\n[Suite 7: Prisma Strict Persistence & Unmapped Delegate Enforcement]');
 
-  await test('Prisma guard blocks direct write on lesson_plans (throws Persistence Error)', async () => {
-    try {
+  await test('Real Prisma lesson plan delegates execute genuine schema validation (no RAM fallback)', async () => {
+    await assert.rejects(async () => {
       await (prisma as any).lesson_plans.create({ data: { title: 'Illegal RAM Write' } });
-      assert.fail('Prisma guard should have intercepted direct write on lesson_plans');
-    } catch (err: any) {
-      assert.ok(err.message.includes('[Persistence Error]'));
-    }
-  });
+    }, /PrismaClientValidationError|Argument/i);
 
-  await test('Prisma guard blocks direct write on lesson_plan_outcomes (throws Persistence Error)', async () => {
-    try {
+    await assert.rejects(async () => {
       await (prisma as any).lesson_plan_outcomes.create({ data: {} });
-      assert.fail('Prisma guard should have intercepted direct write on lesson_plan_outcomes');
-    } catch (err: any) {
-      assert.ok(err.message.includes('[Persistence Error]'));
-    }
-  });
+    }, /PrismaClientValidationError|Argument/i);
 
-  await test('Prisma guard blocks direct write on lesson_plan_resources (throws Persistence Error)', async () => {
-    try {
+    await assert.rejects(async () => {
       await (prisma as any).lesson_plan_resources.create({ data: {} });
-      assert.fail('Prisma guard should have intercepted direct write on lesson_plan_resources');
-    } catch (err: any) {
-      assert.ok(err.message.includes('[Persistence Error]'));
-    }
-  });
+    }, /PrismaClientValidationError|Argument/i);
 
-  await test('Prisma guard blocks direct write on lesson_activities (throws Persistence Error)', async () => {
-    try {
+    await assert.rejects(async () => {
       await (prisma as any).lesson_activities.create({ data: {} });
-      assert.fail('Prisma guard should have intercepted direct write on lesson_activities');
-    } catch (err: any) {
-      assert.ok(err.message.includes('[Persistence Error]'));
-    }
-  });
+    }, /PrismaClientValidationError|Argument/i);
 
-  await test('Prisma guard blocks direct write on lesson_differentiation_strategies (throws Persistence Error)', async () => {
-    try {
+    await assert.rejects(async () => {
       await (prisma as any).lesson_differentiation_strategies.create({ data: {} });
-      assert.fail(
-        'Prisma guard should have intercepted direct write on lesson_differentiation_strategies',
-      );
-    } catch (err: any) {
-      assert.ok(err.message.includes('[Persistence Error]'));
-    }
+    }, /PrismaClientValidationError|Argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).lesson_exit_tickets.create({ data: {} });
+    }, /PrismaClientValidationError|Argument/i);
   });
 
-  await test('Prisma guard blocks direct write on lesson_exit_tickets (throws Persistence Error)', async () => {
-    try {
-      await (prisma as any).lesson_exit_tickets.create({ data: {} });
-      assert.fail('Prisma guard should have intercepted direct write on lesson_exit_tickets');
-    } catch (err: any) {
-      assert.ok(err.message.includes('[Persistence Error]'));
-    }
+  await test('Unmapped Prisma delegate fails fast with PersistenceError (PRISMA_DELEGATE_UNAVAILABLE)', async () => {
+    await assert.rejects(
+      async () => {
+        await (prisma as any).assessment_rubrics.create({ data: {} });
+      },
+      (err: any) => err.code === 'PRISMA_DELEGATE_UNAVAILABLE' && err.name === 'PersistenceError',
+    );
   });
 
   // ── FINAL SUMMARY ─────────────────────────────────────────────────────────

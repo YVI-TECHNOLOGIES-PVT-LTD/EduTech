@@ -32,141 +32,117 @@ export async function runFinanceScholarshipTests() {
   // 1. Parameter Validation & Boundary Checking
   // -------------------------------------------------------------------------
   await test('recommendConcession rejects missing tenant organization ID', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession('', testUserId, {
-          studentId: testStudentId,
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: 'Merit Award 25%',
-          concessionPercentage: 25,
-          scope: 'academic_year',
-          recommendationReason: 'Top academic score',
-        });
-      },
-      /Tenant organization ID is required/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession('', testUserId, {
+        studentId: testStudentId,
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: 'Merit Award 25%',
+        concessionPercentage: 25,
+        scope: 'academic_year',
+        recommendationReason: 'Top academic score',
+      });
+    }, /Tenant organization ID is required/);
   });
 
   await test('recommendConcession rejects non-UUID student ID', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
-          studentId: 'invalid-student-id',
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: 'Merit Award 25%',
-          concessionPercentage: 25,
-          scope: 'academic_year',
-          recommendationReason: 'Top academic score',
-        });
-      },
-      /Valid student ID is required/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
+        studentId: 'invalid-student-id',
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: 'Merit Award 25%',
+        concessionPercentage: 25,
+        scope: 'academic_year',
+        recommendationReason: 'Top academic score',
+      });
+    }, /Valid student ID is required/);
   });
 
   await test('recommendConcession rejects out-of-range percentage (0% or >100%)', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
-          studentId: testStudentId,
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: 'Zero Percent Award',
-          concessionPercentage: 0,
-          scope: 'academic_year',
-          recommendationReason: 'Invalid 0%',
-        });
-      },
-      /Concession percentage must be between 0.01 and 100.00%/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
+        studentId: testStudentId,
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: 'Zero Percent Award',
+        concessionPercentage: 0,
+        scope: 'academic_year',
+        recommendationReason: 'Invalid 0%',
+      });
+    }, /Concession percentage must be between 0.01 and 100.00%/);
 
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
-          studentId: testStudentId,
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: 'Excessive Award',
-          concessionPercentage: 120,
-          scope: 'academic_year',
-          recommendationReason: 'Invalid 120%',
-        });
-      },
-      /Concession percentage must be between 0.01 and 100.00%/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
+        studentId: testStudentId,
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: 'Excessive Award',
+        concessionPercentage: 120,
+        scope: 'academic_year',
+        recommendationReason: 'Invalid 120%',
+      });
+    }, /Concession percentage must be between 0.01 and 100.00%/);
   });
 
   await test('recommendConcession rejects missing concession name and recommendation reason', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
-          studentId: testStudentId,
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: '',
-          concessionPercentage: 25,
-          scope: 'academic_year',
-          recommendationReason: 'Valid reason',
-        });
-      },
-      /Concession name is required/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
+        studentId: testStudentId,
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: '',
+        concessionPercentage: 25,
+        scope: 'academic_year',
+        recommendationReason: 'Valid reason',
+      });
+    }, /Concession name is required/);
 
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
-          studentId: testStudentId,
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: 'Merit Award',
-          concessionPercentage: 25,
-          scope: 'academic_year',
-          recommendationReason: '   ',
-        });
-      },
-      /Recommendation reason \/ justification is required/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
+        studentId: testStudentId,
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: 'Merit Award',
+        concessionPercentage: 25,
+        scope: 'academic_year',
+        recommendationReason: '   ',
+      });
+    }, /Recommendation reason \/ justification is required/);
   });
 
   // -------------------------------------------------------------------------
   // 2. Scope Consistency & PostgreSQL Trigger Alignment
   // -------------------------------------------------------------------------
   await test('recommendConcession validates scope consistency (trigger alignment)', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
-          studentId: testStudentId,
-          academicYearId: testAcademicYearId,
-          scholarshipType: 'merit',
-          concessionName: 'Term 1 Award',
-          concessionPercentage: 25,
-          scope: 'installment',
-          installmentTermId: undefined,
-          recommendationReason: 'Term concession missing term id',
-        });
-      },
-      /Installment term is required when scope is set to installment/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.recommendConcession(validTenant, testUserId, {
+        studentId: testStudentId,
+        academicYearId: testAcademicYearId,
+        scholarshipType: 'merit',
+        concessionName: 'Term 1 Award',
+        concessionPercentage: 25,
+        scope: 'installment',
+        installmentTermId: undefined,
+        recommendationReason: 'Term concession missing term id',
+      });
+    }, /Installment term is required when scope is set to installment/);
   });
 
   // -------------------------------------------------------------------------
   // 3. Approval Decision Validations
   // -------------------------------------------------------------------------
   await test('reviewConcession rejects invalid decision action', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.reviewConcession(
-          validTenant,
-          testUserId,
-          '00000000-0000-0000-0000-000000000005',
-          {
-            action: 'invalid_action' as any,
-          }
-        );
-      },
-      /Decision action must be either 'approved' or 'rejected'/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.reviewConcession(
+        validTenant,
+        testUserId,
+        '00000000-0000-0000-0000-000000000005',
+        {
+          action: 'invalid_action' as any,
+        },
+      );
+    }, /Decision action must be either 'approved' or 'rejected'/);
   });
 
   await test('reviewConcession rejects approved percentage out-of-range', async () => {
@@ -198,20 +174,17 @@ export async function runFinanceScholarshipTests() {
     });
 
     try {
-      await assert.rejects(
-        async () => {
-          await ScholarshipConcessionService.reviewConcession(
-            validTenant,
-            testUserId,
-            '00000000-0000-0000-0000-000000000005',
-            {
-              action: 'approved',
-              approvedPercentage: 150,
-            }
-          );
-        },
-        /Approved percentage must be between 0.01 and 100.00%/
-      );
+      await assert.rejects(async () => {
+        await ScholarshipConcessionService.reviewConcession(
+          validTenant,
+          testUserId,
+          '00000000-0000-0000-0000-000000000005',
+          {
+            action: 'approved',
+            approvedPercentage: 150,
+          },
+        );
+      }, /Approved percentage must be between 0.01 and 100.00%/);
     } finally {
       ScholarshipRepository.findConcessionById = origFind;
     }
@@ -220,24 +193,22 @@ export async function runFinanceScholarshipTests() {
   // -------------------------------------------------------------------------
   // 4. Persistence Hardening & Unmapped Prisma Delegate Rejection
   // -------------------------------------------------------------------------
-  await test('Prisma client throws [Persistence Error] on direct in-memory mutation attempts', async () => {
-    await assert.rejects(
-      async () => {
-        await (prisma as any).scholarship_concessions.create({
-          data: { test: true },
-        });
-      },
-      /\[Persistence Error\] Direct write on unmapped Prisma delegate/
-    );
+  await test('Real scholarship delegates enforce schema directly while unmapped delegates throw PersistenceError', async () => {
+    await assert.rejects(async () => {
+      await (prisma as any).scholarship_concessions.create({
+        data: { test: true },
+      });
+    }, /PrismaClientValidationError|Unknown argument/i);
 
-    await assert.rejects(
-      async () => {
-        await (prisma as any).scholarship_concession_approval_history.create({
-          data: { test: true },
-        });
-      },
-      /\[Persistence Error\] Direct write on unmapped Prisma delegate/
-    );
+    await assert.rejects(async () => {
+      await (prisma as any).scholarship_concession_approval_history.create({
+        data: { test: true },
+      });
+    }, /PrismaClientValidationError|Unknown argument/i);
+
+    await assert.rejects(async () => {
+      await (prisma as any).non_existent_ram_store.create({ data: { test: true } });
+    }, /PRISMA_DELEGATE_UNAVAILABLE|PersistenceError/);
   });
 
   // -------------------------------------------------------------------------
@@ -251,7 +222,10 @@ export async function runFinanceScholarshipTests() {
     for (const prog of programs) {
       assert.ok(prog.id, 'Program must have an ID');
       assert.ok(prog.name, 'Program must have a name');
-      assert.ok(prog.max_percentage > 0 && prog.max_percentage <= 100, 'Max percentage must be 1-100');
+      assert.ok(
+        prog.max_percentage > 0 && prog.max_percentage <= 100,
+        'Max percentage must be 1-100',
+      );
       assert.ok(prog.scope === 'academic_year' || prog.scope === 'installment', 'Valid scope');
       assert.strictEqual(prog.status, 'active', 'Programs should be active');
     }
@@ -261,19 +235,13 @@ export async function runFinanceScholarshipTests() {
   // 6. Security & Tenant Scoping
   // -------------------------------------------------------------------------
   await test('getStudentConcessions rejects missing studentId or tenantId', async () => {
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.getStudentConcessions('', testStudentId);
-      },
-      /Tenant organization ID is required/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.getStudentConcessions('', testStudentId);
+    }, /Tenant organization ID is required/);
 
-    await assert.rejects(
-      async () => {
-        await ScholarshipConcessionService.getStudentConcessions(validTenant, '');
-      },
-      /Student ID is required/
-    );
+    await assert.rejects(async () => {
+      await ScholarshipConcessionService.getStudentConcessions(validTenant, '');
+    }, /Student ID is required/);
   });
 
   // -------------------------------------------------------------------------
@@ -304,16 +272,13 @@ export async function runFinanceScholarshipTests() {
     });
 
     try {
-      await assert.rejects(
-        async () => {
-          await ScholarshipConcessionService.applyConcession(
-            validTenant,
-            testUserId,
-            '00000000-0000-0000-0000-000000000009'
-          );
-        },
-        /Only concessions with status 'approved' can be applied to student dues/
-      );
+      await assert.rejects(async () => {
+        await ScholarshipConcessionService.applyConcession(
+          validTenant,
+          testUserId,
+          '00000000-0000-0000-0000-000000000009',
+        );
+      }, /Only concessions with status 'approved' can be applied to student dues/);
     } finally {
       ScholarshipRepository.findConcessionById = origFind;
     }
@@ -344,16 +309,13 @@ export async function runFinanceScholarshipTests() {
     });
 
     try {
-      await assert.rejects(
-        async () => {
-          await ScholarshipConcessionService.applyConcession(
-            validTenant,
-            testUserId,
-            '00000000-0000-0000-0000-000000000009'
-          );
-        },
-        /Only concessions with status 'approved' can be applied to student dues/
-      );
+      await assert.rejects(async () => {
+        await ScholarshipConcessionService.applyConcession(
+          validTenant,
+          testUserId,
+          '00000000-0000-0000-0000-000000000009',
+        );
+      }, /Only concessions with status 'approved' can be applied to student dues/);
     } finally {
       ScholarshipRepository.findConcessionById = origFind;
     }
@@ -442,11 +404,15 @@ export async function runFinanceScholarshipTests() {
       const res = await ScholarshipConcessionService.applyConcession(
         validTenant,
         testUserId,
-        '00000000-0000-0000-0000-000000000009'
+        '00000000-0000-0000-0000-000000000009',
       );
 
       assert.strictEqual(updateDuesExecuted, true, 'Dues update query must be executed');
-      assert.strictEqual(transactionCreated, false, 'Concession must NEVER create a cash payment transaction');
+      assert.strictEqual(
+        transactionCreated,
+        false,
+        'Concession must NEVER create a cash payment transaction',
+      );
       assert.strictEqual(receiptCreated, false, 'Concession must NEVER create a payment receipt');
       assert.strictEqual(res.concession.status, 'applied', 'Status must be updated to applied');
       assert.strictEqual(res.totalDiscountApplied, 5000, 'Discount must be recorded');

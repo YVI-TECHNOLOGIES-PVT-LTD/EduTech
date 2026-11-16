@@ -10,7 +10,9 @@ export class CacheService {
 
   private constructor() {
     this.adapter = new InMemoryCacheAdapter();
-    logger.info('[CacheService] Initialized with InMemoryCacheAdapter');
+    logger.warn(
+      '[CacheService] Initialized with InMemoryCacheAdapter (non-durable, single-instance process memory)',
+    );
   }
 
   public static getInstance(): CacheService {
@@ -65,12 +67,17 @@ export class CacheService {
   }
 
   async getMetrics(): Promise<CacheMetrics> {
-    const entryCount = (this.adapter as InMemoryCacheAdapter).size ? (this.adapter as InMemoryCacheAdapter).size() : 0;
+    const entryCount = (this.adapter as InMemoryCacheAdapter).size
+      ? (this.adapter as InMemoryCacheAdapter).size()
+      : 0;
     const total = this.hitCount + this.missCount;
     const hitRate = total > 0 ? Number((this.hitCount / total).toFixed(2)) : 0;
 
     return {
       provider: 'InMemory',
+      mode: 'IN_MEMORY_SINGLE_INSTANCE',
+      durable: false,
+      maxEntries: InMemoryCacheAdapter.MAX_ENTRIES,
       hitCount: this.hitCount,
       missCount: this.missCount,
       hitRate,

@@ -271,6 +271,28 @@ export async function runAcademicPhase4Tests() {
   let testResourceIdA: string;
   let testExternalResourceIdA: string;
 
+  await test('LearningResourceService.createResource rejects missing staff identity with 403 STAFF_PROFILE_REQUIRED (No silent staff impersonation)', async () => {
+    await assert.rejects(
+      async () => {
+        await LearningResourceService.createResource(
+          TENANT_A,
+          {
+            title: 'Unattributed Staff Attempt',
+            resource_type: 'external_link',
+            external_url: 'https://example.com/unattributed',
+          },
+          undefined,
+          null,
+        );
+      },
+      (err: any) => {
+        assert.strictEqual(err.statusCode, 403);
+        assert.strictEqual(err.code, 'STAFF_PROFILE_REQUIRED');
+        return true;
+      },
+    );
+  });
+
   await test('LearningResourceService.createResource persists external link resource in PostgreSQL', async () => {
     const res = await LearningResourceService.createResource(
       TENANT_A,
@@ -280,6 +302,7 @@ export async function runAcademicPhase4Tests() {
         resource_type: 'external_link',
         external_url:
           'https://phet.colorado.edu/sims/html/projectile-motion/latest/projectile-motion_all.html',
+        uploaded_by_staff_id: staffA.staff_id,
         resource_status: 'draft',
       },
       undefined,
@@ -309,6 +332,7 @@ export async function runAcademicPhase4Tests() {
         title: 'Calculus Chapter 4 Practice Sheet',
         description: 'Derivatives and rate of change problems',
         resource_type: 'file',
+        uploaded_by_staff_id: staffA.staff_id,
         resource_status: 'draft',
       },
       mockPdf,
@@ -460,6 +484,7 @@ export async function runAcademicPhase4Tests() {
       {
         title: 'Tenant B Geography Map',
         resource_type: 'file',
+        uploaded_by_staff_id: staffB.staff_id,
         resource_status: 'draft',
       },
       mockPdf,
@@ -547,6 +572,7 @@ export async function runAcademicPhase4Tests() {
               title: 'Cross-Tenant Grade Attempt',
               resource_type: 'external_link',
               external_url: 'https://example.com/cross-tenant',
+              uploaded_by_staff_id: staffA.staff_id,
               grade_ids: [gradeB.grade_id],
             },
             undefined,

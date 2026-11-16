@@ -138,11 +138,7 @@ export class AdmissionController {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const orgId =
-        (req.query.org_id as string) ||
-        (req.query.school_id as string) ||
-        user?.org_id ||
-        user?.school_id;
+      const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id;
       const searchParams: any = {
         created_by: userId,
         org_id: orgId,

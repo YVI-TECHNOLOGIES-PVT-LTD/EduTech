@@ -6,7 +6,7 @@ import { ParentError } from '../../parent-management/errors/parent.errors';
 export class StudentAcademicsController {
   private static extractAuth(req: Request) {
     const user = (req as any).context?.user || (req as any).user;
-    const orgId = user?.org_id || user?.school_id || (req.query.org_id as string) || undefined;
+    const orgId = (req as any).tenantOrgId || user?.org_id || user?.school_id || undefined;
     return { user, orgId };
   }
 

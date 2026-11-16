@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { ChatbotController } from '../controllers/chatbot.controller';
-import { resolveTenantMiddleware } from '../../../middlewares/tenant.middleware';
+import { resolvePublicTenantMiddleware } from '../../../middlewares/tenant.middleware';
 import { authenticateOptional } from '../../../auth/auth.middleware';
 
 export const chatbotRouter = Router();
 
 // Apply optional authentication (supports both anonymous visitors and logged-in parents/staff)
-// and tenant resolution (resolves org_id from JWT, custom domain, host, x-tenant-id, or dev fallback)
+// and strict explicit tenant resolution (session org_id when logged in, explicit org/school ID otherwise)
 chatbotRouter.use(authenticateOptional);
-chatbotRouter.use(resolveTenantMiddleware);
+chatbotRouter.use(resolvePublicTenantMiddleware);
 
 // Session endpoints
 chatbotRouter.post('/session', ChatbotController.createSession);
