@@ -68,6 +68,24 @@ axiosInstance.interceptors.request.use(
   },
 );
 
+// Token Refresh Concurrency Queue
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Response Interceptor: Error Normalization & 401 Session Handling
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
@@ -99,6 +117,7 @@ axiosInstance.interceptors.response.use(
       responseData.error || responseData.message || responseData.details?.error || null;
     const serverCode = responseData.code || undefined;
     const details = responseData.details || undefined;
+    const requestUrl = error.config?.url || '';
 
     if (ENV.ENABLE_LOGGING) {
       if (status >= 500) {
@@ -114,15 +133,112 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // 401 Unauthorized Handling
+    // 1. Payment Gateway Error Protection:
+    // If error is GATEWAY_AUTH_ERROR or from Razorpay payment endpoints, DO NOT log out the user!
+    const isGatewayError =
+      serverCode === 'GATEWAY_AUTH_ERROR' ||
+      serverMessage?.includes('Razorpay') ||
+      requestUrl.includes('/create-order') ||
+      requestUrl.includes('/verify-payment') ||
+      requestUrl.includes('/razorpay/config');
+
+    if (isGatewayError && (status === 401 || status === 503)) {
+      return Promise.reject(
+        new ApiError(
+          status,
+          serverMessage || 'Payment gateway configuration error. Please contact school finance.',
+          'GATEWAY_ERROR',
+          details,
+        ),
+      );
+    }
+
+    // 2. 401 Unauthorized Handling with Automatic Token Refresh
     if (status === 401) {
       const isAuthRoute =
-        error.config?.url?.includes('/auth/login') ||
-        error.config?.url?.includes('/admission/register') ||
-        error.config?.url?.includes('/admission/verify-otp');
+        requestUrl.includes('/auth/login') ||
+        requestUrl.includes('/auth/refresh') ||
+        requestUrl.includes('/admission/register') ||
+        requestUrl.includes('/admission/verify-otp');
+
+      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+      if (!isAuthRoute && originalRequest && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        if (isRefreshing) {
+          return new Promise<AxiosResponse>((resolve, reject) => {
+            failedQueue.push({
+              resolve: (token: string) => {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+                resolve(axiosInstance(originalRequest));
+              },
+              reject: (err: any) => {
+                reject(err);
+              },
+            });
+          });
+        }
+
+        isRefreshing = true;
+
+        try {
+          const storedRefreshToken =
+            (await SecureStorage.getRefreshToken()) || useAuthStore.getState().tokens?.refreshToken;
+
+          if (!storedRefreshToken) {
+            throw new Error('No refresh token available');
+          }
+
+          // Use raw axios to prevent interceptor loops
+          const refreshResponse = await axios.post(
+            `${ENV.API_URL}/v1/auth/refresh`,
+            { refreshToken: storedRefreshToken },
+            {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: 10000,
+            },
+          );
+
+          const newAccessToken =
+            refreshResponse.data?.accessToken ||
+            refreshResponse.data?.data?.accessToken ||
+            refreshResponse.data?.access_token;
+          const newRefreshToken =
+            refreshResponse.data?.refreshToken ||
+            refreshResponse.data?.data?.refreshToken ||
+            storedRefreshToken;
+
+          if (!newAccessToken) {
+            throw new Error('Invalid refresh response');
+          }
+
+          await SecureStorage.setAccessToken(newAccessToken);
+          if (newRefreshToken) {
+            await SecureStorage.setRefreshToken(newRefreshToken);
+          }
+
+          useAuthStore.getState().setTokens({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          });
+
+          processQueue(null, newAccessToken);
+
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return axiosInstance(originalRequest);
+        } catch (refreshErr) {
+          processQueue(refreshErr, null);
+          await SecureStorage.clearSession();
+          useAuthStore.getState().logout();
+          const message = 'Session expired. Please sign in again.';
+          return Promise.reject(new ApiError(401, message, 'SESSION_EXPIRED'));
+        } finally {
+          isRefreshing = false;
+        }
+      }
 
       if (!isAuthRoute) {
-        // Invalidate session cleanly
         await SecureStorage.clearSession();
         useAuthStore.getState().logout();
       }

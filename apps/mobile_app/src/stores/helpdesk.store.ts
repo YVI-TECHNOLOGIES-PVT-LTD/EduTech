@@ -5,10 +5,12 @@ import {
   TicketReply,
   CreateTicketPayload,
   TicketStatus,
+  HelpdeskCategory,
 } from '../api/helpdesk.api';
 
 interface HelpdeskState {
   tickets: HelpdeskTicket[];
+  categories: HelpdeskCategory[];
   activeTicket: HelpdeskTicket | null;
   activeReplies: TicketReply[];
   filter: 'all' | TicketStatus;
@@ -18,6 +20,7 @@ interface HelpdeskState {
   errorMessage: string | null;
 
   setFilter: (filter: 'all' | TicketStatus) => void;
+  fetchCategories: () => Promise<void>;
   fetchTickets: () => Promise<void>;
   fetchTicketDetails: (id: string) => Promise<void>;
   createTicket: (payload: CreateTicketPayload) => Promise<boolean>;
@@ -27,6 +30,7 @@ interface HelpdeskState {
 
 export const useHelpdeskStore = create<HelpdeskState>((set, get) => ({
   tickets: [],
+  categories: [],
   activeTicket: null,
   activeReplies: [],
   filter: 'all',
@@ -36,6 +40,15 @@ export const useHelpdeskStore = create<HelpdeskState>((set, get) => ({
   errorMessage: null,
 
   setFilter: (filter) => set({ filter }),
+
+  fetchCategories: async () => {
+    try {
+      const categories = await helpdeskApi.getCategories();
+      set({ categories });
+    } catch {
+      // fallback handled inside api
+    }
+  },
 
   fetchTickets: async () => {
     set({ isLoading: true, isError: false, errorMessage: null });

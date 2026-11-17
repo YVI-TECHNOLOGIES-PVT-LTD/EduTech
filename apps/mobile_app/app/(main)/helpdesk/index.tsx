@@ -15,20 +15,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHelpdeskStore } from '../../../src/stores/helpdesk.store';
+import { useChildStore } from '../../../src/stores/child.store';
 import { Badge } from '../../../src/components/ui/atoms/Badge';
-import { TicketCategory, TicketPriority, HelpdeskTicket } from '../../../src/api/helpdesk.api';
+import { TicketPriority, HelpdeskTicket } from '../../../src/api/helpdesk.api';
 
 export default function HelpdeskHubScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const activeChild = useChildStore((s) => s.getSelectedChild());
   const {
     tickets,
+    categories,
     activeTicket,
     activeReplies,
     filter,
     isLoading,
     isSubmitting,
     setFilter,
+    fetchCategories,
     fetchTickets,
     fetchTicketDetails,
     createTicket,
@@ -39,15 +43,31 @@ export default function HelpdeskHubScreen() {
   const [ticketDetailsVisible, setTicketDetailsVisible] = useState(false);
 
   // Form State
-  const [category, setCategory] = useState<TicketCategory>('general');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [priority, setPriority] = useState<TicketPriority>('medium');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [replyText, setReplyText] = useState('');
 
+  const fallbackCategories = [
+    { category_id: 'general', category_name: 'General Inquiries' },
+    { category_id: 'academics', category_name: 'Academics & Classroom' },
+    { category_id: 'fees', category_name: 'Fees & Billing' },
+    { category_id: 'transport', category_name: 'Bus & Transport' },
+  ];
+
+  const availableCategories = categories.length > 0 ? categories : fallbackCategories;
+
   useEffect(() => {
     fetchTickets();
-  }, [fetchTickets]);
+    fetchCategories();
+  }, [fetchTickets, fetchCategories]);
+
+  useEffect(() => {
+    if (!selectedCategoryId && availableCategories.length > 0) {
+      setSelectedCategoryId(availableCategories[0].category_id);
+    }
+  }, [availableCategories, selectedCategoryId]);
 
   const handleOpenTicket = async (ticket: HelpdeskTicket) => {
     await fetchTicketDetails(ticket.id);
@@ -57,11 +77,17 @@ export default function HelpdeskHubScreen() {
   const handleCreateSubmit = async () => {
     if (!subject.trim() || !description.trim()) return;
 
+    const catId = selectedCategoryId || availableCategories[0]?.category_id || 'general';
     const success = await createTicket({
-      category,
+      category_id: catId,
+      category: catId,
       priority,
+      title: subject.trim(),
       subject: subject.trim(),
       description: description.trim(),
+      student_id:
+        activeChild && activeChild.kind === 'enrolled' ? activeChild.studentId : undefined,
+      studentId: activeChild && activeChild.kind === 'enrolled' ? activeChild.studentId : undefined,
     });
 
     if (success) {
@@ -244,30 +270,49 @@ export default function HelpdeskHubScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Linked Student Info */}
+            {activeChild && (
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl mb-3">
+                <Ionicons name="person-circle-outline" size={16} color="#6366f1" />
+                <Text className="text-xs text-slate-600 dark:text-slate-300 ml-1.5 flex-1">
+                  Student:{' '}
+                  <Text className="font-bold text-slate-900 dark:text-slate-100">
+                    {activeChild.fullName}
+                  </Text>
+                  {activeChild.kind === 'enrolled' && activeChild.gradeLevel
+                    ? ` (${activeChild.gradeLevel})`
+                    : ''}
+                </Text>
+              </View>
+            )}
+
             {/* Category Selector */}
             <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               Select Category
             </Text>
             <View className="flex-row flex-wrap gap-2 mb-3">
-              {(['general', 'fees', 'transport', 'academics'] as const).map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  onPress={() => setCategory(c)}
-                  className={`px-3 py-1.5 rounded-xl border ${
-                    category === c
-                      ? 'bg-indigo-600 border-indigo-600'
-                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold capitalize ${
-                      category === c ? 'text-white' : 'text-slate-600 dark:text-slate-300'
+              {availableCategories.map((c) => {
+                const isSelected = selectedCategoryId === c.category_id;
+                return (
+                  <TouchableOpacity
+                    key={c.category_id}
+                    onPress={() => setSelectedCategoryId(c.category_id)}
+                    className={`px-3 py-1.5 rounded-xl border ${
+                      isSelected
+                        ? 'bg-indigo-600 border-indigo-600'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    {c}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      className={`text-xs font-bold capitalize ${
+                        isSelected ? 'text-white' : 'text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      {c.category_name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Priority Selector */}

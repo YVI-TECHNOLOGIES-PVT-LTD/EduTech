@@ -43,6 +43,20 @@ export const authApi = {
   },
 
   /**
+   * Refresh Access Token: POST /v1/auth/refresh
+   */
+  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+    const data = await apiClient.post<LoginResponse>(ENDPOINTS.AUTH.REFRESH, { refreshToken });
+    if (data.accessToken) {
+      await SecureStorage.setAccessToken(data.accessToken);
+    }
+    if (data.refreshToken) {
+      await SecureStorage.setRefreshToken(data.refreshToken);
+    }
+    return data;
+  },
+
+  /**
    * Clear session & tokens
    */
   async logout(): Promise<void> {

@@ -60,7 +60,7 @@ razorpayRouter.post('/create-order', async (req: Request, res: Response) => {
 
     if (!isConfigured) {
       logger.error('[Razorpay Standard Checkout] Missing credentials in environment');
-      return res.status(401).json({
+      return res.status(503).json({
         success: false,
         error: 'GATEWAY_AUTH_ERROR',
         message:
