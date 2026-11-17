@@ -9,6 +9,22 @@ const STORAGE_KEY = 'edutrack_active_child_id';
 
 export type AccountLifecycleType = 'NO_APPLICATION' | 'PRE_ADMISSION' | 'POST_ADMISSION' | 'HYBRID';
 
+export interface SchoolOrganizationContext {
+  orgId: string;
+  orgName: string;
+  orgCode: string;
+  boardAffiliation: string | null;
+}
+
+export interface AcademicCalendarContext {
+  academicYearId: string | null;
+  academicYearName: string | null;
+  termName: string | null;
+  termNumber: number | null;
+  weekNumber: number;
+  displayText: string;
+}
+
 interface ChildStoreState {
   children: UnifiedChild[];
   selectedChildId: string | null;
@@ -17,6 +33,8 @@ interface ChildStoreState {
   errorMessage: string | null;
   accountType: AccountLifecycleType | null;
   lifecycleData: any | null;
+  organization: SchoolOrganizationContext | null;
+  academicContext: AcademicCalendarContext | null;
   lastSyncedAt: number;
 
   setChildren: (children: UnifiedChild[]) => void;
@@ -35,6 +53,8 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
   errorMessage: null,
   accountType: null,
   lifecycleData: null,
+  organization: null,
+  academicContext: null,
   lastSyncedAt: 0,
 
   setChildren: (children: UnifiedChild[]) => {
@@ -135,6 +155,8 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
           set({
             accountType: lifecycleRes.lifecycle?.accountType || null,
             lifecycleData: lifecycleRes,
+            organization: lifecycleRes.organization || null,
+            academicContext: lifecycleRes.academicContext || null,
           });
 
           lifecycleRes.children.forEach((c: any) => {
@@ -149,19 +171,23 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
                 firstName: c.firstName || 'Student',
                 lastName: c.lastName || '',
                 gradeLevel: c.gradeLevel || 'Class',
-                section: c.section || 'A',
+                section: c.section || '',
                 rollNumber: c.rollNumber || undefined,
+                campusName: lifecycleRes.organization?.orgName || undefined,
+                houseName: c.houseName || undefined,
                 academicYear: c.academicYear || '2026-2027',
                 status: c.enrollmentStatus || 'active',
                 relationship: c.relationship || 'Guardian',
                 isPrimaryContact: Boolean(c.isPrimaryContact),
-                avatarUrl: c.avatarUrl || null,
+                avatarUrl:
+                  c.avatarUrl || c.avatar_url || c.photo_url || c.profileImage?.url || null,
+                avatar_url: c.avatar_url || c.avatarUrl || null,
+                photo_url: c.photo_url || c.avatarUrl || null,
+                profileImage:
+                  c.profileImage || (c.avatarUrl ? { available: true, url: c.avatarUrl } : null),
                 hasPendingFees: Boolean(c.hasPendingFees),
                 pendingFeeAmount: Number(c.pendingFeeAmount) || 0,
-                attendanceToday: {
-                  status: 'present',
-                  timestamp: '08:15 AM',
-                },
+                attendanceToday: c.attendanceToday || undefined,
               };
               unifiedList.push(enrolledChild);
             } else {
@@ -182,7 +208,12 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
                 actionRequiredNotice: getActionNotice(c.applicationStatus || 'submitted'),
                 relationship: c.relationship || 'Parent',
                 isPrimaryContact: Boolean(c.isPrimaryContact),
-                avatarUrl: null,
+                avatarUrl:
+                  c.avatarUrl || c.avatar_url || c.photo_url || c.profileImage?.url || null,
+                avatar_url: c.avatar_url || c.avatarUrl || null,
+                photo_url: c.photo_url || c.avatarUrl || null,
+                profileImage:
+                  c.profileImage || (c.avatarUrl ? { available: true, url: c.avatarUrl } : null),
               };
               unifiedList.push(applicantChild);
             }
@@ -226,7 +257,13 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
                   status: s.status || 'active',
                   relationship: s.relationship || 'Guardian',
                   isPrimaryContact: Boolean(s.is_primary_contact),
-                  avatarUrl: s.avatar_url || s.avatarUrl || null,
+                  avatarUrl:
+                    s.avatar_url || s.avatarUrl || s.photo_url || s.profileImage?.url || null,
+                  avatar_url: s.avatar_url || s.avatarUrl || null,
+                  photo_url: s.photo_url || s.avatarUrl || null,
+                  profileImage:
+                    s.profileImage ||
+                    (s.avatar_url ? { available: true, url: s.avatar_url } : null),
                   hasPendingFees: Boolean(s.has_pending_fees),
                   attendanceToday: s.attendance_today || {
                     status: 'present',
@@ -346,6 +383,8 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
       errorMessage: null,
       accountType: null,
       lifecycleData: null,
+      organization: null,
+      academicContext: null,
       lastSyncedAt: 0,
     });
   },

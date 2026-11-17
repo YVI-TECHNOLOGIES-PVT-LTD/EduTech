@@ -247,7 +247,16 @@ export const MyChildren: React.FC = () => {
                 size="lg"
                 className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-white/20 shadow-md"
               >
-                <AvatarImage src={selectedChild.photo_url || undefined} alt={fullName} />
+                <AvatarImage
+                  src={
+                    selectedChild.photo_url ||
+                    (selectedChild as any)?.avatar_url ||
+                    (selectedChild as any)?.avatarUrl ||
+                    (selectedChild as any)?.profileImage?.url ||
+                    undefined
+                  }
+                  alt={fullName}
+                />
                 <AvatarFallback className="bg-indigo-600 text-white font-extrabold text-xl sm:text-2xl">
                   {getInitials(fullName, 'S')}
                 </AvatarFallback>
@@ -904,7 +913,16 @@ export const MyChildren: React.FC = () => {
                       size="default"
                       className="border border-border/80 shrink-0 group-hover:ring-2 group-hover:ring-indigo-500/30 transition-all"
                     >
-                      <AvatarImage src={child.photo_url || undefined} alt={fullName} />
+                      <AvatarImage
+                        src={
+                          child.photo_url ||
+                          (child as any)?.avatar_url ||
+                          (child as any)?.avatarUrl ||
+                          (child as any)?.profileImage?.url ||
+                          undefined
+                        }
+                        alt={fullName}
+                      />
                       <AvatarFallback className="bg-indigo-600 text-white font-extrabold text-sm">
                         {getInitials(fullName, 'S')}
                       </AvatarFallback>

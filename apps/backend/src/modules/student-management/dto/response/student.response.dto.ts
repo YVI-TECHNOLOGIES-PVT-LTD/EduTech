@@ -36,6 +36,10 @@ export interface StudentResponseDto {
   status: string;
   created_at: string;
   updated_at: string;
+  photo_url?: string | null;
+  avatar_url?: string | null;
+  avatarUrl?: string | null;
+  profileImage?: { available: boolean; url: string | null };
   enrollments?: EnrollmentResponseDto[];
   parents?: StudentParentResponseDto[];
 }

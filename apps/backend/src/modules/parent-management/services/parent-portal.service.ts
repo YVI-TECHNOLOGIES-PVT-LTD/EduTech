@@ -193,9 +193,12 @@ export function buildDayScheduleSlots(
 
 export class ParentPortalService {
   private static async resolveChildPhotoUrl(child: RawLinkedChild): Promise<string | null> {
-    if (!child.avatar_url) return null;
     try {
-      return await UserAvatarService.getAvatarSignedUrl(child.avatar_url);
+      return await UserAvatarService.resolveStudentPhotoUrl({
+        avatarPath: child.avatar_url,
+        applicationId: child.application_id,
+        studentId: child.student_id,
+      });
     } catch {
       return null;
     }
@@ -295,6 +298,9 @@ export class ParentPortalService {
           relationship: c.relationship,
           is_primary_contact: c.is_primary_contact,
           photo_url: photoUrl,
+          avatar_url: photoUrl,
+          avatarUrl: photoUrl,
+          profileImage: UserAvatarService.formatProfileImage(photoUrl),
           board_affiliation: enr?.grade_board || orgMeta?.board_affiliation || null,
           current_enrollment: enr
             ? {

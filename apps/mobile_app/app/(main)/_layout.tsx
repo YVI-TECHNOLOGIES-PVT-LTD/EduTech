@@ -23,26 +23,27 @@ export default function MainLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: isDark ? '#818CF8' : DESIGN_TOKENS.colors.primary,
-          tabBarInactiveTintColor: isDark ? '#64748B' : DESIGN_TOKENS.colors.textMuted,
+          tabBarActiveTintColor: isDark ? '#818CF8' : DESIGN_TOKENS.colors.royalIndigo,
+          tabBarInactiveTintColor: isDark ? '#64748B' : '#64748B',
           tabBarLabelStyle: {
             fontSize: 11,
-            fontWeight: '700',
+            fontWeight: '800',
             marginTop: 2,
             marginBottom: 2,
+            letterSpacing: -0.1,
           },
           tabBarStyle: {
-            backgroundColor: isDark ? '#0F172A' : DESIGN_TOKENS.colors.surface,
-            borderTopColor: isDark ? '#1E293B' : DESIGN_TOKENS.colors.border,
+            backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+            borderTopColor: isDark ? '#1E293B' : '#E2E8F0',
             borderTopWidth: 1,
             height: tabHeight,
             paddingTop: 8,
             paddingBottom: bottomInset,
-            elevation: 8,
-            shadowColor: '#151D32',
-            shadowOffset: { width: 0, height: -3 },
-            shadowOpacity: 0.05,
-            shadowRadius: 8,
+            elevation: 10,
+            shadowColor: '#172554',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.06,
+            shadowRadius: 12,
           },
         }}
       >
@@ -51,7 +52,7 @@ export default function MainLayout() {
           options={{
             title: 'Home',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'home' : 'home-outline'} size={21} color={color} />
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
             ),
           }}
         />
@@ -60,7 +61,7 @@ export default function MainLayout() {
           options={{
             title: 'Academics',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'school' : 'school-outline'} size={21} color={color} />
+              <Ionicons name={focused ? 'school' : 'school-outline'} size={22} color={color} />
             ),
           }}
         />
@@ -70,15 +71,15 @@ export default function MainLayout() {
             title: 'Updates',
             tabBarBadge: unreadCount && unreadCount > 0 ? unreadCount : undefined,
             tabBarBadgeStyle: {
-              backgroundColor: DESIGN_TOKENS.colors.danger,
+              backgroundColor: DESIGN_TOKENS.colors.rose,
               fontSize: 10,
-              fontWeight: '800',
+              fontWeight: '900',
               lineHeight: 14,
             },
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-                size={21}
+                size={22}
                 color={color}
               />
             ),
@@ -89,7 +90,7 @@ export default function MainLayout() {
           options={{
             title: 'Fees',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'card' : 'card-outline'} size={21} color={color} />
+              <Ionicons name={focused ? 'card' : 'card-outline'} size={22} color={color} />
             ),
           }}
         />
@@ -98,7 +99,7 @@ export default function MainLayout() {
           options={{
             title: 'Profile',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} size={21} color={color} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
             ),
           }}
         />

@@ -649,6 +649,8 @@ const handleMe = async (req: Request, res: Response) => {
       user: {
         ...userObj,
         avatar_url,
+        avatarUrl: avatar_url,
+        profileImage: UserAvatarService.formatProfileImage(avatar_url),
         enabledFeatures,
       },
     });

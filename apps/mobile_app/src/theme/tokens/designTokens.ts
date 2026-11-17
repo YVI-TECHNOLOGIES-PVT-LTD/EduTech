@@ -5,36 +5,66 @@
  */
 export const DESIGN_TOKENS = {
   colors: {
-    // Primary Purple
-    primary: '#5145E5',
-    primaryDark: '#3930B5',
-    primaryHover: '#3930B5',
-    primaryLight: '#EEF0FF',
+    // Primary Brand Palette
+    primary: '#5145F5', // Royal Indigo
+    primaryDark: '#172554', // Deep Navy
+    primaryHover: '#3730A3',
+    primaryLight: '#EEF2FF',
+    electricViolet: '#7C3AED',
+    deepNavy: '#172554',
+    royalIndigo: '#5145F5',
+    protoIndigo: '#4338CA',
 
     // Surfaces & Backgrounds
-    background: '#F5F7FB',
+    background: '#F7F8FC', // Soft Lavender White
+    lightNeutral: '#F1F4FA',
+    protoBg: '#F6F7FC',
     surface: '#FFFFFF',
-    secondarySurface: '#F1F4F9',
+    pureWhite: '#FFFFFF',
+    secondarySurface: '#F1F5F9',
     card: '#FFFFFF',
 
     // Typography
-    textPrimary: '#151D32',
-    textSecondary: '#71819A',
-    textMuted: '#9AA9BD',
-    border: '#E2E8F0',
-    borderLight: '#F1F5F9',
+    textPrimary: '#0F172A',
+    textSecondary: '#475569',
+    textMuted: '#94A3B8',
+    border: '#CBD5E1',
+    borderLight: '#E2E8F0',
 
-    // Status Colors
-    success: '#10B981',
-    successLight: '#DCFCE7',
+    // Supporting & Status Colors
+    emerald: '#059669',
+    skyBlue: '#0EA5E9',
+    amber: '#F59E0B',
+    protoAmber: '#D97706',
+    rose: '#F43F5E',
+    protoRose: '#E11D48',
+    success: '#059669',
+    successLight: '#ECFDF5',
     warning: '#F59E0B',
-    warningLight: '#FEF3C7',
-    danger: '#EF4444',
-    error: '#EF4444',
-    errorLight: '#FEE2E2',
-    information: '#0EA5E9',
-    info: '#0EA5E9',
-    infoLight: '#E0F2FE',
+    warningLight: '#FFFBEB',
+    danger: '#F43F5E',
+    error: '#F43F5E',
+    errorLight: '#FFF1F2',
+    information: '#0284C7',
+    info: '#0284C7',
+    infoLight: '#F0F9FF',
+
+    // Gradients
+    gradients: {
+      primary: ['#5145F5', '#7C3AED'],
+      headerNav: ['#172554', '#1E1B4B', '#4338CA'],
+      navyHero: ['#172554', '#1E1B4B'],
+      welcomeSlide: ['#172554', '#4338CA', '#7C3AED'],
+      excellenceSlide: ['#059669', '#115E59'],
+      activitiesSlide: ['#0369A1', '#0284C7'],
+      updatedSlide: ['#D97706', '#C2410C'],
+      academic: ['#0EA5E9', '#5145F5'],
+      emerald: ['#059669', '#10B981'],
+      amber: ['#F59E0B', '#EA580C'],
+      rose: ['#F43F5E', '#BE123C'],
+      softLight: ['#FFFFFF', '#F8FAFC'],
+      softCard: ['#FFFFFF', '#F6F7FC'],
+    },
   },
   spacing: {
     micro: 4,
@@ -49,11 +79,14 @@ export const DESIGN_TOKENS = {
     major: 32,
   },
   radius: {
+    micro: 6,
     small: 10,
     input: 12,
     button: 14,
+    badge: 16,
     card: 20,
     featureCard: 24,
+    heroCard: 28,
     full: 9999,
   },
   typography: {
@@ -95,24 +128,31 @@ export const DESIGN_TOKENS = {
   },
   shadows: {
     subtle: {
-      shadowColor: '#151D32',
+      shadowColor: '#172554',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.04,
       shadowRadius: 8,
       elevation: 2,
     },
     card: {
-      shadowColor: '#5145E5',
+      shadowColor: '#172554',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.06,
       shadowRadius: 12,
       elevation: 3,
     },
     floating: {
-      shadowColor: '#151D32',
+      shadowColor: '#172554',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.08,
       shadowRadius: 20,
+      elevation: 6,
+    },
+    glowIndigo: {
+      shadowColor: '#5145F5',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.25,
+      shadowRadius: 14,
       elevation: 6,
     },
   },

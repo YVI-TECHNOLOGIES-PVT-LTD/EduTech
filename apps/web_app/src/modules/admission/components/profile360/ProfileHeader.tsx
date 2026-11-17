@@ -35,7 +35,12 @@ export function ProfileHeader({ applicant }: ProfileHeaderProps) {
         <div className="flex items-center gap-4">
           <Avatar size="xl" className="border border-border/80 shadow-md ring-4 ring-primary/10">
             <AvatarImage
-              src={(applicant as any)?.avatar_url || (applicant as any)?.photo_url}
+              src={
+                (applicant as any)?.avatar_url ||
+                (applicant as any)?.avatarUrl ||
+                (applicant as any)?.photo_url ||
+                (applicant as any)?.profileImage?.url
+              }
               alt={displayName}
             />
             <AvatarFallback className="bg-primary text-primary-foreground font-black text-xl">

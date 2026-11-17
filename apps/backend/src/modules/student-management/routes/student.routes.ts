@@ -8,6 +8,7 @@ import { StudentParentController } from '../controllers/student-parent.controlle
 import { StudentAnalyticsController } from '../controllers/student-analytics.controller';
 import { StudentAcademicsController } from '../controllers/student-academics.controller';
 import { StudentPolicy } from '../policies/student.policy';
+import { uploadSingleMiddleware } from '../../../middlewares/upload.middleware';
 
 export const studentRouter = Router();
 
@@ -58,6 +59,8 @@ studentRouter.post(
 );
 studentRouter.get('/', checkPermission(StudentPolicy.canViewAll()), StudentController.search);
 studentRouter.get('/:id', checkPermission(StudentPolicy.canView()), StudentController.getById);
+studentRouter.post('/:id/avatar', uploadSingleMiddleware, StudentController.uploadAvatar);
+studentRouter.delete('/:id/avatar', StudentController.deleteAvatar);
 studentRouter.patch('/:id', checkPermission(StudentPolicy.canUpdate()), StudentController.update);
 studentRouter.delete('/:id', checkPermission(StudentPolicy.canDelete()), StudentController.delete);
 studentRouter.patch(

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ROUTES } from '../../constants/routes';
@@ -25,21 +25,11 @@ export const AcademicPriorityCard: React.FC<AcademicPriorityCardProps> = React.m
 
     // Compute from real store data if not passed as prop
     const pendingHomework = homework.filter((h) => h.status === 'pending');
-    const pendingCount = propPendingCount !== undefined ? propPendingCount : pendingHomework.length;
-    const assignmentsSummary =
-      propSummary ||
-      (pendingHomework.length > 0
-        ? `${pendingHomework[0].subject}: ${pendingHomework[0].title} (Due ${pendingHomework[0].dueDate})`
-        : undefined);
+    const firstHomework = pendingHomework.length > 0 ? pendingHomework[0] : null;
+    const firstExam = exams.length > 0 ? exams[0] : null;
 
-    const upcomingExamNotice =
-      propExamNotice !== undefined
-        ? propExamNotice
-        : exams.length > 0
-          ? `${exams[0].subject} (${exams[0].examDate} at ${exams[0].startTime})`
-          : null;
-
-    const hasPriorities = pendingCount > 0 || Boolean(upcomingExamNotice);
+    const hasPriorities = Boolean(firstHomework || firstExam);
+    const totalPrioritiesCount = (firstHomework ? 1 : 0) + (firstExam ? 1 : 0);
 
     const handleOpenAssignments = () => {
       setActiveTab('homework');
@@ -52,138 +42,109 @@ export const AcademicPriorityCard: React.FC<AcademicPriorityCardProps> = React.m
     };
 
     return (
-      <View
-        style={{
-          backgroundColor: DESIGN_TOKENS.colors.surface,
-          borderColor: DESIGN_TOKENS.colors.border,
-          borderWidth: 1,
-          borderRadius: DESIGN_TOKENS.radius.card,
-          padding: DESIGN_TOKENS.spacing.standard,
-          marginBottom: DESIGN_TOKENS.spacing.standard,
-          ...DESIGN_TOKENS.shadows.subtle,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: DESIGN_TOKENS.spacing.small,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="book-outline" size={17} color="#9333EA" />
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '800',
-                textTransform: 'uppercase',
-                letterSpacing: 0.6,
-                color: DESIGN_TOKENS.colors.textSecondary,
-                marginLeft: 6,
-              }}
-            >
-              Academic Priorities
-            </Text>
+      <View style={styles.cardContainer}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <Ionicons name="notifications" size={20} color={DESIGN_TOKENS.colors.amber} />
+            <Text style={styles.sectionTitle}>Academic Priorities</Text>
           </View>
           <TouchableOpacity
-            onPress={() => {
-              setActiveTab('homework');
-              router.push(ROUTES.MAIN.ACADEMICS as any);
-            }}
-            activeOpacity={0.8}
+            onPress={handleOpenAssignments}
+            activeOpacity={0.75}
+            style={styles.viewAllButton}
+            accessibilityRole="button"
+            accessibilityLabel="View all academic priorities"
           >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary }}>
-              View All
-            </Text>
+            <Text style={styles.viewAllText}>View All ({totalPrioritiesCount})</Text>
           </TouchableOpacity>
         </View>
 
         {hasPriorities ? (
-          <View style={{ gap: 10 }}>
-            {pendingCount > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleOpenAssignments}
-                style={{
-                  backgroundColor: '#FAF5FF',
-                  borderColor: '#E9D5FF',
-                  borderWidth: 1,
-                  borderRadius: DESIGN_TOKENS.radius.small,
-                  padding: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#6B21A8' }}>
-                    {pendingCount} Assignment{pendingCount > 1 ? 's' : ''} Pending
-                  </Text>
-                  {assignmentsSummary ? (
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: DESIGN_TOKENS.colors.textSecondary,
-                        marginTop: 2,
-                      }}
-                      numberOfLines={1}
-                    >
-                      {assignmentsSummary}
+          <View style={styles.prioritiesList}>
+            {/* Priority 1: Pending Homework (Amber) */}
+            {firstHomework && (
+              <View style={styles.priorityCardAmber}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={styles.iconCircleAmber}>
+                    <Ionicons name="document-text" size={17} color={DESIGN_TOKENS.colors.amber} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.titleBadgeRow}>
+                      <Text style={styles.priorityTitle} numberOfLines={1}>
+                        {firstHomework.subject}: {firstHomework.title}
+                      </Text>
+                      <View style={styles.dueBadgeAmber}>
+                        <Text style={styles.dueBadgeTextAmber}>
+                          {firstHomework.dueDate
+                            ? `DUE ${firstHomework.dueDate.toUpperCase()}`
+                            : 'PENDING'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.prioritySubtitle} numberOfLines={2}>
+                      {firstHomework.description ||
+                        'Complete exercises and prepare for submission.'}
                     </Text>
-                  ) : null}
+                  </View>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color="#9333EA" />
-              </TouchableOpacity>
+
+                <View style={styles.actionRowRight}>
+                  <TouchableOpacity
+                    onPress={handleOpenAssignments}
+                    activeOpacity={0.75}
+                    style={styles.actionLink}
+                  >
+                    <Text style={styles.actionLinkText}>Review</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
 
-            {upcomingExamNotice && (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleOpenExams}
-                style={{
-                  backgroundColor: '#FFF7ED',
-                  borderColor: '#FFEDD5',
-                  borderWidth: 1,
-                  borderRadius: DESIGN_TOKENS.radius.small,
-                  padding: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#9A3412' }}>
-                    Upcoming Examination Notice
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: DESIGN_TOKENS.colors.textSecondary,
-                      marginTop: 2,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {upcomingExamNotice}
-                  </Text>
+            {/* Priority 2: Upcoming Exam (Violet) */}
+            {firstExam && (
+              <View style={styles.priorityCardViolet}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={styles.iconCircleViolet}>
+                    <Ionicons name="school" size={17} color={DESIGN_TOKENS.colors.electricViolet} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.titleBadgeRow}>
+                      <Text style={styles.priorityTitle} numberOfLines={1}>
+                        {firstExam.subject}: {firstExam.examName}
+                      </Text>
+                      <View style={styles.dueBadgeViolet}>
+                        <Text style={styles.dueBadgeTextViolet}>
+                          {firstExam.examDate ? firstExam.examDate.toUpperCase() : 'UPCOMING'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.prioritySubtitle} numberOfLines={2}>
+                      {firstExam.instructions || 'Syllabus and test guidelines uploaded to portal.'}
+                    </Text>
+                  </View>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color="#EA580C" />
-              </TouchableOpacity>
+
+                <View style={styles.actionRowRight}>
+                  <TouchableOpacity
+                    onPress={handleOpenExams}
+                    activeOpacity={0.75}
+                    style={styles.actionLink}
+                  >
+                    <Text style={styles.actionLinkText}>Syllabus</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
           </View>
         ) : (
-          <View
-            style={{
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              backgroundColor: DESIGN_TOKENS.colors.secondarySurface,
-              borderRadius: DESIGN_TOKENS.radius.small,
-              borderWidth: 1,
-              borderColor: DESIGN_TOKENS.colors.borderLight,
-            }}
-          >
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.textSecondary }}>
-              No pending assignments or urgent academic alerts for today.
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="happy-outline" size={26} color={DESIGN_TOKENS.colors.emerald} />
+            </View>
+            <Text style={styles.emptyTitle}>All Caught Up!</Text>
+            <Text style={styles.emptySubtitle}>
+              Zero pending homework or urgent alerts. Outstanding job!
             </Text>
           </View>
         )}
@@ -193,3 +154,165 @@ export const AcademicPriorityCard: React.FC<AcademicPriorityCardProps> = React.m
 );
 
 AcademicPriorityCard.displayName = 'AcademicPriorityCard';
+
+const styles = StyleSheet.create({
+  cardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    ...DESIGN_TOKENS.shadows.subtle,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.deepNavy,
+  },
+  viewAllButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.royalIndigo,
+  },
+  prioritiesList: {
+    gap: 10,
+  },
+  priorityCardAmber: {
+    backgroundColor: 'rgba(217, 119, 6, 0.05)',
+    borderColor: 'rgba(217, 119, 6, 0.2)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+  },
+  priorityCardViolet: {
+    backgroundColor: 'rgba(124, 58, 237, 0.05)',
+    borderColor: 'rgba(124, 58, 237, 0.2)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  iconCircleAmber: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: 'rgba(217, 119, 6, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  iconCircleViolet: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  titleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginBottom: 2,
+  },
+  priorityTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.deepNavy,
+    flex: 1,
+  },
+  dueBadgeAmber: {
+    backgroundColor: 'rgba(217, 119, 6, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  dueBadgeTextAmber: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.amber,
+  },
+  dueBadgeViolet: {
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  dueBadgeTextViolet: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.electricViolet,
+  },
+  prioritySubtitle: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  actionRowRight: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+  },
+  actionLink: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  actionLinkText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.royalIndigo,
+  },
+  emptyContainer: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  emptyIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.deepNavy,
+    marginBottom: 2,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    textAlign: 'center',
+  },
+});

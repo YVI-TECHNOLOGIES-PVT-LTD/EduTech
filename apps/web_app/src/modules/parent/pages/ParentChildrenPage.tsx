@@ -100,8 +100,19 @@ export const ParentChildrenPage: React.FC = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="flex items-start sm:items-center gap-4">
                     <Avatar className="w-16 h-16 border-2 border-primary/20 shadow-sm shrink-0">
-                      {child.photo_url && (
-                        <AvatarImage src={child.photo_url} alt={child.full_name} />
+                      {(child.photo_url ||
+                        (child as any)?.avatar_url ||
+                        (child as any)?.avatarUrl ||
+                        (child as any)?.profileImage?.url) && (
+                        <AvatarImage
+                          src={
+                            child.photo_url ||
+                            (child as any)?.avatar_url ||
+                            (child as any)?.avatarUrl ||
+                            (child as any)?.profileImage?.url
+                          }
+                          alt={child.full_name}
+                        />
                       )}
                       <AvatarFallback className="bg-primary/10 text-primary text-lg font-black">
                         {getInitials(child.full_name)}

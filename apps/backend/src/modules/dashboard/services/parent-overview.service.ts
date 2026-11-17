@@ -1,4 +1,5 @@
 import prisma from '../../../lib/prismaClient';
+import { UserAvatarService } from '../../user-management/services/user-avatar.service';
 
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -351,6 +352,11 @@ export class ParentOverviewService {
                 },
                 orderBy: [{ enrollment_date: 'desc' }, { created_at: 'desc' }],
               },
+              users_students_user_idTousers: {
+                select: {
+                  avatar_url: true,
+                },
+              },
               admissions_applications: {
                 select: {
                   application_id: true,
@@ -417,58 +423,40 @@ export class ParentOverviewService {
 
     studentRecords.push(...records);
 
-    children = records.map((student) => {
-      const activeEnrollment = selectCurrentEnrollment(student.student_enrollments, safeOrgId);
-      const ayg = activeEnrollment?.academic_year_grades;
-      const academicYear = ayg?.academic_years;
-      const grade = ayg?.grades;
-      const section = activeEnrollment?.sections;
+    children = await Promise.all(
+      records.map(async (student) => {
+        const activeEnrollment = selectCurrentEnrollment(student.student_enrollments, safeOrgId);
+        const ayg = activeEnrollment?.academic_year_grades;
+        const academicYear = ayg?.academic_years;
+        const grade = ayg?.grades;
+        const section = activeEnrollment?.sections;
 
-      const fullName = `${student.first_name} ${student.last_name || ''}`.trim();
-      const academicYearName = academicYear?.academic_year_name || null;
-      const gradeName = grade?.grade_name || null;
-      const gradeCode = grade?.grade_code || null;
-      const sectionName = section?.section_name || null;
-      const rollNumber = activeEnrollment?.roll_number || null;
-      const enrollmentStatus = activeEnrollment?.status || null;
+        const fullName = `${student.first_name} ${student.last_name || ''}`.trim();
+        const academicYearName = academicYear?.academic_year_name || null;
+        const gradeName = grade?.grade_name || null;
+        const gradeCode = grade?.grade_code || null;
+        const sectionName = section?.section_name || null;
+        const rollNumber = activeEnrollment?.roll_number || null;
+        const enrollmentStatus = activeEnrollment?.status || null;
 
-      const docSummary = computeDocumentSummary(
-        (student as any).admissions_applications?.admission_documents || [],
-        orgDocTypes,
-      );
+        const rawStudentAvatar = (student as any).users_students_user_idTousers?.avatar_url || null;
+        const photoUrl = await UserAvatarService.resolveStudentPhotoUrl({
+          avatarPath: rawStudentAvatar,
+          applicationId: student.application_id,
+          studentId: student.student_id,
+        });
 
-      return {
-        student_id: student.student_id,
-        admission_no: student.admission_no,
-        first_name: student.first_name,
-        last_name: student.last_name,
-        full_name: fullName,
-        status: student.status,
-        academic_year_id: academicYear?.academic_year_id || null,
-        academic_year_name: academicYearName,
-        grade_id: grade?.grade_id || null,
-        grade_name: gradeName,
-        grade_code: gradeCode,
-        section_id: section?.section_id || null,
-        section_name: sectionName,
-        roll_number: rollNumber,
-        enrollment_id: activeEnrollment?.enrollment_id || null,
-        enrollment_status: enrollmentStatus,
-        application_id: student.application_id || null,
-        documents: docSummary.documents,
-        document_stats: docSummary.document_stats,
-        photo_url: null,
-        dob: student.dob ? student.dob.toISOString().split('T')[0] : null,
-        gender: student.gender || null,
-        nationality: student.nationality || null,
-        student: {
-          id: student.student_id,
+        const docSummary = computeDocumentSummary(
+          (student as any).admissions_applications?.admission_documents || [],
+          orgDocTypes,
+        );
+
+        return {
           student_id: student.student_id,
-          full_name: fullName,
+          admission_no: student.admission_no,
           first_name: student.first_name,
           last_name: student.last_name,
-          admission_no: student.admission_no,
-          student_code: student.admission_no, // preserved backward-compatible alias
+          full_name: fullName,
           status: student.status,
           academic_year_id: academicYear?.academic_year_id || null,
           academic_year_name: academicYearName,
@@ -480,12 +468,46 @@ export class ParentOverviewService {
           roll_number: rollNumber,
           enrollment_id: activeEnrollment?.enrollment_id || null,
           enrollment_status: enrollmentStatus,
-          attendance: [],
-          exam_stats: [],
-          faculty_assignments: [],
-        },
-      };
-    });
+          application_id: student.application_id || null,
+          documents: docSummary.documents,
+          document_stats: docSummary.document_stats,
+          photo_url: photoUrl,
+          avatar_url: photoUrl,
+          avatarUrl: photoUrl,
+          profileImage: UserAvatarService.formatProfileImage(photoUrl),
+          dob: student.dob ? student.dob.toISOString().split('T')[0] : null,
+          gender: student.gender || null,
+          nationality: student.nationality || null,
+          student: {
+            id: student.student_id,
+            student_id: student.student_id,
+            full_name: fullName,
+            first_name: student.first_name,
+            last_name: student.last_name,
+            admission_no: student.admission_no,
+            student_code: student.admission_no, // preserved backward-compatible alias
+            status: student.status,
+            academic_year_id: academicYear?.academic_year_id || null,
+            academic_year_name: academicYearName,
+            grade_id: grade?.grade_id || null,
+            grade_name: gradeName,
+            grade_code: gradeCode,
+            section_id: section?.section_id || null,
+            section_name: sectionName,
+            roll_number: rollNumber,
+            enrollment_id: activeEnrollment?.enrollment_id || null,
+            enrollment_status: enrollmentStatus,
+            photo_url: photoUrl,
+            avatar_url: photoUrl,
+            avatarUrl: photoUrl,
+            profileImage: UserAvatarService.formatProfileImage(photoUrl),
+            attendance: [],
+            exam_stats: [],
+            faculty_assignments: [],
+          },
+        };
+      }),
+    );
 
     // In-memory Layer 2 Deduplication: filter out any application belonging to an enrolled student
     const enrolledAppIds = new Set(
@@ -495,38 +517,47 @@ export class ParentOverviewService {
       (app: any) => !enrolledAppIds.has(app.application_id),
     );
 
-    const admissions: ParentAdmissionApplicationSummary[] = activeApplications.map((app) => {
-      const lead = app.leads;
-      const studentName = lead
-        ? `${lead.student_first_name} ${lead.student_last_name || ''}`.trim()
-        : 'Applicant';
-      const gradeName =
-        lead?.academic_year_grades?.grades?.grade_name || lead?.curriculum_preference || '';
-      const academicYearName =
-        app.academic_years?.academic_year_name ||
-        lead?.academic_year_grades?.academic_years?.academic_year_name ||
-        '';
+    const admissions: ParentAdmissionApplicationSummary[] = await Promise.all(
+      activeApplications.map(async (app) => {
+        const lead = app.leads;
+        const studentName = lead
+          ? `${lead.student_first_name} ${lead.student_last_name || ''}`.trim()
+          : 'Applicant';
+        const gradeName =
+          lead?.academic_year_grades?.grades?.grade_name || lead?.curriculum_preference || '';
+        const academicYearName =
+          app.academic_years?.academic_year_name ||
+          lead?.academic_year_grades?.academic_years?.academic_year_name ||
+          '';
 
-      const docSummary = computeDocumentSummary(app.admission_documents || [], orgDocTypes);
+        const photoUrl = await UserAvatarService.resolveStudentPhotoUrl({
+          applicationId: app.application_id,
+        });
 
-      return {
-        id: app.application_id,
-        application_id: app.application_id,
-        application_number: app.application_number,
-        status: app.status.toLowerCase(),
-        student_name: studentName,
-        grade_applied_for: gradeName,
-        academic_year_name: academicYearName,
-        parent_email: lead?.contact_email || normalizedEmail || '',
-        created_at: app.created_at,
-        updated_at: app.updated_at,
-        admission_no: null,
-        section_name: null,
-        documents: docSummary.documents,
-        document_stats: docSummary.document_stats,
-        photo_url: null,
-      };
-    });
+        const docSummary = computeDocumentSummary(app.admission_documents || [], orgDocTypes);
+
+        return {
+          id: app.application_id,
+          application_id: app.application_id,
+          application_number: app.application_number,
+          status: app.status.toLowerCase(),
+          student_name: studentName,
+          grade_applied_for: gradeName,
+          academic_year_name: academicYearName,
+          parent_email: lead?.contact_email || normalizedEmail || '',
+          created_at: app.created_at,
+          updated_at: app.updated_at,
+          admission_no: null,
+          section_name: null,
+          documents: docSummary.documents,
+          document_stats: docSummary.document_stats,
+          photo_url: photoUrl,
+          avatar_url: photoUrl,
+          avatarUrl: photoUrl,
+          profileImage: UserAvatarService.formatProfileImage(photoUrl),
+        };
+      }),
+    );
 
     return {
       children,
