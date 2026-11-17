@@ -713,7 +713,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
             <div className="flex items-center gap-3 min-w-0">
               <Avatar size="sm" className="border border-sidebar-border shrink-0">
                 <AvatarImage
-                  src={(user as any)?.avatar_url || (user as any)?.avatar || (user as any)?.image}
+                  src={
+                    (user as any)?.avatar_url ||
+                    (user as any)?.avatarUrl ||
+                    (user as any)?.profileImage?.url ||
+                    (user as any)?.avatar ||
+                    (user as any)?.image
+                  }
                   alt={displayName}
                 />
                 <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground font-black">

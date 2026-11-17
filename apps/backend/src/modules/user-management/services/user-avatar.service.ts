@@ -86,16 +86,40 @@ export class UserAvatarService {
       throw new ApplicationForbiddenError('Cross-organization profile photo access rejected');
     }
 
-    // Self-service vs Admin/Staff RBAC
+    // Self-service vs Admin/Staff RBAC vs Authorized Parent
     const isSelf = currentUser.id === targetUserId;
     const isStaffOrAdmin = (currentUser.roles || []).some((r) =>
-      ['SUPERADMIN', 'ADMIN', 'ORG_ADMIN', 'HOI', 'STAFF', 'FACULTY'].includes(r),
+      ['SUPERADMIN', 'ADMIN', 'ORG_ADMIN', 'HOI', 'STAFF', 'FACULTY', 'ADMISSION_OFFICER'].includes(
+        r,
+      ),
     );
 
     if (!isSelf && !isStaffOrAdmin) {
-      throw new ApplicationForbiddenError(
-        "You are not authorized to update another user's profile photo",
-      );
+      // Check if currentUser is a verified parent of target student user
+      let isParentOfTarget = false;
+      try {
+        const linkedStudent = await prisma.student_parents.findFirst({
+          where: {
+            parents: {
+              user_id: currentUser.id,
+              ...(userOrgId ? { org_id: userOrgId } : {}),
+            },
+            students: {
+              user_id: targetUserId,
+              ...(userOrgId ? { org_id: userOrgId } : {}),
+            },
+          },
+        });
+        isParentOfTarget = Boolean(linkedStudent);
+      } catch {
+        isParentOfTarget = false;
+      }
+
+      if (!isParentOfTarget) {
+        throw new ApplicationForbiddenError(
+          "You are not authorized to update another user's profile photo",
+        );
+      }
     }
 
     return { targetUserOrgId: targetUser.org_id };
@@ -245,5 +269,90 @@ export class UserAvatarService {
       });
       return null;
     }
+  }
+
+  /**
+   * Resolve profile photo for a student or applicant with fallback to admission documents.
+   */
+  static async resolveStudentPhotoUrl(params: {
+    avatarPath?: string | null;
+    applicationId?: string | null;
+    studentId?: string | null;
+  }): Promise<string | null> {
+    const { avatarPath, applicationId, studentId } = params;
+
+    // 1. If relative or direct avatarPath is known, resolve signed URL
+    if (avatarPath && typeof avatarPath === 'string' && avatarPath.trim()) {
+      const resolved = await this.getAvatarSignedUrl(avatarPath);
+      if (resolved) return resolved;
+    }
+
+    // 2. Fallback to admission document photo if applicationId or studentId is provided
+    let targetAppId = applicationId;
+    if (!targetAppId && studentId) {
+      try {
+        const studentRecord = await prisma.students.findUnique({
+          where: { student_id: studentId },
+          select: {
+            application_id: true,
+            users_students_user_idTousers: { select: { avatar_url: true } },
+          },
+        });
+        if (studentRecord?.users_students_user_idTousers?.avatar_url) {
+          const resolved = await this.getAvatarSignedUrl(
+            studentRecord.users_students_user_idTousers.avatar_url,
+          );
+          if (resolved) return resolved;
+        }
+        targetAppId = studentRecord?.application_id || null;
+      } catch {
+        targetAppId = null;
+      }
+    }
+
+    if (targetAppId) {
+      try {
+        const photoDoc = await prisma.admission_documents.findFirst({
+          where: {
+            application_id: targetAppId,
+            OR: [
+              { mime_type: { startsWith: 'image/' } },
+              { storage_path: { endsWith: '.jpg' } },
+              { storage_path: { endsWith: '.jpeg' } },
+              { storage_path: { endsWith: '.png' } },
+              { storage_path: { endsWith: '.webp' } },
+              { document_types: { document_name: { contains: 'photo', mode: 'insensitive' } } },
+            ],
+          },
+          orderBy: { uploaded_at: 'desc' },
+          select: { storage_path: true },
+        });
+
+        if (photoDoc?.storage_path) {
+          const signed = await StorageService.getSignedUrl({
+            bucket: 'admission-documents',
+            path: photoDoc.storage_path,
+            expiresInSeconds: 3600,
+          });
+          return signed.signedUrl;
+        }
+      } catch (err: any) {
+        logger.warn(
+          `[UserAvatarService] Failed resolving admission document photo for app ${targetAppId}: ${err.message}`,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Format profile image DTO payload conforming to API conventions
+   */
+  static formatProfileImage(url: string | null): { available: boolean; url: string | null } {
+    return {
+      available: Boolean(url),
+      url: url || null,
+    };
   }
 }

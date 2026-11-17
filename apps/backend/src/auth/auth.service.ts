@@ -9,6 +9,7 @@ import {
   normalizeEmail as sharedNormalizeEmail,
 } from '@edutrack/validation';
 import { resolveCountryAndPhone } from '../utils/country-resolver';
+import { UserAvatarService } from '../modules/user-management/services/user-avatar.service';
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
@@ -107,6 +108,12 @@ export class AuthService {
       JWT_REFRESH_EXPIRES_IN_SECONDS,
     );
 
+    let avatar_url: string | null = null;
+    const rawAvatar = user?.avatar_url || null;
+    if (rawAvatar) {
+      avatar_url = await UserAvatarService.getAvatarSignedUrl(rawAvatar).catch(() => rawAvatar);
+    }
+
     return {
       accessToken,
       refreshToken,
@@ -130,6 +137,9 @@ export class AuthService {
         student_id: initialProfile.student_id,
         parent_id: initialProfile.parent_id,
         parent_student_ids: initialProfile.parent_student_ids,
+        avatar_url,
+        avatarUrl: avatar_url,
+        profileImage: UserAvatarService.formatProfileImage(avatar_url),
       },
     };
   }

@@ -6,6 +6,7 @@ export * from './atoms/Chip';
 export * from './atoms/Divider';
 export * from './atoms/Loader';
 export * from './atoms/StatPill';
+export * from './atoms/GradientSurface';
 export * from './molecules/PasswordInput';
 export * from './molecules/SearchBar';
 export * from './molecules/SectionHeader';

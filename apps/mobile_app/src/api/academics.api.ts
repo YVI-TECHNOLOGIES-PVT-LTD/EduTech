@@ -24,6 +24,9 @@ export interface TimetablePeriod {
   teacherName: string;
   room: string;
   isBreak?: boolean;
+  breakName?: string;
+  topic?: string;
+  status?: 'ongoing' | 'upcoming' | 'completed' | 'break' | 'lunch' | 'free' | 'scheduled';
 }
 
 export interface TimetableDay {
@@ -40,6 +43,9 @@ export interface HomeworkItem {
   description: string;
   status: 'pending' | 'submitted';
   submissionDate?: string;
+  teacherName?: string;
+  score?: string;
+  teacherRemark?: string;
 }
 
 export interface ExamItem {
@@ -51,7 +57,9 @@ export interface ExamItem {
   endTime: string;
   room: string;
   totalMarks: number;
+  duration?: string;
   instructions?: string;
+  syllabus?: string;
 }
 
 export interface ExamResultItem {
@@ -193,8 +201,13 @@ export const academicsApi = {
               ? s.break_name || 'Break / Recess'
               : s.subject_name || s.subject || 'Free Period',
             teacherName: s.teacher_name || s.teacherName || (s.is_break ? '-' : 'Assigned Faculty'),
-            room: s.room_number || s.room || '',
-            isBreak: Boolean(s.is_break),
+            room: s.classroom_label || s.room_name || s.room_code || s.room_number || s.room || '',
+            isBreak: Boolean(s.is_break || s.period_type === 'break' || s.period_type === 'lunch'),
+            breakName:
+              s.break_name ||
+              (s.is_break ? s.period_name || 'Mid-Day Nutrition & Lunch Break' : undefined),
+            topic: s.notes || s.lesson_topic || s.topics_covered || undefined,
+            status: s.status,
           }));
 
           return {
@@ -247,6 +260,13 @@ export const academicsApi = {
             description: item.instructions || item.description || '',
             status: isSubmitted ? 'submitted' : 'pending',
             submissionDate: item.submitted_at || item.submissionDate,
+            teacherName: item.teacher_name || item.author || undefined,
+            score:
+              item.score ||
+              (item.graded_points !== undefined
+                ? `${item.graded_points}/${item.max_points || 100}`
+                : undefined),
+            teacherRemark: item.feedback || item.teacher_remark || undefined,
           };
         });
       }
@@ -268,19 +288,26 @@ export const academicsApi = {
         (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
 
       if (Array.isArray(rawExams) && rawExams.length > 0) {
-        return rawExams.map((ex: any, idx: number) => ({
-          id: String(ex.id || ex.exam_id || `exam_${idx}`),
-          examName: ex.exam_name || ex.name || 'Term Assessment',
-          subject: ex.subject_name || ex.subject || 'General Subject',
-          examDate: ex.exam_date
-            ? new Date(ex.exam_date).toISOString().split('T')[0]
-            : ex.examDate || '',
-          startTime: ex.start_time || ex.startTime || '09:00',
-          endTime: ex.end_time || ex.endTime || '12:00',
-          room: ex.room || ex.room_number || 'Exam Hall',
-          totalMarks: Number(ex.total_marks || ex.totalMarks || 100),
-          instructions: ex.instructions || 'Standard examination protocol applies.',
-        }));
+        return rawExams.map((ex: any, idx: number) => {
+          const duration =
+            ex.duration ||
+            (ex.start_time && ex.end_time ? `${ex.start_time} - ${ex.end_time}` : undefined);
+          return {
+            id: String(ex.id || ex.exam_id || `exam_${idx}`),
+            examName: ex.exam_name || ex.name || 'Term Assessment',
+            subject: ex.subject_name || ex.subject || 'General Subject',
+            examDate: ex.exam_date
+              ? new Date(ex.exam_date).toISOString().split('T')[0]
+              : ex.examDate || '',
+            startTime: ex.start_time || ex.startTime || '09:00',
+            endTime: ex.end_time || ex.endTime || '12:00',
+            room: ex.room || ex.room_number || 'Exam Hall',
+            totalMarks: Number(ex.total_marks || ex.totalMarks || 100),
+            duration,
+            instructions: ex.instructions || 'Standard examination protocol applies.',
+            syllabus: ex.syllabus || ex.syllabus_summary || undefined,
+          };
+        });
       }
     } catch {
       // Graceful fallback

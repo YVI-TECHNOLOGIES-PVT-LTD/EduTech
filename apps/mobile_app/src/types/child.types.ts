@@ -7,6 +7,12 @@ export interface BaseChild {
   lastName: string;
   gender?: 'male' | 'female' | 'other';
   avatarUrl?: string | null;
+  avatar_url?: string | null;
+  photo_url?: string | null;
+  profileImage?: {
+    available: boolean;
+    url: string | null;
+  } | null;
   relationship?: ChildRelationship | string;
   isPrimaryContact?: boolean;
   academicYear: string; // e.g. "2026-2027"
@@ -20,6 +26,7 @@ export interface EnrolledChild extends BaseChild {
   section: string; // e.g. "B"
   rollNumber?: string;
   campusName?: string;
+  houseName?: string | null;
   status: 'active' | 'graduated' | 'suspended' | 'transferred' | string;
   attendanceToday?: {
     status: 'present' | 'absent' | 'late' | 'holiday' | 'unmarked';

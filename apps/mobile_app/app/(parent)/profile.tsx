@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 import { useAuthStore } from '../../src/stores/auth.store';
+import { useChildStore } from '../../src/stores/child.store';
 import { authApi } from '../../src/api/auth.api';
 import { ROUTES } from '../../src/constants/routes';
 import { useTheme } from '../../src/theme';
@@ -22,6 +24,23 @@ export default function ParentProfileScreen() {
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
+  const { lifecycleData } = useChildStore();
+  const [avatarError, setAvatarError] = React.useState(false);
+
+  const parentAvatar =
+    user?.avatarUrl ||
+    user?.avatar_url ||
+    (user as any)?.photo_url ||
+    (user as any)?.profileImage?.url ||
+    lifecycleData?.parent?.avatarUrl ||
+    lifecycleData?.parent?.avatar_url ||
+    lifecycleData?.parent?.photo_url ||
+    lifecycleData?.parent?.profileImage?.url ||
+    null;
+
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [parentAvatar]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -82,8 +101,27 @@ export default function ParentProfileScreen() {
             },
           ]}
         >
-          <View style={[styles.avatarContainer, { backgroundColor: DESIGN_TOKENS.colors.primary }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View
+            style={[
+              styles.avatarContainer,
+              {
+                backgroundColor: DESIGN_TOKENS.colors.primary,
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            {parentAvatar && !avatarError ? (
+              <ExpoImage
+                source={{ uri: parentAvatar }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
 
           <Text

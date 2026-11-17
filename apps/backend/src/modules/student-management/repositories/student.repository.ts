@@ -21,7 +21,24 @@ export class StudentRepository {
             },
           },
         },
-        admissions_applications: true,
+        users_students_user_idTousers: {
+          select: {
+            avatar_url: true,
+          },
+        },
+        admissions_applications: {
+          include: {
+            admission_documents: {
+              select: {
+                document_id: true,
+                storage_path: true,
+                mime_type: true,
+                original_file_name: true,
+              },
+              orderBy: { uploaded_at: 'desc' },
+            },
+          },
+        },
       },
     });
   }

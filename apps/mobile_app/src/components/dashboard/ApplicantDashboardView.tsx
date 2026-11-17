@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ApplicantChild } from '../../types/child.types';
-import { Badge } from '../ui/atoms/Badge';
+import { DESIGN_TOKENS } from '../../theme/tokens/designTokens';
 
 export interface ApplicantDashboardViewProps {
   applicant: ApplicantChild;
@@ -16,131 +16,317 @@ export const ApplicantDashboardView: React.FC<ApplicantDashboardViewProps> = ({ 
   const getStageDisplay = (stage: string) => {
     switch (stage) {
       case 'submitted':
-        return { label: 'Application Submitted', color: 'primary' as const };
+        return {
+          label: 'Application Submitted',
+          bg: '#EEF0FF',
+          text: DESIGN_TOKENS.colors.royalIndigo,
+          border: '#C7D2FE',
+        };
       case 'documents_pending':
-        return { label: 'Documents Pending', color: 'warning' as const };
+        return { label: 'Documents Pending', bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' };
       case 'under_review':
-        return { label: 'Under Review', color: 'info' as const };
+        return { label: 'Under Review', bg: '#F0F9FF', text: '#0369A1', border: '#BAE6FD' };
       case 'assessment_scheduled':
-        return { label: 'Assessment Scheduled', color: 'primary' as const };
+        return { label: 'Assessment Scheduled', bg: '#EEF0FF', text: '#4338CA', border: '#C7D2FE' };
       case 'fee_pending':
-        return { label: 'Fee Payment Pending', color: 'warning' as const };
+        return { label: 'Fee Payment Pending', bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' };
       case 'decision_ready':
       case 'offer_accepted':
-        return { label: 'Offer Issued', color: 'success' as const };
+        return { label: 'Offer Issued', bg: '#ECFDF5', text: '#065F46', border: '#A7F3D0' };
       default:
-        return { label: 'In Progress', color: 'primary' as const };
+        return {
+          label: 'In Progress',
+          bg: '#EEF0FF',
+          text: DESIGN_TOKENS.colors.royalIndigo,
+          border: '#C7D2FE',
+        };
     }
   };
 
   const stageInfo = getStageDisplay(applicant.stage);
 
   return (
-    <View className="mb-6">
-      {/* 1. Status Stepper Card */}
-      <View className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 mb-4 shadow-sm">
-        <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-row items-center">
-            <Ionicons name="document-text-outline" size={18} color="#4f46e5" />
-            <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1.5">
-              Admission Progress
+    <View style={styles.container}>
+      {/* 1. Admission Progress Hero Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.headerTitleRow}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="document-text" size={16} color={DESIGN_TOKENS.colors.royalIndigo} />
+            </View>
+            <Text style={styles.headerTitle}>Admission Progress</Text>
+          </View>
+          <View
+            style={[
+              styles.stageBadge,
+              { backgroundColor: stageInfo.bg, borderColor: stageInfo.border },
+            ]}
+          >
+            <Text style={[styles.stageBadgeText, { color: stageInfo.text }]}>
+              {stageInfo.label}
             </Text>
           </View>
-          <Badge label={stageInfo.label} variant={stageInfo.color} />
         </View>
 
-        <View className="mb-3">
-          <View className="flex-row items-baseline justify-between mb-1.5">
-            <Text className="text-sm font-black text-slate-900 dark:text-slate-100">
-              {applicant.applicationNumber}
-            </Text>
-            <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-              {applicant.progressPercentage}% Completed
-            </Text>
+        {/* Progress Bar & Percentage */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressInfoRow}>
+            <Text style={styles.appNumberText}>{applicant.applicationNumber}</Text>
+            <Text style={styles.percentageText}>{applicant.progressPercentage}% Completed</Text>
           </View>
-          <View className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <View
-              className="h-full bg-indigo-600 rounded-full"
-              style={{ width: `${applicant.progressPercentage}%` }}
-            />
+          <View style={styles.progressBarTrack}>
+            <View style={[styles.progressBarFill, { width: `${applicant.progressPercentage}%` }]} />
           </View>
         </View>
 
         {applicant.actionRequiredNotice && (
-          <View className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl p-3 flex-row items-center mb-3">
-            <Ionicons name="alert-circle" size={16} color="#d97706" />
-            <Text className="text-xs font-bold text-amber-800 dark:text-amber-200 ml-2 flex-1">
-              {applicant.actionRequiredNotice}
-            </Text>
+          <View style={styles.noticeBox}>
+            <Ionicons name="alert-circle" size={17} color="#D97706" />
+            <Text style={styles.noticeText}>{applicant.actionRequiredNotice}</Text>
           </View>
         )}
 
         <TouchableOpacity
-          activeOpacity={0.8}
+          activeOpacity={0.88}
           onPress={() => router.push(`/(parent)/applications/${appId}` as any)}
-          className="bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl items-center justify-center"
+          style={styles.openHubButton}
+          accessibilityRole="button"
+          accessibilityLabel="Open Application Hub"
         >
-          <Text className="text-xs font-bold text-white">Open Application Hub</Text>
+          <Text style={styles.openHubButtonText}>Open Application Hub</Text>
+          <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       {/* 2. Admission Quick Shortcuts */}
-      <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 px-1">
-        Application Checklist
-      </Text>
-      <View className="flex-row flex-wrap gap-2.5 mb-4">
+      <View style={styles.checklistHeaderRow}>
+        <Text style={styles.checklistTitle}>Application Checklist</Text>
+        <Text style={styles.checklistSubtitle}>Quick Actions</Text>
+      </View>
+
+      <View style={styles.shortcutsGrid}>
         <TouchableOpacity
           onPress={() => router.push(`/(parent)/applications/${appId}/documents` as any)}
-          className="flex-1 min-w-[45%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 flex-row items-center shadow-sm"
+          style={styles.shortcutCard}
+          activeOpacity={0.8}
         >
-          <View className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950 items-center justify-center mr-2.5">
-            <Ionicons name="folder-open-outline" size={18} color="#4f46e5" />
+          <View style={[styles.shortcutIconCircle, { backgroundColor: '#EEF0FF' }]}>
+            <Ionicons
+              name="folder-open-outline"
+              size={18}
+              color={DESIGN_TOKENS.colors.royalIndigo}
+            />
           </View>
-          <View className="flex-1">
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">Documents</Text>
-            <Text className="text-[10px] text-slate-400">Upload & Verify</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push(`/(parent)/applications/${appId}/fees` as any)}
-          className="flex-1 min-w-[45%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 flex-row items-center shadow-sm"
-        >
-          <View className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950 items-center justify-center mr-2.5">
-            <Ionicons name="card-outline" size={18} color="#d97706" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">App Fee</Text>
-            <Text className="text-[10px] text-slate-400">Processing Fee</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push(`/(parent)/applications/${appId}/assessment` as any)}
-          className="flex-1 min-w-[45%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 flex-row items-center shadow-sm"
-        >
-          <View className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950 items-center justify-center mr-2.5">
-            <Ionicons name="calendar-outline" size={18} color="#0284c7" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">Assessment</Text>
-            <Text className="text-[10px] text-slate-400">Interview Slot</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shortcutTitle}>Documents</Text>
+            <Text style={styles.shortcutSub}>Upload certificates</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push(`/(parent)/applications/${appId}/timeline` as any)}
-          className="flex-1 min-w-[45%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 flex-row items-center shadow-sm"
+          style={styles.shortcutCard}
+          activeOpacity={0.8}
         >
-          <View className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950 items-center justify-center mr-2.5">
-            <Ionicons name="time-outline" size={18} color="#059669" />
+          <View style={[styles.shortcutIconCircle, { backgroundColor: '#F0F9FF' }]}>
+            <Ionicons name="git-commit-outline" size={18} color="#0EA5E9" />
           </View>
-          <View className="flex-1">
-            <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">Timeline</Text>
-            <Text className="text-[10px] text-slate-400">Audit History</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shortcutTitle}>Timeline</Text>
+            <Text style={styles.shortcutSub}>Track history</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push(`/(parent)/applications/${appId}/assessment` as any)}
+          style={styles.shortcutCard}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.shortcutIconCircle, { backgroundColor: '#FAF5FF' }]}>
+            <Ionicons name="school-outline" size={18} color="#7C3AED" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shortcutTitle}>Assessment</Text>
+            <Text style={styles.shortcutSub}>Test & interview</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push(`/(parent)/applications/${appId}/fees` as any)}
+          style={styles.shortcutCard}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.shortcutIconCircle, { backgroundColor: '#FFFBEB' }]}>
+            <Ionicons name="card-outline" size={18} color="#D97706" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shortcutTitle}>Fees</Text>
+            <Text style={styles.shortcutSub}>Admission dues</Text>
           </View>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    ...DESIGN_TOKENS.shadows.card,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#EEF0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.deepNavy,
+  },
+  stageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  stageBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  progressSection: {
+    marginBottom: 12,
+  },
+  progressInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  appNumberText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: DESIGN_TOKENS.colors.deepNavy,
+  },
+  percentageText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.royalIndigo,
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: DESIGN_TOKENS.colors.royalIndigo,
+    borderRadius: 4,
+  },
+  noticeBox: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  noticeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
+    flex: 1,
+  },
+  openHubButton: {
+    backgroundColor: DESIGN_TOKENS.colors.royalIndigo,
+    paddingVertical: 12,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  openHubButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  checklistHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  checklistTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.deepNavy,
+  },
+  checklistSubtitle: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: '600',
+  },
+  shortcutsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  shortcutCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    ...DESIGN_TOKENS.shadows.subtle,
+  },
+  shortcutIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shortcutTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.deepNavy,
+  },
+  shortcutSub: {
+    fontSize: 10,
+    color: DESIGN_TOKENS.colors.textMuted,
+  },
+});

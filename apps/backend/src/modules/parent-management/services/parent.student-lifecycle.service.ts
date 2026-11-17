@@ -1,6 +1,7 @@
 import prisma from '../../../lib/prismaClient';
 import { ParentNotFoundError, ParentForbiddenError } from '../errors/parent.errors';
 import { logger } from '../../../utils/logger';
+import { UserAvatarService } from '../../user-management/services/user-avatar.service';
 
 export type ChildLifecycleType = 'PRE_ADMISSION' | 'POST_ADMISSION';
 
@@ -28,6 +29,10 @@ export interface ChildLifecycleItem {
   relationship: string | null;
   isPrimaryContact: boolean;
   avatarUrl: string | null;
+  avatar_url?: string | null;
+  photo_url?: string | null;
+  profileImage?: { available: boolean; url: string | null };
+  houseName?: string | null;
   hasPendingFees?: boolean;
   pendingFeeAmount?: number;
   availablePortalModules: string[];
@@ -39,9 +44,29 @@ export interface ParentStudentLifecycleResponse {
     userId: string;
     orgId: string | null;
     name: string;
+    firstName?: string;
+    lastName?: string;
     email: string | null;
     phone: string | null;
+    avatarUrl?: string | null;
+    avatar_url?: string | null;
+    photo_url?: string | null;
+    profileImage?: { available: boolean; url: string | null };
   };
+  organization?: {
+    orgId: string;
+    orgName: string;
+    orgCode: string;
+    boardAffiliation: string | null;
+  } | null;
+  academicContext?: {
+    academicYearId: string | null;
+    academicYearName: string | null;
+    termName: string | null;
+    termNumber: number | null;
+    weekNumber: number;
+    displayText: string;
+  } | null;
   lifecycle: {
     accountType: AccountLifecycleType;
     hasApplications: boolean;
@@ -155,6 +180,11 @@ export class ParentStudentLifecycleService {
         include: {
           students: {
             include: {
+              users_students_user_idTousers: {
+                select: {
+                  avatar_url: true,
+                },
+              },
               student_enrollments: {
                 orderBy: { enrollment_date: 'desc' },
                 include: {
@@ -189,6 +219,30 @@ export class ParentStudentLifecycleService {
         const enrollments = student.student_enrollments || [];
         const latestEnrollment = enrollments[0] || null;
 
+        const rawStudentAvatar = student.users_students_user_idTousers?.avatar_url || null;
+        const studentAvatarUrl = await UserAvatarService.resolveStudentPhotoUrl({
+          avatarPath: rawStudentAvatar,
+          applicationId: student.application_id,
+          studentId: student.student_id,
+        });
+
+        let houseName: string | null = null;
+        if (latestEnrollment?.remarks) {
+          try {
+            const parsed = JSON.parse(latestEnrollment.remarks);
+            if (parsed.house || parsed.houseName) {
+              houseName = String(parsed.house || parsed.houseName).trim();
+            }
+          } catch {
+            const match = latestEnrollment.remarks.match(
+              /(?:house|house\s*name)[:\s-]*([^;,\n]+)/i,
+            );
+            if (match && match[1]) {
+              houseName = match[1].trim();
+            }
+          }
+        }
+
         // CRITICAL ENROLLMENT RULE:
         // Existence of student_enrollments is the SOLE decider for POST-ADMISSION.
         if (latestEnrollment) {
@@ -214,7 +268,11 @@ export class ParentStudentLifecycleService {
             rollNumber: latestEnrollment.roll_number || null,
             relationship: sp.relationship || 'guardian',
             isPrimaryContact: sp.is_primary_contact,
-            avatarUrl: null,
+            avatarUrl: studentAvatarUrl,
+            avatar_url: studentAvatarUrl,
+            photo_url: studentAvatarUrl,
+            profileImage: UserAvatarService.formatProfileImage(studentAvatarUrl),
+            houseName,
             availablePortalModules: getModulesForEnrollmentStatus(latestEnrollment.status),
           });
         } else {
@@ -242,7 +300,10 @@ export class ParentStudentLifecycleService {
             rollNumber: null,
             relationship: sp.relationship || 'guardian',
             isPrimaryContact: sp.is_primary_contact,
-            avatarUrl: null,
+            avatarUrl: studentAvatarUrl,
+            avatar_url: studentAvatarUrl,
+            photo_url: studentAvatarUrl,
+            profileImage: UserAvatarService.formatProfileImage(studentAvatarUrl),
             availablePortalModules: PRE_ADMISSION_MODULES,
           });
         }
@@ -274,6 +335,11 @@ export class ParentStudentLifecycleService {
         academic_years: true,
         students: {
           include: {
+            users_students_user_idTousers: {
+              select: {
+                avatar_url: true,
+              },
+            },
             student_enrollments: {
               orderBy: { enrollment_date: 'desc' },
               include: {
@@ -308,6 +374,21 @@ export class ParentStudentLifecycleService {
 
       const enrollments = student?.student_enrollments || [];
       const latestEnrollment = enrollments[0] || null;
+
+      const rawAppStudentAvatar = student?.users_students_user_idTousers?.avatar_url || null;
+      const appStudentAvatarUrl = await UserAvatarService.resolveStudentPhotoUrl({
+        avatarPath: rawAppStudentAvatar,
+        applicationId: app.application_id,
+        studentId: student?.student_id,
+      });
+
+      let appHouseName: string | null = null;
+      if (latestEnrollment?.remarks) {
+        const match = latestEnrollment.remarks.match(/house:\s*([^;,\n]+)/i);
+        if (match && match[1]) {
+          appHouseName = match[1].trim();
+        }
+      }
 
       const studentName = app.leads
         ? `${app.leads.student_first_name} ${app.leads.student_last_name || ''}`.trim()
@@ -344,7 +425,11 @@ export class ParentStudentLifecycleService {
           rollNumber: latestEnrollment.roll_number || null,
           relationship: app.leads?.contact_relationship || 'guardian',
           isPrimaryContact: true,
-          avatarUrl: null,
+          avatarUrl: appStudentAvatarUrl,
+          avatar_url: appStudentAvatarUrl,
+          photo_url: appStudentAvatarUrl,
+          profileImage: UserAvatarService.formatProfileImage(appStudentAvatarUrl),
+          houseName: appHouseName,
           availablePortalModules: getModulesForEnrollmentStatus(latestEnrollment.status),
         });
       } else {
@@ -373,7 +458,10 @@ export class ParentStudentLifecycleService {
           rollNumber: null,
           relationship: app.leads?.contact_relationship || 'parent',
           isPrimaryContact: true,
-          avatarUrl: null,
+          avatarUrl: appStudentAvatarUrl,
+          avatar_url: appStudentAvatarUrl,
+          photo_url: appStudentAvatarUrl,
+          profileImage: UserAvatarService.formatProfileImage(appStudentAvatarUrl),
           availablePortalModules: PRE_ADMISSION_MODULES,
         });
       }
@@ -395,15 +483,116 @@ export class ParentStudentLifecycleService {
       }
     }
 
+    // 6. Resolve Parent Avatar, Organization Metadata & Academic Calendar Context
+    const parentPhotoUrl = user.avatar_url
+      ? await UserAvatarService.getAvatarSignedUrl(user.avatar_url).catch(() => user.avatar_url)
+      : null;
+
+    let orgRecord: {
+      org_id: string;
+      org_name: string;
+      org_code: string;
+      board_affiliation: string | null;
+    } | null = null;
+
+    if (safeOrgId) {
+      orgRecord = await prisma.organizations.findUnique({
+        where: { org_id: safeOrgId },
+        select: {
+          org_id: true,
+          org_name: true,
+          org_code: true,
+          board_affiliation: true,
+        },
+      });
+    }
+
+    let academicContext: {
+      academicYearId: string | null;
+      academicYearName: string | null;
+      termName: string | null;
+      termNumber: number | null;
+      weekNumber: number;
+      displayText: string;
+    } | null = null;
+
+    if (safeOrgId) {
+      const activeYear = await prisma.academic_years.findFirst({
+        where: {
+          org_id: safeOrgId,
+          status: { in: ['teaching', 'open', 'planning'] },
+        },
+        orderBy: [{ status: 'asc' }, { start_date: 'desc' }],
+        include: {
+          academic_calendars: {
+            include: {
+              academic_terms: {
+                where: { is_active: true },
+                orderBy: { term_number: 'asc' },
+              },
+            },
+          },
+        },
+      });
+
+      if (activeYear) {
+        const today = new Date();
+        const terms = activeYear.academic_calendars?.academic_terms || [];
+        const currentTerm =
+          terms.find((t) => t.start_date <= today && t.end_date >= today) || terms[0] || null;
+
+        let weekNum = 1;
+        const refStartDate = currentTerm?.start_date || activeYear.start_date;
+        if (refStartDate) {
+          const diffMs = today.getTime() - new Date(refStartDate).getTime();
+          if (diffMs > 0) {
+            weekNum = Math.max(1, Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
+          }
+        }
+
+        const ayName = activeYear.academic_year_name;
+        const termLabel = currentTerm?.term_name || null;
+        const parts = [
+          ayName ? `Academic Term ${ayName}` : 'Academic Term',
+          ...(termLabel ? [termLabel] : []),
+          `Week ${weekNum}`,
+        ];
+
+        academicContext = {
+          academicYearId: activeYear.academic_year_id,
+          academicYearName: ayName,
+          termName: termLabel,
+          termNumber: currentTerm?.term_number || null,
+          weekNumber: weekNum,
+          displayText: parts.join(' • '),
+        };
+      }
+    }
+
     const result: ParentStudentLifecycleResponse = {
       parent: {
         parentId,
         userId: parentUserId,
         orgId: safeOrgId || parentRecord?.org_id || null,
         name: parentName,
+        firstName: user.first_name || parentRecord?.first_name || 'Parent',
+        lastName: user.last_name || parentRecord?.last_name || '',
         email: parentRecord?.email || user.email || null,
         phone: parentRecord?.phone || user.phone || null,
+        avatarUrl: parentPhotoUrl,
+        avatar_url: parentPhotoUrl,
+        photo_url: parentPhotoUrl,
+        profileImage: UserAvatarService.formatProfileImage(parentPhotoUrl),
       },
+      organization: orgRecord
+        ? {
+            orgId: orgRecord.org_id,
+            orgName: orgRecord.org_name,
+            orgCode: orgRecord.org_code,
+            boardAffiliation: orgRecord.board_affiliation,
+          }
+        : null,
+      academicContext,
       lifecycle: {
         accountType,
         hasApplications: children.some((c) => !!c.applicationId),

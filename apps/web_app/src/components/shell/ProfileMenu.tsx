@@ -78,6 +78,8 @@ export const ProfileMenu: React.FC = () => {
       : 'EduTrack User');
   const avatarUrl =
     (user as any)?.avatar_url ||
+    (user as any)?.avatarUrl ||
+    (user as any)?.profileImage?.url ||
     (user as any)?.avatar ||
     (user as any)?.image ||
     (user as any)?.profile_photo_url;

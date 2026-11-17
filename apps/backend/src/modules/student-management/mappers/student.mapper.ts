@@ -6,7 +6,7 @@ import {
 import { StudentSummaryDto } from '../dto/response/student-summary.dto';
 
 export class StudentMapper {
-  static toResponseDto(record: any): StudentResponseDto {
+  static toResponseDto(record: any, photoUrl?: string | null): StudentResponseDto {
     const studentFullName = [record.first_name, record.last_name].filter(Boolean).join(' ');
 
     const enrollments: EnrollmentResponseDto[] = (record.student_enrollments || []).map(
@@ -35,6 +35,8 @@ export class StudentMapper {
       parent_email: sp.parents?.users_parents_user_idTousers?.email || null,
     }));
 
+    const resolvedPhoto = photoUrl || record.photo_url || record.avatar_url || null;
+
     return {
       student_id: record.student_id,
       id: record.student_id,
@@ -55,6 +57,13 @@ export class StudentMapper {
       updated_at: record.updated_at
         ? new Date(record.updated_at).toISOString()
         : new Date().toISOString(),
+      photo_url: resolvedPhoto,
+      avatar_url: resolvedPhoto,
+      avatarUrl: resolvedPhoto,
+      profileImage: {
+        available: Boolean(resolvedPhoto),
+        url: resolvedPhoto,
+      },
       enrollments,
       parents,
     };

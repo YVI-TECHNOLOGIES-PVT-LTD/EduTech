@@ -7,6 +7,8 @@ export interface EnrichedUser {
   full_name?: string;
   phone_number?: string;
   avatar_url?: string | null;
+  avatarUrl?: string | null;
+  profileImage?: { available: boolean; url: string | null };
   login_status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
   login_decision_reason?: string;
   hasEnrolledStudent?: boolean;

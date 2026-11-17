@@ -47,11 +47,93 @@ describe('Academics Module & Store Test Suite', () => {
 
       setHomeworkFilter('submitted');
       expect(useAcademicsStore.getState().homeworkFilter).toBe('submitted');
+
+      setHomeworkFilter('completed');
+      expect(useAcademicsStore.getState().homeworkFilter).toBe('completed');
+
+      setHomeworkFilter('overdue');
+      expect(useAcademicsStore.getState().homeworkFilter).toBe('overdue');
     });
   });
 
-  describe('2. Academic Data Fetching & State Hydration', () => {
-    it('should fetch and populate student academics from API', async () => {
+  describe('2. Demand-Based Tab Loading & Student Cache Isolation', () => {
+    it('should fetch ONLY the active tab when loadActiveTabOnly is called', async () => {
+      const mockTimetable = [
+        {
+          day: 'Monday' as const,
+          periods: [
+            {
+              periodNumber: 1,
+              startTime: '08:30 AM',
+              endTime: '09:15 AM',
+              subject: 'Mathematics',
+              teacherName: 'Dr. Rao',
+              room: 'Room 101',
+              breakName: undefined,
+              topic: 'Calculus Introduction',
+              status: 'ongoing' as const,
+            },
+          ],
+        },
+      ];
+
+      (academicsApi.getTimetable as jest.Mock).mockResolvedValue(mockTimetable);
+
+      useAcademicsStore.setState({ activeTab: 'timetable' });
+      await useAcademicsStore.getState().loadActiveTabOnly('student-uuid-demand');
+
+      // Assert that ONLY getTimetable was called, not attendance, homework, exams, etc.
+      expect(academicsApi.getTimetable).toHaveBeenCalledWith('student-uuid-demand');
+      expect(academicsApi.getAttendance).not.toHaveBeenCalled();
+      expect(academicsApi.getHomework).not.toHaveBeenCalled();
+      expect(academicsApi.getExams).not.toHaveBeenCalled();
+
+      const state = useAcademicsStore.getState();
+      expect(state.timetable).toHaveLength(1);
+      expect(state.timetable[0].periods[0].topic).toBe('Calculus Introduction');
+      expect(state.timetable[0].periods[0].status).toBe('ongoing');
+    });
+
+    it('should isolate cached data per student during child switching', async () => {
+      const mockChild1Att = {
+        totalDays: 20,
+        presentDays: 20,
+        absentDays: 0,
+        lateDays: 0,
+        percentage: 100,
+        records: [],
+      };
+      const mockChild2Att = {
+        totalDays: 20,
+        presentDays: 16,
+        absentDays: 4,
+        lateDays: 0,
+        percentage: 80,
+        records: [],
+      };
+
+      (academicsApi.getAttendance as jest.Mock)
+        .mockResolvedValueOnce(mockChild1Att)
+        .mockResolvedValueOnce(mockChild2Att);
+
+      // Fetch Child 1 attendance
+      await useAcademicsStore.getState().fetchAttendance('child-1');
+      expect(useAcademicsStore.getState().attendance?.percentage).toBe(100);
+
+      // Fetch Child 2 attendance
+      await useAcademicsStore.getState().fetchAttendance('child-2');
+      expect(useAcademicsStore.getState().attendance?.percentage).toBe(80);
+
+      // Switch back to Child 1 from cache without making a new network request
+      (academicsApi.getAttendance as jest.Mock).mockClear();
+      await useAcademicsStore.getState().loadActiveTabOnly('child-1');
+      expect(useAcademicsStore.getState().attendance?.percentage).toBe(100);
+      expect(academicsApi.getAttendance).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('3. Academic Data Fetching & State Hydration', () => {
+    it('should fetch and populate student academics from API with rich details', async () => {
       const mockAttendance = {
         totalDays: 20,
         presentDays: 19,
@@ -72,6 +154,9 @@ describe('Academics Module & Store Test Suite', () => {
               subject: 'Mathematics',
               teacherName: 'Dr. Rao',
               room: 'Room 101',
+              breakName: undefined,
+              topic: 'Polynomial Expressions',
+              status: 'upcoming' as const,
             },
           ],
         },
@@ -86,6 +171,9 @@ describe('Academics Module & Store Test Suite', () => {
           dueDate: '2026-11-03',
           description: 'Complete problems 1 through 15',
           status: 'pending' as const,
+          teacherName: 'Ms. Clara Davis',
+          score: '18/20',
+          teacherRemark: 'Great working shown on quadratic proofs',
         },
       ];
 
@@ -99,6 +187,8 @@ describe('Academics Module & Store Test Suite', () => {
           endTime: '11:00 AM',
           room: 'Hall A',
           totalMarks: 100,
+          duration: '2 Hours',
+          syllabus: 'Chapters 1 to 5: Mechanics and Thermodynamics',
         },
       ];
 
@@ -133,8 +223,15 @@ describe('Academics Module & Store Test Suite', () => {
       expect(state.isLoading).toBe(false);
       expect(state.attendance?.percentage).toBe(95);
       expect(state.timetable).toHaveLength(1);
+      expect(state.timetable[0].periods[0].topic).toBe('Polynomial Expressions');
+      expect(state.timetable[0].periods[0].status).toBe('upcoming');
       expect(state.homework).toHaveLength(1);
+      expect(state.homework[0].teacherName).toBe('Ms. Clara Davis');
+      expect(state.homework[0].score).toBe('18/20');
+      expect(state.homework[0].teacherRemark).toBe('Great working shown on quadratic proofs');
       expect(state.exams).toHaveLength(1);
+      expect(state.exams[0].duration).toBe('2 Hours');
+      expect(state.exams[0].syllabus).toBe('Chapters 1 to 5: Mechanics and Thermodynamics');
       expect(state.reportCard?.overallGrade).toBe('A+');
     });
 
@@ -154,7 +251,7 @@ describe('Academics Module & Store Test Suite', () => {
     });
   });
 
-  describe('3. Homework Submission Interaction', () => {
+  describe('4. Homework Submission Interaction', () => {
     it('should mark a pending homework item as submitted', () => {
       useAcademicsStore.setState({
         homework: [
@@ -178,7 +275,7 @@ describe('Academics Module & Store Test Suite', () => {
     });
   });
 
-  describe('4. State Cleanup', () => {
+  describe('5. State Cleanup', () => {
     it('should clear all store state on clear() call', () => {
       useAcademicsStore.setState({
         activeTab: 'exams',

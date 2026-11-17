@@ -10,6 +10,9 @@ export interface UserProfile {
   lastName?: string;
   fullName?: string;
   avatarUrl?: string;
+  avatar_url?: string | null;
+  photo_url?: string | null;
+  profileImage?: { available: boolean; url: string | null };
   phone?: string;
   phoneNumber?: string;
   roles?: string[];

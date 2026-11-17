@@ -22,7 +22,7 @@ export interface StudentAcademicsCache {
 interface AcademicsState {
   activeTab: AcademicsTab;
   selectedDay: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
-  homeworkFilter: 'all' | 'pending' | 'submitted';
+  homeworkFilter: 'all' | 'pending' | 'submitted' | 'completed' | 'overdue';
   currentStudentId: string | null;
   attendance: AttendanceSummary | null;
   timetable: TimetableDay[];
@@ -45,7 +45,7 @@ interface AcademicsState {
   setSelectedDay: (
     day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday',
   ) => void;
-  setHomeworkFilter: (filter: 'all' | 'pending' | 'submitted') => void;
+  setHomeworkFilter: (filter: 'all' | 'pending' | 'submitted' | 'completed' | 'overdue') => void;
   fetchStudentAcademics: (studentId: string, force?: boolean) => Promise<void>;
   fetchAttendance: (studentId: string, force?: boolean) => Promise<void>;
   fetchTimetable: (studentId: string, force?: boolean) => Promise<void>;

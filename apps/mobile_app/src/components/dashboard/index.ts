@@ -6,3 +6,8 @@ export * from './FinanceSummaryWidget';
 export * from './AnnouncementCarousel';
 export * from './ApplicantDashboardView';
 export * from './UnlinkedOnboardingView';
+export * from './ParentHomeHeader';
+export * from './ParentHeroCarousel';
+export * from './UpcomingExamsGlance';
+export * from './UpcomingEventsSection';
+export * from './HomeLoadingSkeleton';

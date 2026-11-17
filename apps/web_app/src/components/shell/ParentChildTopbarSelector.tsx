@@ -26,6 +26,17 @@ const formatGradeSection = (child: ParentChildDto): string => {
   return grade || (child.admission_no ? `ADM: ${child.admission_no}` : 'Enrolled');
 };
 
+const getChildPhotoUrl = (child?: ParentChildDto | null): string | undefined => {
+  if (!child) return undefined;
+  return (
+    child.photo_url ||
+    (child as any)?.avatar_url ||
+    (child as any)?.avatarUrl ||
+    (child as any)?.profileImage?.url ||
+    undefined
+  );
+};
+
 export const ParentChildTopbarSelector: React.FC = () => {
   const { children, selectedChildId, selectChild, isLoading } = useParentSelectedChild();
 
@@ -86,9 +97,9 @@ export const ParentChildTopbarSelector: React.FC = () => {
           {/* Small circular profile photograph inside rectangular selector */}
           <div className="relative w-[32px] h-[32px] sm:w-[34px] sm:h-[34px] lg:w-[36px] lg:h-[36px] rounded-full shrink-0">
             <Avatar className="w-full h-full rounded-full ring-2 ring-primary ring-offset-1 ring-offset-background">
-              {child.photo_url && (
+              {getChildPhotoUrl(child) && (
                 <AvatarImage
-                  src={child.photo_url}
+                  src={getChildPhotoUrl(child)}
                   alt={child.full_name}
                   className="w-full h-full object-cover rounded-full"
                 />
@@ -134,9 +145,9 @@ export const ParentChildTopbarSelector: React.FC = () => {
             >
               <div className="relative w-[28px] h-[28px] rounded-full shrink-0">
                 <Avatar className="w-full h-full rounded-full ring-1.5 ring-primary ring-offset-1 ring-offset-background">
-                  {activeChild.photo_url && (
+                  {getChildPhotoUrl(activeChild) && (
                     <AvatarImage
-                      src={activeChild.photo_url}
+                      src={getChildPhotoUrl(activeChild)}
                       alt={activeChild.full_name}
                       className="w-full h-full object-cover rounded-full"
                     />
@@ -184,9 +195,9 @@ export const ParentChildTopbarSelector: React.FC = () => {
                     )}
                   >
                     <Avatar className="w-8 h-8 rounded-full border border-border shrink-0">
-                      {child.photo_url && (
+                      {getChildPhotoUrl(child) && (
                         <AvatarImage
-                          src={child.photo_url}
+                          src={getChildPhotoUrl(child)}
                           alt={child.full_name}
                           className="object-cover"
                         />
@@ -254,9 +265,9 @@ export const ParentChildTopbarSelector: React.FC = () => {
                       : 'ring-1 ring-border/80 group-hover:ring-border',
                   )}
                 >
-                  {child.photo_url && (
+                  {getChildPhotoUrl(child) && (
                     <AvatarImage
-                      src={child.photo_url}
+                      src={getChildPhotoUrl(child)}
                       alt={child.full_name}
                       className="w-full h-full object-cover rounded-full"
                     />
@@ -335,9 +346,9 @@ export const ParentChildTopbarSelector: React.FC = () => {
                   className="flex items-center gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-muted/80 text-foreground transition-colors"
                 >
                   <Avatar className="w-8 h-8 rounded-full border border-border shrink-0">
-                    {child.photo_url && (
+                    {getChildPhotoUrl(child) && (
                       <AvatarImage
-                        src={child.photo_url}
+                        src={getChildPhotoUrl(child)}
                         alt={child.full_name}
                         className="object-cover"
                       />

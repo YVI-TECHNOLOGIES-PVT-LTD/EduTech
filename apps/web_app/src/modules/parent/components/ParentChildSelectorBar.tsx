@@ -53,7 +53,20 @@ export const ParentChildSelectorBar: React.FC<ParentChildSelectorBarProps> = ({
                 )}
               >
                 <Avatar className="w-7 h-7 border border-white/30 shrink-0">
-                  {child.photo_url && <AvatarImage src={child.photo_url} alt={child.full_name} />}
+                  {(child.photo_url ||
+                    (child as any)?.avatar_url ||
+                    (child as any)?.avatarUrl ||
+                    (child as any)?.profileImage?.url) && (
+                    <AvatarImage
+                      src={
+                        child.photo_url ||
+                        (child as any)?.avatar_url ||
+                        (child as any)?.avatarUrl ||
+                        (child as any)?.profileImage?.url
+                      }
+                      alt={child.full_name}
+                    />
+                  )}
                   <AvatarFallback
                     className={cn(
                       'text-[10px] font-bold',

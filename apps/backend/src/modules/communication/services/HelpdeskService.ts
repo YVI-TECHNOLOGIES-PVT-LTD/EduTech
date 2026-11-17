@@ -1,4 +1,5 @@
 import prisma from '../../../lib/prismaClient';
+import { UserAvatarService } from '../../user-management/services/user-avatar.service';
 import {
   helpdesk_ticket_type,
   helpdesk_priority,
@@ -1073,10 +1074,16 @@ export class HelpdeskService {
             students: {
               select: {
                 student_id: true,
+                application_id: true,
                 first_name: true,
                 last_name: true,
                 admission_no: true,
                 status: true,
+                users_students_user_idTousers: {
+                  select: {
+                    avatar_url: true,
+                  },
+                },
               },
             },
           },
@@ -1088,6 +1095,13 @@ export class HelpdeskService {
     for (const p of parents) {
       for (const sp of p.student_parents) {
         if (sp.students && !studentsMap.has(sp.students.student_id)) {
+          const rawAvatar = sp.students.users_students_user_idTousers?.avatar_url || null;
+          const photoUrl = await UserAvatarService.resolveStudentPhotoUrl({
+            avatarPath: rawAvatar,
+            applicationId: sp.students.application_id,
+            studentId: sp.students.student_id,
+          });
+
           studentsMap.set(sp.students.student_id, {
             student_id: sp.students.student_id,
             id: sp.students.student_id,
@@ -1095,6 +1109,10 @@ export class HelpdeskService {
             last_name: sp.students.last_name,
             admission_no: sp.students.admission_no,
             status: sp.students.status,
+            photo_url: photoUrl,
+            avatar_url: photoUrl,
+            avatarUrl: photoUrl,
+            profileImage: UserAvatarService.formatProfileImage(photoUrl),
           });
         }
       }

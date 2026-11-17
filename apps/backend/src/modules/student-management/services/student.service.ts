@@ -18,6 +18,7 @@ import { StudentEvents, StudentEventType } from '../events/student.events';
 import { logger } from '../../../utils/logger';
 import { StorageService } from '../../../services/storage.service';
 import { UserAvatarRepository } from '../../user-management/repositories/user-avatar.repository';
+import { UserAvatarService } from '../../user-management/services/user-avatar.service';
 
 export class StudentService {
   static async createStudent(
@@ -64,7 +65,13 @@ export class StudentService {
     if (!student) {
       throw new StudentNotFoundError(id);
     }
-    return StudentMapper.toResponseDto(student);
+    const rawStudentAvatar = (student as any).users_students_user_idTousers?.avatar_url || null;
+    const photoUrl = await UserAvatarService.resolveStudentPhotoUrl({
+      avatarPath: rawStudentAvatar,
+      applicationId: student.application_id,
+      studentId: student.student_id,
+    });
+    return StudentMapper.toResponseDto(student, photoUrl);
   }
 
   static async updateStudent(
