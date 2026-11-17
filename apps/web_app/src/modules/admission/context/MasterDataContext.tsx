@@ -68,25 +68,28 @@ export function MasterDataProvider({ children }: { children: React.ReactNode }) 
     gcTime: MASTER_DATA_GC_TIME,
   });
 
-  const schools = configQuery.data?.schools || [];
+  const schools = Array.isArray(configQuery.data?.schools) ? configQuery.data.schools : [];
   const academicYears = useMemo(() => {
     if (configQuery.data?.academicYear) {
       return [configQuery.data.academicYear];
     }
-    return configQuery.data?.academicYears || [];
+    return Array.isArray(configQuery.data?.academicYears) ? configQuery.data.academicYears : [];
   }, [configQuery.data]);
 
   // Map class objects from backend config cleanly to GradeMaster structure
   const grades = useMemo(() => {
-    return (
-      configQuery.data?.grades?.map((g: any) => ({
-        id: g.id,
-        name: g.grade_name,
-        school_id: g.school_id || activeSchoolId,
-        academic_year_id: activeAcademicYearId,
-        academic_year_grade_id: g.academic_year_grade_id || null,
-      })) || []
-    );
+    const rawGrades = Array.isArray(configQuery.data?.grades)
+      ? configQuery.data.grades
+      : Array.isArray((configQuery.data?.grades as any)?.data)
+        ? (configQuery.data?.grades as any).data
+        : [];
+    return rawGrades.map((g: any) => ({
+      id: g.id || g.grade_id,
+      name: g.grade_name || g.name || 'Grade',
+      school_id: g.school_id || activeSchoolId,
+      academic_year_id: activeAcademicYearId,
+      academic_year_grade_id: g.academic_year_grade_id || null,
+    }));
   }, [configQuery.data?.grades, activeSchoolId, activeAcademicYearId]);
 
   // Automatically resolve the active academic year for the school

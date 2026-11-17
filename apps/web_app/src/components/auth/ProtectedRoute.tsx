@@ -239,8 +239,6 @@ export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode 
       'ADMISSIONS_OFFICER',
       'COUNSELLOR',
       'COUNSELOR',
-      'FINANCE',
-      'FINANCE_OFFICER',
       'ADMIN',
       'SUPERADMIN',
       'SUPER_ADMIN',
@@ -250,8 +248,6 @@ export const FrontOfficeRouteGuard = ({ children }: { children: React.ReactNode 
       'HEAD_OF_INSTITUTE',
       'EXAM_CELL',
       'EXAM_CELL_ADMIN',
-      'FACULTY',
-      'TEACHER',
     ].includes(r),
   );
 

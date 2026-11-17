@@ -75,7 +75,8 @@ export const AdmissionConversionFunnel: React.FC<AdmissionConversionFunnelProps>
             {t('dashboard.frontOffice.funnel.noData', 'Pipeline data not yet available.')}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            As candidate inquiries advance through qualification and review, the funnel will visualize stage velocity.
+            As candidate inquiries advance through qualification and review, the funnel will
+            visualize stage velocity.
           </p>
         </div>
       ) : (
@@ -88,7 +89,10 @@ export const AdmissionConversionFunnel: React.FC<AdmissionConversionFunnelProps>
                 ? `${((stage.count / prevCount) * 100).toFixed(1)}%`
                 : null;
             const colorBg = stage.color || defaultColors[index % defaultColors.length];
-            const translatedLabel = t(`dashboard.frontOffice.funnel.stages.${stage.stage}`, stage.label);
+            const translatedLabel = t(
+              `dashboard.frontOffice.funnel.stages.${stage.stage}`,
+              stage.label,
+            );
 
             return (
               <div key={stage.stage} className="space-y-1">
@@ -103,7 +107,7 @@ export const AdmissionConversionFunnel: React.FC<AdmissionConversionFunnelProps>
                     )}
                   </div>
                   <span className="font-mono font-extrabold text-foreground ltr-isolate">
-                    {stage.count.toLocaleString()}
+                    {(Number(stage.count) || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
 

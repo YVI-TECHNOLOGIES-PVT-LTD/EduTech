@@ -49,7 +49,13 @@ axiosInstance.interceptors.request.use(
       useAuthStore.getState().tokens?.accessToken || (await SecureStorage.getAccessToken());
     const workspaceId = await SecureStorage.getWorkspaceId();
 
-    if (token && typeof token === 'string' && token.trim()) {
+    const isPublicAuthRoute =
+      config.url?.includes('/auth/login') ||
+      config.url?.includes('/admission/register') ||
+      config.url?.includes('/admission/verify-otp') ||
+      config.url?.includes('/public/');
+
+    if (!isPublicAuthRoute && token && typeof token === 'string' && token.trim()) {
       config.headers.Authorization = `Bearer ${token.trim()}`;
     }
 

@@ -190,8 +190,24 @@ export const ApplicationsManagementPage: React.FC = () => {
   }, [user?.id, user?.school_id]);
 
   // Queries
-  const { data: gradesData = [] } = useGetGradesQuery();
-  const { data: academicYearsData = [] } = useGetAcademicYearsQuery();
+  const { data: gradesDataRaw } = useGetGradesQuery();
+  const { data: academicYearsDataRaw } = useGetAcademicYearsQuery();
+
+  const gradesData = useMemo(() => {
+    if (Array.isArray(gradesDataRaw)) return gradesDataRaw;
+    if (Array.isArray((gradesDataRaw as any)?.data)) return (gradesDataRaw as any).data;
+    if (Array.isArray((gradesDataRaw as any)?.items)) return (gradesDataRaw as any).items;
+    return [];
+  }, [gradesDataRaw]);
+
+  const academicYearsData = useMemo(() => {
+    if (Array.isArray(academicYearsDataRaw)) return academicYearsDataRaw;
+    if (Array.isArray((academicYearsDataRaw as any)?.data))
+      return (academicYearsDataRaw as any).data;
+    if (Array.isArray((academicYearsDataRaw as any)?.items))
+      return (academicYearsDataRaw as any).items;
+    return [];
+  }, [academicYearsDataRaw]);
 
   const queryParams = useMemo(() => {
     return {
@@ -458,7 +474,7 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectItem value="ALL" className="text-xs">
                   All Grades
                 </SelectItem>
-                {gradesData.map((g: any) => (
+                {(gradesData || []).map((g: any) => (
                   <SelectItem
                     key={g.grade_id || g.id}
                     value={g.grade_id || g.id}
@@ -484,7 +500,7 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectItem value="ALL" className="text-xs">
                   All Academic Years
                 </SelectItem>
-                {academicYearsData.map((ay: any) => (
+                {(academicYearsData || []).map((ay: any) => (
                   <SelectItem
                     key={ay.academic_year_id || ay.id}
                     value={ay.academic_year_id || ay.id}

@@ -886,7 +886,7 @@ export const PaymentEntry: React.FC = () => {
                     <p className="text-xs text-slate-600 dark:text-slate-300">
                       Amount Collected: <b>{formatMoney(activeReceipt.amount)}</b> via{' '}
                       <span className="uppercase">
-                        {activeReceipt.payment_method.replace('_', ' ')}
+                        {String(activeReceipt.payment_method || 'cash').replace(/_/g, ' ')}
                       </span>
                     </p>
                   </div>
@@ -1006,7 +1006,7 @@ export const PaymentEntry: React.FC = () => {
                       <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
                       Loading verified ledger balance...
                     </div>
-                  ) : studentLedger ? (
+                  ) : studentLedger?.summary ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5">
@@ -1036,7 +1036,10 @@ export const PaymentEntry: React.FC = () => {
                             {formatMoney(studentLedger.summary.outstanding_balance)}
                           </span>
                         </div>
-                        {studentLedger.summary.overdue_balance > 0 && (
+                        {Boolean(
+                          studentLedger.summary.overdue_balance &&
+                          studentLedger.summary.overdue_balance > 0,
+                        ) && (
                           <div className="text-right">
                             <span className="text-[9px] uppercase font-bold text-amber-600 block">
                               Overdue
@@ -1048,13 +1051,13 @@ export const PaymentEntry: React.FC = () => {
                         )}
                       </div>
 
-                      {studentLedger.summary.reliability_notes?.length > 0 && (
+                      {Boolean(studentLedger.summary.reliability_notes?.length) && (
                         <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
                           <div className="flex items-center gap-1 font-bold">
                             <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
                             Ledger Diagnostic Notes
                           </div>
-                          {studentLedger.summary.reliability_notes.map((note, idx) => (
+                          {studentLedger.summary.reliability_notes?.map((note, idx) => (
                             <p key={idx} className="text-[10px]">
                               • {note}
                             </p>
@@ -1143,7 +1146,9 @@ export const PaymentEntry: React.FC = () => {
                             <div className="flex items-center gap-3 text-[10px] text-slate-400">
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> Due:{' '}
-                                {new Date(ob.due_date).toLocaleDateString('en-IN')}
+                                {ob.due_date && !isNaN(new Date(ob.due_date).getTime())
+                                  ? new Date(ob.due_date).toLocaleDateString('en-IN')
+                                  : '—'}
                               </span>
                               <span>Original: {formatMoney(ob.original_amount)}</span>
                               {ob.previously_allocated_amount > 0 && (
@@ -1787,12 +1792,17 @@ export const PaymentEntry: React.FC = () => {
               <div className="flex justify-between text-slate-500">
                 <span>Method:</span>
                 <span className="font-bold uppercase">
-                  {viewingReceiptModal.payment_method.replace('_', ' ')}
+                  {String(viewingReceiptModal.payment_method || 'cash').replace(/_/g, ' ')}
                 </span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>Payment Date:</span>
-                <span>{new Date(viewingReceiptModal.payment_date).toLocaleString('en-IN')}</span>
+                <span>
+                  {viewingReceiptModal.payment_date &&
+                  !isNaN(new Date(viewingReceiptModal.payment_date).getTime())
+                    ? new Date(viewingReceiptModal.payment_date).toLocaleString('en-IN')
+                    : '—'}
+                </span>
               </div>
               {viewingReceiptModal.gateway_reference && (
                 <div className="flex justify-between text-slate-500">

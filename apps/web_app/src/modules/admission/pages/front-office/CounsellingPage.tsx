@@ -179,10 +179,18 @@ export const CounsellingPage: React.FC = () => {
     refetch: refetchLeads,
   } = useGetLeadsQuery(queryParams);
 
-  const { data: counsellors = [] } = useGetCounsellorsQuery();
+  const { data: rawCounsellors = [] } = useGetCounsellorsQuery();
+  const counsellors = useMemo(
+    () => (Array.isArray(rawCounsellors) ? rawCounsellors : (rawCounsellors as any)?.data || []),
+    [rawCounsellors],
+  );
   const [convertLead, { isLoading: isConverting }] = useConvertLeadToApplicationMutation();
 
-  const leads = leadsData?.data || [];
+  const leads = Array.isArray(leadsData?.data)
+    ? leadsData.data
+    : Array.isArray((leadsData as any)?.items)
+      ? (leadsData as any).items
+      : [];
   const totalLeads = leadsData?.total || 0;
   const totalPages = leadsData?.totalPages || 1;
 
@@ -221,7 +229,7 @@ export const CounsellingPage: React.FC = () => {
   // Selection handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedLeadIds(leads.map((l) => l.lead_id));
+      setSelectedLeadIds((leads || []).map((l: any) => l.lead_id));
     } else {
       setSelectedLeadIds([]);
     }
@@ -439,7 +447,7 @@ export const CounsellingPage: React.FC = () => {
           setIsDetailsOpen(true);
         }}
         onLogActivity={(leadId) => {
-          const lead = leads.find((l) => l.lead_id === leadId);
+          const lead = (leads || []).find((l: any) => l.lead_id === leadId);
           if (lead) setActivityLead(lead);
         }}
       />
@@ -496,7 +504,7 @@ export const CounsellingPage: React.FC = () => {
                 <SelectItem value="unassigned" className="text-xs font-bold text-rose-600">
                   Unassigned Leads
                 </SelectItem>
-                {counsellors.map((c) => (
+                {(counsellors || []).map((c: any) => (
                   <SelectItem
                     key={c.staff_id || c.id}
                     value={c.staff_id || c.id}
@@ -782,7 +790,7 @@ export const CounsellingPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  leads.map((lead, idx) => {
+                  (leads || []).map((lead: any, idx: number) => {
                     const isSelected = selectedLeadIds.includes(lead.lead_id);
                     const sNo = (currentPage - 1) * pageSize + idx + 1;
                     const studentName =

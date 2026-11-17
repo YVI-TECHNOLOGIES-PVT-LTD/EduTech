@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -88,6 +88,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
   onSuccess,
 }) => {
   const { grades } = useMasterData();
+  const safeGrades = useMemo(() => (Array.isArray(grades) ? grades : []), [grades]);
   const { data: counsellors = [] } = useGetCounsellorsQuery();
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
 
@@ -278,7 +279,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       <SelectValue placeholder="Select grade" />
                     </SelectTrigger>
                     <SelectContent>
-                      {grades.map((g) => (
+                      {safeGrades.map((g: any) => (
                         <SelectItem key={g.id} value={g.academic_year_grade_id || g.id}>
                           {g.name}
                         </SelectItem>

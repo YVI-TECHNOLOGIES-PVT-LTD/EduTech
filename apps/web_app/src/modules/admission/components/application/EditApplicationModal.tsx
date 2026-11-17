@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +45,13 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
   const [previousSchoolYear, setPreviousSchoolYear] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data: academicYears = [] } = useGetAcademicYearsQuery();
+  const { data: rawAcademicYears } = useGetAcademicYearsQuery();
+  const academicYears = useMemo(() => {
+    if (Array.isArray(rawAcademicYears)) return rawAcademicYears;
+    if (Array.isArray((rawAcademicYears as any)?.data)) return (rawAcademicYears as any).data;
+    if (Array.isArray((rawAcademicYears as any)?.items)) return (rawAcademicYears as any).items;
+    return [];
+  }, [rawAcademicYears]);
   const [updateApplication, { isLoading }] = useUpdateApplicationMutation();
 
   useEffect(() => {
@@ -136,7 +142,7 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
                     <SelectValue placeholder="Select academic year" />
                   </SelectTrigger>
                   <SelectContent>
-                    {academicYears.map((ay: any) => (
+                    {(academicYears || []).map((ay: any) => (
                       <SelectItem
                         key={ay.academic_year_id || ay.id}
                         value={ay.academic_year_id || ay.id}

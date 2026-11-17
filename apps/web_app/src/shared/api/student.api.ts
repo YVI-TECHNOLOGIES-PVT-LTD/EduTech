@@ -90,6 +90,12 @@ export const studentApi = apiSlice.injectEndpoints({
         params: params || undefined,
       }),
       providesTags: ['Student'],
+      transformResponse: (response: any): StudentRecord[] => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        if (Array.isArray(response?.items)) return response.items;
+        return [];
+      },
     }),
     getApprovedApplications: builder.query<ApprovedApplicationRecord[], { search?: string } | void>(
       {
@@ -98,6 +104,12 @@ export const studentApi = apiSlice.injectEndpoints({
           params: params || undefined,
         }),
         providesTags: ['Application', 'Student'],
+        transformResponse: (response: any): ApprovedApplicationRecord[] => {
+          if (Array.isArray(response)) return response;
+          if (Array.isArray(response?.data)) return response.data;
+          if (Array.isArray(response?.items)) return response.items;
+          return [];
+        },
       },
     ),
     convertApplicationToStudent: builder.mutation<
@@ -114,11 +126,18 @@ export const studentApi = apiSlice.injectEndpoints({
     getStudentById: builder.query<StudentRecord, string>({
       query: (id: string) => `/students/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Student', id }],
+      transformResponse: (response: any) => response?.data || response,
     }),
     getParents: builder.query<ParentRecord[], string | void>({
       query: (studentId?: string | void) =>
         studentId ? ENDPOINTS.STUDENTS.PARENTS(studentId) : '/v1/parents',
       providesTags: ['Parent'],
+      transformResponse: (response: any): ParentRecord[] => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        if (Array.isArray(response?.items)) return response.items;
+        return [];
+      },
     }),
     enrollStudent: builder.mutation<StudentRecord, EnrollStudentPayload>({
       query: (body: EnrollStudentPayload) => ({

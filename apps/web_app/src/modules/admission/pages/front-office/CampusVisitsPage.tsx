@@ -155,7 +155,11 @@ export const CampusVisitsPage: React.FC = () => {
   }, [user?.id, user?.school_id]);
 
   // Staff List Query
-  const { data: staffList = [] } = useGetStaffListQuery();
+  const { data: rawStaffList = [] } = useGetStaffListQuery();
+  const staffList = useMemo(
+    () => (Array.isArray(rawStaffList) ? rawStaffList : (rawStaffList as any)?.data || []),
+    [rawStaffList],
+  );
   const [deleteVisitMutation] = useDeleteVisitMutation();
 
   // Calculate date boundaries for filter
@@ -209,7 +213,11 @@ export const CampusVisitsPage: React.FC = () => {
     refetch,
   } = useGetCampusVisitsQuery(queryParams);
 
-  const visits = visitsResponse?.items || [];
+  const visits = Array.isArray(visitsResponse?.items)
+    ? visitsResponse.items
+    : Array.isArray((visitsResponse as any)?.data)
+      ? (visitsResponse as any).data
+      : [];
   const totalItems = visitsResponse?.total || 0;
   const totalPages = visitsResponse?.totalPages || 1;
 
@@ -224,7 +232,7 @@ export const CampusVisitsPage: React.FC = () => {
     let completedCount = 0;
     let cancelledNoShowCount = 0;
 
-    visits.forEach((v) => {
+    visits.forEach((v: any) => {
       const vDate = new Date(v.scheduled_at).toDateString();
       if (v.status === 'completed') {
         completedCount++;
@@ -468,7 +476,7 @@ export const CampusVisitsPage: React.FC = () => {
               <SelectItem value="ALL" className="text-xs">
                 All Counsellors
               </SelectItem>
-              {staffList.map((s: any) => (
+              {(staffList || []).map((s: any) => (
                 <SelectItem key={s.staff_id || s.id} value={s.staff_id || s.id} className="text-xs">
                   {s.name ||
                     (s.first_name
@@ -605,7 +613,7 @@ export const CampusVisitsPage: React.FC = () => {
               </TableHeader>
 
               <TableBody>
-                {visits.map((v, index) => {
+                {(visits || []).map((v: any, index: number) => {
                   const studentName = v.leads?.student_first_name
                     ? `${v.leads.student_first_name} ${v.leads.student_last_name || ''}`.trim()
                     : 'Applicant';
@@ -619,7 +627,8 @@ export const CampusVisitsPage: React.FC = () => {
                     ? `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim()
                     : v.staff?.employee_code || 'Unassigned';
 
-                  const statusConf = STATUS_CONFIG[v.status] || STATUS_CONFIG.scheduled;
+                  const statusConf =
+                    STATUS_CONFIG[v.status as VisitStatus] || STATUS_CONFIG.scheduled;
                   const StatusIcon = statusConf.icon;
 
                   const scheduledDate = new Date(v.scheduled_at);

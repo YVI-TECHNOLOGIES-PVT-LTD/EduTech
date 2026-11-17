@@ -54,7 +54,7 @@ export const AssignSectionModal = ({
     setFetchingClasses(true);
     try {
       const res = await apiClient.get('/academic/classes');
-      setClasses(res.data || []);
+      setClasses(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error('Failed to fetch classes', err);
     } finally {
@@ -65,7 +65,7 @@ export const AssignSectionModal = ({
   const fetchSections = async (classId: string) => {
     try {
       const res = await apiClient.get('/academic/sections', { params: { classId } });
-      setSections(res.data || []);
+      setSections(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error('Failed to fetch sections', err);
     }
@@ -162,7 +162,7 @@ export const AssignSectionModal = ({
                 />
               </SelectTrigger>
               <SelectContent className="rounded-2xl">
-                {sections.map((s) => (
+                {(sections || []).map((s: any) => (
                   <SelectItem key={s.id} value={s.id} className="font-medium">
                     {s.name}
                   </SelectItem>

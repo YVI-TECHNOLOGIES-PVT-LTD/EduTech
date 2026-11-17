@@ -25,7 +25,7 @@ export const MODULE_REGISTRY: ErpModule[] = [
     id: 'fees',
     name: 'Finance & Fees',
     permission: 'fees.dashboard.view',
-    route: '/app/admissions/fees',
+    route: '/app/finance/dashboard',
     priority: 70,
   },
   {

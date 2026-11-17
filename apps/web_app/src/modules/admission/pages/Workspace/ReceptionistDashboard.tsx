@@ -200,7 +200,7 @@ export function ReceptionistDashboard() {
                   onChange={(e) => setGrade(e.target.value)}
                   className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
-                  {grades.length === 0 ? (
+                  {!Array.isArray(grades) || grades.length === 0 ? (
                     <option value="">Loading grades...</option>
                   ) : (
                     grades.map((g) => (

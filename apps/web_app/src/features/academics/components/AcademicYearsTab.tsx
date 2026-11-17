@@ -28,7 +28,7 @@ export const AcademicYearsTab: React.FC = () => {
     },
   ];
 
-  const tableData = years && years.length > 0 ? years : dummyYears;
+  const tableData = Array.isArray(years) && years.length > 0 ? years : dummyYears;
 
   const columns: ColumnDef<AcademicYearRecord>[] = [
     {
@@ -64,7 +64,7 @@ export const AcademicYearsTab: React.FC = () => {
       accessorKey: 'status',
       header: 'Session Status',
       cell: ({ row }: { row: { original: AcademicYearRecord } }) => (
-        <StatusChip status={row.original.status} />
+        <StatusChip status={row.original.status || 'ACTIVE'} />
       ),
     },
   ];

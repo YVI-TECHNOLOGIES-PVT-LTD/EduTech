@@ -146,7 +146,8 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
           roles.includes('ADMIN') ||
           roles.includes('FINANCE_OFFICER') ||
           roles.includes('FINANCE_MANAGER') ||
-          roles.includes('ACCOUNTANT'))) ||
+          roles.includes('ACCOUNTANT') ||
+          roles.includes('FRONT_OFFICE'))) ||
       (requiredPermission === 'fees.payment.collect' &&
         (permissions.includes('fees.payment.collect') ||
           roles.includes('ADMIN') ||
@@ -217,7 +218,8 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         requiredPermission === 'admission.enrol' ||
         requiredPermission === 'admission.assessment.evaluate' ||
         requiredPermission === 'admission.assessment.config.manage' ||
-        requiredPermission === 'admission.assessment.dashboard.view') &&
+        requiredPermission === 'admission.assessment.dashboard.view' ||
+        requiredPermission === 'admission.application.view') &&
         (permissions.includes('admission.leads.manage') ||
           permissions.includes('admission.enquiry.view') ||
           permissions.includes('admission.review') ||
@@ -225,6 +227,7 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
           permissions.includes('admission.recommend') ||
           permissions.includes('admission.approve') ||
           permissions.includes('admission.enrol') ||
+          permissions.includes('admission.application.view') ||
           roles.includes('ADMIN') ||
           roles.includes('SUPERADMIN') ||
           roles.includes('FRONT_OFFICE') ||

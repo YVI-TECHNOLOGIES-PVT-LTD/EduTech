@@ -14,7 +14,7 @@ export const SectionsTab: React.FC = () => {
     { id: 'sec-3', name: 'Section A (General)', gradeId: 'GR-10', capacity: 35 },
   ];
 
-  const tableData = sections && sections.length > 0 ? sections : dummySections;
+  const tableData = Array.isArray(sections) && sections.length > 0 ? sections : dummySections;
 
   const columns: ColumnDef<SectionRecord>[] = [
     {

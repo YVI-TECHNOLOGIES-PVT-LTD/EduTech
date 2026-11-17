@@ -566,7 +566,7 @@ export const LeadsManagementPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Grades</SelectItem>
-                {grades.map((g) => (
+                {(Array.isArray(grades) ? grades : []).map((g) => (
                   <SelectItem key={g.id} value={g.id} className="text-xs">
                     {g.name}
                   </SelectItem>

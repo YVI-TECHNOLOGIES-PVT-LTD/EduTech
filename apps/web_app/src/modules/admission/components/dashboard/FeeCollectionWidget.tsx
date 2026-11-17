@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/context/LanguageContext';
-import { Receipt, CheckCircle, Clock } from 'lucide-react';
+import { Receipt, CheckCircle, Clock, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export interface FeeCollectionData {
   expected: number;
@@ -11,7 +13,7 @@ export interface FeeCollectionData {
 }
 
 export interface FeeCollectionWidgetProps {
-  data: FeeCollectionData;
+  data?: FeeCollectionData | null;
   isLoading?: boolean;
 }
 
@@ -20,20 +22,32 @@ export const FeeCollectionWidget: React.FC<FeeCollectionWidgetProps> = ({
   isLoading = false,
 }) => {
   const { t } = useLanguage();
-  const currencySymbol = data.currency || '₹';
+  const navigate = useNavigate();
 
-  const formatAmount = (amt: number) => {
-    return `${currencySymbol}${amt.toLocaleString()}`;
+  const safeData = data || { expected: 0, collected: 0, pending: 0 };
+  const currencySymbol = safeData.currency || '₹';
+
+  const formatAmount = (amt: number | string | null | undefined): string => {
+    const num = Number(amt);
+    if (!Number.isFinite(num)) return `${currencySymbol}0`;
+    return `${currencySymbol}${num.toLocaleString('en-IN')}`;
   };
 
+  const expectedVal = Math.max(0, Number(safeData.expected) || 0);
+  const collectedVal = Math.max(0, Number(safeData.collected) || 0);
+  const pendingVal =
+    safeData.pending !== undefined && safeData.pending !== null
+      ? Math.max(0, Number(safeData.pending) || 0)
+      : Math.max(0, expectedVal - collectedVal);
+
   const rate =
-    data.collectionRate !== undefined
-      ? data.collectionRate
-      : data.expected > 0
-      ? Math.round((data.collected / data.expected) * 100)
-      : data.collected > 0
-      ? 100
-      : 0;
+    typeof safeData.collectionRate === 'number' && Number.isFinite(safeData.collectionRate)
+      ? Math.max(0, Math.min(100, Math.round(safeData.collectionRate)))
+      : expectedVal > 0
+        ? Math.max(0, Math.min(100, Math.round((collectedVal / expectedVal) * 100)))
+        : collectedVal > 0
+          ? 100
+          : 0;
 
   return (
     <div className="p-6 rounded-2xl border border-border/80 dark:border-zinc-800 bg-white dark:bg-black shadow-sm flex flex-col justify-between h-full">
@@ -55,9 +69,21 @@ export const FeeCollectionWidget: React.FC<FeeCollectionWidgetProps> = ({
           </div>
         </div>
 
-        <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 shrink-0">
-          {rate}% {t('dashboard.frontOffice.feeCollection.collectionRate', 'Realized')}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+            {rate}% {t('dashboard.frontOffice.feeCollection.collectionRate', 'Realized')}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => navigate('/app/front-office/fees')}
+            className="h-7 px-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1 hidden sm:inline-flex"
+            title="Open Fee Collection Desk"
+          >
+            <span>Desk</span>
+            <ArrowRight className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -70,7 +96,9 @@ export const FeeCollectionWidget: React.FC<FeeCollectionWidgetProps> = ({
           {/* Progress Bar */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-              <span>{t('dashboard.frontOffice.feeCollection.collectionRate', 'Collection Rate')}</span>
+              <span>
+                {t('dashboard.frontOffice.feeCollection.collectionRate', 'Collection Rate')}
+              </span>
               <span className="font-mono text-foreground font-extrabold ltr-isolate">{rate}%</span>
             </div>
             <div className="h-3 w-full bg-muted/50 dark:bg-zinc-900 rounded-full overflow-hidden p-0.5">
@@ -88,7 +116,7 @@ export const FeeCollectionWidget: React.FC<FeeCollectionWidgetProps> = ({
                 {t('dashboard.frontOffice.feeCollection.expected', 'Expected')}
               </span>
               <p className="text-base font-black text-foreground font-mono ltr-isolate mt-1">
-                {formatAmount(data.expected || data.collected + data.pending)}
+                {formatAmount(expectedVal || collectedVal + pendingVal)}
               </p>
             </div>
 
@@ -98,7 +126,7 @@ export const FeeCollectionWidget: React.FC<FeeCollectionWidgetProps> = ({
                 <span>{t('dashboard.frontOffice.feeCollection.collected', 'Collected')}</span>
               </div>
               <p className="text-base font-black text-emerald-900 dark:text-emerald-200 font-mono ltr-isolate mt-1">
-                {formatAmount(data.collected)}
+                {formatAmount(collectedVal)}
               </p>
             </div>
 
@@ -108,7 +136,7 @@ export const FeeCollectionWidget: React.FC<FeeCollectionWidgetProps> = ({
                 <span>{t('dashboard.frontOffice.feeCollection.pending', 'Pending')}</span>
               </div>
               <p className="text-base font-black text-amber-900 dark:text-amber-200 font-mono ltr-isolate mt-1">
-                {formatAmount(data.pending)}
+                {formatAmount(pendingVal)}
               </p>
             </div>
           </div>

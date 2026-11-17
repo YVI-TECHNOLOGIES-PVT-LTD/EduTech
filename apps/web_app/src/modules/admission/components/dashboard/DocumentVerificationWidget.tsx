@@ -20,8 +20,11 @@ export const DocumentVerificationWidget: React.FC<DocumentVerificationWidgetProp
 }) => {
   const { t } = useLanguage();
 
-  const total = data.total ?? (data.verified + data.pending + data.rejected);
-  const completionRate = total > 0 ? Math.round((data.verified / total) * 100) : 0;
+  const verified = Number(data?.verified) || 0;
+  const pending = Number(data?.pending) || 0;
+  const rejected = Number(data?.rejected) || 0;
+  const total = Number(data?.total) || verified + pending + rejected;
+  const completionRate = total > 0 ? Math.round((verified / total) * 100) : 0;
 
   return (
     <div className="p-6 rounded-2xl border border-border/80 dark:border-zinc-800 bg-white dark:bg-black shadow-sm flex flex-col justify-between h-full">
@@ -68,8 +71,15 @@ export const DocumentVerificationWidget: React.FC<DocumentVerificationWidgetProp
           {/* Progress Bar with 3 segments */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-              <span>{t('dashboard.frontOffice.documentVerification.completionRate', 'Verification Rate')}</span>
-              <span className="font-mono text-foreground font-extrabold ltr-isolate">{completionRate}%</span>
+              <span>
+                {t(
+                  'dashboard.frontOffice.documentVerification.completionRate',
+                  'Verification Rate',
+                )}
+              </span>
+              <span className="font-mono text-foreground font-extrabold ltr-isolate">
+                {completionRate}%
+              </span>
             </div>
             <div className="h-3 w-full bg-muted/50 dark:bg-zinc-900 rounded-full overflow-hidden p-0.5 flex gap-1">
               {data.verified > 0 && (
@@ -101,7 +111,7 @@ export const DocumentVerificationWidget: React.FC<DocumentVerificationWidgetProp
                 <span>{t('dashboard.frontOffice.documentVerification.verified', 'Verified')}</span>
               </div>
               <p className="text-base font-black text-emerald-900 dark:text-emerald-200 font-mono ltr-isolate mt-1">
-                {data.verified.toLocaleString()}
+                {verified.toLocaleString('en-IN')}
               </p>
             </div>
 
@@ -111,7 +121,7 @@ export const DocumentVerificationWidget: React.FC<DocumentVerificationWidgetProp
                 <span>{t('dashboard.frontOffice.documentVerification.pending', 'Pending')}</span>
               </div>
               <p className="text-base font-black text-amber-900 dark:text-amber-200 font-mono ltr-isolate mt-1">
-                {data.pending.toLocaleString()}
+                {pending.toLocaleString('en-IN')}
               </p>
             </div>
 
@@ -121,7 +131,7 @@ export const DocumentVerificationWidget: React.FC<DocumentVerificationWidgetProp
                 <span>{t('dashboard.frontOffice.documentVerification.rejected', 'Rejected')}</span>
               </div>
               <p className="text-base font-black text-rose-900 dark:text-rose-200 font-mono ltr-isolate mt-1">
-                {data.rejected.toLocaleString()}
+                {rejected.toLocaleString('en-IN')}
               </p>
             </div>
           </div>

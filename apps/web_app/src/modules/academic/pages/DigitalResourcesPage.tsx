@@ -70,9 +70,9 @@ export const DigitalResourcesPage: React.FC = () => {
         AcademicManagementService.listResourceCategories(),
         AcademicManagementService.listGrades({ limit: 50 }),
       ]);
-      setResources(resList.items);
-      setCategories(catList);
-      setGrades(gradeList.items);
+      setResources(Array.isArray(resList?.items) ? resList.items : []);
+      setCategories(Array.isArray(catList) ? catList : []);
+      setGrades(Array.isArray(gradeList?.items) ? gradeList.items : []);
     } catch (err: any) {
       setError(extractAcademicApiError(err, 'Failed to load digital resource library'));
     } finally {
@@ -235,7 +235,7 @@ export const DigitalResourcesPage: React.FC = () => {
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
           >
             <option value="">All Grades</option>
-            {grades.map((g) => (
+            {(grades || []).map((g) => (
               <option key={g.grade_id} value={g.grade_id}>
                 {g.grade_name}
               </option>

@@ -80,7 +80,7 @@ export function AdmissionDecisionPage() {
     const map = new Map<string, any>();
 
     // 1. First index approved / enrollment records
-    approvedApps.forEach((app) => {
+    (Array.isArray(approvedApps) ? approvedApps : []).forEach((app) => {
       map.set(app.application_id, {
         ...app,
         id: app.application_id,
@@ -97,7 +97,7 @@ export function AdmissionDecisionPage() {
     });
 
     // 2. Supplement with general application list if not present
-    allApps.forEach((app) => {
+    (Array.isArray(allApps) ? allApps : []).forEach((app) => {
       const appId = app.application_id || app.id;
       if (!map.has(appId)) {
         const studentName =

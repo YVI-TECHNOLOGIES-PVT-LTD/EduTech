@@ -112,6 +112,35 @@ export class ErrorBoundary extends Component<Props, State> {
         );
       }
 
+      const isCompact = !this.props.showBackButton && !this.props.showHomeButton;
+
+      if (isCompact) {
+        return (
+          <div className="w-full p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-center space-y-2.5 my-2">
+            <div className="flex items-center justify-center gap-2 text-destructive">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <h4 className="text-xs font-bold">
+                {this.props.fallbackTitle || 'Section Unavailable'}
+              </h4>
+            </div>
+            <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+              {this.props.fallbackMessage ||
+                this.state.error?.message ||
+                'An unexpected rendering issue occurred in this section.'}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={this.handleReset}
+              className="h-7 px-2.5 text-xs font-semibold gap-1.5 shadow-2xs"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Retry</span>
+            </Button>
+          </div>
+        );
+      }
+
       return (
         <div className="min-h-[320px] w-full flex flex-col items-center justify-center p-8 text-center bg-card border border-destructive/20 rounded-2xl shadow-premium-sm my-4">
           <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-4">
@@ -210,6 +239,33 @@ export const FeatureErrorBoundary = ({ children }: { children: ReactNode }) => (
   <ErrorBoundary
     fallbackTitle="Feature Loading Error"
     fallbackMessage="Failed to display feature content."
+  >
+    {children}
+  </ErrorBoundary>
+);
+
+/**
+ * SectionErrorBoundary
+ * Wraps dashboard widgets and isolated modular sections.
+ * Localizes runtime errors so that widget-level exceptions never crash the entire page or layout.
+ */
+export const SectionErrorBoundary = ({
+  children,
+  title = 'Section Unavailable',
+  message,
+  onReset,
+}: {
+  children: ReactNode;
+  title?: string;
+  message?: string;
+  onReset?: () => void;
+}) => (
+  <ErrorBoundary
+    fallbackTitle={title}
+    fallbackMessage={message}
+    showBackButton={false}
+    showHomeButton={false}
+    onReset={onReset}
   >
     {children}
   </ErrorBoundary>

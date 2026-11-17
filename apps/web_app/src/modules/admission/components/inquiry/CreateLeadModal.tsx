@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -117,6 +117,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   onSuccess,
 }) => {
   const { grades } = useMasterData();
+  const safeGrades = useMemo(() => (Array.isArray(grades) ? grades : []), [grades]);
   const { data: counsellors = [] } = useGetCounsellorsQuery();
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
   const [triggerCheckDuplicates, { data: duplicateData }] = useLazyCheckDuplicatesQuery();
@@ -171,13 +172,13 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
   // Set default grade if available
   useEffect(() => {
-    if (open && grades.length > 0 && !watch('academic_year_grade_id')) {
-      const validGrade = grades.find((g) => g.academic_year_grade_id || g.id);
+    if (open && safeGrades.length > 0 && !watch('academic_year_grade_id')) {
+      const validGrade = safeGrades.find((g: any) => g.academic_year_grade_id || g.id);
       if (validGrade) {
         setValue('academic_year_grade_id', validGrade.academic_year_grade_id || validGrade.id);
       }
     }
-  }, [open, grades, setValue, watch]);
+  }, [open, safeGrades, setValue, watch]);
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -358,7 +359,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                         <SelectValue placeholder="Select grade" />
                       </SelectTrigger>
                       <SelectContent>
-                        {grades.map((g) => (
+                        {safeGrades.map((g: any) => (
                           <SelectItem key={g.id} value={g.academic_year_grade_id || g.id}>
                             {g.name}
                           </SelectItem>

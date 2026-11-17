@@ -51,6 +51,7 @@ import { PaymentStatusBadge } from '../../components/fee/PaymentStatusBadge';
 import { CollectAdmissionFeeDialog } from '../../components/fee/CollectAdmissionFeeDialog';
 import { AdmissionFeeReceiptDialog } from '../../components/fee/AdmissionFeeReceiptDialog';
 import { ApplicationDetailsSheet } from '../../components/application/ApplicationDetailsSheet';
+import { SectionErrorBoundary } from '@/components/common/ErrorBoundary';
 import { cn } from '@/lib/utils';
 
 export const FeeCollectionPage: React.FC = () => {
@@ -92,8 +93,24 @@ export const FeeCollectionPage: React.FC = () => {
   }, [user?.id, user?.school_id]);
 
   // Reference Queries
-  const { data: gradesData = [] } = useGetGradesQuery();
-  const { data: academicYearsData = [] } = useGetAcademicYearsQuery();
+  const { data: gradesDataRaw } = useGetGradesQuery();
+  const { data: academicYearsDataRaw } = useGetAcademicYearsQuery();
+
+  const gradesData = useMemo(() => {
+    if (Array.isArray(gradesDataRaw)) return gradesDataRaw;
+    if (Array.isArray((gradesDataRaw as any)?.data)) return (gradesDataRaw as any).data;
+    if (Array.isArray((gradesDataRaw as any)?.items)) return (gradesDataRaw as any).items;
+    return [];
+  }, [gradesDataRaw]);
+
+  const academicYearsData = useMemo(() => {
+    if (Array.isArray(academicYearsDataRaw)) return academicYearsDataRaw;
+    if (Array.isArray((academicYearsDataRaw as any)?.data))
+      return (academicYearsDataRaw as any).data;
+    if (Array.isArray((academicYearsDataRaw as any)?.items))
+      return (academicYearsDataRaw as any).items;
+    return [];
+  }, [academicYearsDataRaw]);
 
   // Query Params
   const queryParams = useMemo(() => {
@@ -160,7 +177,7 @@ export const FeeCollectionPage: React.FC = () => {
 
     // Derived from current page items and totals
     applications.forEach((app) => {
-      const pStatus = (app.payment?.payment_status || 'pending').toLowerCase();
+      const pStatus = String(app?.payment?.payment_status || 'pending').toLowerCase();
       if (pStatus === 'paid') {
         paidCount++;
       } else if (pStatus === 'pending') {
@@ -226,7 +243,7 @@ export const FeeCollectionPage: React.FC = () => {
   };
 
   const renderPaymentModeIcon = (mode?: string | null) => {
-    const m = (mode || 'cash').toLowerCase();
+    const m = String(mode || 'cash').toLowerCase();
     switch (m) {
       case 'bank_transfer':
         return (
@@ -438,7 +455,7 @@ export const FeeCollectionPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Grades</SelectItem>
-                {gradesData.map((grade: any) => (
+                {(gradesData || []).map((grade: any) => (
                   <SelectItem key={grade.grade_id || grade.id} value={grade.grade_id || grade.id}>
                     {grade.grade_name || grade.name}
                   </SelectItem>
@@ -458,7 +475,7 @@ export const FeeCollectionPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Academic Years</SelectItem>
-                {academicYearsData.map((ay: any) => (
+                {(academicYearsData || []).map((ay: any) => (
                   <SelectItem
                     key={ay.academic_year_id || ay.id}
                     value={ay.academic_year_id || ay.id}
@@ -513,325 +530,334 @@ export const FeeCollectionPage: React.FC = () => {
       )}
 
       {/* Production-Grade Fee Data Table */}
-      <Card className="bg-card border border-border shadow-xs overflow-hidden rounded-xl">
-        <div className="overflow-x-auto">
-          <Table className="w-full min-w-[1300px] border-collapse">
-            <TableHeader className="bg-card border-b border-border">
-              <TableRow className="border-b border-border divide-x divide-border">
-                <TableHead className="w-12 px-3 text-center">
-                  <Checkbox
-                    checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="Select all"
-                  />
-                </TableHead>
-                <TableHead className="w-14 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  S.NO
-                </TableHead>
-                <TableHead className="min-w-[130px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Application #
-                </TableHead>
-                <TableHead className="min-w-[180px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Applicant
-                </TableHead>
-                <TableHead className="min-w-[110px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Grade
-                </TableHead>
-                <TableHead className="min-w-[120px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Academic Year
-                </TableHead>
-                <TableHead className="min-w-[110px] text-right text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Fee Amount
-                </TableHead>
-                <TableHead className="min-w-[120px] text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Payment Status
-                </TableHead>
-                <TableHead className="min-w-[110px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Payment Date
-                </TableHead>
-                <TableHead className="min-w-[130px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Payment Method
-                </TableHead>
-                <TableHead className="min-w-[140px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Transaction Ref
-                </TableHead>
-                <TableHead className="min-w-[100px] text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Receipt
-                </TableHead>
-                <TableHead className="min-w-[130px] text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, idx) => (
-                  <TableRow
-                    key={idx}
-                    className="animate-pulse divide-x divide-slate-100 dark:divide-slate-800"
-                  >
-                    <TableCell colSpan={13} className="py-4 px-4 text-center">
-                      <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : applications.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={13} className="py-12 text-center">
-                    <div className="max-w-sm mx-auto space-y-2">
-                      <Receipt className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
-                      <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                        No Admission Fee Records Found
-                      </div>
-                      <p className="text-xs text-slate-400">
-                        {searchText || paymentStatusFilter !== 'ALL' || gradeFilter !== 'ALL'
-                          ? 'Try adjusting your search criteria or resetting filters.'
-                          : 'No admission applications currently require front office fee collection.'}
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleResetFilters}
-                        className="text-xs h-8 mt-2"
-                      >
-                        Reset Filters
-                      </Button>
-                    </div>
-                  </TableCell>
+      <SectionErrorBoundary title="Fee Records Table Unavailable">
+        <Card className="bg-card border border-border shadow-xs overflow-hidden rounded-xl">
+          <div className="overflow-x-auto">
+            <Table className="w-full min-w-[1300px] border-collapse">
+              <TableHeader className="bg-card border-b border-border">
+                <TableRow className="border-b border-border divide-x divide-border">
+                  <TableHead className="w-12 px-3 text-center">
+                    <Checkbox
+                      checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                  <TableHead className="w-14 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    S.NO
+                  </TableHead>
+                  <TableHead className="min-w-[130px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Application #
+                  </TableHead>
+                  <TableHead className="min-w-[180px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Applicant
+                  </TableHead>
+                  <TableHead className="min-w-[110px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Grade
+                  </TableHead>
+                  <TableHead className="min-w-[120px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Academic Year
+                  </TableHead>
+                  <TableHead className="min-w-[110px] text-right text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Fee Amount
+                  </TableHead>
+                  <TableHead className="min-w-[120px] text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Payment Status
+                  </TableHead>
+                  <TableHead className="min-w-[110px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Payment Date
+                  </TableHead>
+                  <TableHead className="min-w-[130px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Payment Method
+                  </TableHead>
+                  <TableHead className="min-w-[140px] text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Transaction Ref
+                  </TableHead>
+                  <TableHead className="min-w-[100px] text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Receipt
+                  </TableHead>
+                  <TableHead className="min-w-[130px] text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Actions
+                  </TableHead>
                 </TableRow>
-              ) : (
-                applications.map((app, index) => {
-                  const appId = app.application_id || app.id;
-                  const itemSelected = isSelected(appId);
-                  const serialNo = (page - 1) * pageSize + index + 1;
+              </TableHeader>
 
-                  const lead = app.lead;
-                  const studentName =
-                    app.student_name ||
-                    lead?.student_name ||
-                    [lead?.student_first_name, lead?.student_last_name].filter(Boolean).join(' ') ||
-                    'Applicant';
-                  const appNumber = app.application_number || 'APP-PENDING';
-                  const gradeName = app.grade_name || lead?.grade_name || '—';
-                  const academicYearName = app.academic_year?.academic_year_name || '—';
-
-                  const payment = app.payment;
-                  const pStatus = (payment?.payment_status || 'pending').toLowerCase();
-                  const isPaid = pStatus === 'paid';
-                  const amount = payment?.amount ?? 1200; // Standard 1000 + 200 default
-                  const paymentDate = payment?.payment_date
-                    ? new Date(payment.payment_date).toLocaleDateString('en-IN')
-                    : '—';
-                  const txnRef = payment?.transaction_reference || '—';
-
-                  return (
+              <TableBody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, idx) => (
                     <TableRow
-                      key={appId}
-                      className={cn(
-                        'divide-x divide-border transition-colors',
-                        itemSelected
-                          ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900',
-                      )}
+                      key={idx}
+                      className="animate-pulse divide-x divide-slate-100 dark:divide-slate-800"
                     >
-                      {/* Checkbox */}
-                      <TableCell className="px-3 text-center">
-                        <Checkbox
-                          checked={itemSelected}
-                          onCheckedChange={() => toggleRow(appId)}
-                          aria-label={`Select ${studentName}`}
-                        />
-                      </TableCell>
-
-                      {/* S.NO */}
-                      <TableCell className="text-center font-mono text-xs text-slate-500 font-medium">
-                        {serialNo}
-                      </TableCell>
-
-                      {/* Application # */}
-                      <TableCell>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDetails(app)}
-                          className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                        >
-                          {appNumber}
-                        </button>
-                      </TableCell>
-
-                      {/* Applicant */}
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-xs text-slate-900 dark:text-white">
-                            {studentName}
-                          </div>
-                          {(lead?.contact_phone || lead?.contact_email) && (
-                            <div className="text-[10px] text-slate-400 truncate max-w-[180px]">
-                              {lead.contact_phone || lead.contact_email}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* Grade */}
-                      <TableCell className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                        {gradeName}
-                      </TableCell>
-
-                      {/* Academic Year */}
-                      <TableCell className="text-xs text-slate-600 dark:text-slate-400">
-                        {academicYearName}
-                      </TableCell>
-
-                      {/* Fee Amount */}
-                      <TableCell className="text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
-                        ₹{amount.toLocaleString('en-IN')}
-                      </TableCell>
-
-                      {/* Payment Status */}
-                      <TableCell className="text-center">
-                        <PaymentStatusBadge status={pStatus} />
-                      </TableCell>
-
-                      {/* Payment Date */}
-                      <TableCell className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                        {paymentDate}
-                      </TableCell>
-
-                      {/* Payment Method */}
-                      <TableCell>
-                        {isPaid || payment?.payment_mode ? (
-                          renderPaymentModeIcon(payment?.payment_mode)
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </TableCell>
-
-                      {/* Transaction Ref */}
-                      <TableCell>
-                        {txnRef !== '—' ? (
-                          <div className="flex items-center gap-1">
-                            <span
-                              className="font-mono text-[11px] text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
-                              title={txnRef}
-                            >
-                              {txnRef}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(txnRef, 'Transaction Reference')}
-                              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </TableCell>
-
-                      {/* Receipt */}
-                      <TableCell className="text-center">
-                        {isPaid ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleOpenReceipt(app)}
-                            className="h-7 px-2 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
-                            title="View / Print Official Receipt"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            <span>Receipt</span>
-                          </Button>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">Pending</span>
-                        )}
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {!isPaid ? (
-                            <Button
-                              size="sm"
-                              onClick={() => handleOpenCollect(app)}
-                              className="h-7 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1 shadow-xs"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Collect Fee</span>
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenDetails(app)}
-                              className="h-7 px-2.5 text-xs font-medium gap-1"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-slate-500" />
-                              <span>Details</span>
-                            </Button>
-                          )}
-                        </div>
+                      <TableCell colSpan={13} className="py-4 px-4 text-center">
+                        <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded w-full" />
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                  ))
+                ) : applications.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={13} className="py-12 text-center">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <Receipt className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                        <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          No Admission Fee Records Found
+                        </div>
+                        <p className="text-xs text-slate-400">
+                          {searchText || paymentStatusFilter !== 'ALL' || gradeFilter !== 'ALL'
+                            ? 'Try adjusting your search criteria or resetting filters.'
+                            : 'No admission applications currently require front office fee collection.'}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleResetFilters}
+                          className="text-xs h-8 mt-2"
+                        >
+                          Reset Filters
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  applications.map((app, index) => {
+                    const appId = app.application_id || app.id;
+                    const itemSelected = isSelected(appId);
+                    const serialNo = (page - 1) * pageSize + index + 1;
 
-        {/* Server-side Pagination Bar */}
-        <div className="p-4 bg-card border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-            <span>Rows per page:</span>
-            <Select value={String(pageSize)} onValueChange={(val) => updateFilter('pageSize', val)}>
-              <SelectTrigger className="h-8 w-16 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-            <span>
-              Showing {meta.total === 0 ? 0 : (page - 1) * pageSize + 1}–
-              {Math.min(page * pageSize, meta.total)} of {meta.total} records
-            </span>
+                    const lead = app.lead;
+                    const studentName =
+                      app.student_name ||
+                      lead?.student_name ||
+                      [lead?.student_first_name, lead?.student_last_name]
+                        .filter(Boolean)
+                        .join(' ') ||
+                      'Applicant';
+                    const appNumber = app.application_number || 'APP-PENDING';
+                    const gradeName = app.grade_name || lead?.grade_name || '—';
+                    const academicYearName = app.academic_year?.academic_year_name || '—';
+
+                    const payment = app.payment;
+                    const pStatus = String(payment?.payment_status || 'pending').toLowerCase();
+                    const isPaid = pStatus === 'paid';
+                    const amount = payment?.amount != null ? Number(payment.amount) : 1200; // Standard 1000 + 200 default
+                    const paymentDate = payment?.payment_date
+                      ? !isNaN(new Date(payment.payment_date).getTime())
+                        ? new Date(payment.payment_date).toLocaleDateString('en-IN')
+                        : '—'
+                      : '—';
+                    const txnRef = payment?.transaction_reference || '—';
+
+                    return (
+                      <TableRow
+                        key={appId}
+                        className={cn(
+                          'divide-x divide-border transition-colors',
+                          itemSelected
+                            ? 'bg-black text-white dark:bg-white dark:text-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                            : 'hover:bg-neutral-100 dark:hover:bg-neutral-900',
+                        )}
+                      >
+                        {/* Checkbox */}
+                        <TableCell className="px-3 text-center">
+                          <Checkbox
+                            checked={itemSelected}
+                            onCheckedChange={() => toggleRow(appId)}
+                            aria-label={`Select ${studentName}`}
+                          />
+                        </TableCell>
+
+                        {/* S.NO */}
+                        <TableCell className="text-center font-mono text-xs text-slate-500 font-medium">
+                          {serialNo}
+                        </TableCell>
+
+                        {/* Application # */}
+                        <TableCell>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetails(app)}
+                            className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                          >
+                            {appNumber}
+                          </button>
+                        </TableCell>
+
+                        {/* Applicant */}
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-xs text-slate-900 dark:text-white">
+                              {studentName}
+                            </div>
+                            {(lead?.contact_phone || lead?.contact_email) && (
+                              <div className="text-[10px] text-slate-400 truncate max-w-[180px]">
+                                {lead.contact_phone || lead.contact_email}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Grade */}
+                        <TableCell className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                          {gradeName}
+                        </TableCell>
+
+                        {/* Academic Year */}
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-400">
+                          {academicYearName}
+                        </TableCell>
+
+                        {/* Fee Amount */}
+                        <TableCell className="text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                          ₹{(Number(amount) || 0).toLocaleString('en-IN')}
+                        </TableCell>
+
+                        {/* Payment Status */}
+                        <TableCell className="text-center">
+                          <PaymentStatusBadge status={pStatus} />
+                        </TableCell>
+
+                        {/* Payment Date */}
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          {paymentDate}
+                        </TableCell>
+
+                        {/* Payment Method */}
+                        <TableCell>
+                          {isPaid || payment?.payment_mode ? (
+                            renderPaymentModeIcon(payment?.payment_mode)
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </TableCell>
+
+                        {/* Transaction Ref */}
+                        <TableCell>
+                          {txnRef !== '—' ? (
+                            <div className="flex items-center gap-1">
+                              <span
+                                className="font-mono text-[11px] text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                title={txnRef}
+                              >
+                                {txnRef}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(txnRef, 'Transaction Reference')}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </TableCell>
+
+                        {/* Receipt */}
+                        <TableCell className="text-center">
+                          {isPaid ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenReceipt(app)}
+                              className="h-7 px-2 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
+                              title="View / Print Official Receipt"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                              <span>Receipt</span>
+                            </Button>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">Pending</span>
+                          )}
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {!isPaid ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleOpenCollect(app)}
+                                className="h-7 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1 shadow-xs"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Collect Fee</span>
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenDetails(app)}
+                                className="h-7 px-2.5 text-xs font-medium gap-1"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Details</span>
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => updateFilter('page', String(page - 1))}
-              className="h-8 px-2.5 text-xs gap-1"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
-            </Button>
+          {/* Server-side Pagination Bar */}
+          <div className="p-4 bg-card border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+              <span>Rows per page:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => updateFilter('pageSize', val)}
+              >
+                <SelectTrigger className="h-8 w-16 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>
+                Showing {meta.total === 0 ? 0 : (page - 1) * pageSize + 1}–
+                {Math.min(page * pageSize, meta.total)} of {meta.total} records
+              </span>
+            </div>
 
-            <span className="font-semibold text-slate-700 dark:text-slate-300 px-2">
-              Page {page} of {meta.totalPages || 1}
-            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => updateFilter('page', String(page - 1))}
+                className="h-8 px-2.5 text-xs gap-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Previous</span>
+              </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= meta.totalPages}
-              onClick={() => updateFilter('page', String(page + 1))}
-              className="h-8 px-2.5 text-xs gap-1"
-            >
-              <span>Next</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
+              <span className="font-semibold text-slate-700 dark:text-slate-300 px-2">
+                Page {page} of {meta.totalPages || 1}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= meta.totalPages}
+                onClick={() => updateFilter('page', String(page + 1))}
+                className="h-8 px-2.5 text-xs gap-1"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </SectionErrorBoundary>
 
       {/* Collect Fee Modal */}
       <CollectAdmissionFeeDialog

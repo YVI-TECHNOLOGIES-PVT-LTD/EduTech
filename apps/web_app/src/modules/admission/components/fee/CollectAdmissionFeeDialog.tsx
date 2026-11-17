@@ -84,7 +84,10 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
   useEffect(() => {
     if (feeData) {
       const defaultTotal =
-        feeData.total_fee || feeData.application_fee + feeData.processing_fee || 1200;
+        Number(
+          feeData.total_fee ||
+            Number(feeData.application_fee || 0) + Number(feeData.processing_fee || 0),
+        ) || 1200;
       setAmount(defaultTotal);
     }
   }, [feeData]);
@@ -160,7 +163,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
 
       toast({
         title: 'Payment Recorded Successfully',
-        description: `Admission fee of ₹${Number(amount).toLocaleString('en-IN')} collected for ${studentName}.`,
+        description: `Admission fee of ₹${(Number(amount) || 0).toLocaleString('en-IN')} collected for ${studentName}.`,
       });
 
       onSuccess?.(result);
@@ -233,7 +236,7 @@ export const CollectAdmissionFeeDialog: React.FC<CollectAdmissionFeeDialogProps>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading fee...
                     </span>
                   ) : (
-                    `₹${(feeData?.total_fee || amount).toLocaleString('en-IN')}`
+                    `₹${(Number(feeData?.total_fee || amount) || 0).toLocaleString('en-IN')}`
                   )}
                 </div>
                 {feeData && (

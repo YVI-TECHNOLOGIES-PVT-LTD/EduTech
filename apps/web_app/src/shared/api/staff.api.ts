@@ -64,10 +64,30 @@ export const staffApi = apiSlice.injectEndpoints({
     getDepartments: builder.query<DepartmentRecord[], void>({
       query: () => ENDPOINTS.HR.DEPARTMENTS,
       providesTags: ['Department'],
+      transformResponse: (response: any) => {
+        const rawList = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.items)
+              ? response.items
+              : [];
+        return rawList;
+      },
     }),
     getDesignations: builder.query<DesignationRecord[], void>({
       query: () => ENDPOINTS.HR.DESIGNATIONS,
       providesTags: ['Designation'],
+      transformResponse: (response: any) => {
+        const rawList = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.items)
+              ? response.items
+              : [];
+        return rawList;
+      },
     }),
     getStaffList: builder.query<StaffRecord[], { role?: string; search?: string } | void>({
       query: (params) => ({

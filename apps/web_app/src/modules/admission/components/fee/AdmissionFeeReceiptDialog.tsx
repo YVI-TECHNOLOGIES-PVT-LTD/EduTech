@@ -163,9 +163,13 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                   </div>
                   <div className="text-[10px] text-slate-500">
                     Date:{' '}
-                    {new Date(receipt.payment_date || receipt.issued_at).toLocaleDateString(
-                      'en-IN',
-                    )}
+                    {receipt.payment_date || receipt.issued_at
+                      ? !isNaN(new Date(receipt.payment_date || receipt.issued_at).getTime())
+                        ? new Date(receipt.payment_date || receipt.issued_at).toLocaleDateString(
+                            'en-IN',
+                          )
+                        : '—'
+                      : '—'}
                   </div>
                 </div>
               </div>
@@ -226,7 +230,7 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                     Payment Mode
                   </span>
                   <span className="font-bold uppercase text-slate-800 block mt-0.5">
-                    {receipt.payment_mode.replace('_', ' ')}
+                    {String(receipt.payment_mode || 'cash').replace(/_/g, ' ')}
                   </span>
                 </div>
               </div>
@@ -250,7 +254,7 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                           Admission Application Registration Fee
                         </td>
                         <td className="p-2.5 text-right pr-3 font-mono font-medium">
-                          ₹{receipt.application_fee.toLocaleString('en-IN')}
+                          ₹{(Number(receipt.application_fee) || 0).toLocaleString('en-IN')}
                         </td>
                       </tr>
                       <tr>
@@ -258,7 +262,7 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                           Administrative & Entrance Processing Fee
                         </td>
                         <td className="p-2.5 text-right pr-3 font-mono font-medium">
-                          ₹{receipt.processing_fee.toLocaleString('en-IN')}
+                          ₹{(Number(receipt.processing_fee) || 0).toLocaleString('en-IN')}
                         </td>
                       </tr>
                     </tbody>
@@ -266,7 +270,7 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                       <tr>
                         <td className="p-2.5 pl-3 text-slate-900 uppercase">Total Amount Paid</td>
                         <td className="p-2.5 text-right pr-3 font-mono text-emerald-700 text-sm">
-                          ₹{receipt.amount.toLocaleString('en-IN')}
+                          ₹{(Number(receipt.amount) || 0).toLocaleString('en-IN')}
                         </td>
                       </tr>
                     </tfoot>
@@ -279,13 +283,15 @@ export const AdmissionFeeReceiptDialog: React.FC<AdmissionFeeReceiptDialogProps>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Transaction Reference:</span>
                   <span className="font-mono font-bold text-slate-900">
-                    {receipt.transaction_reference}
+                    {receipt.transaction_reference || '—'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Settled On:</span>
                   <span className="font-medium text-slate-800">
-                    {new Date(receipt.payment_date).toLocaleString('en-IN')}
+                    {receipt.payment_date && !isNaN(new Date(receipt.payment_date).getTime())
+                      ? new Date(receipt.payment_date).toLocaleString('en-IN')
+                      : '—'}
                   </span>
                 </div>
                 {receipt.remarks && (

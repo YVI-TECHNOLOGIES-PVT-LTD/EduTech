@@ -3,22 +3,22 @@ import { authRequestInterceptor } from './interceptors/auth.interceptor';
 import { errorResponseInterceptor } from './interceptors/error.interceptor';
 
 const getBaseUrl = () => {
-    const url = import.meta.env.VITE_API_URL;
-    if (url) return url;
+  const url = import.meta.env.VITE_API_URL;
+  if (url) return url;
 
-    if (import.meta.env.PROD) {
-        return 'https://appsms-076a.onrender.com/api';
-    }
+  if (import.meta.env.PROD) {
+    return 'https://edutrack-backend-0fyq.onrender.com/api';
+  }
 
-    return 'http://127.0.0.1:3000/api';
+  return 'http://127.0.0.1:3000/api';
 };
 
 export const apiClient = axios.create({
-    baseURL: getBaseUrl(),
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    timeout: 30000,
+  baseURL: getBaseUrl(),
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000,
 });
 
 // Configure Request & Response Interceptors

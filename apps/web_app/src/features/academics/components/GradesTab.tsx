@@ -15,7 +15,7 @@ export const GradesTab: React.FC = () => {
     { id: 'grd-4', name: 'Grade 12 (Senior)', code: 'GR-12', displayOrder: 4 },
   ];
 
-  const tableData = grades && grades.length > 0 ? grades : dummyGrades;
+  const tableData = Array.isArray(grades) && grades.length > 0 ? grades : dummyGrades;
 
   const columns: ColumnDef<GradeRecord>[] = [
     {

@@ -541,6 +541,25 @@ const AdmissionsFeesDispatcher: React.FC = () => {
   if (isParentOnly) {
     return <ParentFeePaymentPage />;
   }
+
+  // Front Office staff persona must access their dedicated Front Office Fee Collection desk
+  const isFrontOffice = normalized.some((r: string) =>
+    [
+      'FRONT_OFFICE',
+      'FO',
+      'FRONT_OFFICE_STAFF',
+      'RECEPTIONIST',
+      'STAFF',
+      'ADMISSION_OFFICER',
+      'ADMISSIONS_OFFICER',
+      'COUNSELLOR',
+      'COUNSELOR',
+    ].includes(r),
+  );
+  if (isFrontOffice) {
+    return <FeeCollectionPage />;
+  }
+
   return <PaymentEntry />;
 };
 

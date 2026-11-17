@@ -4,6 +4,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { motion } from 'framer-motion';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SectionErrorBoundary } from '@/components/common/ErrorBoundary';
 
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -545,25 +546,6 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
   const isAnyLoading = isLeadDashLoading || isAppDashLoading || isAppsLoading;
   const isFatalError = leadDashError && appDashError;
 
-  if (isFatalError) {
-    return (
-      <div className="p-12 text-center max-w-md mx-auto space-y-4 bg-white dark:bg-black border border-border/80 dark:border-zinc-800 rounded-2xl shadow-sm mt-12">
-        <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
-        <h3 className="text-base font-extrabold text-foreground">
-          {t('dashboard.frontOffice.errors.loadingFailed', 'Unable to load dashboard data.')}
-        </h3>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          The admissions metrics could not be retrieved from the server. Please check your
-          connectivity and retry.
-        </p>
-        <Button onClick={handleRefreshAll} className="h-9 rounded-xl text-xs font-bold gap-2">
-          <RefreshCw className="w-3.5 h-3.5" />
-          {t('dashboard.frontOffice.errors.retry', 'Retry')}
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -583,31 +565,65 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
         customTabs={customTabs}
       />
 
+      {/* Non-destructive Notice if Server Metrics Failed */}
+      {isFatalError && (
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <h4 className="text-xs font-bold text-amber-900 dark:text-amber-100">
+                {t(
+                  'dashboard.frontOffice.errors.loadingFailed',
+                  'Live admissions metrics currently unavailable.',
+                )}
+              </h4>
+              <p className="text-[11px] text-amber-700/90 dark:text-amber-300/80">
+                Some aggregated dashboard totals could not be refreshed from the server. Front
+                Office operations and fee desks remain fully operational.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefreshAll}
+            className="h-8 px-3 text-xs font-bold gap-1.5 shrink-0 border-amber-300 dark:border-amber-800"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('dashboard.frontOffice.errors.retry', 'Retry Metrics')}
+          </Button>
+        </div>
+      )}
+
       {/* 2. Executive KPI Cards (Row 1) */}
       <section aria-label="Executive KPI Cards">
-        <KPIGrid
-          data={kpiData}
-          isLoading={isAnyLoading}
-          onCardClick={(key) => {
-            if (key === 'inquiries' || key === 'leads') navigate('/app/admissions/inquiries');
-            else if (key === 'applications' || key === 'submitted')
-              navigate('/app/admissions/applications');
-            else if (key === 'fees') navigate('/app/admissions/fees');
-            else if (key === 'enrolled') navigate('/app/people/students');
-          }}
-        />
+        <SectionErrorBoundary title="Metrics Summary Unavailable">
+          <KPIGrid
+            data={kpiData}
+            isLoading={isAnyLoading}
+            onCardClick={(key) => {
+              if (key === 'inquiries' || key === 'leads') navigate('/app/admissions/inquiries');
+              else if (key === 'applications' || key === 'submitted')
+                navigate('/app/admissions/applications');
+              else if (key === 'fees') navigate('/app/front-office/fees');
+              else if (key === 'enrolled') navigate('/app/people/students');
+            }}
+          />
+        </SectionErrorBoundary>
       </section>
 
       {/* 3. Quick Actions Grid */}
       <section aria-label="Quick Actions">
-        <QuickActionsGrid
-          onNewLead={() => navigate('/app/admissions/inquiries')}
-          onNewApplication={() => navigate('/app/admissions/wizard')}
-          onCollectFee={() => navigate('/app/admissions/fees')}
-          onScheduleVisit={() => setIsScheduleModalOpen(true)}
-          onVerifyDocs={() => navigate('/app/admissions/verification')}
-          onViewApplications={() => navigate('/app/admissions/applications')}
-        />
+        <SectionErrorBoundary title="Quick Actions Unavailable">
+          <QuickActionsGrid
+            onNewLead={() => navigate('/app/admissions/inquiries')}
+            onNewApplication={() => navigate('/app/admissions/wizard')}
+            onCollectFee={() => navigate('/app/front-office/fees')}
+            onScheduleVisit={() => setIsScheduleModalOpen(true)}
+            onVerifyDocs={() => navigate('/app/admissions/verification')}
+            onViewApplications={() => navigate('/app/admissions/applications')}
+          />
+        </SectionErrorBoundary>
       </section>
 
       {/* 4. Row 2: Admissions Overview Trend & Lead Sources Donut */}
@@ -616,30 +632,40 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         <div className="lg:col-span-8">
-          <AdmissionsOverviewTrendChart data={trendData} isLoading={isAppsLoading} />
+          <SectionErrorBoundary title="Admissions Trend Chart Unavailable">
+            <AdmissionsOverviewTrendChart data={trendData} isLoading={isAppsLoading} />
+          </SectionErrorBoundary>
         </div>
         <div className="lg:col-span-4">
-          <LeadSourceDonutChart
-            data={leadSourcesData}
-            totalLeads={leadDashboard?.total_leads || 0}
-            isLoading={isLeadDashLoading}
-          />
+          <SectionErrorBoundary title="Lead Sources Chart Unavailable">
+            <LeadSourceDonutChart
+              data={leadSourcesData}
+              totalLeads={leadDashboard?.total_leads || 0}
+              isLoading={isLeadDashLoading}
+            />
+          </SectionErrorBoundary>
         </div>
       </section>
 
       {/* 5. Row 3: Admission Conversion Funnel & Application Pipeline */}
       <section aria-label="Funnel and Pipeline" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-6">
-          <AdmissionConversionFunnel stages={funnelStages} isLoading={isAnyLoading} />
+          <SectionErrorBoundary title="Conversion Funnel Unavailable">
+            <AdmissionConversionFunnel stages={funnelStages} isLoading={isAnyLoading} />
+          </SectionErrorBoundary>
         </div>
         <div className="lg:col-span-6">
-          <ApplicationPipelineBarChart data={pipelineData} isLoading={isAppDashLoading} />
+          <SectionErrorBoundary title="Application Pipeline Unavailable">
+            <ApplicationPipelineBarChart data={pipelineData} isLoading={isAppDashLoading} />
+          </SectionErrorBoundary>
         </div>
       </section>
 
       {/* 6. Micro-conversion Rates Bar */}
       <section aria-label="Micro-conversion Velocity">
-        <ConversionMetricsBar data={conversionMetrics} isLoading={isAnyLoading} />
+        <SectionErrorBoundary title="Conversion Velocity Unavailable">
+          <ConversionMetricsBar data={conversionMetrics} isLoading={isAnyLoading} />
+        </SectionErrorBoundary>
       </section>
 
       {/* 7. Row 4: Lead Performance & Grade Distribution */}
@@ -648,10 +674,14 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         <div className="lg:col-span-7">
-          <LeadPerformanceSection data={leadPerfData} isLoading={isLeadDashLoading} />
+          <SectionErrorBoundary title="Lead Performance Unavailable">
+            <LeadPerformanceSection data={leadPerfData} isLoading={isLeadDashLoading} />
+          </SectionErrorBoundary>
         </div>
         <div className="lg:col-span-5">
-          <GradeDistributionChart data={gradeDistributionData} isLoading={isAppsLoading} />
+          <SectionErrorBoundary title="Grade Distribution Unavailable">
+            <GradeDistributionChart data={gradeDistributionData} isLoading={isAppsLoading} />
+          </SectionErrorBoundary>
         </div>
       </section>
 
@@ -661,10 +691,14 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         <div className="lg:col-span-6">
-          <FeeCollectionWidget data={feeData} isLoading={isAppDashLoading} />
+          <SectionErrorBoundary title="Fee Collection Widget Unavailable">
+            <FeeCollectionWidget data={feeData} isLoading={isAppDashLoading} />
+          </SectionErrorBoundary>
         </div>
         <div className="lg:col-span-6">
-          <DocumentVerificationWidget data={docVerificationData} isLoading={isAppsLoading} />
+          <SectionErrorBoundary title="Document Verification Widget Unavailable">
+            <DocumentVerificationWidget data={docVerificationData} isLoading={isAppsLoading} />
+          </SectionErrorBoundary>
         </div>
       </section>
 
@@ -674,20 +708,24 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         <div className="lg:col-span-6">
-          <CampusVisitsWidget
-            metrics={campusVisitsMetrics}
-            upcomingVisits={upcomingVisitsList}
-            onScheduleClick={() => setIsScheduleModalOpen(true)}
-            onViewAllClick={() => navigate('/app/admissions/interviews')}
-            isLoading={isVisitsLoading}
-          />
+          <SectionErrorBoundary title="Campus Visits Unavailable">
+            <CampusVisitsWidget
+              metrics={campusVisitsMetrics}
+              upcomingVisits={upcomingVisitsList}
+              onScheduleClick={() => setIsScheduleModalOpen(true)}
+              onViewAllClick={() => navigate('/app/admissions/interviews')}
+              isLoading={isVisitsLoading}
+            />
+          </SectionErrorBoundary>
         </div>
         <div className="lg:col-span-6">
-          <UpcomingActivitiesWidget
-            activities={dueActivitiesList}
-            onViewAllClick={() => navigate('/app/admissions/inquiries')}
-            isLoading={isFollowUpsLoading}
-          />
+          <SectionErrorBoundary title="Upcoming Activities Unavailable">
+            <UpcomingActivitiesWidget
+              activities={dueActivitiesList}
+              onViewAllClick={() => navigate('/app/admissions/inquiries')}
+              isLoading={isFollowUpsLoading}
+            />
+          </SectionErrorBoundary>
         </div>
       </section>
 
@@ -697,10 +735,14 @@ export const FrontOfficeExecutiveDashboard: React.FC<FrontOfficeExecutiveDashboa
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         <div className="lg:col-span-6">
-          <RecentActivityStream activities={recentActivitiesList} isLoading={isAppsLoading} />
+          <SectionErrorBoundary title="Activity Stream Unavailable">
+            <RecentActivityStream activities={recentActivitiesList} isLoading={isAppsLoading} />
+          </SectionErrorBoundary>
         </div>
         <div className="lg:col-span-6">
-          <CounsellorLeaderboard counsellors={counsellorMetrics} isLoading={isStaffLoading} />
+          <SectionErrorBoundary title="Counsellor Leaderboard Unavailable">
+            <CounsellorLeaderboard counsellors={counsellorMetrics} isLoading={isStaffLoading} />
+          </SectionErrorBoundary>
         </div>
       </section>
 

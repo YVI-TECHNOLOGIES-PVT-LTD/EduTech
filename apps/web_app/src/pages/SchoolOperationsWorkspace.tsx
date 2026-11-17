@@ -243,7 +243,7 @@ export function SchoolOperationsWorkspace() {
               },
               {
                 title: 'Fee Collection',
-                route: '/app/admissions/fees',
+                route: '/app/front-office/fees',
                 icon: Coins,
                 desc: 'Process deposit payments and print receipts.',
               },
