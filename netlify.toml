@@ -1,6 +1,6 @@
 [build]
   base = "apps/web_app"
-  command = "pnpm install --frozen-lockfile && pnpm run build"
+  command = "pnpm install --frozen-lockfile && pnpm --filter @edutrack/validation run build && pnpm run build"
   publish = "dist"
   # Exit 0 cancels the Netlify build. This branch is container-only.
   ignore = "bash -c '[ \"$BRANCH\" = \"docker-mani\" ]'"
