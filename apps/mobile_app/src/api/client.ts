@@ -42,8 +42,11 @@ const axiosInstance: AxiosInstance = axios.create({
 // Request Interceptor: Attach JWT Token & Correlation ID
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    (config as any).__startTime = Date.now();
+
+    // Fast path: In-memory access token priority (0ms latency, zero Keychain IPC)
     const token =
-      (await SecureStorage.getAccessToken()) || useAuthStore.getState().tokens?.accessToken;
+      useAuthStore.getState().tokens?.accessToken || (await SecureStorage.getAccessToken());
     const workspaceId = await SecureStorage.getWorkspaceId();
 
     if (token && typeof token === 'string' && token.trim()) {
@@ -89,8 +92,14 @@ const processQueue = (error: any, token: string | null = null) => {
 // Response Interceptor: Error Normalization & 401 Session Handling
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
+    const startTime = (response.config as any)?.__startTime;
+    const duration = startTime ? Date.now() - startTime : undefined;
+
     if (ENV.ENABLE_LOGGING) {
-      console.log(`[API Response] ${response.status} ${sanitizeUrlForLog(response.config.url)}`);
+      const perfTag = duration !== undefined ? ` [${duration}ms]` : '';
+      console.log(
+        `[API Response] ${response.status} ${sanitizeUrlForLog(response.config.url)}${perfTag}`,
+      );
     }
     return response;
   },
@@ -295,12 +304,41 @@ axiosInstance.interceptors.response.use(
   },
 );
 
+// In-Flight Request Deduplication Map for Concurrent GET Requests
+const inFlightGetRequests = new Map<string, Promise<any>>();
+
 export const apiClient = {
   instance: axiosInstance,
 
+  /**
+   * Create an AbortController instance for screen unmount or lifecycle cancellation
+   */
+  createAbortController(): AbortController {
+    return new AbortController();
+  },
+
+  /**
+   * Perform an idempotent, in-flight deduplicated GET request
+   */
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await axiosInstance.get<T>(url, config);
-    return response.data;
+    const dedupKey = `GET:${url}:${JSON.stringify(config?.params || {})}`;
+
+    // Return in-flight promise if identical request is already underway
+    if (inFlightGetRequests.has(dedupKey)) {
+      return inFlightGetRequests.get(dedupKey) as Promise<T>;
+    }
+
+    const requestPromise = (async () => {
+      try {
+        const response = await axiosInstance.get<T>(url, config);
+        return response.data;
+      } finally {
+        inFlightGetRequests.delete(dedupKey);
+      }
+    })();
+
+    inFlightGetRequests.set(dedupKey, requestPromise);
+    return requestPromise;
   },
 
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {

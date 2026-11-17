@@ -14,6 +14,7 @@ export const notificationsApi = {
     const res = params
       ? await apiClient.get<any>(ENDPOINTS.NOTIFICATIONS.LIST, { params })
       : await apiClient.get<any>(ENDPOINTS.NOTIFICATIONS.LIST);
+
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.data)) return res.data;
     if (Array.isArray(res?.notifications)) return res.notifications;

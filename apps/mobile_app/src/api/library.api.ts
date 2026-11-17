@@ -22,14 +22,26 @@ export interface StudentLibraryRecord {
   activeBooks: LibraryBook[];
 }
 
+const libraryCache = new Map<string, { data: StudentLibraryRecord | null; cachedAt: number }>();
+const CACHE_TTL_MS = 3 * 60 * 1000;
+
 export const libraryApi = {
   /**
-   * Fetch active issued books and library status for a student
+   * Fetch active issued books and library status for a student (3m cached)
    */
-  async getStudentLibrary(studentId: string): Promise<StudentLibraryRecord | null> {
+  async getStudentLibrary(studentId: string, force = false): Promise<StudentLibraryRecord | null> {
+    if (!studentId) return null;
+
+    const cached = libraryCache.get(studentId);
+    if (!force && cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
+      return cached.data;
+    }
+
     try {
       const res = await apiClient.get<any>(ENDPOINTS.LIBRARY.ISSUED_BOOKS(studentId));
-      return res?.data || res || null;
+      const data = res?.data || res || null;
+      libraryCache.set(studentId, { data, cachedAt: Date.now() });
+      return data;
     } catch {
       // Graceful fallback
     }

@@ -16,65 +16,67 @@ export interface QuickActionItem {
   academicsTab?: AcademicsTab;
 }
 
-export const QuickActionGrid: React.FC = () => {
+const STATIC_ACTIONS: QuickActionItem[] = [
+  {
+    id: 'attendance',
+    title: 'Attendance',
+    icon: 'calendar-outline',
+    iconColor: '#059669',
+    bgColor: '#DCFCE7',
+    route: ROUTES.MAIN.ACADEMICS,
+    academicsTab: 'attendance',
+  },
+  {
+    id: 'timetable',
+    title: 'Timetable',
+    icon: 'time-outline',
+    iconColor: '#0284C7',
+    bgColor: '#E0F2FE',
+    route: ROUTES.MAIN.ACADEMICS,
+    academicsTab: 'timetable',
+  },
+  {
+    id: 'homework',
+    title: 'Homework',
+    icon: 'book-outline',
+    iconColor: '#9333EA',
+    bgColor: '#F3E8FF',
+    route: ROUTES.MAIN.ACADEMICS,
+    academicsTab: 'homework',
+  },
+  {
+    id: 'fees',
+    title: 'Pay Fees',
+    icon: 'card-outline',
+    iconColor: '#D97706',
+    bgColor: '#FEF3C7',
+    route: ROUTES.MAIN.FINANCE,
+  },
+  {
+    id: 'report_card',
+    title: 'Report Card',
+    icon: 'ribbon-outline',
+    iconColor: '#5145E5',
+    bgColor: '#EEF0FF',
+    route: ROUTES.MAIN.ACADEMICS,
+    academicsTab: 'exams',
+  },
+  {
+    id: 'helpdesk',
+    title: 'Helpdesk',
+    icon: 'chatbubbles-outline',
+    iconColor: '#E11D48',
+    bgColor: '#FFE4E6',
+    route: ROUTES.MAIN.HELPDESK,
+  },
+];
+
+export const QuickActionGrid: React.FC = React.memo(() => {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const setActiveTab = useAcademicsStore((s) => s.setActiveTab);
 
-  const actions: QuickActionItem[] = [
-    {
-      id: 'attendance',
-      title: 'Attendance',
-      icon: 'calendar-outline',
-      iconColor: '#059669',
-      bgColor: '#DCFCE7',
-      route: ROUTES.MAIN.ACADEMICS,
-      academicsTab: 'attendance',
-    },
-    {
-      id: 'timetable',
-      title: 'Timetable',
-      icon: 'time-outline',
-      iconColor: '#0284C7',
-      bgColor: '#E0F2FE',
-      route: ROUTES.MAIN.ACADEMICS,
-      academicsTab: 'timetable',
-    },
-    {
-      id: 'homework',
-      title: 'Homework',
-      icon: 'book-outline',
-      iconColor: '#9333EA',
-      bgColor: '#F3E8FF',
-      route: ROUTES.MAIN.ACADEMICS,
-      academicsTab: 'homework',
-    },
-    {
-      id: 'fees',
-      title: 'Pay Fees',
-      icon: 'card-outline',
-      iconColor: '#D97706',
-      bgColor: '#FEF3C7',
-      route: ROUTES.MAIN.FINANCE,
-    },
-    {
-      id: 'report_card',
-      title: 'Report Card',
-      icon: 'ribbon-outline',
-      iconColor: '#5145E5',
-      bgColor: '#EEF0FF',
-      route: ROUTES.MAIN.ACADEMICS,
-      academicsTab: 'exams',
-    },
-    {
-      id: 'helpdesk',
-      title: 'Helpdesk',
-      icon: 'chatbubbles-outline',
-      iconColor: '#E11D48',
-      bgColor: '#FFE4E6',
-      route: ROUTES.MAIN.HELPDESK,
-    },
-  ];
+  const actions = STATIC_ACTIONS;
 
   const handleActionPress = (act: QuickActionItem) => {
     if (act.academicsTab) {
@@ -162,4 +164,6 @@ export const QuickActionGrid: React.FC = () => {
       </View>
     </View>
   );
-};
+});
+
+QuickActionGrid.displayName = 'QuickActionGrid';

@@ -156,6 +156,8 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
                 relationship: c.relationship || 'Guardian',
                 isPrimaryContact: Boolean(c.isPrimaryContact),
                 avatarUrl: c.avatarUrl || null,
+                hasPendingFees: Boolean(c.hasPendingFees),
+                pendingFeeAmount: Number(c.pendingFeeAmount) || 0,
                 attendanceToday: {
                   status: 'present',
                   timestamp: '08:15 AM',
@@ -286,37 +288,39 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
         }
       }
 
-      // 3. Fetch & Enrich Enrolled Students with Real Finance Data
-      try {
-        const feeChildren = await financeApi.getMyChildrenFees();
-        if (Array.isArray(feeChildren)) {
-          feeChildren.forEach((fc: any) => {
-            const studentId = fc.student_id;
-            if (!studentId) return;
+      // 3. Fallback: Fetch & Enrich Enrolled Students with Finance Data ONLY if not provided by lifecycle
+      if (!lifecycleLoaded) {
+        try {
+          const feeChildren = await financeApi.getMyChildrenFees();
+          if (Array.isArray(feeChildren)) {
+            feeChildren.forEach((fc: any) => {
+              const studentId = fc.student_id;
+              if (!studentId) return;
 
-            const existingIndex = unifiedList.findIndex(
-              (c) => c.kind === 'enrolled' && (c as EnrolledChild).studentId === studentId,
-            );
+              const existingIndex = unifiedList.findIndex(
+                (c) => c.kind === 'enrolled' && (c as EnrolledChild).studentId === studentId,
+              );
 
-            const hasPending = (fc.summary?.outstanding_balance || 0) > 0;
-            const pendingAmount = fc.summary?.outstanding_balance || 0;
+              const hasPending = (fc.summary?.outstanding_balance || 0) > 0;
+              const pendingAmount = fc.summary?.outstanding_balance || 0;
 
-            if (existingIndex >= 0) {
-              const existing = unifiedList[existingIndex] as EnrolledChild;
-              unifiedList[existingIndex] = {
-                ...existing,
-                admissionNumber: fc.admission_no || existing.admissionNumber,
-                gradeLevel: fc.grade_name || existing.gradeLevel,
-                section: fc.section_name || existing.section,
-                academicYear: fc.academic_year_name || existing.academicYear,
-                hasPendingFees: hasPending,
-                pendingFeeAmount: pendingAmount,
-              };
-            }
-          });
+              if (existingIndex >= 0) {
+                const existing = unifiedList[existingIndex] as EnrolledChild;
+                unifiedList[existingIndex] = {
+                  ...existing,
+                  admissionNumber: fc.admission_no || existing.admissionNumber,
+                  gradeLevel: fc.grade_name || existing.gradeLevel,
+                  section: fc.section_name || existing.section,
+                  academicYear: fc.academic_year_name || existing.academicYear,
+                  hasPendingFees: hasPending,
+                  pendingFeeAmount: pendingAmount,
+                };
+              }
+            });
+          }
+        } catch {
+          // Non-blocking fallback
         }
-      } catch {
-        // Non-blocking fallback
       }
 
       get().setChildren(unifiedList);

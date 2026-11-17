@@ -14,8 +14,6 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../../src/stores/auth.store';
 import { useChildStore } from '../../../src/stores/child.store';
-import { useAcademicsStore } from '../../../src/stores/academics.store';
-import { useFinanceStore } from '../../../src/stores/finance.store';
 import { SelectedChildCard } from '../../../src/components/child/SelectedChildCard';
 import { ChildSwitcherSheet } from '../../../src/components/child/ChildSwitcherSheet';
 import { DailyAttendancePill } from '../../../src/components/dashboard/DailyAttendancePill';
@@ -37,38 +35,19 @@ export default function HomeDashboardScreen() {
   const activeChild = useChildStore((s) => s.getSelectedChild());
   const syncChildren = useChildStore((s) => s.syncChildren);
   const isChildLoading = useChildStore((s) => s.isLoading);
-  const fetchStudentAcademics = useAcademicsStore((s) => s.fetchStudentAcademics);
-  const fetchChildFees = useFinanceStore((s) => s.fetchChildFees);
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sync children on mount or auth change
+  // Sync parent context & authorized children on mount or auth change (60s cached)
   useEffect(() => {
     syncChildren(user?.id);
   }, [user?.id, syncChildren]);
 
-  const enrolledStudentId =
-    activeChild && activeChild.kind === 'enrolled' ? activeChild.studentId : null;
-
-  // When active enrolled student changes, hydrate academics and finance data (demand-driven, cached)
-  useEffect(() => {
-    if (enrolledStudentId) {
-      fetchStudentAcademics(enrolledStudentId);
-      fetchChildFees(enrolledStudentId);
-    }
-  }, [enrolledStudentId, fetchStudentAcademics, fetchChildFees]);
-
   const handleRefresh = async () => {
     setRefreshing(true);
     await syncChildren(user?.id, true);
-    if (enrolledStudentId) {
-      await Promise.all([
-        fetchStudentAcademics(enrolledStudentId, true),
-        fetchChildFees(enrolledStudentId, true),
-      ]);
-    }
     setRefreshing(false);
   };
 

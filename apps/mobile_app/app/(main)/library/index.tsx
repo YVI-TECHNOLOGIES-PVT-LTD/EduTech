@@ -26,11 +26,11 @@ export default function LibraryScreen() {
   const [libraryData, setLibraryData] = useState<StudentLibraryRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchLibrary = async () => {
+  const fetchLibrary = async (force = false) => {
     if (!studentId) return;
     setIsLoading(true);
     try {
-      const data = await libraryApi.getStudentLibrary(studentId);
+      const data = await libraryApi.getStudentLibrary(studentId, force);
       setLibraryData(data);
     } catch {
       // Graceful fallback
@@ -57,7 +57,9 @@ export default function LibraryScreen() {
           paddingTop: topSafeInset + 8,
           paddingBottom: bottomSafeInset + 40,
         }}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchLibrary} />}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={() => fetchLibrary(true)} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

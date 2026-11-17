@@ -18,10 +18,11 @@ interface HelpdeskState {
   isSubmitting: boolean;
   isError: boolean;
   errorMessage: string | null;
+  lastFetchedAt: number;
 
   setFilter: (filter: 'all' | TicketStatus) => void;
   fetchCategories: () => Promise<void>;
-  fetchTickets: () => Promise<void>;
+  fetchTickets: (force?: boolean) => Promise<void>;
   fetchTicketDetails: (id: string) => Promise<void>;
   createTicket: (payload: CreateTicketPayload) => Promise<boolean>;
   sendReply: (ticketId: string, message: string) => Promise<boolean>;
@@ -38,10 +39,12 @@ export const useHelpdeskStore = create<HelpdeskState>((set, get) => ({
   isSubmitting: false,
   isError: false,
   errorMessage: null,
+  lastFetchedAt: 0,
 
   setFilter: (filter) => set({ filter }),
 
   fetchCategories: async () => {
+    if (get().categories.length > 0) return;
     try {
       const categories = await helpdeskApi.getCategories();
       set({ categories });
@@ -50,11 +53,16 @@ export const useHelpdeskStore = create<HelpdeskState>((set, get) => ({
     }
   },
 
-  fetchTickets: async () => {
+  fetchTickets: async (force = false) => {
+    const { tickets, lastFetchedAt } = get();
+    if (!force && tickets.length > 0 && Date.now() - lastFetchedAt < 60 * 1000) {
+      return;
+    }
+
     set({ isLoading: true, isError: false, errorMessage: null });
     try {
       const items = await helpdeskApi.getTickets();
-      set({ tickets: items, isLoading: false });
+      set({ tickets: items, isLoading: false, lastFetchedAt: Date.now() });
     } catch (err: any) {
       set({
         isLoading: false,

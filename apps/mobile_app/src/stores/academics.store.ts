@@ -30,6 +30,13 @@ interface AcademicsState {
   exams: ExamItem[];
   reportCard: ReportCard | null;
   isLoading: boolean;
+  tabLoading: {
+    attendance: boolean;
+    timetable: boolean;
+    homework: boolean;
+    exams: boolean;
+    reportCard: boolean;
+  };
   isError: boolean;
   errorMessage: string | null;
   studentCache: Record<string, StudentAcademicsCache>;
@@ -45,6 +52,7 @@ interface AcademicsState {
   fetchHomework: (studentId: string, force?: boolean) => Promise<void>;
   fetchExams: (studentId: string, force?: boolean) => Promise<void>;
   fetchReportCard: (studentId: string, term?: string, force?: boolean) => Promise<void>;
+  loadActiveTabOnly: (studentId: string, force?: boolean) => Promise<void>;
   markHomeworkSubmitted: (homeworkId: string) => void;
   clear: () => void;
 }
@@ -77,13 +85,60 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
   exams: [],
   reportCard: null,
   isLoading: false,
+  tabLoading: {
+    attendance: false,
+    timetable: false,
+    homework: false,
+    exams: false,
+    reportCard: false,
+  },
   isError: false,
   errorMessage: null,
   studentCache: {},
 
-  setActiveTab: (activeTab: AcademicsTab) => set({ activeTab }),
+  setActiveTab: (activeTab: AcademicsTab) => {
+    set({ activeTab });
+    const { currentStudentId } = get();
+    if (currentStudentId) {
+      get().loadActiveTabOnly(currentStudentId);
+    }
+  },
   setSelectedDay: (selectedDay) => set({ selectedDay }),
   setHomeworkFilter: (homeworkFilter) => set({ homeworkFilter }),
+
+  loadActiveTabOnly: async (studentId: string, force = false) => {
+    if (!studentId) return;
+    const { activeTab, currentStudentId, studentCache } = get();
+
+    // Hydrate cached data for new student immediately
+    if (currentStudentId !== studentId) {
+      const cached = studentCache[studentId];
+      set({
+        currentStudentId: studentId,
+        attendance: cached?.attendance || null,
+        timetable: cached?.timetable || [],
+        homework: cached?.homework || [],
+        exams: cached?.exams || [],
+        reportCard: cached?.reportCard || null,
+      });
+    }
+
+    // Demand-driven: Fetch ONLY the active tab's endpoint
+    switch (activeTab) {
+      case 'attendance':
+        await get().fetchAttendance(studentId, force);
+        break;
+      case 'timetable':
+        await get().fetchTimetable(studentId, force);
+        break;
+      case 'homework':
+        await get().fetchHomework(studentId, force);
+        break;
+      case 'exams':
+        await get().fetchExams(studentId, force);
+        break;
+    }
+  },
 
   fetchStudentAcademics: async (studentId: string, force = false) => {
     if (!studentId) return;
@@ -162,14 +217,21 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
 
   fetchAttendance: async (studentId: string, force = false) => {
     if (!studentId) return;
-    const { studentCache, attendance, currentStudentId } = get();
-    if (!force && currentStudentId === studentId && attendance) return;
+    const { studentCache, attendance, currentStudentId, tabLoading } = get();
+    const isCached =
+      !force &&
+      currentStudentId === studentId &&
+      attendance !== null &&
+      studentCache[studentId]?.attendance;
+    if (isCached) return;
 
+    set({ tabLoading: { ...tabLoading, attendance: true } });
     try {
       const att = await academicsApi.getAttendance(studentId);
       set((state) => ({
         currentStudentId: studentId,
         attendance: att,
+        tabLoading: { ...state.tabLoading, attendance: false },
         studentCache: {
           ...state.studentCache,
           [studentId]: {
@@ -185,20 +247,31 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
         },
       }));
     } catch (err: any) {
-      set({ isError: true, errorMessage: err?.message || 'Failed to fetch attendance' });
+      set((state) => ({
+        tabLoading: { ...state.tabLoading, attendance: false },
+        isError: true,
+        errorMessage: err?.message || 'Failed to fetch attendance',
+      }));
     }
   },
 
   fetchTimetable: async (studentId: string, force = false) => {
     if (!studentId) return;
-    const { timetable, currentStudentId } = get();
-    if (!force && currentStudentId === studentId && timetable.length > 0) return;
+    const { timetable, currentStudentId, tabLoading, studentCache } = get();
+    const isCached =
+      !force &&
+      currentStudentId === studentId &&
+      timetable.length > 0 &&
+      studentCache[studentId]?.timetable;
+    if (isCached) return;
 
+    set({ tabLoading: { ...tabLoading, timetable: true } });
     try {
       const tt = await academicsApi.getTimetable(studentId);
       set((state) => ({
         currentStudentId: studentId,
         timetable: tt,
+        tabLoading: { ...state.tabLoading, timetable: false },
         studentCache: {
           ...state.studentCache,
           [studentId]: {
@@ -214,20 +287,31 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
         },
       }));
     } catch (err: any) {
-      set({ isError: true, errorMessage: err?.message || 'Failed to fetch timetable' });
+      set((state) => ({
+        tabLoading: { ...state.tabLoading, timetable: false },
+        isError: true,
+        errorMessage: err?.message || 'Failed to fetch timetable',
+      }));
     }
   },
 
   fetchHomework: async (studentId: string, force = false) => {
     if (!studentId) return;
-    const { homework, currentStudentId } = get();
-    if (!force && currentStudentId === studentId && homework.length > 0) return;
+    const { homework, currentStudentId, tabLoading, studentCache } = get();
+    const isCached =
+      !force &&
+      currentStudentId === studentId &&
+      homework.length > 0 &&
+      studentCache[studentId]?.homework;
+    if (isCached) return;
 
+    set({ tabLoading: { ...tabLoading, homework: true } });
     try {
       const hw = await academicsApi.getHomework(studentId);
       set((state) => ({
         currentStudentId: studentId,
         homework: hw,
+        tabLoading: { ...state.tabLoading, homework: false },
         studentCache: {
           ...state.studentCache,
           [studentId]: {
@@ -243,20 +327,31 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
         },
       }));
     } catch (err: any) {
-      set({ isError: true, errorMessage: err?.message || 'Failed to fetch homework' });
+      set((state) => ({
+        tabLoading: { ...state.tabLoading, homework: false },
+        isError: true,
+        errorMessage: err?.message || 'Failed to fetch homework',
+      }));
     }
   },
 
   fetchExams: async (studentId: string, force = false) => {
     if (!studentId) return;
-    const { exams, currentStudentId } = get();
-    if (!force && currentStudentId === studentId && exams.length > 0) return;
+    const { exams, currentStudentId, tabLoading, studentCache } = get();
+    const isCached =
+      !force &&
+      currentStudentId === studentId &&
+      exams.length > 0 &&
+      studentCache[studentId]?.exams;
+    if (isCached) return;
 
+    set({ tabLoading: { ...tabLoading, exams: true } });
     try {
       const ex = await academicsApi.getExams(studentId);
       set((state) => ({
         currentStudentId: studentId,
         exams: ex,
+        tabLoading: { ...state.tabLoading, exams: false },
         studentCache: {
           ...state.studentCache,
           [studentId]: {
@@ -272,20 +367,31 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
         },
       }));
     } catch (err: any) {
-      set({ isError: true, errorMessage: err?.message || 'Failed to fetch exams' });
+      set((state) => ({
+        tabLoading: { ...state.tabLoading, exams: false },
+        isError: true,
+        errorMessage: err?.message || 'Failed to fetch exams',
+      }));
     }
   },
 
   fetchReportCard: async (studentId: string, term?: string, force = false) => {
     if (!studentId) return;
-    const { reportCard, currentStudentId } = get();
-    if (!force && currentStudentId === studentId && reportCard) return;
+    const { reportCard, currentStudentId, tabLoading, studentCache } = get();
+    const isCached =
+      !force &&
+      currentStudentId === studentId &&
+      reportCard !== null &&
+      studentCache[studentId]?.reportCard;
+    if (isCached) return;
 
+    set({ tabLoading: { ...tabLoading, reportCard: true } });
     try {
       const rep = await academicsApi.getReportCard(studentId, term);
       set((state) => ({
         currentStudentId: studentId,
         reportCard: rep,
+        tabLoading: { ...state.tabLoading, reportCard: false },
         studentCache: {
           ...state.studentCache,
           [studentId]: {
@@ -301,7 +407,11 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
         },
       }));
     } catch (err: any) {
-      set({ isError: true, errorMessage: err?.message || 'Failed to fetch report card' });
+      set((state) => ({
+        tabLoading: { ...state.tabLoading, reportCard: false },
+        isError: true,
+        errorMessage: err?.message || 'Failed to fetch report card',
+      }));
     }
   },
 

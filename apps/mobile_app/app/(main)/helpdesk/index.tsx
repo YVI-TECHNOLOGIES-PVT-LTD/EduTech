@@ -125,7 +125,9 @@ export default function HelpdeskHubScreen() {
           paddingTop: topSafeInset + 8,
           paddingBottom: bottomSafeInset + 40,
         }}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchTickets} />}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={() => fetchTickets(true)} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Header with Back Button */}

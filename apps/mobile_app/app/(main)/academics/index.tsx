@@ -38,22 +38,24 @@ export default function AcademicsHubScreen() {
     exams,
     reportCard,
     isLoading,
+    tabLoading,
     setActiveTab,
     setSelectedDay,
     setHomeworkFilter,
-    fetchStudentAcademics,
+    loadActiveTabOnly,
+    fetchReportCard,
     markHomeworkSubmitted,
   } = useAcademicsStore();
 
   useEffect(() => {
     if (enrolledStudent?.studentId) {
-      fetchStudentAcademics(enrolledStudent.studentId);
+      loadActiveTabOnly(enrolledStudent.studentId);
     }
-  }, [enrolledStudent?.studentId, fetchStudentAcademics]);
+  }, [enrolledStudent?.studentId, activeTab, loadActiveTabOnly]);
 
   const handleRefresh = async () => {
     if (enrolledStudent?.studentId) {
-      await fetchStudentAcademics(enrolledStudent.studentId, true);
+      await loadActiveTabOnly(enrolledStudent.studentId, true);
     }
   };
 
@@ -98,7 +100,7 @@ export default function AcademicsHubScreen() {
         ]}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
+            refreshing={tabLoading[activeTab] || false}
             onRefresh={handleRefresh}
             tintColor={DESIGN_TOKENS.colors.primary}
             colors={[DESIGN_TOKENS.colors.primary]}
@@ -188,7 +190,7 @@ export default function AcademicsHubScreen() {
                   <View
                     style={{ flexDirection: 'row', alignItems: 'baseline', marginVertical: 12 }}
                   >
-                    {isLoading && !attendance ? (
+                    {(tabLoading.attendance || isLoading) && !attendance ? (
                       <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.primary} />
                     ) : (
                       <>
@@ -372,7 +374,14 @@ export default function AcademicsHubScreen() {
 
                 <Text style={styles.sectionHeaderTitle}>{selectedDay} Schedule</Text>
 
-                {selectedDaySchedule.length > 0 ? (
+                {tabLoading.timetable && timetable.length === 0 ? (
+                  <View style={[styles.emptyCard, { paddingVertical: 32 }]}>
+                    <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.primary} />
+                    <Text style={[styles.emptySubtitle, { marginTop: 8 }]}>
+                      Loading schedule...
+                    </Text>
+                  </View>
+                ) : selectedDaySchedule.length > 0 ? (
                   selectedDaySchedule.map((p, idx) => (
                     <View
                       key={idx}
@@ -438,7 +447,14 @@ export default function AcademicsHubScreen() {
                   })}
                 </View>
 
-                {filteredHomework.length > 0 ? (
+                {tabLoading.homework && homework.length === 0 ? (
+                  <View style={[styles.emptyCard, { paddingVertical: 32 }]}>
+                    <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.primary} />
+                    <Text style={[styles.emptySubtitle, { marginTop: 8 }]}>
+                      Loading assignments...
+                    </Text>
+                  </View>
+                ) : filteredHomework.length > 0 ? (
                   filteredHomework.map((hw) => {
                     const isPending = hw.status === 'pending';
                     return (
@@ -501,7 +517,12 @@ export default function AcademicsHubScreen() {
                 {/* Upcoming Exams Section */}
                 <Text style={styles.sectionHeaderTitle}>Upcoming Examination Schedule</Text>
 
-                {exams.length > 0 ? (
+                {tabLoading.exams && exams.length === 0 ? (
+                  <View style={[styles.emptyCard, { paddingVertical: 32 }]}>
+                    <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.primary} />
+                    <Text style={[styles.emptySubtitle, { marginTop: 8 }]}>Loading exams...</Text>
+                  </View>
+                ) : exams.length > 0 ? (
                   exams.map((exam) => (
                     <View key={exam.id} style={styles.examCard}>
                       <View style={styles.rowBetween}>

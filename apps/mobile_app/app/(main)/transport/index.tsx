@@ -27,11 +27,11 @@ export default function TransportScreen() {
   const [allocation, setAllocation] = useState<TransportAllocation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchTransport = async () => {
+  const fetchTransport = async (force = false) => {
     if (!studentId) return;
     setIsLoading(true);
     try {
-      const data = await transportApi.getStudentTransport(studentId);
+      const data = await transportApi.getStudentTransport(studentId, force);
       setAllocation(data);
     } catch {
       // Graceful fallback
@@ -64,7 +64,9 @@ export default function TransportScreen() {
           paddingTop: topSafeInset + 8,
           paddingBottom: bottomSafeInset + 40,
         }}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchTransport} />}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={() => fetchTransport(true)} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
