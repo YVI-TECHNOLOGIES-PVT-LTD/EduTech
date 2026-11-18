@@ -372,7 +372,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           .split('@')[0]
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
-      : 'EduTrack User');
+      : 'EduLyfe User');
 
   // Prevent layout shift during genuine initial authentication / navigation tree resolution
   if (loading && !user) {

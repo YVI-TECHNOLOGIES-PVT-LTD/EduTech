@@ -12,7 +12,7 @@
  * - gateway_settlements
  * - gateway_settlement_items
  * - students, academic_years, grades
- * 
+ *
  * Invariants:
  * - Read-only operational queries respecting the schema freeze.
  * - Strict tenant isolation on org_id.
@@ -60,10 +60,7 @@ export class FinanceReportsRepository {
   // =========================================================================
   // 1. EXECUTIVE FINANCIAL SUMMARY KPIS (Screen A)
   // =========================================================================
-  public static async getExecutiveSummary(
-    tenantOrgId: string,
-    filter?: ReportDateFilter
-  ) {
+  public static async getExecutiveSummary(tenantOrgId: string, filter?: ReportDateFilter) {
     const db = this.getClient();
     const params: any[] = [tenantOrgId];
 
@@ -176,12 +173,49 @@ export class FinanceReportsRepository {
         AND status = 'settled'
     `;
 
-    const [collRes, unallocRes, duesRes, concRes, setlRes]: any[] = await Promise.all([
+    // 6. Ageing Distribution
+    const ageingSql = `
+      WITH allocated_per_due AS (
+        SELECT
+          pa.student_charge_due_id,
+          COALESCE(SUM(pa.allocated_amount), 0)::numeric as total_allocated
+        FROM payment_allocations pa
+        JOIN payment_transactions pt ON pa.payment_transaction_id = pt.payment_transaction_id
+        WHERE pt.status = 'success'::payment_transaction_status
+        GROUP BY pa.student_charge_due_id
+      ),
+      dues_classified AS (
+        SELECT
+          GREATEST(0, scd.amount_due::numeric - COALESCE(apd.total_allocated, 0)) as outstanding_amount,
+          CASE
+            WHEN scd.due_date >= CURRENT_DATE THEN 'current'
+            WHEN (CURRENT_DATE - scd.due_date::date) BETWEEN 1 AND 7 THEN 'overdue_1_7'
+            WHEN (CURRENT_DATE - scd.due_date::date) BETWEEN 8 AND 30 THEN 'overdue_8_30'
+            WHEN (CURRENT_DATE - scd.due_date::date) BETWEEN 31 AND 60 THEN 'overdue_31_60'
+            WHEN (CURRENT_DATE - scd.due_date::date) BETWEEN 61 AND 90 THEN 'overdue_61_90'
+            ELSE 'overdue_90_plus'
+          END as ageing_bucket
+        FROM student_charge_dues scd
+        JOIN student_charges sc ON scd.student_charge_id = sc.student_charge_id
+        JOIN students s ON sc.student_id = s.student_id
+        LEFT JOIN allocated_per_due apd ON scd.student_charge_due_id = apd.student_charge_due_id
+        WHERE s.org_id = $1::uuid
+      )
+      SELECT
+        ageing_bucket,
+        COALESCE(SUM(outstanding_amount), 0)::float8 as total_outstanding
+      FROM dues_classified
+      WHERE outstanding_amount > 0
+      GROUP BY ageing_bucket
+    `;
+
+    const [collRes, unallocRes, duesRes, concRes, setlRes, ageingRes]: any[] = await Promise.all([
       db.$queryRawUnsafe(collectionsSql, ...params),
       db.$queryRawUnsafe(unallocatedSql, tenantOrgId),
       db.$queryRawUnsafe(duesSql, tenantOrgId),
       db.$queryRawUnsafe(concessionsSql, tenantOrgId),
-      db.$queryRawUnsafe(settlementsSql, tenantOrgId)
+      db.$queryRawUnsafe(settlementsSql, tenantOrgId),
+      db.$queryRawUnsafe(ageingSql, tenantOrgId),
     ]);
 
     const c = collRes[0] || {};
@@ -193,9 +227,24 @@ export class FinanceReportsRepository {
     const successfulCollections = this.roundMoney(c.successful_collections);
     const totalAssessedDues = this.roundMoney(d.total_assessed_dues);
     const totalOutstanding = this.roundMoney(d.total_outstanding);
-    const collectionRate = totalAssessedDues > 0
-      ? this.roundMoney((successfulCollections / totalAssessedDues) * 100)
-      : 0;
+    const collectionRate =
+      totalAssessedDues > 0
+        ? this.roundMoney((successfulCollections / totalAssessedDues) * 100)
+        : 0;
+
+    const ageingMap: Record<string, number> = {};
+    for (const row of ageingRes || []) {
+      ageingMap[row.ageing_bucket] = Number(row.total_outstanding || 0);
+    }
+
+    const ageing_distribution = {
+      current: this.roundMoney(ageingMap['current'] || 0),
+      overdue_1_7: this.roundMoney(ageingMap['overdue_1_7'] || 0),
+      overdue_8_30: this.roundMoney(ageingMap['overdue_8_30'] || 0),
+      overdue_31_60: this.roundMoney(ageingMap['overdue_31_60'] || 0),
+      overdue_61_90: this.roundMoney(ageingMap['overdue_61_90'] || 0),
+      overdue_90_plus: this.roundMoney(ageingMap['overdue_90_plus'] || 0),
+    };
 
     return {
       fee_assessments_total: totalAssessedDues,
@@ -220,7 +269,8 @@ export class FinanceReportsRepository {
       settlements_taxes_total: this.roundMoney(s.total_gateway_taxes),
       settlements_net_total: this.roundMoney(s.total_net_settled),
       settlements_batches_count: s.total_settlement_batches || 0,
-      currency_code: 'INR'
+      ageing_distribution,
+      currency_code: 'INR',
     };
   }
 
@@ -229,7 +279,7 @@ export class FinanceReportsRepository {
   // =========================================================================
   public static async getCollectionsReport(
     tenantOrgId: string,
-    options?: CollectionsFilterOptions
+    options?: CollectionsFilterOptions,
   ) {
     const db = this.getClient();
     const params: any[] = [tenantOrgId];
@@ -325,7 +375,7 @@ export class FinanceReportsRepository {
 
     const [countRes, rows]: any[] = await Promise.all([
       db.$queryRawUnsafe(countSql, ...params),
-      db.$queryRawUnsafe(paginatedSql, ...params, limit, offset)
+      db.$queryRawUnsafe(paginatedSql, ...params, limit, offset),
     ]);
 
     const total = countRes[0]?.total || 0;
@@ -352,23 +402,20 @@ export class FinanceReportsRepository {
       offset,
       data: rows.map((r: any) => ({
         ...r,
-        student_name: r.first_name ? `${r.first_name} ${r.last_name || ''}`.trim() : null
+        student_name: r.first_name ? `${r.first_name} ${r.last_name || ''}`.trim() : null,
       })),
       trends: trends.map((t: any) => ({
         date: t.report_date,
         count: t.count,
-        amount: this.roundMoney(t.total_amount)
-      }))
+        amount: this.roundMoney(t.total_amount),
+      })),
     };
   }
 
   // =========================================================================
   // 3. RECEIVABLES & AGEING REPORT (Screen C)
   // =========================================================================
-  public static async getAgeingReport(
-    tenantOrgId: string,
-    options?: ReceivablesFilterOptions
-  ) {
+  public static async getAgeingReport(tenantOrgId: string, options?: ReceivablesFilterOptions) {
     const db = this.getClient();
     const params: any[] = [tenantOrgId];
 
@@ -445,7 +492,10 @@ export class FinanceReportsRepository {
 
     const bucketRows: any[] = await db.$queryRawUnsafe(bucketSql, ...params);
 
-    const bucketMap: Record<string, { dues_count: number; student_count: number; total_outstanding: number }> = {
+    const bucketMap: Record<
+      string,
+      { dues_count: number; student_count: number; total_outstanding: number }
+    > = {
       CURRENT: { dues_count: 0, student_count: 0, total_outstanding: 0 },
       OVERDUE_1_7: { dues_count: 0, student_count: 0, total_outstanding: 0 },
       OVERDUE_8_30: { dues_count: 0, student_count: 0, total_outstanding: 0 },
@@ -459,7 +509,7 @@ export class FinanceReportsRepository {
         bucketMap[row.ageing_bucket] = {
           dues_count: row.dues_count,
           student_count: row.student_count,
-          total_outstanding: this.roundMoney(row.total_outstanding)
+          total_outstanding: this.roundMoney(row.total_outstanding),
         };
       }
     }
@@ -493,18 +543,18 @@ export class FinanceReportsRepository {
 
     const [detailCountRes, detailRows]: any[] = await Promise.all([
       db.$queryRawUnsafe(detailCountSql, ...detailParams),
-      db.$queryRawUnsafe(detailSql, ...detailParams, limit, offset)
+      db.$queryRawUnsafe(detailSql, ...detailParams, limit, offset),
     ]);
 
     return {
       buckets: bucketMap,
       total_outstanding: this.roundMoney(
-        Object.values(bucketMap).reduce((acc, b) => acc + b.total_outstanding, 0)
+        Object.values(bucketMap).reduce((acc, b) => acc + b.total_outstanding, 0),
       ),
       total_overdue: this.roundMoney(
         Object.entries(bucketMap)
           .filter(([k]) => k !== 'CURRENT')
-          .reduce((acc, [, b]) => acc + b.total_outstanding, 0)
+          .reduce((acc, [, b]) => acc + b.total_outstanding, 0),
       ),
       detail: {
         total: detailCountRes[0]?.total || 0,
@@ -512,9 +562,9 @@ export class FinanceReportsRepository {
         offset,
         data: detailRows.map((r: any) => ({
           ...r,
-          student_name: `${r.first_name} ${r.last_name || ''}`.trim()
-        }))
-      }
+          student_name: `${r.first_name} ${r.last_name || ''}`.trim(),
+        })),
+      },
     };
   }
 
@@ -523,7 +573,7 @@ export class FinanceReportsRepository {
   // =========================================================================
   public static async getAssessmentAndComponentReport(
     tenantOrgId: string,
-    filter?: ReportDateFilter
+    filter?: ReportDateFilter,
   ) {
     const db = this.getClient();
     const params: any[] = [tenantOrgId];
@@ -583,9 +633,9 @@ export class FinanceReportsRepository {
         paid: acc.paid + r.total_paid_amount,
         outstanding: acc.outstanding + r.total_outstanding_amount,
         students: acc.students + r.student_count,
-        charges: acc.charges + r.charges_count
+        charges: acc.charges + r.charges_count,
       }),
-      { assessed: 0, dues: 0, paid: 0, outstanding: 0, students: 0, charges: 0 }
+      { assessed: 0, dues: 0, paid: 0, outstanding: 0, students: 0, charges: 0 },
     );
 
     return {
@@ -595,9 +645,10 @@ export class FinanceReportsRepository {
         total_dues_amount: this.roundMoney(r.total_dues_amount),
         total_paid_amount: this.roundMoney(r.total_paid_amount),
         total_outstanding_amount: this.roundMoney(r.total_outstanding_amount),
-        collection_rate_pct: r.total_dues_amount > 0
-          ? this.roundMoney((r.total_paid_amount / r.total_dues_amount) * 100)
-          : 0
+        collection_rate_pct:
+          r.total_dues_amount > 0
+            ? this.roundMoney((r.total_paid_amount / r.total_dues_amount) * 100)
+            : 0,
       })),
       summary: {
         total_assessed: this.roundMoney(totals.assessed),
@@ -605,10 +656,9 @@ export class FinanceReportsRepository {
         total_paid: this.roundMoney(totals.paid),
         total_outstanding: this.roundMoney(totals.outstanding),
         total_charges_count: totals.charges,
-        collection_rate_pct: totals.dues > 0
-          ? this.roundMoney((totals.paid / totals.dues) * 100)
-          : 0
-      }
+        collection_rate_pct:
+          totals.dues > 0 ? this.roundMoney((totals.paid / totals.dues) * 100) : 0,
+      },
     };
   }
 
@@ -617,7 +667,7 @@ export class FinanceReportsRepository {
   // =========================================================================
   public static async getScholarshipsAndConcessionsReport(
     tenantOrgId: string,
-    filter?: ReportDateFilter
+    filter?: ReportDateFilter,
   ) {
     const db = this.getClient();
     const params: any[] = [tenantOrgId];
@@ -647,7 +697,7 @@ export class FinanceReportsRepository {
       student_count: r.student_count,
       avg_percentage: this.roundMoney(r.avg_percentage),
       min_percentage: this.roundMoney(r.min_percentage),
-      max_percentage: this.roundMoney(r.max_percentage)
+      max_percentage: this.roundMoney(r.max_percentage),
     }));
 
     const totalCount = byType.reduce((acc, r) => acc + r.count, 0);
@@ -665,8 +715,8 @@ export class FinanceReportsRepository {
           .reduce((acc, r) => acc + r.count, 0),
         rejected_count: byType
           .filter((r) => r.status === 'rejected')
-          .reduce((acc, r) => acc + r.count, 0)
-      }
+          .reduce((acc, r) => acc + r.count, 0),
+      },
     };
   }
 
@@ -675,7 +725,7 @@ export class FinanceReportsRepository {
   // =========================================================================
   public static async getSettlementsReport(
     tenantOrgId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ) {
     const db = this.getClient();
     const limit = Math.min(Math.max(Number(options?.limit) || 20, 1), 100);
@@ -714,7 +764,7 @@ export class FinanceReportsRepository {
 
     const [countRes, rows]: any[] = await Promise.all([
       db.$queryRawUnsafe(countSql, tenantOrgId),
-      db.$queryRawUnsafe(sql, tenantOrgId, limit, offset)
+      db.$queryRawUnsafe(sql, tenantOrgId, limit, offset),
     ]);
 
     const total = countRes[0]?.total || 0;
@@ -748,8 +798,8 @@ export class FinanceReportsRepository {
         gross_amount: this.roundMoney(r.gross_amount),
         fee_amount: this.roundMoney(r.fee_amount),
         tax_amount: this.roundMoney(r.tax_amount),
-        net_settlement_amount: this.roundMoney(r.net_settlement_amount)
-      }))
+        net_settlement_amount: this.roundMoney(r.net_settlement_amount),
+      })),
     };
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiClient } from '../../../lib/api-client';
 import { Modal } from '../../../components/ui/modal';
 import {
@@ -177,6 +177,8 @@ export const PaymentEntry: React.FC = () => {
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
+  const selectedStudentRef = useRef<StudentListItem | null>(null);
+  selectedStudentRef.current = selectedStudent;
 
   // Student Ledger & Obligations
   const [loadingStudentData, setLoadingStudentData] = useState(false);
@@ -258,7 +260,7 @@ export const PaymentEntry: React.FC = () => {
         setStudents(list);
 
         // If no student is selected, pre-select the first student if available
-        if (!selectedStudent && list.length > 0) {
+        if (!selectedStudentRef.current && list.length > 0) {
           handleSelectStudent(list[0]);
         }
       } catch (err) {
@@ -267,7 +269,7 @@ export const PaymentEntry: React.FC = () => {
         setSearching(false);
       }
     },
-    [selectedYearId, selectedStudent],
+    [selectedYearId],
   );
 
   useEffect(() => {

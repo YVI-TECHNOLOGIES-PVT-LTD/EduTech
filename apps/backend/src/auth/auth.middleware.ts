@@ -9,8 +9,13 @@ declare global {
         user: {
           id: string;
           email: string;
+          full_name?: string;
+          phone?: string;
+          phone_number?: string;
           org_id: string;
           school_id: string;
+          org_name?: string;
+          tenant_name?: string;
           roles: string[];
           permissions: string[];
           login_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
@@ -50,8 +55,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       user: {
         id: userProfile.id,
         email: userProfile.email,
+        full_name: userProfile.full_name,
+        phone: userProfile.phone,
+        phone_number: userProfile.phone,
         org_id: userProfile.org_id || userProfile.school_id,
         school_id: userProfile.school_id || userProfile.org_id,
+        org_name: userProfile.org_name,
+        tenant_name: userProfile.tenant_name,
         roles: userProfile.roles,
         permissions: userProfile.permissions,
         login_status: userProfile.login_status,
@@ -88,8 +98,13 @@ export const authenticateOptional = async (req: Request, res: Response, next: Ne
         user: {
           id: userProfile.id,
           email: userProfile.email,
+          full_name: userProfile.full_name,
+          phone: userProfile.phone,
+          phone_number: userProfile.phone,
           org_id: userProfile.org_id || userProfile.school_id,
           school_id: userProfile.school_id || userProfile.org_id,
+          org_name: userProfile.org_name,
+          tenant_name: userProfile.tenant_name,
           roles: userProfile.roles,
           permissions: userProfile.permissions,
           login_status: userProfile.login_status,
@@ -114,7 +129,7 @@ export const checkLoginApproval = (req: Request, res: Response, next: NextFuncti
   const user = req.context?.user;
   if (!user) return next();
 
-  // Admins and Faculty are always approved bypass (Staff)
+  // Admins, Faculty, and Staff (including Finance) are approved bypass
   const canonicalRoles = normalizeRoles(user.roles);
   if (
     canonicalRoles.some((r) =>
@@ -128,8 +143,13 @@ export const checkLoginApproval = (req: Request, res: Response, next: NextFuncti
         'PRINCIPAL',
         'FACULTY',
         'TEACHER',
+        'FINANCE_MANAGER',
+        'FINANCE_OFFICER',
+        'ACCOUNTANT',
+        'STAFF',
       ].includes(r),
-    )
+    ) ||
+    Boolean(user.staff_id)
   ) {
     return next();
   }

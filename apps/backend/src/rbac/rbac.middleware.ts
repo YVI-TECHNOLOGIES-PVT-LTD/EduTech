@@ -171,7 +171,10 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
           roles.includes('PRINCIPAL') ||
           roles.includes('HOI') ||
           roles.includes('STAFF') ||
-          roles.includes('TEACHER'))) ||
+          roles.includes('TEACHER') ||
+          roles.includes('FINANCE_OFFICER') ||
+          roles.includes('FINANCE_MANAGER') ||
+          roles.includes('ACCOUNTANT'))) ||
       ((requiredPermission === 'ACADEMIC_SETUP' ||
         requiredPermission === 'CLASS_CREATE' ||
         requiredPermission === 'SECTION_CREATE' ||

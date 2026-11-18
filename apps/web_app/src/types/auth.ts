@@ -6,6 +6,9 @@ export interface EnrichedUser {
   permissions: string[];
   full_name?: string;
   phone_number?: string;
+  phone?: string;
+  tenant_name?: string;
+  org_name?: string;
   avatar_url?: string | null;
   avatarUrl?: string | null;
   profileImage?: { available: boolean; url: string | null };

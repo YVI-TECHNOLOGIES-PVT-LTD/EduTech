@@ -23,7 +23,7 @@ import {
   ArrowUpDown,
   FileText,
   AlertCircle,
-  HelpCircle
+  HelpCircle,
 } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client';
 import { toast } from 'sonner';
@@ -96,7 +96,11 @@ interface PaymentAuditRecord {
   transaction_date: string;
   total_allocated: number;
   unallocated_amount: number;
-  allocation_classification: 'UNALLOCATED_CAPTURED_FUNDS' | 'PARTIALLY_ALLOCATED' | 'FULLY_ALLOCATED' | 'NON_SUCCESS_TRANSACTION';
+  allocation_classification:
+    | 'UNALLOCATED_CAPTURED_FUNDS'
+    | 'PARTIALLY_ALLOCATED'
+    | 'FULLY_ALLOCATED'
+    | 'NON_SUCCESS_TRANSACTION';
   audit_flag_raised: boolean;
 }
 
@@ -114,7 +118,11 @@ interface SettlementAuditRecord {
   net_settlement_amount: number;
   calculated_net_amount: number;
   arithmetic_discrepancy: number;
-  settlement_audit_status: 'ARITHMETIC_MISMATCH' | 'SETTLED_AND_RECONCILED' | 'UNMATCHED_SETTLEMENT' | 'PARTIALLY_RECONCILED';
+  settlement_audit_status:
+    | 'ARITHMETIC_MISMATCH'
+    | 'SETTLED_AND_RECONCILED'
+    | 'UNMATCHED_SETTLEMENT'
+    | 'PARTIALLY_RECONCILED';
   provider_status: string;
   settled_at: string;
   total_match_records: number;
@@ -138,7 +146,12 @@ interface ConcessionAuditRecord {
   latest_action_by: string | null;
   latest_action_at: string | null;
   latest_remarks: string | null;
-  control_finding: 'POTENTIAL_SELF_APPROVAL_VIOLATION' | 'APPROVED_WITHOUT_APPROVAL_HISTORY' | 'AWAITING_GOVERNANCE_REVIEW' | 'REJECTED_CONCESSION' | 'VERIFIED_CONCESSION_LIFECYCLE';
+  control_finding:
+    | 'POTENTIAL_SELF_APPROVAL_VIOLATION'
+    | 'APPROVED_WITHOUT_APPROVAL_HISTORY'
+    | 'AWAITING_GOVERNANCE_REVIEW'
+    | 'REJECTED_CONCESSION'
+    | 'VERIFIED_CONCESSION_LIFECYCLE';
 }
 
 interface WebhookAuditRecord {
@@ -152,7 +165,12 @@ interface WebhookAuditRecord {
   received_at: string;
   processed_at: string | null;
   processing_error: string | null;
-  webhook_finding: 'PROCESSING_FAILURE_EXCEPTION' | 'STALLED_UNPROCESSED_WEBHOOK' | 'AWAITING_ASYNC_PROCESSING' | 'NON_FINANCIAL_IGNORED_EVENT' | 'SUCCESSFULLY_RECONCILED';
+  webhook_finding:
+    | 'PROCESSING_FAILURE_EXCEPTION'
+    | 'STALLED_UNPROCESSED_WEBHOOK'
+    | 'AWAITING_ASYNC_PROCESSING'
+    | 'NON_FINANCIAL_IGNORED_EVENT'
+    | 'SUCCESSFULLY_RECONCILED';
 }
 
 interface ControlMatrixItem {
@@ -193,36 +211,60 @@ export const FinanceAudit: React.FC = () => {
   const [accountingData, setAccountingData] = useState<any>(null);
 
   // Paginated registers
-  const [payments, setPayments] = useState<{ total: number; page: number; limit: number; total_pages: number; data: PaymentAuditRecord[] }>({
+  const [payments, setPayments] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+    data: PaymentAuditRecord[];
+  }>({
     total: 0,
     page: 1,
     limit: 20,
     total_pages: 1,
-    data: []
+    data: [],
   });
 
-  const [settlements, setSettlements] = useState<{ total: number; page: number; limit: number; total_pages: number; data: SettlementAuditRecord[] }>({
+  const [settlements, setSettlements] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+    data: SettlementAuditRecord[];
+  }>({
     total: 0,
     page: 1,
     limit: 20,
     total_pages: 1,
-    data: []
+    data: [],
   });
 
-  const [concessions, setConcessions] = useState<{ total: number; page: number; limit: number; total_pages: number; data: ConcessionAuditRecord[] }>({
+  const [concessions, setConcessions] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+    data: ConcessionAuditRecord[];
+  }>({
     total: 0,
     page: 1,
     limit: 20,
     total_pages: 1,
-    data: []
+    data: [],
   });
 
-  const [webhooks, setWebhooks] = useState<{ total: number; page: number; limit: number; total_pages: number; data: WebhookAuditRecord[] }>({
+  const [webhooks, setWebhooks] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+    data: WebhookAuditRecord[];
+  }>({
     total: 0,
     page: 1,
     limit: 20,
     total_pages: 1,
-    data: []
+    data: [],
   });
 
   // Filters
@@ -243,13 +285,13 @@ export const FinanceAudit: React.FC = () => {
         return {
           bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
           dot: 'bg-emerald-500',
-          label: 'Verified'
+          label: 'Verified',
         };
       case 'PARTIALLY_ALLOCATED':
         return {
           bg: 'bg-blue-50 text-blue-700 border-blue-200',
           dot: 'bg-blue-500',
-          label: 'Partially Allocated (Active)'
+          label: 'Partially Allocated (Active)',
         };
       case 'REVIEW_REQUIRED':
       case 'AWAITING_GOVERNANCE_REVIEW':
@@ -258,7 +300,7 @@ export const FinanceAudit: React.FC = () => {
         return {
           bg: 'bg-amber-50 text-amber-700 border-amber-200',
           dot: 'bg-amber-500',
-          label: 'Review Required'
+          label: 'Review Required',
         };
       case 'POTENTIAL_EXCEPTION':
       case 'UNALLOCATED_CAPTURED_FUNDS':
@@ -271,19 +313,19 @@ export const FinanceAudit: React.FC = () => {
         return {
           bg: 'bg-rose-50 text-rose-700 border-rose-200',
           dot: 'bg-rose-500',
-          label: status.replace(/_/g, ' ')
+          label: status.replace(/_/g, ' '),
         };
       case 'BLOCKED_BY_SCHEMA_FREEZE':
         return {
           bg: 'bg-purple-50 text-purple-700 border-purple-200',
           dot: 'bg-purple-500',
-          label: 'Blocked by Schema Freeze'
+          label: 'Blocked by Schema Freeze',
         };
       default:
         return {
           bg: 'bg-slate-50 text-slate-700 border-slate-200',
           dot: 'bg-slate-400',
-          label: status
+          label: status,
         };
     }
   };
@@ -293,7 +335,7 @@ export const FinanceAudit: React.FC = () => {
     try {
       const [sumRes, capRes] = await Promise.all([
         apiClient.get('/fees/audit/summary'),
-        apiClient.get('/fees/audit/capabilities')
+        apiClient.get('/fees/audit/capabilities'),
       ]);
       if (sumRes.data?.success) setSummary(sumRes.data.data);
       if (capRes.data?.success) setCapabilities(capRes.data.data);
@@ -307,7 +349,7 @@ export const FinanceAudit: React.FC = () => {
   const fetchPayments = async (page = 1) => {
     try {
       const res = await apiClient.get(
-        `/fees/audit/payments?page=${page}&limit=20&status=${paymentStatusFilter}&search=${encodeURIComponent(paymentSearch)}`
+        `/fees/audit/payments?page=${page}&limit=20&status=${paymentStatusFilter}&search=${encodeURIComponent(paymentSearch)}`,
       );
       if (res.data?.success) setPayments(res.data.data);
     } catch (err: any) {
@@ -319,7 +361,7 @@ export const FinanceAudit: React.FC = () => {
   const fetchSettlements = async (page = 1) => {
     try {
       const res = await apiClient.get(
-        `/fees/audit/settlements?page=${page}&limit=20&search=${encodeURIComponent(settlementSearch)}`
+        `/fees/audit/settlements?page=${page}&limit=20&search=${encodeURIComponent(settlementSearch)}`,
       );
       if (res.data?.success) setSettlements(res.data.data);
     } catch (err: any) {
@@ -331,7 +373,7 @@ export const FinanceAudit: React.FC = () => {
   const fetchConcessions = async (page = 1) => {
     try {
       const res = await apiClient.get(
-        `/fees/audit/concessions?page=${page}&limit=20&search=${encodeURIComponent(concessionSearch)}`
+        `/fees/audit/concessions?page=${page}&limit=20&search=${encodeURIComponent(concessionSearch)}`,
       );
       if (res.data?.success) setConcessions(res.data.data);
     } catch (err: any) {
@@ -343,7 +385,7 @@ export const FinanceAudit: React.FC = () => {
   const fetchWebhooks = async (page = 1) => {
     try {
       const res = await apiClient.get(
-        `/fees/audit/webhooks?page=${page}&limit=20&search=${encodeURIComponent(webhookSearch)}`
+        `/fees/audit/webhooks?page=${page}&limit=20&search=${encodeURIComponent(webhookSearch)}`,
       );
       if (res.data?.success) setWebhooks(res.data.data);
     } catch (err: any) {
@@ -382,7 +424,7 @@ export const FinanceAudit: React.FC = () => {
         fetchConcessions(1),
         fetchWebhooks(1),
         fetchControlMatrix(),
-        fetchAccounting()
+        fetchAccounting(),
       ]);
       setLoading(false);
     };
@@ -394,12 +436,36 @@ export const FinanceAudit: React.FC = () => {
     fetchPayments(1);
   }, [paymentStatusFilter]);
 
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
   // CSV Export Trigger
-  const handleExportCSV = (exportType: 'payments' | 'settlements' | 'concessions' | 'webhooks' | 'controls') => {
-    toast.info(`Preparing ${exportType.toUpperCase()} CSV export...`);
-    const url = `/api/fees/audit/export?exportType=${exportType}`;
-    window.open(url, '_blank');
-    toast.success('Sanitized audit export generated');
+  const handleExportCSV = async (
+    exportType: 'payments' | 'settlements' | 'concessions' | 'webhooks' | 'controls',
+  ) => {
+    try {
+      setIsExporting(true);
+      toast.info(`Preparing ${exportType.toUpperCase()} CSV export...`);
+      const res = await apiClient.get('/fees/audit/export', {
+        params: { exportType },
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `finance_audit_${exportType}_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Sanitized audit export generated');
+    } catch (err: any) {
+      console.error('Audit export error:', err);
+      toast.error('Failed to export audit CSV');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -415,7 +481,9 @@ export const FinanceAudit: React.FC = () => {
                 <span className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
                   <ShieldCheck className="w-5 h-5" />
                 </span>
-                <h1 className="text-xl font-bold text-slate-900">Finance Audit, Governance & Compliance</h1>
+                <h1 className="text-xl font-bold text-slate-900">
+                  Finance Audit, Governance & Compliance
+                </h1>
                 <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Stage 4 Phase 14
                 </span>
@@ -424,7 +492,8 @@ export const FinanceAudit: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Deterministic oversight over student billing, payment allocations, gateway settlements, concessions, and accounting controls.
+                Deterministic oversight over student billing, payment allocations, gateway
+                settlements, concessions, and accounting controls.
               </p>
             </div>
 
@@ -439,7 +508,7 @@ export const FinanceAudit: React.FC = () => {
                     fetchConcessions(concessions.page),
                     fetchWebhooks(webhooks.page),
                     fetchControlMatrix(),
-                    fetchAccounting()
+                    fetchAccounting(),
                   ]);
                   setRefreshing(false);
                   toast.success('Audit workspace refreshed with verified operational data');
@@ -466,7 +535,9 @@ export const FinanceAudit: React.FC = () => {
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                <strong>Stage-1 Schema Freeze Active:</strong> Durable audit log tables are not present in physical PostgreSQL. This workspace computes read-only deterministic findings directly over active operational tables. No records are altered.
+                <strong>Stage-1 Schema Freeze Active:</strong> Durable audit log tables are not
+                present in physical PostgreSQL. This workspace computes read-only deterministic
+                findings directly over active operational tables. No records are altered.
               </span>
             </div>
             <span className="px-2 py-0.5 rounded border text-[11px] font-semibold bg-white border-amber-300 text-amber-800">
@@ -484,7 +555,7 @@ export const FinanceAudit: React.FC = () => {
               { id: 'webhooks', label: 'Webhooks & Dead-Letters', icon: AlertTriangle },
               { id: 'accounting_readiness', label: 'Accounting Readiness', icon: BookOpen },
               { id: 'controls', label: 'Control Matrix (7)', icon: Layers },
-              { id: 'exports', label: 'Evidence & Exports', icon: FileSpreadsheet }
+              { id: 'exports', label: 'Evidence & Exports', icon: FileSpreadsheet },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -514,165 +585,238 @@ export const FinanceAudit: React.FC = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center p-16 bg-white rounded-xl border border-slate-200">
             <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-            <p className="text-sm font-semibold text-slate-700">Evaluating Financial Audit Controls...</p>
-            <p className="text-xs text-slate-400 mt-1">Aggregating payment transactions, dues, settlements, and webhooks.</p>
+            <p className="text-sm font-semibold text-slate-700">
+              Evaluating Financial Audit Controls...
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Aggregating payment transactions, dues, settlements, and webhooks.
+            </p>
           </div>
         ) : (
           <>
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {/* SCREEN A: AUDIT OVERVIEW */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {activeTab === 'overview' && summary && (
-              <div className="space-y-6">
-                {/* Primary KPI Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* KPI 1: Unallocated Payments */}
-                  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unallocated Funds</span>
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.unallocated_payments.status).bg}`}>
-                        {getFindingBadge(summary.unallocated_payments.status).label}
-                      </span>
+            {activeTab === 'overview' &&
+              (summary ? (
+                <div className="space-y-6">
+                  {/* Primary KPI Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* KPI 1: Unallocated Payments */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Unallocated Funds
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.unallocated_payments.status).bg}`}
+                        >
+                          {getFindingBadge(summary.unallocated_payments.status).label}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-slate-900">
+                          ₹
+                          {summary.unallocated_payments.amount.toLocaleString('en-IN', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {summary.unallocated_payments.count} captured payment(s) without full fee
+                        ledger allocation.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('payments')}
+                        className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+                      >
+                        Audit Register &rarr;
+                      </button>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-slate-900">
-                        ₹{summary.unallocated_payments.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
+
+                    {/* KPI 2: Reconciliation Exceptions */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Recon Exceptions
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.reconciliation_exceptions.status).bg}`}
+                        >
+                          {getFindingBadge(summary.reconciliation_exceptions.status).label}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-slate-900">
+                          {summary.reconciliation_exceptions.count}
+                        </span>
+                        <span className="text-xs text-slate-500">Unresolved Items</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        ₹
+                        {summary.reconciliation_exceptions.amount.toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                        })}{' '}
+                        matched amount needing reconciliation review.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('settlements')}
+                        className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+                      >
+                        Inspect Settlements &rarr;
+                      </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {summary.unallocated_payments.count} captured payment(s) without full fee ledger allocation.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('payments')}
-                      className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
-                    >
-                      Audit Register &rarr;
-                    </button>
+
+                    {/* KPI 3: Webhook Dead-Letters */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Webhook Failures
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.webhook_lifecycle_exceptions.status).bg}`}
+                        >
+                          {getFindingBadge(summary.webhook_lifecycle_exceptions.status).label}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-slate-900">
+                          {summary.webhook_lifecycle_exceptions.failed_count}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          Failed / {summary.webhook_lifecycle_exceptions.unprocessed_count} Stalled
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Payment gateway events requiring idempotent replay or signature inspection.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('webhooks')}
+                        className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+                      >
+                        Webhook Log &rarr;
+                      </button>
+                    </div>
+
+                    {/* KPI 4: Concession Reviews */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Concession Reviews
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.concessions_governance.status).bg}`}
+                        >
+                          {getFindingBadge(summary.concessions_governance.status).label}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-slate-900">
+                          {summary.concessions_governance.pending_review_count}
+                        </span>
+                        <span className="text-xs text-slate-500">Awaiting Governance</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {summary.concessions_governance.approved_count} approved /{' '}
+                        {summary.concessions_governance.applied_count} applied to active fee
+                        ledgers.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('concessions')}
+                        className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+                      >
+                        Audit Concessions &rarr;
+                      </button>
+                    </div>
                   </div>
 
-                  {/* KPI 2: Reconciliation Exceptions */}
-                  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recon Exceptions</span>
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.reconciliation_exceptions.status).bg}`}>
-                        {getFindingBadge(summary.reconciliation_exceptions.status).label}
-                      </span>
+                  {/* Secondary Oversight & Data Integrity Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Relationship Integrity */}
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5 text-indigo-600" />
+                          <h3 className="text-sm font-bold text-slate-900">
+                            Data Relationship & Billing Schedule Integrity
+                          </h3>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.data_relationship_integrity.status).bg}`}
+                        >
+                          {getFindingBadge(summary.data_relationship_integrity.status).label}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+                          <span className="text-slate-600">
+                            Active student charge obligations missing explicit due date:
+                          </span>
+                          <span className="font-bold text-slate-900">
+                            {summary.data_relationship_integrity.missing_due_dates_count} record(s)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+                          <span className="text-slate-600">
+                            Unmatched gateway settlements requiring clearing:
+                          </span>
+                          <span className="font-bold text-slate-900">
+                            {summary.unmatched_settlements.count} batch(es)
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-slate-900">{summary.reconciliation_exceptions.count}</span>
-                      <span className="text-xs text-slate-500">Unresolved Items</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      ₹{summary.reconciliation_exceptions.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} matched amount needing reconciliation review.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('settlements')}
-                      className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
-                    >
-                      Inspect Settlements &rarr;
-                    </button>
-                  </div>
 
-                  {/* KPI 3: Webhook Dead-Letters */}
-                  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Webhook Failures</span>
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.webhook_lifecycle_exceptions.status).bg}`}>
-                        {getFindingBadge(summary.webhook_lifecycle_exceptions.status).label}
-                      </span>
+                    {/* Accounting Readiness Limitation Disclosure */}
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-5 h-5 text-indigo-600" />
+                          <h3 className="text-sm font-bold text-slate-900">
+                            Accounting Readiness & General Ledger Governance
+                          </h3>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold border bg-purple-50 text-purple-700 border-purple-200">
+                          Schema Freeze
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        {summary.accounting_readiness_audit.notice}
+                      </p>
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-xs text-slate-500">Formal General Ledger Audit:</span>
+                        <span className="text-xs font-bold text-rose-600">
+                          Blocked (No durable journal tables)
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-slate-900">
-                        {summary.webhook_lifecycle_exceptions.failed_count}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        Failed / {summary.webhook_lifecycle_exceptions.unprocessed_count} Stalled
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Payment gateway events requiring idempotent replay or signature inspection.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('webhooks')}
-                      className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
-                    >
-                      Webhook Log &rarr;
-                    </button>
-                  </div>
-
-                  {/* KPI 4: Concession Reviews */}
-                  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Concession Reviews</span>
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.concessions_governance.status).bg}`}>
-                        {getFindingBadge(summary.concessions_governance.status).label}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-slate-900">
-                        {summary.concessions_governance.pending_review_count}
-                      </span>
-                      <span className="text-xs text-slate-500">Awaiting Governance</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {summary.concessions_governance.approved_count} approved / {summary.concessions_governance.applied_count} applied to active fee ledgers.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('concessions')}
-                      className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
-                    >
-                      Audit Concessions &rarr;
-                    </button>
                   </div>
                 </div>
-
-                {/* Secondary Oversight & Data Integrity Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Relationship Integrity */}
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 text-indigo-600" />
-                        <h3 className="text-sm font-bold text-slate-900">Data Relationship & Billing Schedule Integrity</h3>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFindingBadge(summary.data_relationship_integrity.status).bg}`}>
-                        {getFindingBadge(summary.data_relationship_integrity.status).label}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs">
-                        <span className="text-slate-600">Active student charge obligations missing explicit due date:</span>
-                        <span className="font-bold text-slate-900">{summary.data_relationship_integrity.missing_due_dates_count} record(s)</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs">
-                        <span className="text-slate-600">Unmatched gateway settlements requiring clearing:</span>
-                        <span className="font-bold text-slate-900">{summary.unmatched_settlements.count} batch(es)</span>
-                      </div>
-                    </div>
+              ) : (
+                <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                    <AlertTriangle className="w-6 h-6" />
                   </div>
-
-                  {/* Accounting Readiness Limitation Disclosure */}
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-indigo-600" />
-                        <h3 className="text-sm font-bold text-slate-900">Accounting Readiness & General Ledger Governance</h3>
-                      </div>
-                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold border bg-purple-50 text-purple-700 border-purple-200">
-                        Schema Freeze
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {summary.accounting_readiness_audit.notice}
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800">
+                      Financial Audit Controls Unavailable
+                    </h3>
+                    <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
+                      No audit summary telemetry could be aggregated for this tenant organization.
                     </p>
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-xs text-slate-500">Formal General Ledger Audit:</span>
-                      <span className="text-xs font-bold text-rose-600">Blocked (No durable journal tables)</span>
-                    </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      setLoading(true);
+                      fetchOverview();
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Retry Audit Controls Evaluation</span>
+                  </button>
                 </div>
-              </div>
-            )}
+              ))}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {/* SCREEN B: PAYMENT AUDIT REGISTER */}
@@ -683,7 +827,8 @@ export const FinanceAudit: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Payment Audit Register</h3>
                     <p className="text-xs text-slate-500">
-                      Authoritative payment transactions, gateway matching, and fee ledger allocation status.
+                      Authoritative payment transactions, gateway matching, and fee ledger
+                      allocation status.
                     </p>
                   </div>
 
@@ -747,7 +892,10 @@ export const FinanceAudit: React.FC = () => {
                         payments.data.map((p) => {
                           const badge = getFindingBadge(p.allocation_classification);
                           return (
-                            <tr key={p.payment_transaction_id} className="hover:bg-slate-50/80 transition-colors">
+                            <tr
+                              key={p.payment_transaction_id}
+                              className="hover:bg-slate-50/80 transition-colors"
+                            >
                               <td className="px-4 py-3 font-mono text-[11px] text-slate-900">
                                 <div>{p.order_reference}</div>
                                 <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
@@ -756,34 +904,49 @@ export const FinanceAudit: React.FC = () => {
                               </td>
                               <td className="px-4 py-3">
                                 <div className="font-semibold text-slate-900">{p.student_name}</div>
-                                <div className="text-[11px] text-slate-400">Adm: {p.admission_no}</div>
+                                <div className="text-[11px] text-slate-400">
+                                  Adm: {p.admission_no}
+                                </div>
                               </td>
                               <td className="px-4 py-3 font-bold text-slate-900">
-                                ₹{p.transaction_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹
+                                {p.transaction_amount.toLocaleString('en-IN', {
+                                  minimumFractionDigits: 2,
+                                })}
                               </td>
                               <td className="px-4 py-3 text-emerald-700 font-medium">
-                                ₹{p.total_allocated.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹
+                                {p.total_allocated.toLocaleString('en-IN', {
+                                  minimumFractionDigits: 2,
+                                })}
                               </td>
                               <td className="px-4 py-3">
                                 {p.unallocated_amount > 0 ? (
                                   <span className="font-bold text-rose-600">
-                                    ₹{p.unallocated_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    ₹
+                                    {p.unallocated_amount.toLocaleString('en-IN', {
+                                      minimumFractionDigits: 2,
+                                    })}
                                   </span>
                                 ) : (
                                   <span className="text-slate-400">₹0.00</span>
                                 )}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                                  p.transaction_status === 'success'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : 'bg-slate-100 text-slate-700 border-slate-200'
-                                }`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                    p.transaction_status === 'success'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}
+                                >
                                   {p.transaction_status.toUpperCase()}
                                 </span>
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}
+                                >
                                   {badge.label}
                                 </span>
                               </td>
@@ -801,7 +964,8 @@ export const FinanceAudit: React.FC = () => {
                 {/* Pagination */}
                 <div className="p-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
                   <span>
-                    Showing {payments.data.length} of {payments.total} records (Page {payments.page} of {payments.total_pages})
+                    Showing {payments.data.length} of {payments.total} records (Page {payments.page}{' '}
+                    of {payments.total_pages})
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -830,9 +994,12 @@ export const FinanceAudit: React.FC = () => {
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Settlement & Gateway Clearing Audit</h3>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Settlement & Gateway Clearing Audit
+                    </h3>
                     <p className="text-xs text-slate-500">
-                      Arithmetic tolerance checks, gateway fee deductions, and bank statement match verification.
+                      Arithmetic tolerance checks, gateway fee deductions, and bank statement match
+                      verification.
                     </p>
                   </div>
 
@@ -883,25 +1050,42 @@ export const FinanceAudit: React.FC = () => {
                         settlements.data.map((s) => {
                           const badge = getFindingBadge(s.settlement_audit_status);
                           return (
-                            <tr key={s.gateway_settlement_id} className="hover:bg-slate-50/80 transition-colors">
+                            <tr
+                              key={s.gateway_settlement_id}
+                              className="hover:bg-slate-50/80 transition-colors"
+                            >
                               <td className="px-4 py-3 font-mono text-[11px] text-slate-900">
                                 <div>{s.settlement_reference || 'N/A'}</div>
-                                <div className="text-[10px] text-slate-400">{s.provider_settlement_id}</div>
+                                <div className="text-[10px] text-slate-400">
+                                  {s.provider_settlement_id}
+                                </div>
                               </td>
                               <td className="px-4 py-3 font-medium text-slate-800">
                                 {s.provider_name}
                               </td>
                               <td className="px-4 py-3 font-bold text-slate-900">
-                                ₹{s.gross_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹
+                                {s.gross_amount.toLocaleString('en-IN', {
+                                  minimumFractionDigits: 2,
+                                })}
                               </td>
                               <td className="px-4 py-3 text-slate-600">
-                                ₹{(s.fee_amount + s.tax_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹
+                                {(s.fee_amount + s.tax_amount).toLocaleString('en-IN', {
+                                  minimumFractionDigits: 2,
+                                })}
                               </td>
                               <td className="px-4 py-3 font-bold text-emerald-700">
-                                ₹{s.net_settlement_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹
+                                {s.net_settlement_amount.toLocaleString('en-IN', {
+                                  minimumFractionDigits: 2,
+                                })}
                               </td>
                               <td className="px-4 py-3 text-slate-700">
-                                ₹{s.calculated_net_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹
+                                {s.calculated_net_amount.toLocaleString('en-IN', {
+                                  minimumFractionDigits: 2,
+                                })}
                               </td>
                               <td className="px-4 py-3">
                                 {s.arithmetic_discrepancy > 0.01 ? (
@@ -913,7 +1097,9 @@ export const FinanceAudit: React.FC = () => {
                                 )}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}
+                                >
                                   {badge.label}
                                 </span>
                               </td>
@@ -928,7 +1114,8 @@ export const FinanceAudit: React.FC = () => {
                 {/* Pagination */}
                 <div className="p-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
                   <span>
-                    Showing {settlements.data.length} of {settlements.total} records (Page {settlements.page} of {settlements.total_pages})
+                    Showing {settlements.data.length} of {settlements.total} records (Page{' '}
+                    {settlements.page} of {settlements.total_pages})
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -957,9 +1144,12 @@ export const FinanceAudit: React.FC = () => {
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Scholarship & Concession Governance Audit</h3>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Scholarship & Concession Governance Audit
+                    </h3>
                     <p className="text-xs text-slate-500">
-                      Approval verification, segregation of duties enforcement, and self-approval violation detection.
+                      Approval verification, segregation of duties enforcement, and self-approval
+                      violation detection.
                     </p>
                   </div>
 
@@ -1009,10 +1199,15 @@ export const FinanceAudit: React.FC = () => {
                         concessions.data.map((c) => {
                           const badge = getFindingBadge(c.control_finding);
                           return (
-                            <tr key={c.concession_id} className="hover:bg-slate-50/80 transition-colors">
+                            <tr
+                              key={c.concession_id}
+                              className="hover:bg-slate-50/80 transition-colors"
+                            >
                               <td className="px-4 py-3">
                                 <div className="font-semibold text-slate-900">{c.student_name}</div>
-                                <div className="text-[11px] text-slate-400">Adm: {c.admission_no}</div>
+                                <div className="text-[11px] text-slate-400">
+                                  Adm: {c.admission_no}
+                                </div>
                               </td>
                               <td className="px-4 py-3 font-medium text-slate-800 uppercase">
                                 {c.scholarship_type.replace(/_/g, ' ')}
@@ -1021,13 +1216,15 @@ export const FinanceAudit: React.FC = () => {
                                 {c.percentage}%
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                                  c.concession_status === 'applied'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : c.concession_status === 'approved'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                    c.concession_status === 'applied'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : c.concession_status === 'approved'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}
+                                >
                                   {c.concession_status.toUpperCase()}
                                 </span>
                               </td>
@@ -1035,10 +1232,14 @@ export const FinanceAudit: React.FC = () => {
                                 {c.latest_action || 'No History'}
                               </td>
                               <td className="px-4 py-3 font-mono text-[11px] text-slate-500">
-                                {c.latest_action_by ? c.latest_action_by.substring(0, 8) + '...' : 'System'}
+                                {c.latest_action_by
+                                  ? c.latest_action_by.substring(0, 8) + '...'
+                                  : 'System'}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}
+                                >
                                   {badge.label}
                                 </span>
                               </td>
@@ -1053,7 +1254,8 @@ export const FinanceAudit: React.FC = () => {
                 {/* Pagination */}
                 <div className="p-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
                   <span>
-                    Showing {concessions.data.length} of {concessions.total} records (Page {concessions.page} of {concessions.total_pages})
+                    Showing {concessions.data.length} of {concessions.total} records (Page{' '}
+                    {concessions.page} of {concessions.total_pages})
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -1082,9 +1284,12 @@ export const FinanceAudit: React.FC = () => {
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Webhook & Dead-Letter Event Audit</h3>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Webhook & Dead-Letter Event Audit
+                    </h3>
                     <p className="text-xs text-slate-500">
-                      Payment gateway asynchronous event lifecycle, delivery latency, and failure logs.
+                      Payment gateway asynchronous event lifecycle, delivery latency, and failure
+                      logs.
                     </p>
                   </div>
 
@@ -1134,7 +1339,10 @@ export const FinanceAudit: React.FC = () => {
                         webhooks.data.map((w) => {
                           const badge = getFindingBadge(w.webhook_finding);
                           return (
-                            <tr key={w.payment_webhook_event_id} className="hover:bg-slate-50/80 transition-colors">
+                            <tr
+                              key={w.payment_webhook_event_id}
+                              className="hover:bg-slate-50/80 transition-colors"
+                            >
                               <td className="px-4 py-3 font-mono text-[11px] text-slate-900">
                                 <div>{w.provider_event_id}</div>
                                 <div className="text-[10px] text-slate-400">{w.provider_name}</div>
@@ -1143,27 +1351,39 @@ export const FinanceAudit: React.FC = () => {
                                 {w.event_type}
                               </td>
                               <td className="px-4 py-3 font-mono text-[11px] text-slate-500">
-                                {w.payment_order_id ? w.payment_order_id.substring(0, 8) + '...' : 'N/A'}
+                                {w.payment_order_id
+                                  ? w.payment_order_id.substring(0, 8) + '...'
+                                  : 'N/A'}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                                  w.webhook_status === 'processed'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : w.webhook_status === 'failed'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                    w.webhook_status === 'processed'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : w.webhook_status === 'failed'
+                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}
+                                >
                                   {w.webhook_status.toUpperCase()}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
-                                {new Date(w.received_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(w.received_at).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
                               </td>
-                              <td className="px-4 py-3 text-rose-600 truncate max-w-[200px]" title={w.processing_error || ''}>
+                              <td
+                                className="px-4 py-3 text-rose-600 truncate max-w-[200px]"
+                                title={w.processing_error || ''}
+                              >
                                 {w.processing_error || '—'}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}
+                                >
                                   {badge.label}
                                 </span>
                               </td>
@@ -1178,7 +1398,8 @@ export const FinanceAudit: React.FC = () => {
                 {/* Pagination */}
                 <div className="p-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
                   <span>
-                    Showing {webhooks.data.length} of {webhooks.total} records (Page {webhooks.page} of {webhooks.total_pages})
+                    Showing {webhooks.data.length} of {webhooks.total} records (Page {webhooks.page}{' '}
+                    of {webhooks.total_pages})
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -1213,9 +1434,14 @@ export const FinanceAudit: React.FC = () => {
                       Formal General Ledger Auditing Blocked Under Immutable Schema Freeze
                     </h3>
                     <p className="text-xs text-rose-900 mt-1 leading-relaxed">
-                      The finalized database schema does not include tables for <code className="bg-rose-100 px-1 py-0.5 rounded">chart_of_accounts</code>, <code className="bg-rose-100 px-1 py-0.5 rounded">journal_entries</code>, or <code className="bg-rose-100 px-1 py-0.5 rounded">account_balances</code>.
-                      Consequently, formal posted journal auditing, double-entry equality enforcement, and trial balance verification cannot be performed from the database.
-                      The metrics below reflect <strong>operational readiness</strong> for downstream financial systems.
+                      The finalized database schema does not include tables for{' '}
+                      <code className="bg-rose-100 px-1 py-0.5 rounded">chart_of_accounts</code>,{' '}
+                      <code className="bg-rose-100 px-1 py-0.5 rounded">journal_entries</code>, or{' '}
+                      <code className="bg-rose-100 px-1 py-0.5 rounded">account_balances</code>.
+                      Consequently, formal posted journal auditing, double-entry equality
+                      enforcement, and trial balance verification cannot be performed from the
+                      database. The metrics below reflect <strong>operational readiness</strong> for
+                      downstream financial systems.
                     </p>
                   </div>
                 </div>
@@ -1224,42 +1450,69 @@ export const FinanceAudit: React.FC = () => {
                 {accountingData?.summary && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <span className="text-xs font-semibold text-slate-500 uppercase">Unposted Assessments</span>
+                      <span className="text-xs font-semibold text-slate-500 uppercase">
+                        Unposted Assessments
+                      </span>
                       <div className="mt-2 text-xl font-bold text-slate-900">
-                        ₹{(accountingData.summary.unposted_fee_assessments_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹
+                        {(
+                          accountingData.summary.unposted_fee_assessments_amount || 0
+                        ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        {accountingData.summary.unposted_fee_assessments_count || 0} student fee charge(s) awaiting posting.
+                        {accountingData.summary.unposted_fee_assessments_count || 0} student fee
+                        charge(s) awaiting posting.
                       </p>
                     </div>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <span className="text-xs font-semibold text-slate-500 uppercase">Unposted Collections</span>
+                      <span className="text-xs font-semibold text-slate-500 uppercase">
+                        Unposted Collections
+                      </span>
                       <div className="mt-2 text-xl font-bold text-slate-900">
-                        ₹{(accountingData.summary.unposted_payments_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹
+                        {(accountingData.summary.unposted_payments_amount || 0).toLocaleString(
+                          'en-IN',
+                          { minimumFractionDigits: 2 },
+                        )}
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        {accountingData.summary.unposted_payments_count || 0} successful transaction(s) ready for cash clearing.
+                        {accountingData.summary.unposted_payments_count || 0} successful
+                        transaction(s) ready for cash clearing.
                       </p>
                     </div>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <span className="text-xs font-semibold text-slate-500 uppercase">Unposted Concessions</span>
+                      <span className="text-xs font-semibold text-slate-500 uppercase">
+                        Unposted Concessions
+                      </span>
                       <div className="mt-2 text-xl font-bold text-slate-900">
-                        ₹{(accountingData.summary.unposted_concessions_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹
+                        {(accountingData.summary.unposted_concessions_amount || 0).toLocaleString(
+                          'en-IN',
+                          { minimumFractionDigits: 2 },
+                        )}
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        {accountingData.summary.unposted_concessions_count || 0} approved concession(s) for contra-revenue journal.
+                        {accountingData.summary.unposted_concessions_count || 0} approved
+                        concession(s) for contra-revenue journal.
                       </p>
                     </div>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <span className="text-xs font-semibold text-slate-500 uppercase">Unposted Settlements</span>
+                      <span className="text-xs font-semibold text-slate-500 uppercase">
+                        Unposted Settlements
+                      </span>
                       <div className="mt-2 text-xl font-bold text-slate-900">
-                        ₹{(accountingData.summary.unposted_settlements_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹
+                        {(accountingData.summary.unposted_settlements_amount || 0).toLocaleString(
+                          'en-IN',
+                          { minimumFractionDigits: 2 },
+                        )}
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        {accountingData.summary.unposted_settlements_count || 0} gateway settlement batch(es) awaiting bank credit.
+                        {accountingData.summary.unposted_settlements_count || 0} gateway settlement
+                        batch(es) awaiting bank credit.
                       </p>
                     </div>
                   </div>
@@ -1274,9 +1527,13 @@ export const FinanceAudit: React.FC = () => {
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Financial Audit Control Matrix</h3>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Financial Audit Control Matrix
+                    </h3>
                     <p className="text-xs text-slate-500">
-                      Evaluated register of {controlMatrix.total_controls} defined ERP controls ({controlMatrix.active_controls} active, {controlMatrix.blocked_controls} blocked).
+                      Evaluated register of {controlMatrix.total_controls} defined ERP controls (
+                      {controlMatrix.active_controls} active, {controlMatrix.blocked_controls}{' '}
+                      blocked).
                     </p>
                   </div>
                   <button
@@ -1305,14 +1562,19 @@ export const FinanceAudit: React.FC = () => {
                       {controlMatrix.controls.map((ctl) => {
                         const badge = getFindingBadge(ctl.status);
                         return (
-                          <tr key={ctl.control_id} className="hover:bg-slate-50/80 transition-colors">
+                          <tr
+                            key={ctl.control_id}
+                            className="hover:bg-slate-50/80 transition-colors"
+                          >
                             <td className="px-4 py-3">
-                              <div className="font-mono font-bold text-indigo-600">{ctl.control_id}</div>
-                              <div className="font-semibold text-slate-900 mt-0.5">{ctl.control_name}</div>
+                              <div className="font-mono font-bold text-indigo-600">
+                                {ctl.control_id}
+                              </div>
+                              <div className="font-semibold text-slate-900 mt-0.5">
+                                {ctl.control_name}
+                              </div>
                             </td>
-                            <td className="px-4 py-3 font-medium text-slate-800">
-                              {ctl.domain}
-                            </td>
+                            <td className="px-4 py-3 font-medium text-slate-800">{ctl.domain}</td>
                             <td className="px-4 py-3 font-mono text-[11px] text-slate-500">
                               {ctl.source_records}
                             </td>
@@ -1320,7 +1582,10 @@ export const FinanceAudit: React.FC = () => {
                               <span className="font-bold text-slate-900">{ctl.finding_count}</span>
                               {ctl.finding_amount > 0 && (
                                 <div className="text-[10px] text-slate-500">
-                                  ₹{ctl.finding_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  ₹
+                                  {ctl.finding_amount.toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2,
+                                  })}
                                 </div>
                               )}
                             </td>
@@ -1328,7 +1593,9 @@ export const FinanceAudit: React.FC = () => {
                               {ctl.evidence_completeness}
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${badge.bg}`}
+                              >
                                 {badge.label}
                               </span>
                             </td>
@@ -1357,11 +1624,14 @@ export const FinanceAudit: React.FC = () => {
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
-                    <h3 className="text-base font-bold text-slate-900">Financial Audit Evidence & Exports</h3>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Financial Audit Evidence & Exports
+                    </h3>
                   </div>
                   <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                    Download formula-injection-protected CSV registers for formal compliance evidence packs.
-                    All dangerous leading formula triggers (=, +, -, @, \t, \r) are sanitized with apostrophe escaping.
+                    Download formula-injection-protected CSV registers for formal compliance
+                    evidence packs. All dangerous leading formula triggers (=, +, -, @, \t, \r) are
+                    sanitized with apostrophe escaping.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1371,7 +1641,8 @@ export const FinanceAudit: React.FC = () => {
                         <Receipt className="w-6 h-6 text-indigo-600 mb-2" />
                         <h4 className="text-sm font-bold text-slate-900">Payment Audit Register</h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Full operational ledger of transactions, allocations, and unallocated captured balances.
+                          Full operational ledger of transactions, allocations, and unallocated
+                          captured balances.
                         </p>
                       </div>
                       <button
@@ -1387,9 +1658,12 @@ export const FinanceAudit: React.FC = () => {
                     <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
                       <div>
                         <Scale className="w-6 h-6 text-indigo-600 mb-2" />
-                        <h4 className="text-sm font-bold text-slate-900">Settlement Clearing Register</h4>
+                        <h4 className="text-sm font-bold text-slate-900">
+                          Settlement Clearing Register
+                        </h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Settlement gross amounts, fee deductions, net bank transfers, and arithmetic discrepancy checks.
+                          Settlement gross amounts, fee deductions, net bank transfers, and
+                          arithmetic discrepancy checks.
                         </p>
                       </div>
                       <button
@@ -1405,9 +1679,12 @@ export const FinanceAudit: React.FC = () => {
                     <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
                       <div>
                         <Award className="w-6 h-6 text-indigo-600 mb-2" />
-                        <h4 className="text-sm font-bold text-slate-900">Concession Governance Register</h4>
+                        <h4 className="text-sm font-bold text-slate-900">
+                          Concession Governance Register
+                        </h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Scholarship applications, approver audit trails, and segregation of duties checks.
+                          Scholarship applications, approver audit trails, and segregation of duties
+                          checks.
                         </p>
                       </div>
                       <button
@@ -1423,9 +1700,12 @@ export const FinanceAudit: React.FC = () => {
                     <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
                       <div>
                         <AlertTriangle className="w-6 h-6 text-indigo-600 mb-2" />
-                        <h4 className="text-sm font-bold text-slate-900">Webhook Dead-Letter Log</h4>
+                        <h4 className="text-sm font-bold text-slate-900">
+                          Webhook Dead-Letter Log
+                        </h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Payment provider webhook events, failure reasons, and stalled delivery logs.
+                          Payment provider webhook events, failure reasons, and stalled delivery
+                          logs.
                         </p>
                       </div>
                       <button
@@ -1443,7 +1723,8 @@ export const FinanceAudit: React.FC = () => {
                         <Layers className="w-6 h-6 text-indigo-600 mb-2" />
                         <h4 className="text-sm font-bold text-slate-900">Audit Control Matrix</h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Evaluation status, limitations, and findings for all 7 active and blocked audit controls.
+                          Evaluation status, limitations, and findings for all 7 active and blocked
+                          audit controls.
                         </p>
                       </div>
                       <button
@@ -1458,7 +1739,11 @@ export const FinanceAudit: React.FC = () => {
 
                   {/* Legal Notice */}
                   <div className="mt-8 p-4 bg-slate-100 rounded-xl text-xs text-slate-600 leading-relaxed">
-                    <strong>Statutory & Compliance Notice:</strong> These exported registers are operational audit files derived from real database transactions. They do not constitute certified statutory audit reports or formal double-entry General Ledger trial balances, which are blocked under the current database schema freeze.
+                    <strong>Statutory & Compliance Notice:</strong> These exported registers are
+                    operational audit files derived from real database transactions. They do not
+                    constitute certified statutory audit reports or formal double-entry General
+                    Ledger trial balances, which are blocked under the current database schema
+                    freeze.
                   </div>
                 </div>
               </div>

@@ -14,6 +14,8 @@ export interface UserProfile {
   org_id: string;
   school_id: string;
   full_name: string;
+  org_name?: string;
+  tenant_name?: string;
   roles: string[];
   permissions: string[];
   login_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
@@ -185,7 +187,12 @@ export class SessionService {
     try {
       const user = await prisma.users.findUnique({
         where: { user_id: userId },
-        include: { countries: true },
+        include: {
+          countries: true,
+          organizations_users_org_idToorganizations: {
+            select: { org_name: true, org_code: true },
+          },
+        },
       });
 
       if (!user || user.status !== 'active') {
@@ -291,6 +298,8 @@ export class SessionService {
         org_id: user.org_id,
         school_id: user.org_id,
         full_name: `${user.first_name} ${user.last_name || ''}`.trim(),
+        org_name: (user as any).organizations_users_org_idToorganizations?.org_name,
+        tenant_name: (user as any).organizations_users_org_idToorganizations?.org_name,
         roles,
         permissions,
         login_status: 'APPROVED',

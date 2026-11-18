@@ -22,6 +22,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client';
+import { toast } from 'sonner';
 
 interface AccountingSummary {
   transactions_awaiting_accounting_count: number;
@@ -68,7 +69,9 @@ interface AccountItem {
 }
 
 export const FinanceAccounting: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'readiness' | 'accounts' | 'journals' | 'ledger' | 'exceptions'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'readiness' | 'accounts' | 'journals' | 'ledger' | 'exceptions'
+  >('overview');
   const [summary, setSummary] = useState<AccountingSummary | null>(null);
   const [records, setRecords] = useState<ReadinessRecord[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -114,7 +117,11 @@ export const FinanceAccounting: React.FC = () => {
         setTotalCount(res.data.pagination?.total || 0);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to fetch accounting readiness records');
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Failed to fetch accounting readiness records',
+      );
     } finally {
       setLoading(false);
     }
@@ -158,11 +165,35 @@ export const FinanceAccounting: React.FC = () => {
     fetchReadiness();
   };
 
-  const handleExportCSV = () => {
-    const params = new URLSearchParams();
-    if (sourceTypeFilter !== 'all') params.append('sourceType', sourceTypeFilter);
-    if (searchTerm) params.append('search', searchTerm);
-    window.open(`/api/v1/fees/accounting/export?${params.toString()}`, '_blank');
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const params: any = {};
+      if (sourceTypeFilter !== 'all') params.sourceType = sourceTypeFilter;
+      if (searchTerm) params.search = searchTerm;
+      const res = await apiClient.get('/fees/accounting/export', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `finance_accounting_readiness_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Accounting report exported successfully');
+    } catch (err: any) {
+      console.error('Failed to export accounting CSV:', err);
+      toast.error('Failed to export accounting CSV');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const totalPages = Math.ceil(totalCount / limit) || 1;
@@ -178,13 +209,16 @@ export const FinanceAccounting: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-white">Finance Accounting & General Ledger</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-white">
+                  Finance Accounting & General Ledger
+                </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center gap-1">
                   <Lock className="w-3 h-3" /> Schema Frozen
                 </span>
               </div>
               <p className="text-sm text-slate-400">
-                Operational transaction readiness, debit/credit mappings, double-entry simulation, and downstream ERP integration.
+                Operational transaction readiness, debit/credit mappings, double-entry simulation,
+                and downstream ERP integration.
               </p>
             </div>
           </div>
@@ -206,10 +240,11 @@ export const FinanceAccounting: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-600/20"
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-600/20"
           >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
+            <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
+            <span>{isExporting ? 'Exporting...' : 'Export CSV'}</span>
           </button>
         </div>
       </div>
@@ -218,12 +253,24 @@ export const FinanceAccounting: React.FC = () => {
       <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5">
         <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
         <div className="space-y-1 text-xs md:text-sm text-amber-200/90 leading-relaxed">
-          <div className="font-semibold text-amber-300">Stage-1 Architectural Constraint: General Ledger Schema Frozen</div>
+          <div className="font-semibold text-amber-300">
+            Stage-1 Architectural Constraint: General Ledger Schema Frozen
+          </div>
           <p>
-            The physical PostgreSQL schema lacks durable <code className="bg-slate-950 px-1 py-0.5 rounded text-amber-300">chart_of_accounts</code>,{' '}
-            <code className="bg-slate-950 px-1 py-0.5 rounded text-amber-300">journal_entries</code>, and <code className="bg-slate-950 px-1 py-0.5 rounded text-amber-300">accounting_periods</code> tables.
-            Operational financial collections, assessments, and concessions are tracked with <strong>readiness tags</strong> and <strong>double-entry mappings</strong>.
-            Authoritative journal posting is not faked; instead, draft entries can be simulated and exported for external accounting integration.
+            The physical PostgreSQL schema lacks durable{' '}
+            <code className="bg-slate-950 px-1 py-0.5 rounded text-amber-300">
+              chart_of_accounts
+            </code>
+            ,{' '}
+            <code className="bg-slate-950 px-1 py-0.5 rounded text-amber-300">journal_entries</code>
+            , and{' '}
+            <code className="bg-slate-950 px-1 py-0.5 rounded text-amber-300">
+              accounting_periods
+            </code>{' '}
+            tables. Operational financial collections, assessments, and concessions are tracked with{' '}
+            <strong>readiness tags</strong> and <strong>double-entry mappings</strong>.
+            Authoritative journal posting is not faked; instead, draft entries can be simulated and
+            exported for external accounting integration.
           </p>
         </div>
       </div>
@@ -236,7 +283,11 @@ export const FinanceAccounting: React.FC = () => {
           { id: 'accounts', label: 'Chart of Accounts Model', icon: BookOpen },
           { id: 'journals', label: 'Double-Entry Simulation', icon: Receipt },
           { id: 'ledger', label: 'Trial Balance & GL Status', icon: FileSpreadsheet },
-          { id: 'exceptions', label: `Accounting Exceptions (${summary?.accounting_exceptions_count ?? 0})`, icon: ShieldAlert },
+          {
+            id: 'exceptions',
+            label: `Accounting Exceptions (${summary?.accounting_exceptions_count ?? 0})`,
+            icon: ShieldAlert,
+          },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -266,20 +317,25 @@ export const FinanceAccounting: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Awaiting Accounting</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Awaiting Accounting
+                </span>
                 <Clock className="w-4 h-4 text-indigo-400" />
               </div>
               <div className="text-2xl font-bold text-white">
                 ₹{summary?.transactions_awaiting_accounting_amount.toLocaleString('en-IN') ?? '0'}
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                {summary?.transactions_awaiting_accounting_count ?? 0} operational events ready for GL
+                {summary?.transactions_awaiting_accounting_count ?? 0} operational events ready for
+                GL
               </div>
             </div>
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Unposted Fee Assessments</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Unposted Fee Assessments
+                </span>
                 <Receipt className="w-4 h-4 text-emerald-400" />
               </div>
               <div className="text-2xl font-bold text-emerald-400">
@@ -292,7 +348,9 @@ export const FinanceAccounting: React.FC = () => {
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Unposted Collections</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Unposted Collections
+                </span>
                 <Coins className="w-4 h-4 text-blue-400" />
               </div>
               <div className="text-2xl font-bold text-blue-400">
@@ -305,7 +363,9 @@ export const FinanceAccounting: React.FC = () => {
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Unposted Concessions</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Unposted Concessions
+                </span>
                 <Scale className="w-4 h-4 text-purple-400" />
               </div>
               <div className="text-2xl font-bold text-purple-400">
@@ -318,7 +378,9 @@ export const FinanceAccounting: React.FC = () => {
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Net Settlements</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Net Settlements
+                </span>
                 <Coins className="w-4 h-4 text-cyan-400" />
               </div>
               <div className="text-2xl font-bold text-cyan-400">
@@ -331,25 +393,25 @@ export const FinanceAccounting: React.FC = () => {
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Accounting Exceptions</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Accounting Exceptions
+                </span>
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
               </div>
               <div className="text-2xl font-bold text-amber-400">
                 {summary?.accounting_exceptions_count ?? 0}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
-                Discrepancies requiring review
-              </div>
+              <div className="text-xs text-slate-400 mt-1">Discrepancies requiring review</div>
             </div>
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Posted Journal Entries</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Posted Journal Entries
+                </span>
                 <FileCheck className="w-4 h-4 text-slate-400" />
               </div>
-              <div className="text-2xl font-bold text-slate-400">
-                0
-              </div>
+              <div className="text-2xl font-bold text-slate-400">0</div>
               <div className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
                 <Lock className="w-3 h-3" /> Blocked by Schema Freeze
               </div>
@@ -357,15 +419,13 @@ export const FinanceAccounting: React.FC = () => {
 
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">General Ledger Status</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  General Ledger Status
+                </span>
                 <Info className="w-4 h-4 text-slate-400" />
               </div>
-              <div className="text-xl font-bold text-amber-400">
-                Unconfigured
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                Readiness tracking active
-              </div>
+              <div className="text-xl font-bold text-amber-400">Unconfigured</div>
+              <div className="text-xs text-slate-400 mt-1">Readiness tracking active</div>
             </div>
           </div>
 
@@ -389,90 +449,170 @@ export const FinanceAccounting: React.FC = () => {
                   <tr>
                     <td className="py-3 px-4 font-medium text-white">1. Chart of Accounts</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Blocked by Schema Freeze</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                        Blocked by Schema Freeze
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">No physical `chart_of_accounts` table in PostgreSQL</td>
-                    <td className="py-3 px-4 text-xs">Standard educational model provided for export mapping</td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      No physical `chart_of_accounts` table in PostgreSQL
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Standard educational model provided for export mapping
+                    </td>
                   </tr>
                   <tr>
                     <td className="py-3 px-4 font-medium text-white">2. Journal Headers & Lines</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Blocked by Schema Freeze</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                        Blocked by Schema Freeze
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">No physical `journal_entries` or `journal_lines` tables</td>
-                    <td className="py-3 px-4 text-xs">Simulated in-memory for preview; persistence strictly gated</td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      No physical `journal_entries` or `journal_lines` tables
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Simulated in-memory for preview; persistence strictly gated
+                    </td>
                   </tr>
                   <tr>
                     <td className="py-3 px-4 font-medium text-white">3. Double-Entry Validation</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available (Domain Engine)</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Available (Domain Engine)
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Mathematical engine: `total_debits === total_credits`</td>
-                    <td className="py-3 px-4 text-xs">Enforces decimal-safe balance checks on all operational mappings</td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Mathematical engine: `total_debits === total_credits`
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Enforces decimal-safe balance checks on all operational mappings
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">4. Fiscal Periods & Closing</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Blocked by Schema Freeze</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      4. Fiscal Periods & Closing
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Only `academic_years` exists; no accounting period close tables</td>
-                    <td className="py-3 px-4 text-xs">Period closing mutation disabled; disclosed truthfully</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                        Blocked by Schema Freeze
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Only `academic_years` exists; no accounting period close tables
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Period closing mutation disabled; disclosed truthfully
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">5. Payment Accounting Readiness</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      5. Payment Accounting Readiness
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Verified `payment_transactions` & `payment_allocations`</td>
-                    <td className="py-3 px-4 text-xs">Tracked with 1010 (Bank Clearing) & 1200 (AR) accounts</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Available
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Verified `payment_transactions` & `payment_allocations`
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Tracked with 1010 (Bank Clearing) & 1200 (AR) accounts
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">6. Fee Assessment Readiness</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      6. Fee Assessment Readiness
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Verified `student_charges` & `student_charge_dues`</td>
-                    <td className="py-3 px-4 text-xs">Tracked with 1200 (AR) & 4000 (Tuition Revenue) accounts</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Available
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Verified `student_charges` & `student_charge_dues`
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Tracked with 1200 (AR) & 4000 (Tuition Revenue) accounts
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">7. Concession & Scholarship Accounting</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      7. Concession & Scholarship Accounting
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Verified `scholarship_concessions` (status = applied)</td>
-                    <td className="py-3 px-4 text-xs">Mapped to 4900 Contra-Revenue without double-deduction</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Available
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Verified `scholarship_concessions` (status = applied)
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Mapped to 4900 Contra-Revenue without double-deduction
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">8. Gateway Settlement Accounting</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      8. Gateway Settlement Accounting
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Verified `gateway_settlements` & `gateway_settlement_items`</td>
-                    <td className="py-3 px-4 text-xs">Splits gross amount, gateway fee expense, and net bank disbursement</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Available
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Verified `gateway_settlements` & `gateway_settlement_items`
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Splits gross amount, gateway fee expense, and net bank disbursement
+                    </td>
                   </tr>
                   <tr>
                     <td className="py-3 px-4 font-medium text-white">9. Trial Balance from GL</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Blocked by Schema Freeze</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                        Blocked by Schema Freeze
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">No physical ledger accounts or journal line balances</td>
-                    <td className="py-3 px-4 text-xs">Reported as unavailable; fake trial balances strictly prohibited</td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      No physical ledger accounts or journal line balances
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Reported as unavailable; fake trial balances strictly prohibited
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">10. General Ledger Account Reports</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Blocked by Schema Freeze</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      10. General Ledger Account Reports
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">No physical journal lines in PostgreSQL</td>
-                    <td className="py-3 px-4 text-xs">Reported as unavailable; operational balances shown separately</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                        Blocked by Schema Freeze
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      No physical journal lines in PostgreSQL
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Reported as unavailable; operational balances shown separately
+                    </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-4 font-medium text-white">11. Audit Trail & Reversals</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Partially Available</span>
+                    <td className="py-3 px-4 font-medium text-white">
+                      11. Audit Trail & Reversals
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">Operational adjustments in `payment_adjustments` & `payment_refunds`</td>
-                    <td className="py-3 px-4 text-xs">Operational refunds tracked; GL reversal mutations blocked</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Partially Available
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      Operational adjustments in `payment_adjustments` & `payment_refunds`
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      Operational refunds tracked; GL reversal mutations blocked
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -514,7 +654,10 @@ export const FinanceAccounting: React.FC = () => {
             </div>
 
             {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full md:w-auto">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex items-center gap-2 w-full md:w-auto"
+            >
               <div className="relative flex-1 md:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -581,8 +724,8 @@ export const FinanceAccounting: React.FC = () => {
                               r.source_type === 'PAYMENT'
                                 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                                 : r.source_type === 'FEE_ASSESSMENT'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                             }`}
                           >
                             {r.source_type.replace('_', ' ')}
@@ -599,8 +742,12 @@ export const FinanceAccounting: React.FC = () => {
                           })}
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-medium text-slate-200">{r.student_name || 'N/A'}</div>
-                          <div className="text-xs text-slate-500 font-mono">{r.admission_no || ''}</div>
+                          <div className="font-medium text-slate-200">
+                            {r.student_name || 'N/A'}
+                          </div>
+                          <div className="text-xs text-slate-500 font-mono">
+                            {r.admission_no || ''}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 text-right font-mono font-semibold text-white">
                           ₹{r.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -617,8 +764,8 @@ export const FinanceAccounting: React.FC = () => {
                               r.accounting_readiness_status === 'READY_FOR_GL'
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                 : r.accounting_readiness_status === 'BLOCKED_BY_RECONCILIATION'
-                                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                  ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                             }`}
                           >
                             {r.accounting_readiness_status}
@@ -678,7 +825,8 @@ export const FinanceAccounting: React.FC = () => {
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed">
               Standard General Ledger account mappings utilized for educational ERP transactions.
-              Under the Stage-1 schema freeze, institutional custom chart of accounts customization is disabled.
+              Under the Stage-1 schema freeze, institutional custom chart of accounts customization
+              is disabled.
             </p>
           </div>
 
@@ -698,14 +846,18 @@ export const FinanceAccounting: React.FC = () => {
                 <tbody className="divide-y divide-slate-800">
                   {accounts.map((acc) => (
                     <tr key={acc.account_code} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-indigo-400">{acc.account_code}</td>
+                      <td className="py-3 px-4 font-mono font-bold text-indigo-400">
+                        {acc.account_code}
+                      </td>
                       <td className="py-3 px-4 font-medium text-white">{acc.account_name}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-700 text-slate-300">
                           {acc.account_type}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-xs text-slate-300">{acc.normal_balance}</td>
+                      <td className="py-3 px-4 font-mono text-xs text-slate-300">
+                        {acc.normal_balance}
+                      </td>
                       <td className="py-3 px-4 text-xs text-slate-400">{acc.description}</td>
                       <td className="py-3 px-4 text-center">
                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -732,8 +884,12 @@ export const FinanceAccounting: React.FC = () => {
               <span>Double-Entry Journal Simulator & Balance Validator</span>
             </h2>
             <p className="text-sm text-slate-400">
-              Demonstrates mathematical double-entry accounting where <code className="bg-slate-900 px-1 py-0.5 rounded text-indigo-300">Total Debits === Total Credits</code>.
-              Click &quot;Simulate&quot; on any record in the Readiness Register to preview its balanced entries.
+              Demonstrates mathematical double-entry accounting where{' '}
+              <code className="bg-slate-900 px-1 py-0.5 rounded text-indigo-300">
+                Total Debits === Total Credits
+              </code>
+              . Click &quot;Simulate&quot; on any record in the Readiness Register to preview its
+              balanced entries.
             </p>
           </div>
 
@@ -743,8 +899,12 @@ export const FinanceAccounting: React.FC = () => {
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <div>
-                  <div className="text-xs uppercase font-semibold text-blue-400">Payment Collection Entry</div>
-                  <div className="text-sm font-bold text-white">Student Online Payment via Razorpay</div>
+                  <div className="text-xs uppercase font-semibold text-blue-400">
+                    Payment Collection Entry
+                  </div>
+                  <div className="text-sm font-bold text-white">
+                    Student Online Payment via Razorpay
+                  </div>
                 </div>
                 <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Balanced
@@ -770,8 +930,12 @@ export const FinanceAccounting: React.FC = () => {
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <div>
-                  <div className="text-xs uppercase font-semibold text-emerald-400">Fee Assessment Entry</div>
-                  <div className="text-sm font-bold text-white">Term 1 Tuition Fee Obligation Assessment</div>
+                  <div className="text-xs uppercase font-semibold text-emerald-400">
+                    Fee Assessment Entry
+                  </div>
+                  <div className="text-sm font-bold text-white">
+                    Term 1 Tuition Fee Obligation Assessment
+                  </div>
                 </div>
                 <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Balanced
@@ -783,7 +947,9 @@ export const FinanceAccounting: React.FC = () => {
                   <span className="text-white font-bold">₹25,000.00</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800 pl-4">
-                  <span className="text-emerald-300">Cr. 4000 - Tuition Fee Revenue (Revenue +)</span>
+                  <span className="text-emerald-300">
+                    Cr. 4000 - Tuition Fee Revenue (Revenue +)
+                  </span>
                   <span className="text-white font-bold">₹25,000.00</span>
                 </div>
               </div>
@@ -797,7 +963,9 @@ export const FinanceAccounting: React.FC = () => {
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <div>
-                  <div className="text-xs uppercase font-semibold text-purple-400">Concession Applied Entry</div>
+                  <div className="text-xs uppercase font-semibold text-purple-400">
+                    Concession Applied Entry
+                  </div>
                   <div className="text-sm font-bold text-white">Sibling Scholarship Waiver</div>
                 </div>
                 <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
@@ -806,7 +974,9 @@ export const FinanceAccounting: React.FC = () => {
               </div>
               <div className="space-y-2 text-xs font-mono">
                 <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-indigo-300">Dr. 4900 - Scholarship Contra-Revenue (Rev -)</span>
+                  <span className="text-indigo-300">
+                    Dr. 4900 - Scholarship Contra-Revenue (Rev -)
+                  </span>
                   <span className="text-white font-bold">₹5,000.00</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800 pl-4">
@@ -824,7 +994,9 @@ export const FinanceAccounting: React.FC = () => {
             <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <div>
-                  <div className="text-xs uppercase font-semibold text-cyan-400">Gateway Settlement Entry</div>
+                  <div className="text-xs uppercase font-semibold text-cyan-400">
+                    Gateway Settlement Entry
+                  </div>
                   <div className="text-sm font-bold text-white">Razorpay Net Bank Disbursement</div>
                 </div>
                 <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
@@ -833,11 +1005,15 @@ export const FinanceAccounting: React.FC = () => {
               </div>
               <div className="space-y-2 text-xs font-mono">
                 <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-indigo-300">Dr. 1020 - Operating Bank Account (Asset +)</span>
+                  <span className="text-indigo-300">
+                    Dr. 1020 - Operating Bank Account (Asset +)
+                  </span>
                   <span className="text-white font-bold">₹49,115.00</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-indigo-300">Dr. 5100 - Gateway Processing Fees (Expense +)</span>
+                  <span className="text-indigo-300">
+                    Dr. 5100 - Gateway Processing Fees (Expense +)
+                  </span>
                   <span className="text-white font-bold">₹885.00</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800 pl-4">
@@ -865,17 +1041,24 @@ export const FinanceAccounting: React.FC = () => {
                 <Lock className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">General Ledger & Trial Balance Availability Notice</h2>
+                <h2 className="text-lg font-bold text-white">
+                  General Ledger & Trial Balance Availability Notice
+                </h2>
                 <p className="text-sm text-slate-400 mt-1 leading-relaxed">
-                  A trial balance cannot be generated from an authoritative General Ledger because no physical journal entry lines or account balance tables exist in PostgreSQL.
-                  In adherence with project financial controls, fake account balances are not fabricated. Below is the operational summary of assessed, collected, and waived funds.
+                  A trial balance cannot be generated from an authoritative General Ledger because
+                  no physical journal entry lines or account balance tables exist in PostgreSQL. In
+                  adherence with project financial controls, fake account balances are not
+                  fabricated. Below is the operational summary of assessed, collected, and waived
+                  funds.
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-700">
               <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-semibold text-slate-400 uppercase">Total Assessed Receivables</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase">
+                  Total Assessed Receivables
+                </div>
                 <div className="text-xl font-bold text-emerald-400 mt-1">
                   ₹{summary?.unposted_fee_assessments_amount.toLocaleString('en-IN') ?? '0'}
                 </div>
@@ -883,7 +1066,9 @@ export const FinanceAccounting: React.FC = () => {
               </div>
 
               <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-semibold text-slate-400 uppercase">Total Collected Funds</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase">
+                  Total Collected Funds
+                </div>
                 <div className="text-xl font-bold text-blue-400 mt-1">
                   ₹{summary?.unposted_payments_amount.toLocaleString('en-IN') ?? '0'}
                 </div>
@@ -891,7 +1076,9 @@ export const FinanceAccounting: React.FC = () => {
               </div>
 
               <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-semibold text-slate-400 uppercase">Total Applied Concessions</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase">
+                  Total Applied Concessions
+                </div>
                 <div className="text-xl font-bold text-purple-400 mt-1">
                   ₹{summary?.unposted_concessions_amount.toLocaleString('en-IN') ?? '0'}
                 </div>
@@ -899,7 +1086,9 @@ export const FinanceAccounting: React.FC = () => {
               </div>
 
               <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-semibold text-slate-400 uppercase">Net Settled Disbursements</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase">
+                  Net Settled Disbursements
+                </div>
                 <div className="text-xl font-bold text-cyan-400 mt-1">
                   ₹{summary?.unposted_settlements_amount.toLocaleString('en-IN') ?? '0'}
                 </div>
@@ -921,7 +1110,8 @@ export const FinanceAccounting: React.FC = () => {
               <span>Accounting Review Exceptions Queue</span>
             </h2>
             <p className="text-sm text-slate-400">
-              Transactions requiring operational or reconciliation resolution before general ledger export.
+              Transactions requiring operational or reconciliation resolution before general ledger
+              export.
             </p>
           </div>
 
@@ -986,7 +1176,9 @@ export const FinanceAccounting: React.FC = () => {
             <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-800/50">
               <div className="flex items-center gap-3">
                 <Receipt className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-lg font-bold text-white">Simulated Double-Entry Journal Entry</h3>
+                <h3 className="text-lg font-bold text-white">
+                  Simulated Double-Entry Journal Entry
+                </h3>
               </div>
               <button
                 onClick={() => setSimulatedRecord(null)}
@@ -999,7 +1191,10 @@ export const FinanceAccounting: React.FC = () => {
             <div className="p-6 space-y-5">
               <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3.5 text-xs text-amber-300 flex items-center gap-2">
                 <Lock className="w-4 h-4 flex-shrink-0" />
-                <span>Simulation Only: Physical journal entry persistence is blocked by the database schema freeze.</span>
+                <span>
+                  Simulation Only: Physical journal entry persistence is blocked by the database
+                  schema freeze.
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs text-slate-400 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
@@ -1025,18 +1220,26 @@ export const FinanceAccounting: React.FC = () => {
 
               {/* Debit / Credit lines */}
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Double-Entry Lines</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Double-Entry Lines
+                </div>
                 <div className="space-y-2 bg-slate-800/40 p-4 rounded-xl border border-slate-800 font-mono text-xs">
                   <div className="flex justify-between py-1.5 border-b border-slate-700/60">
-                    <span className="text-indigo-300">Dr. {simulatedRecord.suggested_debit_account}</span>
+                    <span className="text-indigo-300">
+                      Dr. {simulatedRecord.suggested_debit_account}
+                    </span>
                     <span className="text-white font-bold">
-                      ₹{simulatedRecord.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹
+                      {simulatedRecord.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-700/60 pl-6">
-                    <span className="text-emerald-300">Cr. {simulatedRecord.suggested_credit_account}</span>
+                    <span className="text-emerald-300">
+                      Cr. {simulatedRecord.suggested_credit_account}
+                    </span>
                     <span className="text-white font-bold">
-                      ₹{simulatedRecord.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹
+                      {simulatedRecord.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>

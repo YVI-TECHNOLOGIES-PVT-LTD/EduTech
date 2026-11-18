@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
   ShieldCheck,
@@ -10,7 +10,10 @@ import {
   Sparkles,
   ArrowRight,
   Info,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 import { RazorpayCheckout } from '../../../components/RazorpayCheckout';
 
 const GLASS_CARD =
@@ -32,6 +35,30 @@ export const RazorpayCheckoutDemo: React.FC = () => {
     signature: string;
     verifiedAt: string;
   } | null>(null);
+
+  const [gatewayConfig, setGatewayConfig] = useState<{
+    status: 'ACTIVE' | 'TEST_MODE' | 'NOT_CONFIGURED' | 'LOADING';
+    key_id_preview?: string;
+  }>({ status: 'LOADING' });
+
+  useEffect(() => {
+    apiClient
+      .get('/fees/configuration')
+      .then((res) => {
+        const gw = res.data?.data?.gateway || res.data?.gateway;
+        if (gw) {
+          setGatewayConfig({
+            status: gw.status || 'NOT_CONFIGURED',
+            key_id_preview: gw.key_id_preview || '',
+          });
+        } else {
+          setGatewayConfig({ status: 'NOT_CONFIGURED' });
+        }
+      })
+      .catch(() => {
+        setGatewayConfig({ status: 'NOT_CONFIGURED' });
+      });
+  }, []);
 
   const presetAmounts = [1, 100, 500, 1500, 5000];
 
@@ -59,9 +86,23 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Razorpay Standard Web Checkout
               </span>
-              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Test Key Active
-              </span>
+              {gatewayConfig.status === 'ACTIVE' ? (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Live Gateway Active
+                </span>
+              ) : gatewayConfig.status === 'TEST_MODE' ? (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Test Mode Active
+                </span>
+              ) : gatewayConfig.status === 'NOT_CONFIGURED' ? (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" /> Setup Required
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center gap-1">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Checking Gateway...
+                </span>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Razorpay Payment Gateway Integration
@@ -73,9 +114,13 @@ export const RazorpayCheckoutDemo: React.FC = () => {
           </div>
 
           <div className="text-xs text-right hidden sm:block">
-            <span className="text-slate-400 font-mono">Key ID:</span>
+            <span className="text-slate-400 font-mono">Server Status:</span>
             <div className="font-mono text-slate-700 dark:text-slate-300 font-semibold">
-              {import.meta.env.VITE_RAZORPAY_KEY_ID || 'Configured via .env'}
+              {gatewayConfig.status === 'ACTIVE'
+                ? 'Live Key Active'
+                : gatewayConfig.status === 'TEST_MODE'
+                  ? `Test Mode (${gatewayConfig.key_id_preview || 'Configured'})`
+                  : 'Not Configured (Server Secrets Required)'}
             </div>
           </div>
         </div>

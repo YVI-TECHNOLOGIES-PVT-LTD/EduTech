@@ -428,6 +428,10 @@ export const StudentFeeAssignment: React.FC = () => {
             Checking published fee structures for grade...
           </span>
         </div>
+      ) : !selectedGradeId ? (
+        <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-center text-xs text-slate-500">
+          Please select an academic year and grade above to evaluate fee structures and assign fees.
+        </div>
       ) : !activeStructure ? (
         <div className="p-6 rounded-3xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 flex items-start gap-4">
           <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />

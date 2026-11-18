@@ -104,7 +104,9 @@ interface ApprovalAuditEntry {
 }
 
 export const ScholarshipsConcessions: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'applications' | 'programs' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'applications' | 'programs' | 'reports'>(
+    'overview',
+  );
   const [metrics, setMetrics] = useState<ScholarshipMetrics | null>(null);
   const [programs, setPrograms] = useState<ScholarshipProgram[]>([]);
   const [applications, setApplications] = useState<ScholarshipConcession[]>([]);
@@ -135,7 +137,9 @@ export const ScholarshipsConcessions: React.FC = () => {
   const [studentSearchLoading, setStudentSearchLoading] = useState<boolean>(false);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [formProgramType, setFormProgramType] = useState<string>('merit');
-  const [formConcessionName, setFormConcessionName] = useState<string>('Academic Merit Scholarship');
+  const [formConcessionName, setFormConcessionName] = useState<string>(
+    'Academic Merit Scholarship',
+  );
   const [formPercentage, setFormPercentage] = useState<number>(25);
   const [formScope, setFormScope] = useState<'academic_year' | 'installment'>('academic_year');
   const [formReason, setFormReason] = useState<string>('');
@@ -190,8 +194,11 @@ export const ScholarshipsConcessions: React.FC = () => {
   };
 
   useEffect(() => {
-    reloadApplications();
-  }, [statusFilter, typeFilter, page]);
+    const timer = setTimeout(() => {
+      reloadApplications();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, statusFilter, typeFilter, page]);
 
   // Student search debounce
   useEffect(() => {
@@ -200,7 +207,7 @@ export const ScholarshipsConcessions: React.FC = () => {
       setStudentSearchLoading(true);
       try {
         const res = await apiClient.get(
-          `/fees/scholarships/students?query=${encodeURIComponent(studentSearchTerm.trim())}&limit=10`
+          `/fees/scholarships/students?query=${encodeURIComponent(studentSearchTerm.trim())}&limit=10`,
         );
         if (res.data?.success) {
           setEligibleStudents(res.data.data || []);
@@ -220,7 +227,9 @@ export const ScholarshipsConcessions: React.FC = () => {
     setSelectedConcession(item);
     setShowDetailModal(true);
     try {
-      const res = await apiClient.get(`/fees/scholarships/applications/${item.scholarship_concession_id}`);
+      const res = await apiClient.get(
+        `/fees/scholarships/applications/${item.scholarship_concession_id}`,
+      );
       if (res.data?.success && res.data.data.approval_history) {
         setAuditHistory(res.data.data.approval_history);
       }
@@ -255,11 +264,13 @@ export const ScholarshipsConcessions: React.FC = () => {
           action: reviewAction,
           approvedPercentage: reviewAction === 'approved' ? Number(reviewPercentage) : null,
           remarks: reviewRemarks.trim() || undefined,
-        }
+        },
       );
 
       if (res.data?.success) {
-        toast.success(`Application ${reviewAction === 'approved' ? 'approved' : 'rejected'} successfully.`);
+        toast.success(
+          `Application ${reviewAction === 'approved' ? 'approved' : 'rejected'} successfully.`,
+        );
         setShowReviewModal(false);
         loadInitialData();
       }
@@ -277,7 +288,7 @@ export const ScholarshipsConcessions: React.FC = () => {
     setActionLoading(true);
     try {
       const res = await apiClient.post(
-        `/fees/scholarships/applications/${selectedConcession.scholarship_concession_id}/apply`
+        `/fees/scholarships/applications/${selectedConcession.scholarship_concession_id}/apply`,
       );
 
       if (res.data?.success) {
@@ -414,7 +425,8 @@ export const ScholarshipsConcessions: React.FC = () => {
                 Scholarships & Concessions
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Institutional award programs, merit scholarships, need-based fee waivers, and multi-tier approval governance.
+                Institutional award programs, merit scholarships, need-based fee waivers, and
+                multi-tier approval governance.
               </p>
             </div>
           </div>
@@ -445,7 +457,9 @@ export const ScholarshipsConcessions: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <div className={`${GLASS_CARD} p-5 relative overflow-hidden group`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Programs</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Active Programs
+            </span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <Layers className="w-4 h-4" />
             </div>
@@ -458,7 +472,9 @@ export const ScholarshipsConcessions: React.FC = () => {
 
         <div className={`${GLASS_CARD} p-5 relative overflow-hidden group`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-500">Pending Review</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-500">
+              Pending Review
+            </span>
             <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Clock className="w-4 h-4" />
             </div>
@@ -471,7 +487,9 @@ export const ScholarshipsConcessions: React.FC = () => {
 
         <div className={`${GLASS_CARD} p-5 relative overflow-hidden group`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">Approved Awards</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">
+              Approved Awards
+            </span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
             </div>
@@ -484,7 +502,9 @@ export const ScholarshipsConcessions: React.FC = () => {
 
         <div className={`${GLASS_CARD} p-5 relative overflow-hidden group`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-500">Beneficiaries</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-500">
+              Beneficiaries
+            </span>
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <Users className="w-4 h-4" />
             </div>
@@ -493,7 +513,11 @@ export const ScholarshipsConcessions: React.FC = () => {
             {metrics?.total_beneficiaries_count || 0}
           </p>
           <p className="text-xs text-slate-500 mt-1">
-            Avg {metrics?.average_concession_percentage ? `${metrics.average_concession_percentage}%` : '0%'} concession
+            Avg{' '}
+            {metrics?.average_concession_percentage
+              ? `${metrics.average_concession_percentage}%`
+              : '0%'}{' '}
+            concession
           </p>
         </div>
       </div>
@@ -626,7 +650,10 @@ export const ScholarshipsConcessions: React.FC = () => {
                     </tr>
                   ) : (
                     applications.map((item) => (
-                      <tr key={item.scholarship_concession_id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                      <tr
+                        key={item.scholarship_concession_id}
+                        className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
+                      >
                         <td className="p-4 pl-6">
                           <div className="font-bold text-slate-900 dark:text-white">
                             {item.first_name} {item.last_name || ''}
@@ -639,33 +666,48 @@ export const ScholarshipsConcessions: React.FC = () => {
                         </td>
                         <td className="p-4">
                           <div className="font-semibold">{item.concession_name}</div>
-                          <div className="text-xs text-slate-400 capitalize">{item.scholarship_type.replace('_', ' ')}</div>
+                          <div className="text-xs text-slate-400 capitalize">
+                            {item.scholarship_type.replace('_', ' ')}
+                          </div>
                         </td>
                         <td className="p-4">
                           <div className="text-xs font-medium">{item.academic_year_name}</div>
                           <div className="text-xs text-slate-400 mt-0.5">
-                            {item.scope === 'academic_year' ? 'Full Academic Year' : `Term: ${item.term_name || 'Installment'}`}
+                            {item.scope === 'academic_year'
+                              ? 'Full Academic Year'
+                              : `Term: ${item.term_name || 'Installment'}`}
                           </div>
                         </td>
                         <td className="p-4 text-center">
                           <div className="inline-flex flex-col items-center">
                             <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                              {item.applied_percentage || item.approved_percentage || item.concession_percentage}%
+                              {item.applied_percentage ||
+                                item.approved_percentage ||
+                                item.concession_percentage}
+                              %
                             </span>
-                            {item.approved_percentage && item.approved_percentage !== item.concession_percentage && (
-                              <span className="text-[10px] text-slate-400 line-through">
-                                Rec: {item.concession_percentage}%
-                              </span>
-                            )}
+                            {item.approved_percentage &&
+                              item.approved_percentage !== item.concession_percentage && (
+                                <span className="text-[10px] text-slate-400 line-through">
+                                  Rec: {item.concession_percentage}%
+                                </span>
+                              )}
                           </div>
                         </td>
                         <td className="p-4">{getStatusBadge(item.status)}</td>
                         <td className="p-4 text-xs">
                           {item.recommended_by_name && (
-                            <div>Rec: <span className="font-medium">{item.recommended_by_name}</span></div>
+                            <div>
+                              Rec: <span className="font-medium">{item.recommended_by_name}</span>
+                            </div>
                           )}
                           {item.approved_by_name && (
-                            <div className="text-slate-400">Appr: <span className="font-medium text-slate-600 dark:text-slate-300">{item.approved_by_name}</span></div>
+                            <div className="text-slate-400">
+                              Appr:{' '}
+                              <span className="font-medium text-slate-600 dark:text-slate-300">
+                                {item.approved_by_name}
+                              </span>
+                            </div>
                           )}
                         </td>
                         <td className="p-4 pr-6 text-right">
@@ -707,7 +749,9 @@ export const ScholarshipsConcessions: React.FC = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="p-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-slate-400">
-                <span>Page {page} of {totalPages}</span>
+                <span>
+                  Page {page} of {totalPages}
+                </span>
                 <div className="flex gap-2">
                   <button
                     disabled={page <= 1}
@@ -734,7 +778,10 @@ export const ScholarshipsConcessions: React.FC = () => {
       {activeTab === 'programs' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {programs.map((prog) => (
-            <div key={prog.id} className={`${GLASS_CARD} p-6 flex flex-col justify-between space-y-4`}>
+            <div
+              key={prog.id}
+              className={`${GLASS_CARD} p-6 flex flex-col justify-between space-y-4`}
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -754,7 +801,10 @@ export const ScholarshipsConcessions: React.FC = () => {
                     <strong>Eligibility:</strong> {prog.eligibility_criteria}
                   </div>
                   <div className="text-slate-400">
-                    <strong>Scope:</strong> {prog.scope === 'academic_year' ? 'Full Academic Year' : 'Installment Term Specific'}
+                    <strong>Scope:</strong>{' '}
+                    {prog.scope === 'academic_year'
+                      ? 'Full Academic Year'
+                      : 'Installment Term Specific'}
                   </div>
                   <div className="text-slate-400">
                     <strong>Range:</strong> {prog.min_percentage}% – {prog.max_percentage}%
@@ -783,28 +833,39 @@ export const ScholarshipsConcessions: React.FC = () => {
       {activeTab === 'reports' && (
         <div className={`${GLASS_CARD} p-6 space-y-6`}>
           <div>
-            <h2 className="text-lg font-black">Financial Concession Audit & Statutory Ledger Summary</h2>
+            <h2 className="text-lg font-black">
+              Financial Concession Audit & Statutory Ledger Summary
+            </h2>
             <p className="text-xs text-slate-500">
-              Live persisted ledger discount breakdown verified against physical PostgreSQL constraint enforcement.
+              Live persisted ledger discount breakdown verified against physical PostgreSQL
+              constraint enforcement.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200/80 dark:border-white/10 space-y-1">
               <span className="text-xs font-semibold text-slate-400">Total Approved Awards</span>
-              <p className="text-2xl font-black text-emerald-600">{metrics?.approved_awards_count || 0}</p>
-              <p className="text-[11px] text-slate-400">Approved by Principal/Governing Authority</p>
+              <p className="text-2xl font-black text-emerald-600">
+                {metrics?.approved_awards_count || 0}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Approved by Principal/Governing Authority
+              </p>
             </div>
 
             <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200/80 dark:border-white/10 space-y-1">
               <span className="text-xs font-semibold text-slate-400">Applied to Student Dues</span>
-              <p className="text-2xl font-black text-blue-600">{metrics?.applied_concessions_count || 0}</p>
+              <p className="text-2xl font-black text-blue-600">
+                {metrics?.applied_concessions_count || 0}
+              </p>
               <p className="text-[11px] text-slate-400">Dues discounted without cash receipts</p>
             </div>
 
             <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200/80 dark:border-white/10 space-y-1">
               <span className="text-xs font-semibold text-slate-400">Average Award Discount</span>
-              <p className="text-2xl font-black text-indigo-600">{metrics?.average_concession_percentage || 0}%</p>
+              <p className="text-2xl font-black text-indigo-600">
+                {metrics?.average_concession_percentage || 0}%
+              </p>
               <p className="text-[11px] text-slate-400">Institutional fee relief ratio</p>
             </div>
           </div>
@@ -814,9 +875,10 @@ export const ScholarshipsConcessions: React.FC = () => {
               <ShieldCheck className="w-4 h-4" /> Financial Integrity Guarantee:
             </p>
             <p>
-              All fee concessions and scholarships are permanently logged with immutable audit entries. Concessions adjust
-              student charge dues atomically within database transactions, prevent duplicate credits, and never generate fictitious
-              payment receipts or gateway transactions.
+              All fee concessions and scholarships are permanently logged with immutable audit
+              entries. Concessions adjust student charge dues atomically within database
+              transactions, prevent duplicate credits, and never generate fictitious payment
+              receipts or gateway transactions.
             </p>
           </div>
         </div>
@@ -833,7 +895,9 @@ export const ScholarshipsConcessions: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-lg">Recommend Scholarship Award</h3>
-                  <p className="text-xs text-slate-400">Submit student for Principal & Board review</p>
+                  <p className="text-xs text-slate-400">
+                    Submit student for Principal & Board review
+                  </p>
                 </div>
               </div>
               <button
@@ -862,7 +926,9 @@ export const ScholarshipsConcessions: React.FC = () => {
                     />
                   </div>
                   {studentSearchLoading && (
-                    <p className="text-xs text-slate-400 animate-pulse">Searching enrolled students...</p>
+                    <p className="text-xs text-slate-400 animate-pulse">
+                      Searching enrolled students...
+                    </p>
                   )}
                   {eligibleStudents.length > 0 && (
                     <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-white/10 rounded-xl divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-slate-900">
@@ -873,8 +939,12 @@ export const ScholarshipsConcessions: React.FC = () => {
                           className="p-3 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/10 cursor-pointer transition-colors text-xs flex justify-between items-center"
                         >
                           <div>
-                            <span className="font-bold text-slate-900 dark:text-white">{s.full_name}</span>
-                            <span className="ml-2 font-mono text-slate-400">({s.admission_no})</span>
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              {s.full_name}
+                            </span>
+                            <span className="ml-2 font-mono text-slate-400">
+                              ({s.admission_no})
+                            </span>
                             <div className="text-[11px] text-slate-400">
                               {s.grade_name} · {s.academic_year_name}
                             </div>
@@ -892,7 +962,8 @@ export const ScholarshipsConcessions: React.FC = () => {
                       {selectedStudent.full_name} ({selectedStudent.admission_no})
                     </span>
                     <div className="text-slate-500 mt-0.5">
-                      {selectedStudent.grade_name} · Academic Year: {selectedStudent.academic_year_name}
+                      {selectedStudent.grade_name} · Academic Year:{' '}
+                      {selectedStudent.academic_year_name}
                     </div>
                   </div>
                   <button
@@ -908,7 +979,9 @@ export const ScholarshipsConcessions: React.FC = () => {
             {/* Program Type & Name */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Program Category</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Program Category
+                </label>
                 <select
                   value={formProgramType}
                   onChange={(e) => {
@@ -931,7 +1004,9 @@ export const ScholarshipsConcessions: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Award Name</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Award Name
+                </label>
                 <input
                   type="text"
                   value={formConcessionName}
@@ -944,7 +1019,9 @@ export const ScholarshipsConcessions: React.FC = () => {
             {/* Percentage & Scope */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Concession % (1–100)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Concession % (1–100)
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -957,7 +1034,9 @@ export const ScholarshipsConcessions: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Applicability Scope</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Applicability Scope
+                </label>
                 <select
                   value={formScope}
                   onChange={(e) => setFormScope(e.target.value as any)}
@@ -1029,10 +1108,12 @@ export const ScholarshipsConcessions: React.FC = () => {
 
             <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl space-y-1 text-xs">
               <div className="font-bold text-slate-900 dark:text-white">
-                {selectedConcession.first_name} {selectedConcession.last_name || ''} ({selectedConcession.admission_no})
+                {selectedConcession.first_name} {selectedConcession.last_name || ''} (
+                {selectedConcession.admission_no})
               </div>
               <div className="text-slate-500">
-                Award: <strong>{selectedConcession.concession_name}</strong> · Requested: <strong>{selectedConcession.concession_percentage}%</strong>
+                Award: <strong>{selectedConcession.concession_name}</strong> · Requested:{' '}
+                <strong>{selectedConcession.concession_percentage}%</strong>
               </div>
               <div className="text-slate-500">
                 Justification: <em>"{selectedConcession.recommendation_reason}"</em>
@@ -1040,7 +1121,9 @@ export const ScholarshipsConcessions: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Approval Decision</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Approval Decision
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -1081,7 +1164,8 @@ export const ScholarshipsConcessions: React.FC = () => {
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold outline-none"
                   />
                   <p className="text-[11px] text-slate-400">
-                    You can approve the full {selectedConcession.concession_percentage}% or specify an alternate percentage.
+                    You can approve the full {selectedConcession.concession_percentage}% or specify
+                    an alternate percentage.
                   </p>
                 </div>
               )}
@@ -1113,10 +1197,14 @@ export const ScholarshipsConcessions: React.FC = () => {
                 disabled={actionLoading}
                 onClick={handleSubmitReview}
                 className={`flex-1 py-2.5 text-white rounded-xl font-bold text-xs transition-all ${
-                  reviewAction === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                  reviewAction === 'approved'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
                 }`}
               >
-                {actionLoading ? 'Saving...' : `Confirm ${reviewAction === 'approved' ? 'Approval' : 'Rejection'}`}
+                {actionLoading
+                  ? 'Saving...'
+                  : `Confirm ${reviewAction === 'approved' ? 'Approval' : 'Rejection'}`}
               </button>
             </div>
           </div>
@@ -1134,7 +1222,9 @@ export const ScholarshipsConcessions: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-lg">Apply Concession to Ledger</h3>
-                  <p className="text-xs text-slate-400">Post approved discount to outstanding fee dues</p>
+                  <p className="text-xs text-slate-400">
+                    Post approved discount to outstanding fee dues
+                  </p>
                 </div>
               </div>
               <button
@@ -1147,24 +1237,32 @@ export const ScholarshipsConcessions: React.FC = () => {
 
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl space-y-2 text-xs">
               <div className="font-bold text-blue-900 dark:text-blue-300 text-sm">
-                {selectedConcession.first_name} {selectedConcession.last_name || ''} ({selectedConcession.admission_no})
+                {selectedConcession.first_name} {selectedConcession.last_name || ''} (
+                {selectedConcession.admission_no})
               </div>
               <p className="text-slate-600 dark:text-slate-300">
                 Award: <strong>{selectedConcession.concession_name}</strong>
               </p>
               <p className="text-slate-600 dark:text-slate-300">
-                Approved Rate: <strong className="text-emerald-600 font-black">{selectedConcession.approved_percentage}%</strong>
+                Approved Rate:{' '}
+                <strong className="text-emerald-600 font-black">
+                  {selectedConcession.approved_percentage}%
+                </strong>
               </p>
               <p className="text-slate-500">
-                Scope: {selectedConcession.scope === 'academic_year' ? 'All eligible dues for academic year' : 'Targeted installment term'}
+                Scope:{' '}
+                {selectedConcession.scope === 'academic_year'
+                  ? 'All eligible dues for academic year'
+                  : 'Targeted installment term'}
               </p>
             </div>
 
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300 space-y-1">
               <p className="font-bold">Permanent Ledger Mutation Notice:</p>
               <p>
-                This action will atomically discount the student's scheduled dues by {selectedConcession.approved_percentage}%.
-                This operation does not generate cash transactions, gateway orders, or payment receipts.
+                This action will atomically discount the student's scheduled dues by{' '}
+                {selectedConcession.approved_percentage}%. This operation does not generate cash
+                transactions, gateway orders, or payment receipts.
               </p>
             </div>
 
@@ -1224,10 +1322,18 @@ export const ScholarshipsConcessions: React.FC = () => {
 
               <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl space-y-1">
                 <span className="text-slate-400 font-semibold">Program Parameters</span>
-                <p className="font-bold text-slate-900 dark:text-white">{selectedConcession.concession_name}</p>
-                <p className="capitalize text-slate-500">Category: {selectedConcession.scholarship_type.replace('_', ' ')}</p>
+                <p className="font-bold text-slate-900 dark:text-white">
+                  {selectedConcession.concession_name}
+                </p>
+                <p className="capitalize text-slate-500">
+                  Category: {selectedConcession.scholarship_type.replace('_', ' ')}
+                </p>
                 <p className="text-emerald-600 font-black text-sm">
-                  Rate: {selectedConcession.applied_percentage || selectedConcession.approved_percentage || selectedConcession.concession_percentage}%
+                  Rate:{' '}
+                  {selectedConcession.applied_percentage ||
+                    selectedConcession.approved_percentage ||
+                    selectedConcession.concession_percentage}
+                  %
                 </p>
               </div>
             </div>
@@ -1282,10 +1388,15 @@ export const ScholarshipsConcessions: React.FC = () => {
                           )}
                         </div>
                         {item.remarks && (
-                          <p className="text-slate-600 dark:text-slate-400 italic">"{item.remarks}"</p>
+                          <p className="text-slate-600 dark:text-slate-400 italic">
+                            "{item.remarks}"
+                          </p>
                         )}
                         <div className="text-[11px] text-slate-400">
-                          Decided by: <span className="font-medium">{item.action_by_name || 'Authorized Officer'}</span>
+                          Decided by:{' '}
+                          <span className="font-medium">
+                            {item.action_by_name || 'Authorized Officer'}
+                          </span>
                         </div>
                       </div>
                       <span className="text-[11px] text-slate-400">

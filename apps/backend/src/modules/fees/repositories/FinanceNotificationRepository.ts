@@ -45,7 +45,7 @@ export class FinanceNotificationRepository {
   public static async getFinanceNotifications(
     orgId: string,
     filter: FinanceNotificationFilter = {},
-    client?: any
+    client?: any,
   ): Promise<{
     items: FinanceNotificationRecord[];
     pagination: {
@@ -157,13 +157,15 @@ export class FinanceNotificationRepository {
    */
   public static async getNotificationSummary(
     orgId: string,
-    client?: any
+    client?: any,
   ): Promise<{
     total: number;
+    sent: number;
     sentAccepted: number;
     delivered: number;
     failed: number;
     unread: number;
+    recent: any[];
   }> {
     const db = this.getClient(client);
     const safeOrgId = toSafeUuid(orgId) || orgId;
@@ -180,15 +182,43 @@ export class FinanceNotificationRepository {
         AND (category = 'FEE'::notification_category OR type LIKE 'fee.%');
     `;
 
-    const rows: any = await db.$queryRawUnsafe(sql, safeOrgId);
-    const r = rows[0] || {};
+    const recentSql = `
+      SELECT
+        n.notification_id,
+        n.org_id,
+        n.recipient_user_id,
+        n.category,
+        n.type,
+        n.priority,
+        n.title,
+        n.message,
+        n.entity_type,
+        n.entity_id,
+        n.action_url,
+        n.is_read,
+        n.metadata,
+        n.created_at
+      FROM notifications n
+      WHERE n.org_id = $1::uuid
+        AND (n.category = 'FEE'::notification_category OR n.type LIKE 'fee.%')
+      ORDER BY n.created_at DESC
+      LIMIT 10;
+    `;
+
+    const [summaryRows, recentRows]: any[] = await Promise.all([
+      db.$queryRawUnsafe(sql, safeOrgId),
+      db.$queryRawUnsafe(recentSql, safeOrgId),
+    ]);
+    const r = summaryRows[0] || {};
 
     return {
       total: r.total || 0,
+      sent: r.sent_accepted || 0,
       sentAccepted: r.sent_accepted || 0,
       delivered: r.delivered || 0,
       failed: r.failed || 0,
       unread: r.unread || 0,
+      recent: recentRows || [],
     };
   }
 
@@ -198,7 +228,7 @@ export class FinanceNotificationRepository {
   public static async findById(
     orgId: string,
     notificationId: string,
-    client?: any
+    client?: any,
   ): Promise<FinanceNotificationRecord | null> {
     const db = this.getClient(client);
     const safeOrgId = toSafeUuid(orgId) || orgId;
@@ -244,7 +274,7 @@ export class FinanceNotificationRepository {
     notificationId: string,
     channel: string,
     newStatus?: string,
-    client?: any
+    client?: any,
   ): Promise<boolean> {
     const db = this.getClient(client);
     const safeOrgId = toSafeUuid(orgId) || orgId;

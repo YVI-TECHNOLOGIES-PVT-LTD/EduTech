@@ -29,7 +29,7 @@ import {
   BarChart3,
   Calendar,
   ShieldCheck,
-  Check
+  Check,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -44,7 +44,7 @@ import {
   Cell,
   LineChart,
   Line,
-  CartesianGrid
+  CartesianGrid,
 } from 'recharts';
 import { apiClient } from '../../../lib/api-client';
 import { toast } from 'sonner';
@@ -53,12 +53,7 @@ import { toast } from 'sonner';
 // TYPES
 // ============================================================================
 type OperationsTab =
-  | 'overview'
-  | 'collections'
-  | 'receivables'
-  | 'exceptions'
-  | 'data_quality'
-  | 'exports';
+  'overview' | 'collections' | 'receivables' | 'exceptions' | 'data_quality' | 'exports';
 
 interface ExecutiveOverviewData {
   reporting_period: {
@@ -230,7 +225,7 @@ export const FinanceOperations: React.FC = () => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency || 'INR',
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(val || 0);
   };
 
@@ -249,7 +244,7 @@ export const FinanceOperations: React.FC = () => {
         apiClient.get<any>(`/fees/operations/overview${queryStr}`),
         apiClient.get<any>(`/fees/operations/collections${queryStr}`),
         apiClient.get<any>(`/fees/operations/receivables${queryStr}`),
-        apiClient.get<any>(`/fees/operations/data-quality`)
+        apiClient.get<any>(`/fees/operations/data-quality`),
       ]);
 
       if (ovRes?.data?.data) setOverview(ovRes.data.data);
@@ -271,7 +266,7 @@ export const FinanceOperations: React.FC = () => {
     try {
       const q = new URLSearchParams({
         page: String(page),
-        limit: '15'
+        limit: '15',
       });
       if (category && category !== 'all') q.set('category', category);
       if (severity && severity !== 'all') q.set('severity', severity);
@@ -310,21 +305,35 @@ export const FinanceOperations: React.FC = () => {
       if (academicYearId) q.set('academicYearId', academicYearId);
 
       const res = await apiClient.get(`/fees/operations/export?${q.toString()}`, {
-        responseType: 'blob'
+        responseType: 'blob',
       });
 
       const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `finance_operations_${type}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute(
+        'download',
+        `finance_operations_${type}_${new Date().toISOString().slice(0, 10)}.csv`,
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       toast.success(`Exported ${type} operations report successfully.`);
     } catch (err: any) {
       console.error('[FinanceOperations] CSV Export failed:', err);
-      toast.error('Failed to export operational report.');
+      let errorMsg = 'Failed to export operational report.';
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json.message) errorMsg = json.message;
+        } catch {}
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      toast.error(errorMsg);
     } finally {
       setIsExporting(false);
     }
@@ -341,7 +350,9 @@ export const FinanceOperations: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-white">Finance Operations & Insights</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-white">
+                  Finance Operations & Insights
+                </h1>
                 <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                   Stage 4 Phase 15
                 </span>
@@ -350,7 +361,8 @@ export const FinanceOperations: React.FC = () => {
                 </span>
               </div>
               <p className="text-sm text-slate-400 mt-0.5">
-                Consolidated operational visibility, collections performance, receivables ageing, and priority exception queue.
+                Consolidated operational visibility, collections performance, receivables ageing,
+                and priority exception queue.
               </p>
             </div>
           </div>
@@ -382,12 +394,24 @@ export const FinanceOperations: React.FC = () => {
             disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 transition-colors"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`}
+            />
             Refresh
           </button>
 
           <button
-            onClick={() => handleExport(activeTab === 'collections' ? 'collections' : activeTab === 'receivables' ? 'receivables' : activeTab === 'exceptions' ? 'exceptions' : 'overview')}
+            onClick={() =>
+              handleExport(
+                activeTab === 'collections'
+                  ? 'collections'
+                  : activeTab === 'receivables'
+                    ? 'receivables'
+                    : activeTab === 'exceptions'
+                      ? 'exceptions'
+                      : 'overview',
+              )
+            }
             disabled={isExporting}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-medium text-white transition-colors"
           >
@@ -402,37 +426,51 @@ export const FinanceOperations: React.FC = () => {
         {/* KPI 1: Collections */}
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Collections</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+              Total Collections
+            </span>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <Coins className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-white">
-              {formatCurrency(overview?.collections.total_collected || 0, overview?.collections.currency_code)}
+              {formatCurrency(
+                overview?.collections.total_collected || 0,
+                overview?.collections.currency_code,
+              )}
             </span>
           </div>
           <div className="mt-2 text-xs text-slate-400 flex items-center justify-between border-t border-slate-700/40 pt-2">
             <span>{overview?.collections.successful_count || 0} Successful Transactions</span>
-            <span className="text-amber-400">{formatCurrency(overview?.collections.pending_amount || 0)} Pending</span>
+            <span className="text-amber-400">
+              {formatCurrency(overview?.collections.pending_amount || 0)} Pending
+            </span>
           </div>
         </div>
 
         {/* KPI 2: Outstanding Receivables */}
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Outstanding Receivables</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+              Outstanding Receivables
+            </span>
             <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
               <Receipt className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-white">
-              {formatCurrency(overview?.receivables.total_outstanding || 0, overview?.receivables.currency_code)}
+              {formatCurrency(
+                overview?.receivables.total_outstanding || 0,
+                overview?.receivables.currency_code,
+              )}
             </span>
           </div>
           <div className="mt-2 text-xs text-slate-400 flex items-center justify-between border-t border-slate-700/40 pt-2">
-            <span className="text-rose-400">{formatCurrency(overview?.receivables.total_overdue || 0)} Overdue</span>
+            <span className="text-rose-400">
+              {formatCurrency(overview?.receivables.total_overdue || 0)} Overdue
+            </span>
             <span>{overview?.receivables.students_with_outstanding || 0} Students</span>
           </div>
         </div>
@@ -440,7 +478,9 @@ export const FinanceOperations: React.FC = () => {
         {/* KPI 3: Collection Realization Rate */}
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Realization Rate</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+              Realization Rate
+            </span>
             <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -454,19 +494,25 @@ export const FinanceOperations: React.FC = () => {
           <div className="mt-2 w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, Math.max(0, overview?.performance.collection_rate_percentage || 0))}%` }}
+              style={{
+                width: `${Math.min(100, Math.max(0, overview?.performance.collection_rate_percentage || 0))}%`,
+              }}
             />
           </div>
           <div className="mt-2 text-xs text-slate-400 flex items-center justify-between border-t border-slate-700/40 pt-1.5">
             <span>{formatCurrency(overview?.receivables.total_allocated || 0)} Allocated</span>
-            <span className="text-slate-400">Total Assessed: {formatCurrency(overview?.receivables.total_assessed || 0)}</span>
+            <span className="text-slate-400">
+              Total Assessed: {formatCurrency(overview?.receivables.total_assessed || 0)}
+            </span>
           </div>
         </div>
 
         {/* KPI 4: Exceptions & Concessions */}
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Exceptions Queue</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+              Exceptions Queue
+            </span>
             <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <AlertTriangle className="w-4 h-4" />
             </div>
@@ -479,7 +525,9 @@ export const FinanceOperations: React.FC = () => {
           </div>
           <div className="mt-2 text-xs text-slate-400 flex items-center justify-between border-t border-slate-700/40 pt-2">
             <span>{overview?.exceptions.unallocated_payments_count || 0} Unallocated Funds</span>
-            <span className="text-indigo-400">{overview?.concessions.pending_review_count || 0} Pending Concessions</span>
+            <span className="text-indigo-400">
+              {overview?.concessions.pending_review_count || 0} Pending Concessions
+            </span>
           </div>
         </div>
       </div>
@@ -490,9 +538,14 @@ export const FinanceOperations: React.FC = () => {
           { id: 'overview', label: 'Executive Summary', icon: Compass },
           { id: 'collections', label: 'Collections Performance', icon: Coins },
           { id: 'receivables', label: 'Receivables & Ageing', icon: BarChart3 },
-          { id: 'exceptions', label: 'Exception Action Center', icon: AlertTriangle, badge: overview?.exceptions.total_exceptions_count },
+          {
+            id: 'exceptions',
+            label: 'Exception Action Center',
+            icon: AlertTriangle,
+            badge: overview?.exceptions.total_exceptions_count,
+          },
           { id: 'data_quality', label: 'Data Quality & Readiness', icon: ShieldCheck },
-          { id: 'exports', label: 'Export Center', icon: FileSpreadsheet }
+          { id: 'exports', label: 'Export Center', icon: FileSpreadsheet },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -522,7 +575,9 @@ export const FinanceOperations: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-16 text-slate-400 space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-indigo-400" />
-          <p className="text-sm font-medium">Aggregating transactional insights and operational metrics...</p>
+          <p className="text-sm font-medium">
+            Aggregating transactional insights and operational metrics...
+          </p>
         </div>
       ) : (
         <>
@@ -538,17 +593,30 @@ export const FinanceOperations: React.FC = () => {
                     Demand & Allocation Breakdown
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Distribution of total student charge dues between allocated collections, active current dues, and overdue balances.
+                    Distribution of total student charge dues between allocated collections, active
+                    current dues, and overdue balances.
                   </p>
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'Allocated Paid', value: overview?.receivables.total_allocated || 0 },
-                            { name: 'Current Due', value: overview?.receivables.total_current_due || 0 },
-                            { name: 'Overdue Dues', value: overview?.receivables.total_overdue || 0 },
-                            { name: 'Undated Dues', value: overview?.receivables.total_undated_due || 0 }
+                            {
+                              name: 'Allocated Paid',
+                              value: overview?.receivables.total_allocated || 0,
+                            },
+                            {
+                              name: 'Current Due',
+                              value: overview?.receivables.total_current_due || 0,
+                            },
+                            {
+                              name: 'Overdue Dues',
+                              value: overview?.receivables.total_overdue || 0,
+                            },
+                            {
+                              name: 'Undated Dues',
+                              value: overview?.receivables.total_undated_due || 0,
+                            },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -563,7 +631,11 @@ export const FinanceOperations: React.FC = () => {
                           <Cell fill="#64748b" />
                         </Pie>
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            borderColor: '#334155',
+                            borderRadius: '8px',
+                          }}
                           formatter={(value: any) => formatCurrency(Number(value))}
                         />
                       </PieChart>
@@ -596,7 +668,8 @@ export const FinanceOperations: React.FC = () => {
                     Specialized Finance Workspace Directory
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Directly access dedicated Phase 8–14 workspaces to investigate variances, execute reconciliations, and review audits.
+                    Directly access dedicated Phase 8–14 workspaces to investigate variances,
+                    execute reconciliations, and review audits.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -606,43 +679,43 @@ export const FinanceOperations: React.FC = () => {
                         url: '/app/finance/receivables',
                         desc: 'Student dues management, follow-up queues, and fee collection aging.',
                         icon: Receipt,
-                        phase: 'Phase 8'
+                        phase: 'Phase 8',
                       },
                       {
                         title: 'Finance Reconciliation',
                         url: '/app/finance/reconciliation',
                         desc: 'Settlement matching, unallocated gateway resolution, and run triggers.',
                         icon: Scale,
-                        phase: 'Phase 10'
+                        phase: 'Phase 10',
                       },
                       {
                         title: 'Accounting Readiness',
                         url: '/app/finance/accounting',
                         desc: 'Journal preparation, exception clearing, and trial balance readiness.',
                         icon: BookOpen,
-                        phase: 'Phase 11'
+                        phase: 'Phase 11',
                       },
                       {
                         title: 'Financial Reports & Intelligence',
                         url: '/app/finance/reports',
                         desc: 'Historical financial reporting, cash closing, and collection trends.',
                         icon: FileText,
-                        phase: 'Phase 12'
+                        phase: 'Phase 12',
                       },
                       {
                         title: 'Budgeting & Financial Planning',
                         url: '/app/finance/planning',
                         desc: 'Forecast scenarios, realization simulation, and academic year outlooks.',
                         icon: TrendingUp,
-                        phase: 'Phase 13'
+                        phase: 'Phase 13',
                       },
                       {
                         title: 'Finance Audit & Compliance',
                         url: '/app/finance/audit',
                         desc: 'Read-only governance, webhook tracking, and segregation of duties.',
                         icon: ShieldCheck,
-                        phase: 'Phase 14'
-                      }
+                        phase: 'Phase 14',
+                      },
                     ].map((mod, idx) => {
                       const Icon = mod.icon;
                       return (
@@ -678,9 +751,15 @@ export const FinanceOperations: React.FC = () => {
               <div className="p-4 bg-slate-800/30 border border-slate-700/60 rounded-xl flex items-start gap-3">
                 <Info className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />
                 <div className="text-xs space-y-1">
-                  <h4 className="font-semibold text-slate-200">Financial Integrity & Concession Semantics</h4>
+                  <h4 className="font-semibold text-slate-200">
+                    Financial Integrity & Concession Semantics
+                  </h4>
                   <p className="text-slate-400 leading-relaxed">
-                    {overview?.concessions.exposure_disclosure} Current records track {overview?.concessions.approved_count || 0} approved concessions and {overview?.concessions.applied_count || 0} applied allocations. Student outstanding balances reflect post-concession assessments without duplicate deductions.
+                    {overview?.concessions.exposure_disclosure} Current records track{' '}
+                    {overview?.concessions.approved_count || 0} approved concessions and{' '}
+                    {overview?.concessions.applied_count || 0} applied allocations. Student
+                    outstanding balances reflect post-concession assessments without duplicate
+                    deductions.
                   </p>
                 </div>
               </div>
@@ -706,10 +785,23 @@ export const FinanceOperations: React.FC = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={collections?.by_payment_method || []} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis type="number" stroke="#94a3b8" tickFormatter={(v) => `₹${v / 1000}k`} />
-                        <YAxis type="category" dataKey="payment_method" stroke="#94a3b8" width={80} />
+                        <XAxis
+                          type="number"
+                          stroke="#94a3b8"
+                          tickFormatter={(v) => `₹${v / 1000}k`}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="payment_method"
+                          stroke="#94a3b8"
+                          width={80}
+                        />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            borderColor: '#334155',
+                            borderRadius: '8px',
+                          }}
                           formatter={(val: any) => formatCurrency(Number(val))}
                         />
                         <Bar dataKey="amount" fill="#10b981" radius={[0, 4, 4, 0]} />
@@ -731,10 +823,20 @@ export const FinanceOperations: React.FC = () => {
                         <XAxis dataKey="period_label" stroke="#94a3b8" />
                         <YAxis stroke="#94a3b8" tickFormatter={(v) => `₹${v / 1000}k`} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            borderColor: '#334155',
+                            borderRadius: '8px',
+                          }}
                           formatter={(val: any) => formatCurrency(Number(val))}
                         />
-                        <Line type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+                        <Line
+                          type="monotone"
+                          dataKey="amount"
+                          stroke="#6366f1"
+                          strokeWidth={2}
+                          dot={{ r: 4 }}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -764,7 +866,9 @@ export const FinanceOperations: React.FC = () => {
                         return (
                           <tr key={i} className="hover:bg-slate-800/30">
                             <td className="p-3 font-medium text-slate-200">{fc.component_name}</td>
-                            <td className="p-3 text-right text-slate-400">{fc.transaction_count}</td>
+                            <td className="p-3 text-right text-slate-400">
+                              {fc.transaction_count}
+                            </td>
                             <td className="p-3 text-right font-semibold text-emerald-400">
                               {formatCurrency(fc.allocated_amount)}
                             </td>
@@ -793,8 +897,8 @@ export const FinanceOperations: React.FC = () => {
                         isOverdue
                           ? 'bg-rose-500/5 border-rose-500/20 text-rose-300'
                           : b.bucket_key === 'CURRENT'
-                          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
-                          : 'bg-slate-800/40 border-slate-700/50 text-slate-300'
+                            ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+                            : 'bg-slate-800/40 border-slate-700/50 text-slate-300'
                       }`}
                     >
                       <span className="text-[11px] font-medium block truncate" title={b.label}>
@@ -834,7 +938,11 @@ export const FinanceOperations: React.FC = () => {
                         <XAxis dataKey="bucket_key" stroke="#94a3b8" />
                         <YAxis stroke="#94a3b8" tickFormatter={(v) => `₹${v / 1000}k`} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            borderColor: '#334155',
+                            borderRadius: '8px',
+                          }}
                           formatter={(val: any) => formatCurrency(Number(val))}
                         />
                         <Bar dataKey="amount" fill="#f43f5e" radius={[4, 4, 0, 0]} />
@@ -892,7 +1000,9 @@ export const FinanceOperations: React.FC = () => {
                     <option value="UNALLOCATED_FUNDS">Unallocated Funds</option>
                     <option value="SETTLEMENT_MISMATCH">Settlement Mismatches</option>
                     <option value="WEBHOOK_FAILURE">Webhook Failures</option>
-                    <option value="PENDING_CONCESSION_APPROVAL">Pending Concession Approvals</option>
+                    <option value="PENDING_CONCESSION_APPROVAL">
+                      Pending Concession Approvals
+                    </option>
                   </select>
 
                   <select
@@ -942,15 +1052,17 @@ export const FinanceOperations: React.FC = () => {
                                   item.severity === 'HIGH'
                                     ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                     : item.severity === 'MEDIUM'
-                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                      : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                 }`}
                               >
                                 {item.severity}
                               </span>
                             </td>
                             <td className="p-3 font-medium text-slate-200">{item.category}</td>
-                            <td className="p-3 text-slate-400 uppercase text-[10px]">{item.source_module}</td>
+                            <td className="p-3 text-slate-400 uppercase text-[10px]">
+                              {item.source_module}
+                            </td>
                             <td className="p-3 text-slate-300 max-w-md">{item.description}</td>
                             <td className="p-3 text-slate-400">{item.source_status}</td>
                             <td className="p-3 text-right">
@@ -1004,12 +1116,15 @@ export const FinanceOperations: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-white">Overall Data Quality Score</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Evaluates completeness, tenant scoping, and readiness across 7 financial operational dimensions.
+                    Evaluates completeness, tenant scoping, and readiness across 7 financial
+                    operational dimensions.
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-indigo-400">{dataQuality?.readiness_score || 0}%</span>
+                    <span className="text-2xl font-bold text-indigo-400">
+                      {dataQuality?.readiness_score || 0}%
+                    </span>
                     <span className="block text-[10px] text-slate-500 uppercase tracking-wider">
                       {dataQuality?.overall_status}
                     </span>
@@ -1038,8 +1153,8 @@ export const FinanceOperations: React.FC = () => {
                               ctrl.status === 'AVAILABLE'
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                 : ctrl.status === 'PARTIAL'
-                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                             }`}
                           >
                             {ctrl.status}
@@ -1063,28 +1178,31 @@ export const FinanceOperations: React.FC = () => {
                   id: 'overview',
                   title: 'Executive Finance Overview CSV',
                   desc: 'High-level KPI summary covering total collections, outstanding receivables, overdue balances, realization rate, and active exceptions.',
-                  type: 'overview' as const
+                  type: 'overview' as const,
                 },
                 {
                   id: 'collections',
                   title: 'Collections Performance Breakdown CSV',
                   desc: 'Granular payment method, timeline, fee component, and academic year collections breakdown.',
-                  type: 'collections' as const
+                  type: 'collections' as const,
                 },
                 {
                   id: 'receivables',
                   title: 'Receivables & Ageing Analysis CSV',
                   desc: 'Comprehensive ageing buckets distribution (Current, 1-30, 31-60, 61-90, 90+ days, undated dues).',
-                  type: 'receivables' as const
+                  type: 'receivables' as const,
                 },
                 {
                   id: 'exceptions',
                   title: 'Consolidated Exceptions Queue CSV',
                   desc: 'Action center report grouping unallocated payments, settlement mismatches, webhook failures, and pending concessions.',
-                  type: 'exceptions' as const
-                }
+                  type: 'exceptions' as const,
+                },
               ].map((exp) => (
-                <div key={exp.id} className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 space-y-4">
+                <div
+                  key={exp.id}
+                  className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 space-y-4"
+                >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
                       <FileSpreadsheet className="w-5 h-5" />
@@ -1095,7 +1213,9 @@ export const FinanceOperations: React.FC = () => {
                     </div>
                   </div>
                   <div className="border-t border-slate-700/40 pt-4 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500">Sanitized formula protection enabled</span>
+                    <span className="text-[11px] text-slate-500">
+                      Sanitized formula protection enabled
+                    </span>
                     <button
                       onClick={() => handleExport(exp.type)}
                       disabled={isExporting}

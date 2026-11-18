@@ -75,7 +75,7 @@ export const ProfileMenu: React.FC = () => {
           .split('@')[0]
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
-      : 'EduTrack User');
+      : 'EduLyfe User');
   const avatarUrl =
     (user as any)?.avatar_url ||
     (user as any)?.avatarUrl ||

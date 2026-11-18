@@ -26,7 +26,7 @@ import {
   Info,
   Building2,
   CheckCircle2,
-  FileSpreadsheet
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   BarChart,
@@ -36,7 +36,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend
+  Legend,
 } from 'recharts';
 import { apiClient } from '../../../lib/api-client';
 import { toast } from 'sonner';
@@ -165,12 +165,26 @@ interface SettlementItem {
 export const FinanceReports: React.FC = () => {
   // Navigation / Tabs
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'collections' | 'receivables' | 'assessments' | 'concessions' | 'settlements' | 'reconciliation' | 'readiness' | 'exports'
+    | 'overview'
+    | 'collections'
+    | 'receivables'
+    | 'assessments'
+    | 'concessions'
+    | 'settlements'
+    | 'reconciliation'
+    | 'readiness'
+    | 'exports'
   >('overview');
 
   // Global filters
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  });
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(15);
@@ -178,7 +192,11 @@ export const FinanceReports: React.FC = () => {
 
   // Tab specific data states
   const [summary, setSummary] = useState<SummaryData | null>(null);
-  const [collections, setCollections] = useState<{ total: number; data: CollectionItem[]; trends: any[] } | null>(null);
+  const [collections, setCollections] = useState<{
+    total: number;
+    data: CollectionItem[];
+    trends: any[];
+  } | null>(null);
   const [ageing, setAgeing] = useState<{
     buckets: Record<string, AgeingBucketInfo>;
     total_outstanding: number;
@@ -186,9 +204,20 @@ export const FinanceReports: React.FC = () => {
     detail: { total: number; data: DueDetailItem[] };
   } | null>(null);
   const [selectedAgeingBucket, setSelectedAgeingBucket] = useState<string>('all');
-  const [assessments, setAssessments] = useState<{ components: ComponentItem[]; summary: any } | null>(null);
-  const [concessions, setConcessions] = useState<{ summary: ConcessionSummary; concessions_by_type: ConcessionTypeItem[] } | null>(null);
-  const [settlements, setSettlements] = useState<{ is_available: boolean; total: number; data: SettlementItem[]; summary: any } | null>(null);
+  const [assessments, setAssessments] = useState<{
+    components: ComponentItem[];
+    summary: any;
+  } | null>(null);
+  const [concessions, setConcessions] = useState<{
+    summary: ConcessionSummary;
+    concessions_by_type: ConcessionTypeItem[];
+  } | null>(null);
+  const [settlements, setSettlements] = useState<{
+    is_available: boolean;
+    total: number;
+    data: SettlementItem[];
+    summary: any;
+  } | null>(null);
   const [reconciliation, setReconciliation] = useState<any | null>(null);
   const [readiness, setReadiness] = useState<any | null>(null);
 
@@ -378,20 +407,37 @@ export const FinanceReports: React.FC = () => {
     }
   }, [page]);
 
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
   // Server-side CSV Export Trigger with formula injection protection
-  const triggerExport = (reportType: string) => {
+  const triggerExport = async (reportType: string) => {
     try {
-      const params = new URLSearchParams();
-      params.set('reportType', reportType);
-      if (startDate) params.set('startDate', startDate);
-      if (endDate) params.set('endDate', endDate);
-      
-      const token = localStorage.getItem('access_token') || sessionStorage.getItem('token');
-      // Direct browser download
-      window.open(`/api/fees/reports/export?${params.toString()}&token=${token || ''}`, '_blank');
-      toast.success(`Exporting ${reportType.toUpperCase()} CSV report...`);
+      setIsExporting(true);
+      toast.info(`Preparing ${reportType.toUpperCase()} CSV report...`);
+      const params: any = { reportType };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const res = await apiClient.get('/fees/reports/export', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `finance_report_${reportType}_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success(`Exported ${reportType.toUpperCase()} CSV report successfully`);
     } catch (e: any) {
+      console.error('Report export failed:', e);
       toast.error('Failed to trigger report export');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -404,7 +450,7 @@ export const FinanceReports: React.FC = () => {
       { name: '8–30d', amount: summary.ageing_distribution.overdue_8_30, fill: '#eab308' },
       { name: '31–60d', amount: summary.ageing_distribution.overdue_31_60, fill: '#f97316' },
       { name: '61–90d', amount: summary.ageing_distribution.overdue_61_90, fill: '#ef4444' },
-      { name: '90+d', amount: summary.ageing_distribution.overdue_90_plus, fill: '#b91c1c' }
+      { name: '90+d', amount: summary.ageing_distribution.overdue_90_plus, fill: '#b91c1c' },
     ];
   }, [summary]);
 
@@ -426,7 +472,8 @@ export const FinanceReports: React.FC = () => {
             Finance Reports & Financial Intelligence
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Authoritative, decimal-safe operational metrics derived strictly from PostgreSQL transaction tables.
+            Authoritative, decimal-safe operational metrics derived strictly from PostgreSQL
+            transaction tables.
           </p>
         </div>
 
@@ -519,7 +566,7 @@ export const FinanceReports: React.FC = () => {
           { id: 'settlements', label: 'Gateway & Bank Settlements', icon: Landmark },
           { id: 'reconciliation', label: 'Reconciliation Exceptions', icon: AlertCircle },
           { id: 'readiness', label: 'Accounting Readiness', icon: Scale },
-          { id: 'exports', label: 'Export Center', icon: Download }
+          { id: 'exports', label: 'Export Center', icon: Download },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -596,7 +643,9 @@ export const FinanceReports: React.FC = () => {
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-500">Outstanding Receivables</span>
+                <span className="text-xs font-semibold text-slate-500">
+                  Outstanding Receivables
+                </span>
                 <Clock className="w-4 h-4 text-amber-500" />
               </div>
               <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
@@ -721,7 +770,9 @@ export const FinanceReports: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Receivables Ageing Distribution
                   </h3>
-                  <p className="text-xs text-slate-500">Dues partitioned by Phase 8 ageing buckets</p>
+                  <p className="text-xs text-slate-500">
+                    Dues partitioned by Phase 8 ageing buckets
+                  </p>
                 </div>
                 <button
                   onClick={() => setActiveTab('receivables')}
@@ -733,13 +784,25 @@ export const FinanceReports: React.FC = () => {
 
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={ageingChartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                  <BarChart
+                    data={ageingChartData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                    />
                     <Tooltip
                       formatter={(val: any) => [formatMoney(val), 'Outstanding']}
-                      contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
+                      contentStyle={{
+                        backgroundColor: '#1e293b',
+                        borderColor: '#334155',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '12px',
+                      }}
                     />
                     <Bar dataKey="amount" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -757,25 +820,42 @@ export const FinanceReports: React.FC = () => {
                   </h3>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                  Financial calculations in this workspace adhere strictly to PostgreSQL physical tables. Operational summaries are segregated from posted general-ledger balances.
+                  Financial calculations in this workspace adhere strictly to PostgreSQL physical
+                  tables. Operational summaries are segregated from posted general-ledger balances.
                 </p>
 
                 <div className="space-y-2.5 text-xs">
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg">
-                    <span className="font-medium text-slate-600 dark:text-slate-400">Database Schema Freeze:</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">Strictly Enforced (Zero DDL)</span>
+                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                      Database Schema Freeze:
+                    </span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      Strictly Enforced (Zero DDL)
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg">
-                    <span className="font-medium text-slate-600 dark:text-slate-400">Captured-but-Unallocated Funds:</span>
-                    <span className="font-semibold text-orange-600 dark:text-orange-400">Segregated from Revenue</span>
+                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                      Captured-but-Unallocated Funds:
+                    </span>
+                    <span className="font-semibold text-orange-600 dark:text-orange-400">
+                      Segregated from Revenue
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg">
-                    <span className="font-medium text-slate-600 dark:text-slate-400">General Ledger Trial Balance:</span>
-                    <span className="font-semibold text-amber-600 dark:text-amber-400">Blocked (No Fabricated Balances)</span>
+                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                      General Ledger Trial Balance:
+                    </span>
+                    <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      Blocked (No Fabricated Balances)
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg">
-                    <span className="font-medium text-slate-600 dark:text-slate-400">CSV Export Sanitization:</span>
-                    <span className="font-semibold text-teal-600 dark:text-teal-400">Active (Formula Shield)</span>
+                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                      CSV Export Sanitization:
+                    </span>
+                    <span className="font-semibold text-teal-600 dark:text-teal-400">
+                      Active (Formula Shield)
+                    </span>
                   </div>
                 </div>
               </div>
@@ -858,7 +938,9 @@ export const FinanceReports: React.FC = () => {
                           <div className="font-semibold text-slate-900 dark:text-white">
                             {row.student_name || 'Unassigned'}
                           </div>
-                          <div className="text-[11px] text-slate-400">{row.admission_no || 'N/A'}</div>
+                          <div className="text-[11px] text-slate-400">
+                            {row.admission_no || 'N/A'}
+                          </div>
                         </td>
                         <td className="px-4 py-3 capitalize text-slate-700 dark:text-slate-300">
                           {row.payment_method.replace('_', ' ')}
@@ -869,8 +951,8 @@ export const FinanceReports: React.FC = () => {
                               row.status === 'success'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                                 : row.status === 'pending'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                             }`}
                           >
                             {row.status}
@@ -894,7 +976,7 @@ export const FinanceReports: React.FC = () => {
                           {new Date(row.transaction_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </td>
                       </tr>
@@ -913,7 +995,10 @@ export const FinanceReports: React.FC = () => {
             {/* Pagination Controls */}
             <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
               <span>
-                Total records: <strong className="text-slate-900 dark:text-white">{collections?.total || 0}</strong>
+                Total records:{' '}
+                <strong className="text-slate-900 dark:text-white">
+                  {collections?.total || 0}
+                </strong>
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -947,10 +1032,26 @@ export const FinanceReports: React.FC = () => {
             {[
               { id: 'all', label: 'All Dues', bucket: null },
               { id: 'CURRENT', label: 'Current (Not Due)', bucket: ageing?.buckets?.CURRENT },
-              { id: 'OVERDUE_1_7', label: '1–7 Days Overdue', bucket: ageing?.buckets?.OVERDUE_1_7 },
-              { id: 'OVERDUE_8_30', label: '8–30 Days Overdue', bucket: ageing?.buckets?.OVERDUE_8_30 },
-              { id: 'OVERDUE_31_60', label: '31–60 Days Overdue', bucket: ageing?.buckets?.OVERDUE_31_60 },
-              { id: 'OVERDUE_90_PLUS', label: '90+ Days Overdue', bucket: ageing?.buckets?.OVERDUE_90_PLUS }
+              {
+                id: 'OVERDUE_1_7',
+                label: '1–7 Days Overdue',
+                bucket: ageing?.buckets?.OVERDUE_1_7,
+              },
+              {
+                id: 'OVERDUE_8_30',
+                label: '8–30 Days Overdue',
+                bucket: ageing?.buckets?.OVERDUE_8_30,
+              },
+              {
+                id: 'OVERDUE_31_60',
+                label: '31–60 Days Overdue',
+                bucket: ageing?.buckets?.OVERDUE_31_60,
+              },
+              {
+                id: 'OVERDUE_90_PLUS',
+                label: '90+ Days Overdue',
+                bucket: ageing?.buckets?.OVERDUE_90_PLUS,
+              },
             ].map((b) => (
               <div
                 key={b.id}
@@ -980,8 +1081,12 @@ export const FinanceReports: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Outstanding Dues Register</h3>
-                <p className="text-xs text-slate-500">Student obligations calculated with decimal-safe remaining balance.</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Outstanding Dues Register
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Student obligations calculated with decimal-safe remaining balance.
+                </p>
               </div>
               <button
                 onClick={() => triggerExport('receivables')}
@@ -1014,14 +1119,16 @@ export const FinanceReports: React.FC = () => {
                         onClick={() => setDrawerRecord(row)}
                       >
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900 dark:text-white">{row.student_name}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {row.student_name}
+                          </div>
                           <div className="text-[11px] text-slate-400">{row.admission_no}</div>
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                           {new Date(row.due_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </td>
                         <td className="px-4 py-3">
@@ -1030,16 +1137,18 @@ export const FinanceReports: React.FC = () => {
                               row.ageing_bucket === 'CURRENT'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                                 : row.ageing_bucket.includes('1_7')
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                                : row.ageing_bucket.includes('8_30')
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                                  : row.ageing_bucket.includes('8_30')
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                             }`}
                           >
                             {row.ageing_bucket}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{formatMoney(row.amount_due)}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {formatMoney(row.amount_due)}
+                        </td>
                         <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">
                           {formatMoney(row.allocated_amount)}
                         </td>
@@ -1067,7 +1176,10 @@ export const FinanceReports: React.FC = () => {
             {/* Pagination */}
             <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
               <span>
-                Total obligations: <strong className="text-slate-900 dark:text-white">{ageing?.detail?.total || 0}</strong>
+                Total obligations:{' '}
+                <strong className="text-slate-900 dark:text-white">
+                  {ageing?.detail?.total || 0}
+                </strong>
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -1103,7 +1215,9 @@ export const FinanceReports: React.FC = () => {
               <div className="text-xl font-bold text-slate-900 dark:text-white mt-1">
                 {formatMoney(assessments?.summary?.total_assessed)}
               </div>
-              <div className="text-xs text-slate-400 mt-1">{assessments?.summary?.total_charges_count || 0} charge records</div>
+              <div className="text-xs text-slate-400 mt-1">
+                {assessments?.summary?.total_charges_count || 0} charge records
+              </div>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -1137,8 +1251,12 @@ export const FinanceReports: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Fee Component Performance</h3>
-                <p className="text-xs text-slate-500">Independent CTE aggregations to eliminate Cartesian 1:N join inflation.</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Fee Component Performance
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Independent CTE aggregations to eliminate Cartesian 1:N join inflation.
+                </p>
               </div>
               <button
                 onClick={() => triggerExport('assessments')}
@@ -1165,14 +1283,27 @@ export const FinanceReports: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {assessments?.components && assessments.components.length > 0 ? (
                     assessments.components.map((comp) => (
-                      <tr key={comp.component_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                      <tr
+                        key={comp.component_id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900 dark:text-white">{comp.component_name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{comp.component_code}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {comp.component_name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            {comp.component_code}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{comp.student_count} students</td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{formatMoney(comp.assessed_amount)}</td>
-                        <td className="px-4 py-3 text-blue-600 dark:text-blue-400">{formatMoney(comp.total_dues_amount)}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {comp.student_count} students
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {formatMoney(comp.assessed_amount)}
+                        </td>
+                        <td className="px-4 py-3 text-blue-600 dark:text-blue-400">
+                          {formatMoney(comp.total_dues_amount)}
+                        </td>
                         <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">
                           {formatMoney(comp.total_paid_amount)}
                         </td>
@@ -1242,9 +1373,12 @@ export const FinanceReports: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Scholarship Distribution by Category</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Scholarship Distribution by Category
+                </h3>
                 <p className="text-xs text-slate-500">
-                  Approved concessions vs applied ledger deductions (concessions only reduce due amount once applied).
+                  Approved concessions vs applied ledger deductions (concessions only reduce due
+                  amount once applied).
                 </p>
               </div>
               <button
@@ -1269,7 +1403,8 @@ export const FinanceReports: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                  {concessions?.concessions_by_type && concessions.concessions_by_type.length > 0 ? (
+                  {concessions?.concessions_by_type &&
+                  concessions.concessions_by_type.length > 0 ? (
                     concessions.concessions_by_type.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white capitalize">
@@ -1281,15 +1416,19 @@ export const FinanceReports: React.FC = () => {
                               row.status === 'approved' || row.status === 'applied'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                                 : row.status === 'rejected'
-                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                             }`}
                           >
                             {row.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.count}</td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.student_count}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {row.count}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {row.student_count}
+                        </td>
                         <td className="px-4 py-3 font-bold text-purple-600 dark:text-purple-400">
                           {row.avg_percentage}%
                         </td>
@@ -1321,8 +1460,12 @@ export const FinanceReports: React.FC = () => {
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 p-4 rounded-xl flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
               <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600" />
               <div>
-                <strong className="block font-semibold mb-0.5">Authoritative Settlement Records Unavailable</strong>
-                No processed bank settlements have been posted yet for this organization. When automated Razorpay webhooks or manual bank settlement batches are ingested, net deposit calculations will appear here.
+                <strong className="block font-semibold mb-0.5">
+                  Authoritative Settlement Records Unavailable
+                </strong>
+                No processed bank settlements have been posted yet for this organization. When
+                automated Razorpay webhooks or manual bank settlement batches are ingested, net
+                deposit calculations will appear here.
               </div>
             </div>
           )}
@@ -1349,8 +1492,12 @@ export const FinanceReports: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Settlement Batch Register</h3>
-                <p className="text-xs text-slate-500">Deduction-verified bank payouts with UTR references.</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Settlement Batch Register
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Deduction-verified bank payouts with UTR references.
+                </p>
               </div>
               <button
                 onClick={() => triggerExport('settlements')}
@@ -1377,16 +1524,23 @@ export const FinanceReports: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {settlements?.data && settlements.data.length > 0 ? (
                     settlements.data.map((row) => (
-                      <tr key={row.gateway_settlement_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                      <tr
+                        key={row.gateway_settlement_id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                      >
                         <td className="px-4 py-3 font-mono text-[11px]">
-                          <div className="font-semibold text-slate-900 dark:text-white">{row.settlement_reference}</div>
-                          {row.utr && <div className="text-[10px] text-slate-400">UTR: {row.utr}</div>}
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {row.settlement_reference}
+                          </div>
+                          {row.utr && (
+                            <div className="text-[10px] text-slate-400">UTR: {row.utr}</div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                           {new Date(row.settlement_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </td>
                         <td className="px-4 py-3 text-slate-900 dark:text-white font-semibold">
@@ -1436,7 +1590,8 @@ export const FinanceReports: React.FC = () => {
                 </h3>
               </div>
               <p className="text-xs text-slate-500">
-                Exceptions identified by Phase 10 reconciliation engine requiring operational attention.
+                Exceptions identified by Phase 10 reconciliation engine requiring operational
+                attention.
               </p>
             </div>
             <a
@@ -1449,7 +1604,9 @@ export const FinanceReports: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-500">Total Unresolved Exceptions</span>
+              <span className="text-xs font-semibold text-slate-500">
+                Total Unresolved Exceptions
+              </span>
               <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">
                 {reconciliation?.unresolved_exceptions_count || 0}
               </div>
@@ -1489,7 +1646,8 @@ export const FinanceReports: React.FC = () => {
                 </h3>
               </div>
               <p className="text-xs text-slate-500">
-                Pre-classified operational transactions mapped to debit/credit system accounts without fabricating posted ledger balances.
+                Pre-classified operational transactions mapped to debit/credit system accounts
+                without fabricating posted ledger balances.
               </p>
             </div>
             <a
@@ -1530,7 +1688,10 @@ export const FinanceReports: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {readiness?.data && readiness.data.length > 0 ? (
                     readiness.data.map((row: any) => (
-                      <tr key={row.record_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                      <tr
+                        key={row.record_id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                      >
                         <td className="px-4 py-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
                           {row.source_reference?.slice(0, 10)}...
                         </td>
@@ -1582,10 +1743,14 @@ export const FinanceReports: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Financial Export Center</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Financial Export Center
+              </h3>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-              Generate server-side CSV exports for audited financial registers. All exported data applies server-side authenticated tenant boundaries and incorporates spreadsheet formula injection protection.
+              Generate server-side CSV exports for audited financial registers. All exported data
+              applies server-side authenticated tenant boundaries and incorporates spreadsheet
+              formula injection protection.
             </p>
           </div>
 
@@ -1595,38 +1760,38 @@ export const FinanceReports: React.FC = () => {
                 id: 'collections',
                 title: 'Collections Register',
                 desc: 'Payment transactions, methods, gateway references, and allocation status.',
-                icon: Coins
+                icon: Coins,
               },
               {
                 id: 'receivables',
                 title: 'Receivables & Ageing Register',
                 desc: 'Student dues with overdue days, ageing buckets, and remaining amounts.',
-                icon: Clock
+                icon: Clock,
               },
               {
                 id: 'assessments',
                 title: 'Fee Component Summary',
                 desc: 'Component-wise assessed volume, scheduled dues, realized paid, and collection rate.',
-                icon: Receipt
+                icon: Receipt,
               },
               {
                 id: 'concessions',
                 title: 'Scholarships & Concessions',
                 desc: 'Approved vs applied waivers by scholarship type with percentage statistics.',
-                icon: Percent
+                icon: Percent,
               },
               {
                 id: 'settlements',
                 title: 'Gateway Settlements',
                 desc: 'Payout batches with gross collections, deductions, and net bank deposits.',
-                icon: Landmark
+                icon: Landmark,
               },
               {
                 id: 'accounting-readiness',
                 title: 'Accounting Readiness Register',
                 desc: 'Operational financial records mapped to standard chart of accounts debit/credits.',
-                icon: Scale
-              }
+                icon: Scale,
+              },
             ].map((exp) => {
               const Icon = exp.icon;
               return (
@@ -1638,7 +1803,9 @@ export const FinanceReports: React.FC = () => {
                     <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{exp.title}</h4>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                      {exp.title}
+                    </h4>
                     <p className="text-xs text-slate-500 leading-relaxed mb-4">{exp.desc}</p>
                   </div>
                   <button

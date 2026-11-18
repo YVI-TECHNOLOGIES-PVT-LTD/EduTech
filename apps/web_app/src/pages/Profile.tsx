@@ -71,7 +71,7 @@ export const Profile = () => {
   useEffect(() => {
     if (user) {
       setFullName(user.full_name || '');
-      setPhone(user.phone_number || '');
+      setPhone(user.phone_number || (user as any).phone || '');
     }
   }, [user]);
 
@@ -242,7 +242,13 @@ export const Profile = () => {
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
                       <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>School: EduLyfe Global School</span>
+                      <span>
+                        School:{' '}
+                        {user.tenant_name ||
+                          (user as any).org_name ||
+                          (user as any).school_name ||
+                          'Institution'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
                       <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0 animate-pulse ml-0.5 mr-0.5" />
@@ -348,7 +354,10 @@ export const Profile = () => {
                         School / Institution
                       </span>
                       <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-0.5">
-                        EduLyfe Global School
+                        {user.tenant_name ||
+                          (user as any).org_name ||
+                          (user as any).school_name ||
+                          'Institution'}
                       </p>
                     </div>
                   </div>

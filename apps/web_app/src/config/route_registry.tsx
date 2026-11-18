@@ -1375,6 +1375,11 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
 
   // ─── 7. FINANCE & FEES MANAGEMENT (PHASE 1 & PHASE 2) ─────────────────────
   {
+    path: 'finance',
+    element: <Navigate to="/app/finance/dashboard" replace />,
+    layout: 'dashboard',
+  },
+  {
     path: 'finance/dashboard',
     element: <FinanceDashboard />,
     layout: 'dashboard',

@@ -3,7 +3,7 @@
  * ====================================================
  * High-performance, parameterized SQL database layer for Financial Planning,
  * Budgeting, and Collections/Receivables Forecasting.
- * 
+ *
  * Invariants:
  * - Read-only operational queries respecting the schema freeze.
  * - Strict tenant isolation on s.org_id / ay.org_id.
@@ -44,6 +44,14 @@ export class FinancePlanningRepository {
     return client || prisma;
   }
 
+  public static validateTenantOrgId(id: string): string {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || typeof id !== 'string' || !uuidRegex.test(id)) {
+      throw new Error(`Invalid tenant organization ID format: ${id}`);
+    }
+    return id;
+  }
+
   public static roundMoney(val: number | string | null | undefined): number {
     if (val === null || val === undefined) return 0;
     const num = typeof val === 'number' ? val : Number(val);
@@ -56,6 +64,7 @@ export class FinancePlanningRepository {
   // =========================================================================
   public static async getPlanningCapabilities(tenantOrgId: string) {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
 
     // Check physical tables in PostgreSQL for any durable budgeting/planning tables
     const tables: any[] = await db.$queryRawUnsafe(`
@@ -68,17 +77,21 @@ export class FinancePlanningRepository {
     `);
 
     // Check historical payment data count
-    const historyCheck: any[] = await db.$queryRawUnsafe(`
+    const historyCheck: any[] = await db.$queryRawUnsafe(
+      `
       SELECT COUNT(pt.payment_transaction_id)::int as count
       FROM payment_transactions pt
       JOIN payment_orders po ON pt.payment_order_id = po.payment_order_id
       JOIN students s ON po.student_id = s.student_id
       WHERE s.org_id = $1::uuid
         AND pt.status = 'success'::payment_transaction_status;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     // Check scheduled dues count
-    const dueCheck: any[] = await db.$queryRawUnsafe(`
+    const dueCheck: any[] = await db.$queryRawUnsafe(
+      `
       SELECT 
         COUNT(scd.student_charge_due_id)::int as count,
         MIN(scd.due_date)::text as earliest_due,
@@ -87,7 +100,9 @@ export class FinancePlanningRepository {
       JOIN student_charges sc ON scd.student_charge_id = sc.student_charge_id
       JOIN students s ON sc.student_id = s.student_id
       WHERE s.org_id = $1::uuid;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     const hasDurablePersistence = tables.length > 0;
     const historicalTxnCount = historyCheck[0]?.count || 0;
@@ -111,8 +126,8 @@ export class FinancePlanningRepository {
         'Durable budget persistence is unavailable in current database schema',
         'Scenarios operate as on-demand mathematical simulations',
         'Historical forecast snapshots cannot be persisted under schema freeze',
-        'Planning calculations do not mutate operational ledger records'
-      ]
+        'Planning calculations do not mutate operational ledger records',
+      ],
     };
   }
 
@@ -121,9 +136,10 @@ export class FinancePlanningRepository {
   // =========================================================================
   public static async getHistoricalMonthlyCollections(
     tenantOrgId: string,
-    monthsBack: number = 12
+    monthsBack: number = 12,
   ): Promise<HistoricalMonthlyCollection[]> {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
     const sql = `
       SELECT
         TO_CHAR(DATE_TRUNC('month', pt.transaction_date), 'YYYY-MM') as month_year,
@@ -141,10 +157,10 @@ export class FinancePlanningRepository {
       ORDER BY month_year ASC;
     `;
 
-    const rows: any[] = await db.$queryRawUnsafe(sql, tenantOrgId, monthsBack);
-    return rows.map(r => ({
+    const rows: any[] = await db.$queryRawUnsafe(sql, safeOrgId, monthsBack);
+    return rows.map((r) => ({
       ...r,
-      total_collected: this.roundMoney(r.total_collected)
+      total_collected: this.roundMoney(r.total_collected),
     }));
   }
 
@@ -154,9 +170,10 @@ export class FinancePlanningRepository {
   public static async getScheduledDuesSchedule(
     tenantOrgId: string,
     horizonMonths: number = 6,
-    startDateStr?: string
+    startDateStr?: string,
   ): Promise<MonthlyDueSchedule[]> {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
     const effectiveStart = startDateStr || new Date().toISOString().split('T')[0];
 
     const sql = `
@@ -189,12 +206,12 @@ export class FinancePlanningRepository {
       ORDER BY month_year ASC;
     `;
 
-    const rows: any[] = await db.$queryRawUnsafe(sql, tenantOrgId, effectiveStart, horizonMonths);
-    return rows.map(r => ({
+    const rows: any[] = await db.$queryRawUnsafe(sql, safeOrgId, effectiveStart, horizonMonths);
+    return rows.map((r) => ({
       ...r,
       scheduled_amount_due: this.roundMoney(r.scheduled_amount_due),
       already_allocated_amount: this.roundMoney(r.already_allocated_amount),
-      remaining_scheduled_due: this.roundMoney(r.remaining_scheduled_due)
+      remaining_scheduled_due: this.roundMoney(r.remaining_scheduled_due),
     }));
   }
 
@@ -203,6 +220,7 @@ export class FinancePlanningRepository {
   // =========================================================================
   public static async getCurrentOperationalBalances(tenantOrgId: string) {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
 
     const sql = `
       WITH allocated_per_due AS (
@@ -282,7 +300,7 @@ export class FinancePlanningRepository {
       CROSS JOIN unallocated_summary u;
     `;
 
-    const rows: any[] = await db.$queryRawUnsafe(sql, tenantOrgId);
+    const rows: any[] = await db.$queryRawUnsafe(sql, safeOrgId);
     const r = rows[0] || {};
 
     return {
@@ -294,7 +312,7 @@ export class FinancePlanningRepository {
       total_successful_collections: this.roundMoney(r.total_successful_collections),
       successful_txns_count: r.successful_txns_count || 0,
       unallocated_amount: this.roundMoney(r.unallocated_amount),
-      unallocated_count: r.unallocated_count || 0
+      unallocated_count: r.unallocated_count || 0,
     };
   }
 
@@ -303,6 +321,7 @@ export class FinancePlanningRepository {
   // =========================================================================
   public static async getAcademicYearOutlook(tenantOrgId: string) {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
 
     const sql = `
       WITH allocated_per_due AS (
@@ -360,8 +379,8 @@ export class FinancePlanningRepository {
       ORDER BY ay.start_date DESC;
     `;
 
-    const rows: any[] = await db.$queryRawUnsafe(sql, tenantOrgId);
-    return rows.map(r => {
+    const rows: any[] = await db.$queryRawUnsafe(sql, safeOrgId);
+    return rows.map((r) => {
       const scheduled = this.roundMoney(r.scheduled_dues_amount);
       const collected = this.roundMoney(r.collected_amount);
       const realizationRate = scheduled > 0 ? this.roundMoney((collected / scheduled) * 100) : 0;
@@ -371,7 +390,7 @@ export class FinancePlanningRepository {
         scheduled_dues_amount: scheduled,
         collected_amount: collected,
         outstanding_amount: this.roundMoney(r.outstanding_amount),
-        realization_rate_pct: realizationRate
+        realization_rate_pct: realizationRate,
       };
     });
   }
@@ -381,6 +400,7 @@ export class FinancePlanningRepository {
   // =========================================================================
   public static async getConcessionSensitivityBase(tenantOrgId: string) {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
 
     const sql = `
       SELECT
@@ -397,27 +417,30 @@ export class FinancePlanningRepository {
       GROUP BY sc.scholarship_type, sc.status;
     `;
 
-    const rows: any[] = await db.$queryRawUnsafe(sql, tenantOrgId);
+    const rows: any[] = await db.$queryRawUnsafe(sql, safeOrgId);
 
     // Get total assessed fee base for students with concessions
-    const baseFeeRes: any[] = await db.$queryRawUnsafe(`
+    const baseFeeRes: any[] = await db.$queryRawUnsafe(
+      `
       SELECT
         COALESCE(SUM(sc.amount), 0)::float8 as total_assessed_charge_base,
         COUNT(DISTINCT sc.student_id)::int as assessed_students_count
       FROM student_charges sc
       JOIN students s ON sc.student_id = s.student_id
       WHERE s.org_id = $1::uuid;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     return {
-      concessions: rows.map(r => ({
+      concessions: rows.map((r) => ({
         ...r,
         avg_percentage: this.roundMoney(r.avg_percentage),
         min_percentage: this.roundMoney(r.min_percentage),
-        max_percentage: this.roundMoney(r.max_percentage)
+        max_percentage: this.roundMoney(r.max_percentage),
       })),
       total_assessed_base: this.roundMoney(baseFeeRes[0]?.total_assessed_charge_base || 0),
-      assessed_students_count: baseFeeRes[0]?.assessed_students_count || 0
+      assessed_students_count: baseFeeRes[0]?.assessed_students_count || 0,
     };
   }
 
@@ -426,27 +449,35 @@ export class FinancePlanningRepository {
   // =========================================================================
   public static async getDataQualityMetrics(tenantOrgId: string) {
     const db = this.getClient();
+    const safeOrgId = this.validateTenantOrgId(tenantOrgId);
 
     // Check null due dates in dues table
-    const nullDueDatesRes: any[] = await db.$queryRawUnsafe(`
+    const nullDueDatesRes: any[] = await db.$queryRawUnsafe(
+      `
       SELECT COUNT(*)::int as count
       FROM student_charge_dues scd
       JOIN student_charges sc ON scd.student_charge_id = sc.student_charge_id
       JOIN students s ON sc.student_id = s.student_id
       WHERE s.org_id = $1::uuid AND scd.due_date IS NULL;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     // Check multi-currency transactions
-    const currencyRes: any[] = await db.$queryRawUnsafe(`
+    const currencyRes: any[] = await db.$queryRawUnsafe(
+      `
       SELECT DISTINCT pt.currency_code 
       FROM payment_transactions pt
       JOIN payment_orders po ON pt.payment_order_id = po.payment_order_id
       JOIN students s ON po.student_id = s.student_id
       WHERE s.org_id = $1::uuid;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     // Check captured unallocated transactions
-    const unallocatedRes: any[] = await db.$queryRawUnsafe(`
+    const unallocatedRes: any[] = await db.$queryRawUnsafe(
+      `
       SELECT 
         COUNT(pt.payment_transaction_id)::int as count,
         COALESCE(SUM(GREATEST(0, pt.amount::numeric - COALESCE(alloc.total_alloc, 0))), 0)::float8 as amount
@@ -461,10 +492,13 @@ export class FinancePlanningRepository {
       WHERE s.org_id = $1::uuid
         AND pt.status = 'success'::payment_transaction_status
         AND (pt.amount::numeric - COALESCE(alloc.total_alloc, 0)) > 0.009;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     // Check historical monthly transaction count (density)
-    const historyDensityRes: any[] = await db.$queryRawUnsafe(`
+    const historyDensityRes: any[] = await db.$queryRawUnsafe(
+      `
       SELECT COUNT(DISTINCT DATE_TRUNC('month', pt.transaction_date))::int as distinct_months,
              COUNT(*)::int as total_transactions
       FROM payment_transactions pt
@@ -472,12 +506,15 @@ export class FinancePlanningRepository {
       JOIN students s ON po.student_id = s.student_id
       WHERE s.org_id = $1::uuid
         AND pt.status = 'success'::payment_transaction_status;
-    `, tenantOrgId);
+    `,
+      safeOrgId,
+    );
 
     const distinctMonths = historyDensityRes[0]?.distinct_months || 0;
     const totalTransactions = historyDensityRes[0]?.total_transactions || 0;
 
-    let dataDensityStatus: 'SUFFICIENT_HISTORICAL_DATA' | 'LIMITED_HISTORICAL_DATA' | 'ASSUMPTION_DRIVEN';
+    let dataDensityStatus:
+      'SUFFICIENT_HISTORICAL_DATA' | 'LIMITED_HISTORICAL_DATA' | 'ASSUMPTION_DRIVEN';
     if (distinctMonths >= 6 && totalTransactions >= 100) {
       dataDensityStatus = 'SUFFICIENT_HISTORICAL_DATA';
     } else if (distinctMonths >= 2 || totalTransactions >= 10) {
@@ -488,14 +525,15 @@ export class FinancePlanningRepository {
 
     return {
       null_due_dates_count: nullDueDatesRes[0]?.count || 0,
-      distinct_currencies: currencyRes.map(c => c.currency_code).filter(Boolean),
+      distinct_currencies: currencyRes.map((c) => c.currency_code).filter(Boolean),
       captured_unallocated_count: unallocatedRes[0]?.count || 0,
       captured_unallocated_amount: this.roundMoney(unallocatedRes[0]?.amount || 0),
       historical_distinct_months: distinctMonths,
       historical_total_transactions: totalTransactions,
       data_density_status: dataDensityStatus,
       historical_forecast_accuracy_available: false,
-      accuracy_unavailable_reason: 'Durable forecast snapshot tables are not present in physical schema under Schema freeze.'
+      accuracy_unavailable_reason:
+        'Durable forecast snapshot tables are not present in physical schema under Schema freeze.',
     };
   }
 }

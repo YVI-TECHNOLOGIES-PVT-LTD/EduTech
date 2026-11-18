@@ -58,7 +58,7 @@ export const DemandManagement = () => {
       const [demRes, strRes, clsRes] = await Promise.all([
         apiClient.get('/fees/demands'),
         apiClient.get('/fees/structures'),
-        apiClient.get('/academic/classes').catch(() => ({ data: [] })),
+        apiClient.get('/academic/classes', { silent: true } as any).catch(() => ({ data: [] })),
       ]);
       const demandsList = Array.isArray(demRes.data)
         ? demRes.data

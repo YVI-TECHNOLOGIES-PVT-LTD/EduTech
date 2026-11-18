@@ -13,17 +13,9 @@ import {
   FileSpreadsheet,
   ChevronRight,
   AlertTriangle,
-  Building2
+  Building2,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { apiClient } from '../../../lib/api-client';
 import { toast } from 'sonner';
 
@@ -64,7 +56,8 @@ interface PlanningOverviewData {
     start_date: string;
     is_simulation: boolean;
   };
-  data_quality_status: 'SUFFICIENT_HISTORICAL_DATA' | 'LIMITED_HISTORICAL_DATA' | 'ASSUMPTION_DRIVEN';
+  data_quality_status:
+    'SUFFICIENT_HISTORICAL_DATA' | 'LIMITED_HISTORICAL_DATA' | 'ASSUMPTION_DRIVEN';
   durable_budget_persistence: boolean;
   timestamp: string;
 }
@@ -214,7 +207,8 @@ interface ConcessionSensitivityData {
 }
 
 interface DataQualityData {
-  data_density_status: 'SUFFICIENT_HISTORICAL_DATA' | 'LIMITED_HISTORICAL_DATA' | 'ASSUMPTION_DRIVEN';
+  data_density_status:
+    'SUFFICIENT_HISTORICAL_DATA' | 'LIMITED_HISTORICAL_DATA' | 'ASSUMPTION_DRIVEN';
   historical_forecast_accuracy_available: boolean;
   accuracy_unavailable_reason: string;
   historical_metrics: {
@@ -251,11 +245,18 @@ export const FinancePlanning: React.FC = () => {
 
   // Data States
   const [overview, setOverview] = useState<PlanningOverviewData | null>(null);
-  const [collectionsForecast, setCollectionsForecast] = useState<CollectionsForecastData | null>(null);
-  const [receivablesForecast, setReceivablesForecast] = useState<ReceivablesForecastData | null>(null);
+  const [collectionsForecast, setCollectionsForecast] = useState<CollectionsForecastData | null>(
+    null,
+  );
+  const [receivablesForecast, setReceivablesForecast] = useState<ReceivablesForecastData | null>(
+    null,
+  );
   const [scenarios, setScenarios] = useState<ScenarioData | null>(null);
-  const [academicOutlook, setAcademicOutlook] = useState<{ academic_years: AcademicYearOutlookItem[] } | null>(null);
-  const [concessionSensitivity, setConcessionSensitivity] = useState<ConcessionSensitivityData | null>(null);
+  const [academicOutlook, setAcademicOutlook] = useState<{
+    academic_years: AcademicYearOutlookItem[];
+  } | null>(null);
+  const [concessionSensitivity, setConcessionSensitivity] =
+    useState<ConcessionSensitivityData | null>(null);
   const [dataQuality, setDataQuality] = useState<DataQualityData | null>(null);
 
   // Currency formatter
@@ -271,31 +272,31 @@ export const FinancePlanning: React.FC = () => {
         return {
           bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
           dot: 'bg-emerald-500',
-          label: 'Historical Actual'
+          label: 'Historical Actual',
         };
       case 'OPERATIONAL_BALANCE':
         return {
           bg: 'bg-blue-50 text-blue-700 border-blue-200',
           dot: 'bg-blue-500',
-          label: 'Current Operational'
+          label: 'Current Operational',
         };
       case 'SCHEDULED_OBLIGATION':
         return {
           bg: 'bg-purple-50 text-purple-700 border-purple-200',
           dot: 'bg-purple-500',
-          label: 'Scheduled Dues'
+          label: 'Scheduled Dues',
         };
       case 'FORECAST':
         return {
           bg: 'bg-amber-50 text-amber-700 border-amber-200',
           dot: 'bg-amber-500',
-          label: 'Deterministic Forecast'
+          label: 'Deterministic Forecast',
         };
       default:
         return {
           bg: 'bg-slate-50 text-slate-700 border-slate-200',
           dot: 'bg-slate-400',
-          label: 'Simulation Assumption'
+          label: 'Simulation Assumption',
         };
     }
   };
@@ -306,17 +307,17 @@ export const FinancePlanning: React.FC = () => {
       case 'SUFFICIENT_HISTORICAL_DATA':
         return {
           label: 'Sufficient Historical Data (6+ Months)',
-          color: 'text-emerald-700 bg-emerald-50 border-emerald-200'
+          color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
         };
       case 'LIMITED_HISTORICAL_DATA':
         return {
           label: 'Limited Historical Data (2-5 Months)',
-          color: 'text-amber-700 bg-amber-50 border-amber-200'
+          color: 'text-amber-700 bg-amber-50 border-amber-200',
         };
       default:
         return {
           label: 'Assumption-Driven Projection (<2 Months)',
-          color: 'text-rose-700 bg-rose-50 border-rose-200'
+          color: 'text-rose-700 bg-rose-50 border-rose-200',
         };
     }
   };
@@ -325,7 +326,7 @@ export const FinancePlanning: React.FC = () => {
   const fetchOverview = async () => {
     try {
       const res = await apiClient.get(
-        `/fees/planning/overview?horizonMonths=${horizonMonths}&realizationRate=${realizationRate}`
+        `/fees/planning/overview?horizonMonths=${horizonMonths}&realizationRate=${realizationRate}`,
       );
       if (res.data?.success) {
         setOverview(res.data.data);
@@ -340,7 +341,7 @@ export const FinancePlanning: React.FC = () => {
   const fetchCollectionsForecast = async () => {
     try {
       const res = await apiClient.get(
-        `/fees/planning/collections-forecast?horizonMonths=${horizonMonths}&realizationRate=${realizationRate}&monthlyAdjustment=${monthlyAdjustment}`
+        `/fees/planning/collections-forecast?horizonMonths=${horizonMonths}&realizationRate=${realizationRate}&monthlyAdjustment=${monthlyAdjustment}`,
       );
       if (res.data?.success) {
         setCollectionsForecast(res.data.data);
@@ -355,7 +356,7 @@ export const FinancePlanning: React.FC = () => {
   const fetchReceivablesForecast = async () => {
     try {
       const res = await apiClient.get(
-        `/fees/planning/receivables-forecast?horizonMonths=${horizonMonths}&realizationRate=${realizationRate}`
+        `/fees/planning/receivables-forecast?horizonMonths=${horizonMonths}&realizationRate=${realizationRate}`,
       );
       if (res.data?.success) {
         setReceivablesForecast(res.data.data);
@@ -374,7 +375,7 @@ export const FinancePlanning: React.FC = () => {
         conservativeRate,
         expectedRate,
         optimisticRate,
-        monthlyAdjustment
+        monthlyAdjustment,
       });
       if (res.data?.success) {
         setScenarios(res.data.data);
@@ -388,7 +389,9 @@ export const FinancePlanning: React.FC = () => {
   // Fetch Academic Outlook
   const fetchAcademicOutlook = async () => {
     try {
-      const res = await apiClient.get(`/fees/planning/academic-year-outlook?realizationRate=${realizationRate}`);
+      const res = await apiClient.get(
+        `/fees/planning/academic-year-outlook?realizationRate=${realizationRate}`,
+      );
       if (res.data?.success) {
         setAcademicOutlook(res.data.data);
       }
@@ -403,7 +406,7 @@ export const FinancePlanning: React.FC = () => {
     try {
       const res = await apiClient.post('/fees/planning/concession-sensitivity', {
         hypotheticalDeltaPct,
-        realizationRatePct: realizationRate
+        realizationRatePct: realizationRate,
       });
       if (res.data?.success) {
         setConcessionSensitivity(res.data.data);
@@ -438,23 +441,49 @@ export const FinancePlanning: React.FC = () => {
         fetchScenarios(),
         fetchAcademicOutlook(),
         fetchConcessionSensitivity(),
-        fetchDataQuality()
+        fetchDataQuality(),
       ]);
       setLoading(false);
     };
     loadData();
   }, [horizonMonths, realizationRate]);
 
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
   // Export CSV Handler
-  const handleExportCSV = async (exportType: 'collections_forecast' | 'scenario_planner' | 'academic_year_outlook') => {
+  const handleExportCSV = async (
+    exportType: 'collections_forecast' | 'scenario_planner' | 'academic_year_outlook',
+  ) => {
     try {
+      setIsExporting(true);
       toast.info(`Preparing ${exportType.replace(/_/g, ' ')} CSV export...`);
-      const url = `/api/fees/planning/export?exportType=${exportType}&horizonMonths=${horizonMonths}&realizationRate=${realizationRate}&conservativeRate=${conservativeRate}&expectedRate=${expectedRate}&optimisticRate=${optimisticRate}`;
-      window.open(url, '_blank');
+      const res = await apiClient.get('/fees/planning/export', {
+        params: {
+          exportType,
+          horizonMonths,
+          realizationRate,
+          conservativeRate,
+          expectedRate,
+          optimisticRate,
+        },
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `finance_planning_${exportType}_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       toast.success('Planning export generated successfully');
     } catch (err: any) {
       console.error('Export error:', err);
       toast.error('Failed to export CSV');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -471,13 +500,16 @@ export const FinancePlanning: React.FC = () => {
                 <span className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
                   <TrendingUp className="w-5 h-5" />
                 </span>
-                <h1 className="text-xl font-bold text-slate-900">Financial Budgeting & Forecasting</h1>
+                <h1 className="text-xl font-bold text-slate-900">
+                  Financial Budgeting & Forecasting
+                </h1>
                 <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
                   Read-Only Simulation Workspace
                 </span>
               </div>
               <p className="text-sm text-slate-500 mt-1">
-                Deterministic scenario planning, collections forecasting & receivables modeling derived strictly from authoritative ERP records.
+                Deterministic scenario planning, collections forecasting & receivables modeling
+                derived strictly from authoritative ERP records.
               </p>
             </div>
 
@@ -541,11 +573,15 @@ export const FinancePlanning: React.FC = () => {
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                <strong>Schema Freeze Enforced:</strong> Institutional budgets and forecasts are unpersisted mathematical scenario models. No database mutations or artificial journal entries are generated.
+                <strong>Schema Freeze Enforced:</strong> Institutional budgets and forecasts are
+                unpersisted mathematical scenario models. No database mutations or artificial
+                journal entries are generated.
               </span>
             </div>
             {dataQuality && (
-              <span className={`px-2 py-0.5 rounded border text-[11px] font-semibold ${getDensityBadge(dataQuality.data_density_status).color}`}>
+              <span
+                className={`px-2 py-0.5 rounded border text-[11px] font-semibold ${getDensityBadge(dataQuality.data_density_status).color}`}
+              >
                 {getDensityBadge(dataQuality.data_density_status).label}
               </span>
             )}
@@ -575,7 +611,9 @@ export const FinancePlanning: React.FC = () => {
                       : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                  <Icon
+                    className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}
+                  />
                   {tab.label}
                 </button>
               );
@@ -591,126 +629,205 @@ export const FinancePlanning: React.FC = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
             <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
-            <p className="text-sm font-medium text-slate-500 mt-3">Evaluating financial planning parameters...</p>
+            <p className="text-sm font-medium text-slate-500 mt-3">
+              Evaluating financial planning parameters...
+            </p>
           </div>
         ) : (
           <>
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {/* SCREEN A: EXECUTIVE OVERVIEW */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {activeTab === 'overview' && overview && (
-              <div className="space-y-6">
-                {/* Metric Cards Grid with Distinct Labeling */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(overview.metrics).map(([key, metric]) => {
-                    const badge = getClassificationBadge(metric.type);
-                    return (
-                      <div
-                        key={key}
-                        className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-shadow"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${badge.bg}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
-                              {badge.label}
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-mono">
-                              {metric.source_table}
-                            </span>
+            {activeTab === 'overview' &&
+              (overview ? (
+                <div className="space-y-6">
+                  {/* Metric Cards Grid with Distinct Labeling */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(overview.metrics).map(([key, metric]) => {
+                      const badge = getClassificationBadge(metric.type);
+                      return (
+                        <div
+                          key={key}
+                          className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-shadow"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${badge.bg}`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
+                                {badge.label}
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {metric.source_table}
+                              </span>
+                            </div>
+                            <h3 className="text-sm font-medium text-slate-600 capitalize">
+                              {key.replace(/_/g, ' ')}
+                            </h3>
+                            <div className="text-2xl font-bold text-slate-900 mt-2">
+                              {formatMoney(metric.amount)}
+                            </div>
                           </div>
-                          <h3 className="text-sm font-medium text-slate-600 capitalize">
-                            {key.replace(/_/g, ' ')}
-                          </h3>
-                          <div className="text-2xl font-bold text-slate-900 mt-2">
-                            {formatMoney(metric.amount)}
-                          </div>
+                          <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
+                            {metric.description}
+                          </p>
                         </div>
-                        <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
-                          {metric.description}
+                      );
+                    })}
+                  </div>
+
+                  {/* Horizon Comparison Card */}
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 gap-3">
+                      <div>
+                        <h2 className="text-base font-semibold text-slate-900">
+                          Planning Outlook ({overview.planning_horizon_months} Months)
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Expected collections under {overview.assumptions.realization_rate_pct}%
+                          realization assumption
                         </p>
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* Horizon Comparison Card */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 gap-3">
-                    <div>
-                      <h2 className="text-base font-semibold text-slate-900">
-                        Planning Outlook ({overview.planning_horizon_months} Months)
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Expected collections under {overview.assumptions.realization_rate_pct}% realization assumption
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded bg-indigo-600" />
-                        <span className="text-slate-600 font-medium">Scheduled Obligations</span>
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-indigo-600" />
+                          <span className="text-slate-600 font-medium">Scheduled Obligations</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-emerald-500" />
+                          <span className="text-slate-600 font-medium">Projected Collections</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded bg-emerald-500" />
-                        <span className="text-slate-600 font-medium">Projected Collections</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6">
+                      <div className="lg:col-span-2 h-72">
+                        {collectionsForecast &&
+                        collectionsForecast.monthly_projections.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={collectionsForecast.monthly_projections}
+                              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                            >
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                vertical={false}
+                                stroke="#f1f5f9"
+                              />
+                              <XAxis
+                                dataKey="month_year"
+                                tickLine={false}
+                                axisLine={{ stroke: '#e2e8f0' }}
+                                tick={{ fontSize: 11 }}
+                              />
+                              <YAxis
+                                tickLine={false}
+                                axisLine={{ stroke: '#e2e8f0' }}
+                                tick={{ fontSize: 11 }}
+                                tickFormatter={(v) => `₹${v / 1000}k`}
+                              />
+                              <Tooltip
+                                formatter={(v: any) => [formatMoney(v), '']}
+                                contentStyle={{
+                                  backgroundColor: '#ffffff',
+                                  borderColor: '#e2e8f0',
+                                  borderRadius: '8px',
+                                  fontSize: '12px',
+                                }}
+                              />
+                              <Bar
+                                dataKey="remaining_scheduled_due"
+                                name="Scheduled Due"
+                                fill="#818cf8"
+                                radius={[4, 4, 0, 0]}
+                              />
+                              <Bar
+                                dataKey="projected_collections"
+                                name="Projected Collection"
+                                fill="#10b981"
+                                radius={[4, 4, 0, 0]}
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                            No scheduled dues recorded in the selected planning horizon.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 flex flex-col justify-between text-xs space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-slate-800 uppercase tracking-wider text-[11px] mb-3">
+                            Forecast Rule Formulation
+                          </h4>
+                          <div className="space-y-2 text-slate-600">
+                            <p>
+                              <strong>Formula:</strong>{' '}
+                              <code>
+                                Projected = Eligible Scheduled Dues × Realization Rate (
+                                {overview.assumptions.realization_rate_pct}%)
+                              </code>
+                            </p>
+                            <p>
+                              <strong>Scheduled Dues Horizon:</strong>{' '}
+                              {formatMoney(overview.metrics.scheduled_dues_in_horizon.amount)}
+                            </p>
+                            <p>
+                              <strong>Projected Realization:</strong>{' '}
+                              {formatMoney(overview.metrics.projected_collections.amount)}
+                            </p>
+                            <p>
+                              <strong>Projected Uncollected:</strong>{' '}
+                              {formatMoney(overview.metrics.projected_remaining_receivables.amount)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-white rounded border border-slate-200 text-slate-500 text-[11px] space-y-1">
+                          <div className="font-semibold text-slate-700">
+                            Governance & Disclosure
+                          </div>
+                          <div>
+                            • Projections are deterministic formulas, not machine learning or AI
+                            models.
+                          </div>
+                          <div>
+                            • Pending and failed transactions are completely excluded from actual
+                            collections.
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6">
-                    <div className="lg:col-span-2 h-72">
-                      {collectionsForecast && collectionsForecast.monthly_projections.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={collectionsForecast.monthly_projections} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="month_year" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} tick={{ fontSize: 11 }} />
-                            <YAxis tickLine={false} axisLine={{ stroke: '#e2e8f0' }} tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
-                            <Tooltip
-                              formatter={(v: any) => [formatMoney(v), '']}
-                              contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '8px', fontSize: '12px' }}
-                            />
-                            <Bar dataKey="remaining_scheduled_due" name="Scheduled Due" fill="#818cf8" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="projected_collections" name="Projected Collection" fill="#10b981" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                          No scheduled dues recorded in the selected planning horizon.
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 flex flex-col justify-between text-xs space-y-4">
-                      <div>
-                        <h4 className="font-semibold text-slate-800 uppercase tracking-wider text-[11px] mb-3">
-                          Forecast Rule Formulation
-                        </h4>
-                        <div className="space-y-2 text-slate-600">
-                          <p>
-                            <strong>Formula:</strong> <code>Projected = Eligible Scheduled Dues × Realization Rate ({overview.assumptions.realization_rate_pct}%)</code>
-                          </p>
-                          <p>
-                            <strong>Scheduled Dues Horizon:</strong> {formatMoney(overview.metrics.scheduled_dues_in_horizon.amount)}
-                          </p>
-                          <p>
-                            <strong>Projected Realization:</strong> {formatMoney(overview.metrics.projected_collections.amount)}
-                          </p>
-                          <p>
-                            <strong>Projected Uncollected:</strong> {formatMoney(overview.metrics.projected_remaining_receivables.amount)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-3 bg-white rounded border border-slate-200 text-slate-500 text-[11px] space-y-1">
-                        <div className="font-semibold text-slate-700">Governance & Disclosure</div>
-                        <div>• Projections are deterministic formulas, not machine learning or AI models.</div>
-                        <div>• Pending and failed transactions are completely excluded from actual collections.</div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800">
+                      Financial Planning Data Unavailable
+                    </h3>
+                    <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
+                      No scheduled fee demands or historical payment records were found for the
+                      selected planning horizon.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setLoading(true);
+                      fetchOverview();
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Retry Planning Evaluation</span>
+                  </button>
+                </div>
+              ))}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {/* SCREEN B: COLLECTIONS FORECAST */}
@@ -720,32 +837,51 @@ export const FinancePlanning: React.FC = () => {
                 {/* Summary Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-500 font-medium">Scheduled Dues in Horizon</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Scheduled Dues in Horizon
+                    </span>
                     <div className="text-xl font-bold text-slate-900 mt-1">
                       {formatMoney(collectionsForecast.summary.total_remaining_scheduled)}
                     </div>
-                    <span className="text-[11px] text-purple-600 font-medium">Net remaining eligible dues</span>
+                    <span className="text-[11px] text-purple-600 font-medium">
+                      Net remaining eligible dues
+                    </span>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-500 font-medium">Projected Collections</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Projected Collections
+                    </span>
                     <div className="text-xl font-bold text-emerald-600 mt-1">
                       {formatMoney(collectionsForecast.summary.total_projected_collections)}
                     </div>
-                    <span className="text-[11px] text-slate-500 font-medium">At {collectionsForecast.assumptions.realization_rate_pct}% realization rate</span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      At {collectionsForecast.assumptions.realization_rate_pct}% realization rate
+                    </span>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-500 font-medium">Projected Uncollected Balance</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Projected Uncollected Balance
+                    </span>
                     <div className="text-xl font-bold text-amber-600 mt-1">
                       {formatMoney(collectionsForecast.summary.total_projected_remaining_dues)}
                     </div>
-                    <span className="text-[11px] text-slate-500 font-medium">Unrecovered scheduled balance</span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Unrecovered scheduled balance
+                    </span>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-500 font-medium">Historical Baseline Examined</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Historical Baseline Examined
+                    </span>
                     <div className="text-xl font-bold text-slate-900 mt-1">
-                      {formatMoney(collectionsForecast.historical_comparison.historical_total_collected)}
+                      {formatMoney(
+                        collectionsForecast.historical_comparison.historical_total_collected,
+                      )}
                     </div>
-                    <span className="text-[11px] text-slate-500 font-medium">Across {collectionsForecast.historical_comparison.months_analyzed} previous months</span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Across {collectionsForecast.historical_comparison.months_analyzed} previous
+                      months
+                    </span>
                   </div>
                 </div>
 
@@ -753,8 +889,12 @@ export const FinancePlanning: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900">Monthly Collections Schedule</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Month-by-month projection derived from student fee obligation due dates</p>
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        Monthly Collections Schedule
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Month-by-month projection derived from student fee obligation due dates
+                      </p>
                     </div>
                     <button
                       onClick={() => handleExportCSV('collections_forecast')}
@@ -775,20 +915,32 @@ export const FinancePlanning: React.FC = () => {
                           <th className="py-3 px-4 text-right">Scheduled Due Amount</th>
                           <th className="py-3 px-4 text-right">Already Allocated</th>
                           <th className="py-3 px-4 text-right">Remaining Scheduled</th>
-                          <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-50/50">Projected Collections</th>
-                          <th className="py-3 px-4 text-right text-amber-700 bg-amber-50/50">Projected Balance</th>
+                          <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-50/50">
+                            Projected Collections
+                          </th>
+                          <th className="py-3 px-4 text-right text-amber-700 bg-amber-50/50">
+                            Projected Balance
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {collectionsForecast.monthly_projections.length > 0 ? (
                           collectionsForecast.monthly_projections.map((m, idx) => (
                             <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="py-3 px-4 font-semibold text-slate-800">{m.month_year}</td>
+                              <td className="py-3 px-4 font-semibold text-slate-800">
+                                {m.month_year}
+                              </td>
                               <td className="py-3 px-4 text-slate-600">{m.dues_count}</td>
                               <td className="py-3 px-4 text-slate-600">{m.student_count}</td>
-                              <td className="py-3 px-4 text-right font-mono text-slate-700">{formatMoney(m.scheduled_amount_due)}</td>
-                              <td className="py-3 px-4 text-right font-mono text-slate-500">{formatMoney(m.already_allocated_amount)}</td>
-                              <td className="py-3 px-4 text-right font-mono font-medium text-slate-900">{formatMoney(m.remaining_scheduled_due)}</td>
+                              <td className="py-3 px-4 text-right font-mono text-slate-700">
+                                {formatMoney(m.scheduled_amount_due)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-slate-500">
+                                {formatMoney(m.already_allocated_amount)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono font-medium text-slate-900">
+                                {formatMoney(m.remaining_scheduled_due)}
+                              </td>
                               <td className="py-3 px-4 text-right font-mono font-semibold text-emerald-600 bg-emerald-50/30">
                                 {formatMoney(m.projected_collections)}
                               </td>
@@ -825,7 +977,8 @@ export const FinancePlanning: React.FC = () => {
                           Current Operational Balances
                         </span>
                         <h3 className="text-base font-bold text-slate-900 mt-2">
-                          Outstanding Receivables: {formatMoney(receivablesForecast.current_receivables.total_outstanding)}
+                          Outstanding Receivables:{' '}
+                          {formatMoney(receivablesForecast.current_receivables.total_outstanding)}
                         </h3>
                       </div>
                       <div className="text-right">
@@ -837,27 +990,55 @@ export const FinancePlanning: React.FC = () => {
                     </div>
 
                     <div className="mt-4 space-y-3">
-                      <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Current Aging Breakdown</h4>
+                      <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Current Aging Breakdown
+                      </h4>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
                         <div className="p-2.5 bg-slate-50 rounded border border-slate-200">
                           <span className="text-slate-500 block text-[11px]">Current Dues</span>
-                          <span className="font-semibold text-slate-800">{formatMoney(receivablesForecast.current_receivables.aging_buckets.current)}</span>
+                          <span className="font-semibold text-slate-800">
+                            {formatMoney(
+                              receivablesForecast.current_receivables.aging_buckets.current,
+                            )}
+                          </span>
                         </div>
                         <div className="p-2.5 bg-slate-50 rounded border border-slate-200">
-                          <span className="text-slate-500 block text-[11px]">1–30 Days Overdue</span>
-                          <span className="font-semibold text-slate-800">{formatMoney(receivablesForecast.current_receivables.aging_buckets.overdue_1_30)}</span>
+                          <span className="text-slate-500 block text-[11px]">
+                            1–30 Days Overdue
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {formatMoney(
+                              receivablesForecast.current_receivables.aging_buckets.overdue_1_30,
+                            )}
+                          </span>
                         </div>
                         <div className="p-2.5 bg-slate-50 rounded border border-slate-200">
-                          <span className="text-slate-500 block text-[11px]">31–60 Days Overdue</span>
-                          <span className="font-semibold text-slate-800">{formatMoney(receivablesForecast.current_receivables.aging_buckets.overdue_31_60)}</span>
+                          <span className="text-slate-500 block text-[11px]">
+                            31–60 Days Overdue
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {formatMoney(
+                              receivablesForecast.current_receivables.aging_buckets.overdue_31_60,
+                            )}
+                          </span>
                         </div>
                         <div className="p-2.5 bg-slate-50 rounded border border-slate-200">
-                          <span className="text-slate-500 block text-[11px]">61–90 Days Overdue</span>
-                          <span className="font-semibold text-slate-800">{formatMoney(receivablesForecast.current_receivables.aging_buckets.overdue_61_90)}</span>
+                          <span className="text-slate-500 block text-[11px]">
+                            61–90 Days Overdue
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {formatMoney(
+                              receivablesForecast.current_receivables.aging_buckets.overdue_61_90,
+                            )}
+                          </span>
                         </div>
                         <div className="p-2.5 bg-slate-50 rounded border border-slate-200">
                           <span className="text-slate-500 block text-[11px]">90+ Days Overdue</span>
-                          <span className="font-semibold text-slate-800">{formatMoney(receivablesForecast.current_receivables.aging_buckets.overdue_90_plus)}</span>
+                          <span className="font-semibold text-slate-800">
+                            {formatMoney(
+                              receivablesForecast.current_receivables.aging_buckets.overdue_90_plus,
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -871,34 +1052,49 @@ export const FinancePlanning: React.FC = () => {
                           Horizon Projection ({receivablesForecast.horizon_months}M)
                         </span>
                         <span className="text-xs font-semibold text-indigo-700">
-                          Assumed Rate: {receivablesForecast.projected_receivables.assumed_realization_rate_pct}%
+                          Assumed Rate:{' '}
+                          {receivablesForecast.projected_receivables.assumed_realization_rate_pct}%
                         </span>
                       </div>
 
                       <div className="mt-4 space-y-4">
                         <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
                           <div>
-                            <span className="text-xs text-slate-500 block">Horizon Scheduled Dues</span>
+                            <span className="text-xs text-slate-500 block">
+                              Horizon Scheduled Dues
+                            </span>
                             <span className="text-base font-bold text-slate-800">
-                              {formatMoney(receivablesForecast.projected_receivables.horizon_scheduled_due)}
+                              {formatMoney(
+                                receivablesForecast.projected_receivables.horizon_scheduled_due,
+                              )}
                             </span>
                           </div>
                           <ChevronRight className="w-4 h-4 text-slate-400" />
                           <div>
                             <span className="text-xs text-slate-500 block">Projected Recovery</span>
                             <span className="text-base font-bold text-emerald-600">
-                              {formatMoney(receivablesForecast.projected_receivables.projected_collections_from_dues)}
+                              {formatMoney(
+                                receivablesForecast.projected_receivables
+                                  .projected_collections_from_dues,
+                              )}
                             </span>
                           </div>
                         </div>
 
                         <div className="p-4 bg-indigo-50/50 rounded-lg border border-indigo-100">
-                          <div className="text-xs text-indigo-900 font-medium">Projected Ending Outstanding Receivables</div>
+                          <div className="text-xs text-indigo-900 font-medium">
+                            Projected Ending Outstanding Receivables
+                          </div>
                           <div className="text-2xl font-black text-indigo-700 mt-1">
-                            {formatMoney(receivablesForecast.projected_receivables.projected_ending_outstanding)}
+                            {formatMoney(
+                              receivablesForecast.projected_receivables
+                                .projected_ending_outstanding,
+                            )}
                           </div>
                           <p className="text-[11px] text-indigo-600 mt-1">
-                            Calculated as: <code>max(0, current_outstanding - projected_recovery)</code> without double-counting applied concessions.
+                            Calculated as:{' '}
+                            <code>max(0, current_outstanding - projected_recovery)</code> without
+                            double-counting applied concessions.
                           </p>
                         </div>
                       </div>
@@ -926,7 +1122,8 @@ export const FinancePlanning: React.FC = () => {
                         Simulation Assumptions
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Adjust realization assumptions for Conservative, Expected, and Optimistic models
+                        Adjust realization assumptions for Conservative, Expected, and Optimistic
+                        models
                       </p>
                     </div>
                     <button
@@ -952,7 +1149,9 @@ export const FinancePlanning: React.FC = () => {
                         onChange={(e) => setConservativeRate(Number(e.target.value))}
                         className="w-full accent-indigo-600 cursor-pointer"
                       />
-                      <span className="text-[11px] text-slate-400">Severe economic drag or collection headwinds</span>
+                      <span className="text-[11px] text-slate-400">
+                        Severe economic drag or collection headwinds
+                      </span>
                     </div>
 
                     <div>
@@ -969,7 +1168,9 @@ export const FinancePlanning: React.FC = () => {
                         onChange={(e) => setExpectedRate(Number(e.target.value))}
                         className="w-full accent-indigo-600 cursor-pointer"
                       />
-                      <span className="text-[11px] text-slate-400">Historical norm / institutional baseline</span>
+                      <span className="text-[11px] text-slate-400">
+                        Historical norm / institutional baseline
+                      </span>
                     </div>
 
                     <div>
@@ -986,7 +1187,9 @@ export const FinancePlanning: React.FC = () => {
                         onChange={(e) => setOptimisticRate(Number(e.target.value))}
                         className="w-full accent-indigo-600 cursor-pointer"
                       />
-                      <span className="text-[11px] text-slate-400">Accelerated follow-ups & zero fee disputes</span>
+                      <span className="text-[11px] text-slate-400">
+                        Accelerated follow-ups & zero fee disputes
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -999,26 +1202,38 @@ export const FinancePlanning: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold text-slate-900">Conservative Scenario</h4>
                         <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          {scenarios.scenarios.conservative.assumed_realization_rate_pct}% Realization
+                          {scenarios.scenarios.conservative.assumed_realization_rate_pct}%
+                          Realization
                         </span>
                       </div>
                       <div className="mt-4">
-                        <span className="text-xs text-slate-500 block">Projected Cash Receipts</span>
+                        <span className="text-xs text-slate-500 block">
+                          Projected Cash Receipts
+                        </span>
                         <div className="text-2xl font-black text-slate-900 mt-0.5">
-                          {formatMoney(scenarios.scenarios.conservative.total_projected_collections)}
+                          {formatMoney(
+                            scenarios.scenarios.conservative.total_projected_collections,
+                          )}
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t border-slate-100">
-                        <span className="text-xs text-slate-500 block">Projected Ending Receivables</span>
+                        <span className="text-xs text-slate-500 block">
+                          Projected Ending Receivables
+                        </span>
                         <div className="text-lg font-bold text-amber-700">
-                          {formatMoney(scenarios.scenarios.conservative.projected_ending_receivables)}
+                          {formatMoney(
+                            scenarios.scenarios.conservative.projected_ending_receivables,
+                          )}
                         </div>
                       </div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-rose-600 font-medium">
                       <span>Variance vs Expected:</span>
                       <span>
-                        {formatMoney(scenarios.scenarios.conservative.variance_from_baseline.delta_amount)} ({scenarios.scenarios.conservative.variance_from_baseline.delta_pct}%)
+                        {formatMoney(
+                          scenarios.scenarios.conservative.variance_from_baseline.delta_amount,
+                        )}{' '}
+                        ({scenarios.scenarios.conservative.variance_from_baseline.delta_pct}%)
                       </span>
                     </div>
                   </div>
@@ -1027,19 +1242,25 @@ export const FinancePlanning: React.FC = () => {
                   <div className="bg-white rounded-xl border border-indigo-200 shadow-sm p-5 border-t-4 border-t-indigo-600 flex flex-col justify-between ring-1 ring-indigo-50">
                     <div>
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-bold text-indigo-900">Expected Base Scenario</h4>
+                        <h4 className="text-sm font-bold text-indigo-900">
+                          Expected Base Scenario
+                        </h4>
                         <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {scenarios.scenarios.expected.assumed_realization_rate_pct}% Realization
                         </span>
                       </div>
                       <div className="mt-4">
-                        <span className="text-xs text-slate-500 block">Projected Cash Receipts</span>
+                        <span className="text-xs text-slate-500 block">
+                          Projected Cash Receipts
+                        </span>
                         <div className="text-2xl font-black text-indigo-900 mt-0.5">
                           {formatMoney(scenarios.scenarios.expected.total_projected_collections)}
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t border-slate-100">
-                        <span className="text-xs text-slate-500 block">Projected Ending Receivables</span>
+                        <span className="text-xs text-slate-500 block">
+                          Projected Ending Receivables
+                        </span>
                         <div className="text-lg font-bold text-indigo-700">
                           {formatMoney(scenarios.scenarios.expected.projected_ending_receivables)}
                         </div>
@@ -1061,13 +1282,17 @@ export const FinancePlanning: React.FC = () => {
                         </span>
                       </div>
                       <div className="mt-4">
-                        <span className="text-xs text-slate-500 block">Projected Cash Receipts</span>
+                        <span className="text-xs text-slate-500 block">
+                          Projected Cash Receipts
+                        </span>
                         <div className="text-2xl font-black text-emerald-600 mt-0.5">
                           {formatMoney(scenarios.scenarios.optimistic.total_projected_collections)}
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t border-slate-100">
-                        <span className="text-xs text-slate-500 block">Projected Ending Receivables</span>
+                        <span className="text-xs text-slate-500 block">
+                          Projected Ending Receivables
+                        </span>
                         <div className="text-lg font-bold text-emerald-700">
                           {formatMoney(scenarios.scenarios.optimistic.projected_ending_receivables)}
                         </div>
@@ -1076,7 +1301,11 @@ export const FinancePlanning: React.FC = () => {
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-emerald-600 font-medium">
                       <span>Variance vs Expected:</span>
                       <span>
-                        +{formatMoney(scenarios.scenarios.optimistic.variance_from_baseline.delta_amount)} (+{scenarios.scenarios.optimistic.variance_from_baseline.delta_pct}%)
+                        +
+                        {formatMoney(
+                          scenarios.scenarios.optimistic.variance_from_baseline.delta_amount,
+                        )}{' '}
+                        (+{scenarios.scenarios.optimistic.variance_from_baseline.delta_pct}%)
                       </span>
                     </div>
                   </div>
@@ -1084,7 +1313,9 @@ export const FinancePlanning: React.FC = () => {
 
                 <div className="p-3 bg-slate-100 rounded-lg text-slate-600 text-xs flex items-center justify-between">
                   <span>{scenarios.data_limitations}</span>
-                  <span className="text-[11px] font-mono text-slate-400">Calculated: {new Date(scenarios.calculated_at).toLocaleTimeString()}</span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    Calculated: {new Date(scenarios.calculated_at).toLocaleTimeString()}
+                  </span>
                 </div>
               </div>
             )}
@@ -1097,9 +1328,12 @@ export const FinancePlanning: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900">Academic-Year Obligation Summary</h3>
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        Academic-Year Obligation Summary
+                      </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Aggregation of total assessments, scheduled dues, and collected fees grouped by academic session
+                        Aggregation of total assessments, scheduled dues, and collected fees grouped
+                        by academic session
                       </p>
                     </div>
                     <button
@@ -1128,24 +1362,43 @@ export const FinancePlanning: React.FC = () => {
                       <tbody className="divide-y divide-slate-100">
                         {academicOutlook.academic_years.length > 0 ? (
                           academicOutlook.academic_years.map((ay) => (
-                            <tr key={ay.academic_year_id} className="hover:bg-slate-50 transition-colors">
-                              <td className="py-3 px-4 font-semibold text-slate-900">{ay.academic_year_name}</td>
+                            <tr
+                              key={ay.academic_year_id}
+                              className="hover:bg-slate-50 transition-colors"
+                            >
+                              <td className="py-3 px-4 font-semibold text-slate-900">
+                                {ay.academic_year_name}
+                              </td>
                               <td className="py-3 px-4 text-slate-500 text-[11px]">
                                 {ay.start_date?.slice(0, 10)} to {ay.end_date?.slice(0, 10)}
                               </td>
                               <td className="py-3 px-4">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                                  ay.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
-                                }`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                                    ay.status === 'active'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
                                   {ay.status}
                                 </span>
                               </td>
-                              <td className="py-3 px-4 text-right font-mono text-slate-700">{formatMoney(ay.assessed_amount)}</td>
-                              <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">{formatMoney(ay.scheduled_dues_amount)}</td>
-                              <td className="py-3 px-4 text-right font-mono text-emerald-600 font-semibold">{formatMoney(ay.collected_amount)}</td>
-                              <td className="py-3 px-4 text-right font-mono text-amber-700 font-semibold">{formatMoney(ay.outstanding_amount)}</td>
+                              <td className="py-3 px-4 text-right font-mono text-slate-700">
+                                {formatMoney(ay.assessed_amount)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">
+                                {formatMoney(ay.scheduled_dues_amount)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-emerald-600 font-semibold">
+                                {formatMoney(ay.collected_amount)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-amber-700 font-semibold">
+                                {formatMoney(ay.outstanding_amount)}
+                              </td>
                               <td className="py-3 px-4 text-right">
-                                <span className="font-mono font-bold text-indigo-700">{ay.realization_rate_pct}%</span>
+                                <span className="font-mono font-bold text-indigo-700">
+                                  {ay.realization_rate_pct}%
+                                </span>
                               </td>
                             </tr>
                           ))
@@ -1177,7 +1430,8 @@ export const FinancePlanning: React.FC = () => {
                         Hypothetical Concession Policy Sensitivity
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Analytical simulation of expected revenue shift under altered scholarship/concession discounts
+                        Analytical simulation of expected revenue shift under altered
+                        scholarship/concession discounts
                       </p>
                     </div>
                     <button
@@ -1193,7 +1447,9 @@ export const FinancePlanning: React.FC = () => {
                       <div className="flex justify-between font-semibold mb-1">
                         <span className="text-slate-600">Hypothetical Concession Shift</span>
                         <span className="text-indigo-600 font-mono">
-                          {hypotheticalDeltaPct > 0 ? `+${hypotheticalDeltaPct}%` : `${hypotheticalDeltaPct}%`}
+                          {hypotheticalDeltaPct > 0
+                            ? `+${hypotheticalDeltaPct}%`
+                            : `${hypotheticalDeltaPct}%`}
                         </span>
                       </div>
                       <input
@@ -1205,13 +1461,26 @@ export const FinancePlanning: React.FC = () => {
                         onChange={(e) => setHypotheticalDeltaPct(Number(e.target.value))}
                         className="w-full accent-indigo-600 cursor-pointer"
                       />
-                      <span className="text-[11px] text-slate-400">Simulate expanding (+) or tightening (-) institutional aid discount</span>
+                      <span className="text-[11px] text-slate-400">
+                        Simulate expanding (+) or tightening (-) institutional aid discount
+                      </span>
                     </div>
 
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1 text-slate-600 text-[11px]">
-                      <div><strong>Current Assessed Charge Base:</strong> {formatMoney(concessionSensitivity.current_baseline.total_assessed_fee_base)}</div>
-                      <div><strong>Students with Concessions:</strong> {concessionSensitivity.current_baseline.students_with_concessions_count}</div>
-                      <div><strong>Weighted Average Discount:</strong> {concessionSensitivity.current_baseline.weighted_avg_concession_pct}%</div>
+                      <div>
+                        <strong>Current Assessed Charge Base:</strong>{' '}
+                        {formatMoney(
+                          concessionSensitivity.current_baseline.total_assessed_fee_base,
+                        )}
+                      </div>
+                      <div>
+                        <strong>Students with Concessions:</strong>{' '}
+                        {concessionSensitivity.current_baseline.students_with_concessions_count}
+                      </div>
+                      <div>
+                        <strong>Weighted Average Discount:</strong>{' '}
+                        {concessionSensitivity.current_baseline.weighted_avg_concession_pct}%
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1220,33 +1489,55 @@ export const FinancePlanning: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                     <span className="text-xs text-slate-500 font-medium">Estimated Aid Change</span>
-                    <div className={`text-xl font-bold mt-1 ${concessionSensitivity.impact_estimates.estimated_concession_change_amount >= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      {formatMoney(concessionSensitivity.impact_estimates.estimated_concession_change_amount)}
+                    <div
+                      className={`text-xl font-bold mt-1 ${concessionSensitivity.impact_estimates.estimated_concession_change_amount >= 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                    >
+                      {formatMoney(
+                        concessionSensitivity.impact_estimates.estimated_concession_change_amount,
+                      )}
                     </div>
-                    <span className="text-[11px] text-slate-400">Change in total scholarship discount value</span>
+                    <span className="text-[11px] text-slate-400">
+                      Change in total scholarship discount value
+                    </span>
                   </div>
 
                   <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-500 font-medium">Estimated Net Dues Shift</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Estimated Net Dues Shift
+                    </span>
                     <div className="text-xl font-bold text-slate-900 mt-1">
-                      {formatMoney(concessionSensitivity.impact_estimates.estimated_net_scheduled_dues_change)}
+                      {formatMoney(
+                        concessionSensitivity.impact_estimates.estimated_net_scheduled_dues_change,
+                      )}
                     </div>
-                    <span className="text-[11px] text-slate-400">Shift in billed net payable student dues</span>
+                    <span className="text-[11px] text-slate-400">
+                      Shift in billed net payable student dues
+                    </span>
                   </div>
 
                   <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-500 font-medium">Expected Cash Realization Impact</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Expected Cash Realization Impact
+                    </span>
                     <div className="text-xl font-bold text-indigo-700 mt-1">
-                      {formatMoney(concessionSensitivity.impact_estimates.estimated_cash_collection_change)}
+                      {formatMoney(
+                        concessionSensitivity.impact_estimates.estimated_cash_collection_change,
+                      )}
                     </div>
-                    <span className="text-[11px] text-slate-400">At {concessionSensitivity.hypothetical_shift.assumed_collection_realization_pct}% collection realization</span>
+                    <span className="text-[11px] text-slate-400">
+                      At{' '}
+                      {concessionSensitivity.hypothetical_shift.assumed_collection_realization_pct}%
+                      collection realization
+                    </span>
                   </div>
                 </div>
 
                 {/* Concessions by Type */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-200">
-                    <h3 className="text-sm font-semibold text-slate-900">Active Concessions by Category</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Active Concessions by Category
+                    </h3>
                   </div>
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
@@ -1263,17 +1554,31 @@ export const FinancePlanning: React.FC = () => {
                       {concessionSensitivity.concessions_by_type.length > 0 ? (
                         concessionSensitivity.concessions_by_type.map((c, i) => (
                           <tr key={i} className="hover:bg-slate-50">
-                            <td className="py-3 px-4 font-semibold text-slate-800 capitalize">{c.scholarship_type.replace(/_/g, ' ')}</td>
-                            <td className="py-3 px-4"><span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 font-semibold uppercase">{c.status}</span></td>
+                            <td className="py-3 px-4 font-semibold text-slate-800 capitalize">
+                              {c.scholarship_type.replace(/_/g, ' ')}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 font-semibold uppercase">
+                                {c.status}
+                              </span>
+                            </td>
                             <td className="py-3 px-4 text-right">{c.count}</td>
-                            <td className="py-3 px-4 text-right font-mono font-medium">{c.avg_percentage}%</td>
-                            <td className="py-3 px-4 text-right font-mono text-slate-500">{c.min_percentage}%</td>
-                            <td className="py-3 px-4 text-right font-mono text-slate-500">{c.max_percentage}%</td>
+                            <td className="py-3 px-4 text-right font-mono font-medium">
+                              {c.avg_percentage}%
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-slate-500">
+                              {c.min_percentage}%
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-slate-500">
+                              {c.max_percentage}%
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={6} className="py-6 text-center text-slate-400">No active scholarship concession records found.</td>
+                          <td colSpan={6} className="py-6 text-center text-slate-400">
+                            No active scholarship concession records found.
+                          </td>
                         </tr>
                       )}
                     </tbody>
@@ -1294,10 +1599,16 @@ export const FinancePlanning: React.FC = () => {
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
                   <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                     <div>
-                      <h3 className="text-base font-semibold text-slate-900">Historical Forecast Accuracy & Integrity Audit</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Verification of physical database storage and tracking limits</p>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Historical Forecast Accuracy & Integrity Audit
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Verification of physical database storage and tracking limits
+                      </p>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getDensityBadge(dataQuality.data_density_status).color}`}>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getDensityBadge(dataQuality.data_density_status).color}`}
+                    >
                       {getDensityBadge(dataQuality.data_density_status).label}
                     </span>
                   </div>
@@ -1309,7 +1620,8 @@ export const FinancePlanning: React.FC = () => {
                       <h4 className="font-bold">Historical Forecast Accuracy Not Supported</h4>
                       <p className="mt-1">{dataQuality.accuracy_unavailable_reason}</p>
                       <p className="mt-1 text-[11px] text-amber-800">
-                        In accordance with Stage-1 & Stage-4 non-negotiable governance, no retroactive accuracy percentages are fabricated.
+                        In accordance with Stage-1 & Stage-4 non-negotiable governance, no
+                        retroactive accuracy percentages are fabricated.
                       </p>
                     </div>
                   </div>
@@ -1321,33 +1633,50 @@ export const FinancePlanning: React.FC = () => {
                       <div className="text-xl font-bold text-slate-800 mt-1">
                         {dataQuality.operational_integrity_checks.null_due_dates_count}
                       </div>
-                      <span className="text-[11px] text-slate-400">Dues requiring due-date backfill</span>
-                    </div>
-
-                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <span className="text-xs text-slate-500 block">Multi-Currency Transactions</span>
-                      <div className="text-xl font-bold text-slate-800 mt-1">
-                        {dataQuality.operational_integrity_checks.distinct_currencies.join(', ') || 'INR'}
-                      </div>
                       <span className="text-[11px] text-slate-400">
-                        {dataQuality.operational_integrity_checks.multi_currency_detected ? 'Cross-currency conversion active' : 'Single base currency verified'}
+                        Dues requiring due-date backfill
                       </span>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <span className="text-xs text-slate-500 block">Captured Unallocated Funds</span>
+                      <span className="text-xs text-slate-500 block">
+                        Multi-Currency Transactions
+                      </span>
                       <div className="text-xl font-bold text-slate-800 mt-1">
-                        {formatMoney(dataQuality.operational_integrity_checks.captured_unallocated_amount)}
+                        {dataQuality.operational_integrity_checks.distinct_currencies.join(', ') ||
+                          'INR'}
                       </div>
                       <span className="text-[11px] text-slate-400">
-                        {dataQuality.operational_integrity_checks.captured_unallocated_transactions_count} unallocated successful payments
+                        {dataQuality.operational_integrity_checks.multi_currency_detected
+                          ? 'Cross-currency conversion active'
+                          : 'Single base currency verified'}
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                      <span className="text-xs text-slate-500 block">
+                        Captured Unallocated Funds
+                      </span>
+                      <div className="text-xl font-bold text-slate-800 mt-1">
+                        {formatMoney(
+                          dataQuality.operational_integrity_checks.captured_unallocated_amount,
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {
+                          dataQuality.operational_integrity_checks
+                            .captured_unallocated_transactions_count
+                        }{' '}
+                        unallocated successful payments
                       </span>
                     </div>
                   </div>
 
                   {/* Disclosures list */}
                   <div className="pt-2">
-                    <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Model Disclosures & Boundaries</h4>
+                    <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                      Model Disclosures & Boundaries
+                    </h4>
                     <ul className="space-y-1.5 text-xs text-slate-600">
                       {dataQuality.disclosures.map((d, i) => (
                         <li key={i} className="flex items-start gap-2">
@@ -1367,9 +1696,12 @@ export const FinancePlanning: React.FC = () => {
             {activeTab === 'exports' && (
               <div className="space-y-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="text-base font-semibold text-slate-900 mb-1">Financial Planning CSV Exports</h3>
+                  <h3 className="text-base font-semibold text-slate-900 mb-1">
+                    Financial Planning CSV Exports
+                  </h3>
                   <p className="text-xs text-slate-500 mb-6">
-                    Download sanitized spreadsheet reports. All formula injection prefixes (=, +, -, @) are sanitized with apostrophe escaping.
+                    Download sanitized spreadsheet reports. All formula injection prefixes (=, +, -,
+                    @) are sanitized with apostrophe escaping.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1378,7 +1710,8 @@ export const FinancePlanning: React.FC = () => {
                         <Coins className="w-6 h-6 text-indigo-600 mb-2" />
                         <h4 className="text-sm font-bold text-slate-900">Collections Forecast</h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Monthly projections, scheduled dues, student counts, and assumed realization rate.
+                          Monthly projections, scheduled dues, student counts, and assumed
+                          realization rate.
                         </p>
                       </div>
                       <button
@@ -1393,9 +1726,12 @@ export const FinancePlanning: React.FC = () => {
                     <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
                       <div>
                         <Sliders className="w-6 h-6 text-indigo-600 mb-2" />
-                        <h4 className="text-sm font-bold text-slate-900">Scenario Planner Comparison</h4>
+                        <h4 className="text-sm font-bold text-slate-900">
+                          Scenario Planner Comparison
+                        </h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Side-by-side Conservative, Expected, and Optimistic collection and receivables estimates.
+                          Side-by-side Conservative, Expected, and Optimistic collection and
+                          receivables estimates.
                         </p>
                       </div>
                       <button
@@ -1412,7 +1748,8 @@ export const FinancePlanning: React.FC = () => {
                         <Building2 className="w-6 h-6 text-indigo-600 mb-2" />
                         <h4 className="text-sm font-bold text-slate-900">Academic-Year Outlook</h4>
                         <p className="text-xs text-slate-500 mt-1">
-                          Session-level assessments, net dues, collections, and realization rate history.
+                          Session-level assessments, net dues, collections, and realization rate
+                          history.
                         </p>
                       </div>
                       <button
