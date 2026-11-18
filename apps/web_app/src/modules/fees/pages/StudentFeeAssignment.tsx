@@ -133,7 +133,9 @@ export const StudentFeeAssignment: React.FC = () => {
         const years = Array.from(yearsMap.entries()).map(([id, name]) => ({ id, name }));
         setAcademicYears(years);
 
-        setSelectedYearId((prev) => prev || (years.length > 0 ? years[0].id : ''));
+        const currentActiveYear =
+          years.find((y) => y.name.includes('2026')) || (years.length > 0 ? years[0] : null);
+        setSelectedYearId((prev) => prev || (currentActiveYear ? currentActiveYear.id : ''));
       }
     } catch (err: any) {
       console.warn('[StudentFeeAssignment] Error fetching academic year grades:', err);

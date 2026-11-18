@@ -172,7 +172,25 @@ export const AdminFeeLedger: React.FC = () => {
       const years = Array.isArray(rawYears) ? rawYears : [];
       setAcademicYears(years);
       if (years.length > 0) {
-        setSelectedYearId(years[0].academic_year_id || years[0].id || '');
+        const now = new Date();
+        const activeYear =
+          years.find((y: any) => y.is_current) ||
+          years.find((y: any) => {
+            if (!y.start_date || !y.end_date) return false;
+            const s = new Date(y.start_date);
+            const e = new Date(y.end_date);
+            return now >= s && now <= e;
+          }) ||
+          years.find((y: any) => y.status === 'open' || y.status === 'active') ||
+          years[0];
+
+        setSelectedYearId(
+          activeYear?.academic_year_id ||
+            activeYear?.id ||
+            years[0].academic_year_id ||
+            years[0].id ||
+            '',
+        );
       }
 
       const rawCls = clsRes.data?.data || clsRes.data || [];
@@ -453,6 +471,9 @@ export const AdminFeeLedger: React.FC = () => {
               onChange={(e) => setSelectedYearId(e.target.value)}
               className="bg-transparent border-0 outline-none text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
             >
+              <option value="" className="dark:bg-slate-800">
+                All Academic Years
+              </option>
               {academicYears.map((y) => (
                 <option
                   key={y.academic_year_id || y.id}

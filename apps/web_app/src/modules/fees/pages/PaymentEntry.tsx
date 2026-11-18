@@ -237,7 +237,25 @@ export const PaymentEntry: React.FC = () => {
       const years = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setAcademicYears(years);
       if (years.length > 0) {
-        setSelectedYearId(years[0].academic_year_id || years[0].id || '');
+        const now = new Date();
+        const activeYear =
+          years.find((y: any) => y.is_current) ||
+          years.find((y: any) => {
+            if (!y.start_date || !y.end_date) return false;
+            const s = new Date(y.start_date);
+            const e = new Date(y.end_date);
+            return now >= s && now <= e;
+          }) ||
+          years.find((y: any) => y.status === 'open' || y.status === 'active') ||
+          years[0];
+
+        setSelectedYearId(
+          activeYear?.academic_year_id ||
+            activeYear?.id ||
+            years[0].academic_year_id ||
+            years[0].id ||
+            '',
+        );
       }
     } catch (err) {
       console.error('Error fetching academic years:', err);
@@ -853,6 +871,7 @@ export const PaymentEntry: React.FC = () => {
               value={selectedYearId}
               onChange={(e) => setSelectedYearId(e.target.value)}
             >
+              <option value="">All Academic Years</option>
               {academicYears.map((y) => (
                 <option key={y.academic_year_id || y.id} value={y.academic_year_id || y.id}>
                   {y.name || y.academic_year_id} {y.is_current ? '(Active)' : ''}
