@@ -34,10 +34,6 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const { isAuthenticated, isHydrating } = useAuthStore();
 
-  if (!isHydrating && isAuthenticated) {
-    return <Redirect href={ROUTES.PARENT.DASHBOARD as any} />;
-  }
-
   const { mutate: login, isPending, error } = useLogin();
 
   const {
@@ -52,6 +48,16 @@ export default function LoginScreen() {
       password: '',
     },
   });
+
+  React.useEffect(() => {
+    if (!isHydrating && isAuthenticated) {
+      router.replace(ROUTES.PARENT.DASHBOARD as any);
+    }
+  }, [isAuthenticated, isHydrating, router]);
+
+  if (!isHydrating && isAuthenticated) {
+    return <Redirect href={ROUTES.PARENT.DASHBOARD as any} />;
+  }
 
   const onSubmit = (data: LoginFormData) => {
     login({

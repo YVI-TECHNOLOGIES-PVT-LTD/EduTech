@@ -15,7 +15,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { communicationApi } from '../index';
+import { communicationApi } from '../../../api/communication.api';
 import { DESIGN_TOKENS } from '../../../theme/tokens/designTokens';
 
 const MAX_ATTACHMENTS = 5;
