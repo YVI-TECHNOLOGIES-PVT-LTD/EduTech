@@ -23,21 +23,20 @@ export const Sidebar: React.FC = () => {
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between px-6 border-b border-border">
         <div className="flex items-center space-x-3">
-          <img
-            src="/brand/edulyfe-symbol-color.png"
-            alt="EduLyfe"
-            className="h-9 w-9 object-contain shrink-0 dark:hidden"
-          />
-          <img
-            src="/brand/edulyfe-symbol-reversed.png"
-            alt="EduLyfe"
-            className="h-9 w-9 object-contain shrink-0 hidden dark:block"
-          />
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-black dark:text-white">
-              {APP_CONFIG.name}
-            </h1>
-            <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <img
+                src="/brand/edulyfe-logo-horizontal-color.png"
+                alt="EduLyfe"
+                className="h-8 w-auto object-contain shrink-0 dark:hidden"
+              />
+              <img
+                src="/brand/edulyfe-logo-horizontal-reversed.png"
+                alt="EduLyfe"
+                className="h-8 w-auto object-contain shrink-0 hidden dark:block"
+              />
+            </div>
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground mt-0.5">
               Stage-1 Admin
             </span>
           </div>

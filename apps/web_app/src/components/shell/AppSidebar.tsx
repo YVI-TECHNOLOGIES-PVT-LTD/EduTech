@@ -644,7 +644,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
             onClick={handleLinkClick}
             className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center min-w-0 group"
           >
-            <div className="relative p-1 rounded-xl bg-card border border-border/70 shadow-2xs group-hover:border-primary/40 group-hover:shadow-xs transition-all duration-200 shrink-0">
+            {/* Collapsed State: compact symbol without white box container */}
+            <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center shrink-0">
               <img
                 src="/brand/edulyfe-symbol-color.png"
                 alt="EduLyfe"
@@ -657,21 +658,27 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
               />
             </div>
 
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-black tracking-tight text-sidebar-foreground leading-none">
-                    EduLyfe
-                  </span>
-                  <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 rounded-md">
-                    ERP
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1 truncate">
-                  {contextLabel}
+            {/* Expanded State: official horizontal brand logo from login page */}
+            <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
+              <div className="flex items-center gap-2">
+                <img
+                  src="/brand/edulyfe-logo-horizontal-color.png"
+                  alt="EduLyfe ERP"
+                  className="h-8 w-auto object-contain shrink-0 dark:hidden group-hover:scale-[1.02] transition-transform"
+                />
+                <img
+                  src="/brand/edulyfe-logo-horizontal-reversed.png"
+                  alt="EduLyfe ERP"
+                  className="h-8 w-auto object-contain shrink-0 hidden dark:block group-hover:scale-[1.02] transition-transform"
+                />
+                <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
+                  ERP
                 </span>
               </div>
-            )}
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5 truncate">
+                {contextLabel}
+              </span>
+            </div>
           </Link>
 
           {/* Dedicated Mobile Dismiss Button */}

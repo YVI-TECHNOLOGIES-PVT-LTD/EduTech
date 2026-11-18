@@ -29,18 +29,10 @@ export const ParentWizardHeader: React.FC<ParentWizardHeaderProps> = ({
           onClick={() => navigate('/app/admissions/my')}
         >
           <img
-            src="/brand/edulyfe-symbol-color.png"
+            src="/brand/edulyfe-logo-horizontal-color.png"
             alt="EduLyfe"
-            className="w-10 h-10 object-contain drop-shadow-xs shrink-0"
+            className="h-9 w-auto object-contain drop-shadow-xs shrink-0"
           />
-          <div className="flex flex-col">
-            <span className="text-base font-black tracking-tight text-indigo-950 leading-tight">
-              EduLyfe
-            </span>
-            <span className="text-[9px] font-black text-amber-500 tracking-widest uppercase">
-              LONG LIVE EDUCATION
-            </span>
-          </div>
         </div>
 
         {/* Right: Application ID & Support Links */}
