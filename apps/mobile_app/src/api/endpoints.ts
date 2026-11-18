@@ -107,6 +107,9 @@ export const ENDPOINTS = {
     REACTIONS_CATALOG: (id: string) => `/communication/reactions/catalog`,
     COMMENTS: (id: string) => `/communication/feeds/${id}/comments`,
     DELETE_COMMENT: (id: string) => `/communication/comments/${id}`,
+    ATTACHMENTS: (id: string) => `/communication/feeds/${id}/attachments`,
+    ATTACHMENT_BY_ID: (postId: string, attachmentId: string) =>
+      `/communication/feeds/${postId}/attachments/${attachmentId}`,
   },
   HELPDESK: {
     CATEGORIES: '/communication/helpdesk/categories',

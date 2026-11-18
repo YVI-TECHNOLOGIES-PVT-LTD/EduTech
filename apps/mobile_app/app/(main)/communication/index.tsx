@@ -17,6 +17,15 @@ import { NotificationItem } from '../../../src/types/notification.types';
 import { Badge } from '../../../src/components/ui/atoms/Badge';
 import { DESIGN_TOKENS } from '../../../src/theme/tokens/designTokens';
 import { ROUTES } from '../../../src/constants/routes';
+import {
+  communicationApi,
+  FeedPost,
+  FeedAttachment,
+  MobileFeedGallery,
+  MobileFeedImageViewer,
+  MobileFeedImageItem,
+  MobileCreateFeedPostModal,
+} from '../../../src/features/communication';
 
 export default function CommunicationFeedScreen() {
   const router = useRouter();
@@ -27,6 +36,14 @@ export default function CommunicationFeedScreen() {
   >('all');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Community Feed State
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerImages, setViewerImages] = useState<MobileFeedImageItem[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
 
   const fetchNotices = async () => {
     setIsLoading(true);
@@ -40,9 +57,42 @@ export default function CommunicationFeedScreen() {
     }
   };
 
+  const fetchFeeds = async () => {
+    setIsFeedLoading(true);
+    try {
+      const res = await communicationApi.getFeeds({ limit: 20 });
+      if (Array.isArray(res?.data)) {
+        setFeedPosts(res.data);
+      } else if (Array.isArray(res)) {
+        setFeedPosts(res as any);
+      }
+    } catch {
+      // Non-blocking fallback
+    } finally {
+      setIsFeedLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchNotices();
+    fetchFeeds();
   }, []);
+
+  const handleOpenImageViewer = (attachments: FeedAttachment[], index: number) => {
+    const formattedImages: MobileFeedImageItem[] = attachments
+      .filter((a) => Boolean(a.signedUrl || a.signed_url))
+      .map((a) => ({
+        url: a.signedUrl || a.signed_url || '',
+        caption: a.caption,
+        fileName: a.fileName || a.file_name,
+      }));
+
+    if (formattedImages.length > 0) {
+      setViewerImages(formattedImages);
+      setViewerIndex(index);
+      setViewerVisible(true);
+    }
+  };
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -123,8 +173,11 @@ export default function CommunicationFeedScreen() {
         ]}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchNotices}
+            refreshing={activeTab === 'notices' ? isLoading : isFeedLoading}
+            onRefresh={() => {
+              if (activeTab === 'notices') fetchNotices();
+              else fetchFeeds();
+            }}
             tintColor={DESIGN_TOKENS.colors.primary}
             colors={[DESIGN_TOKENS.colors.primary]}
           />
@@ -308,53 +361,175 @@ export default function CommunicationFeedScreen() {
         {/* ========================================================================= */}
         {activeTab === 'feed' && (
           <View>
-            {communityPosts.map((post) => (
-              <View key={post.id} style={styles.feedCard}>
-                <View style={styles.feedHeader}>
-                  <View
-                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}
-                  >
-                    <View style={styles.feedAvatarBox}>
-                      <Ionicons name="school" size={18} color={DESIGN_TOKENS.colors.primary} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.feedAuthorName} numberOfLines={1}>
-                        {post.author}
-                      </Text>
-                      <Text style={styles.feedMetaText}>
-                        {post.role} • {post.date}
-                      </Text>
-                    </View>
-                  </View>
-                  <Badge label={post.tag} variant="neutral" />
-                </View>
-
-                <Text style={styles.feedTitle}>{post.title}</Text>
-                <Text style={styles.feedContent}>{post.content}</Text>
-
-                <View style={styles.feedFooter}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons
-                      name="heart-outline"
-                      size={16}
-                      color={DESIGN_TOKENS.colors.textSecondary}
-                    />
-                    <Text style={styles.feedActionText}>Appreciate</Text>
-                    <Ionicons
-                      name="share-social-outline"
-                      size={16}
-                      color={DESIGN_TOKENS.colors.textSecondary}
-                      style={{ marginLeft: 16 }}
-                    />
-                    <Text style={styles.feedActionText}>Share</Text>
-                  </View>
-                  <Text style={styles.broadcastTag}>Official Broadcast</Text>
-                </View>
+            {/* Quick Create Post Bar */}
+            <TouchableOpacity
+              style={styles.createPostBar}
+              onPress={() => setCreateModalVisible(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Create feed post"
+            >
+              <View style={styles.createPostAvatar}>
+                <Ionicons name="create-outline" size={18} color={DESIGN_TOKENS.colors.primary} />
               </View>
-            ))}
+              <Text style={styles.createPostPlaceholder}>
+                Share an update or photo with school...
+              </Text>
+              <Ionicons name="images" size={20} color={DESIGN_TOKENS.colors.primary} />
+            </TouchableOpacity>
+
+            {/* Live Feed Posts if available, else static demo posts */}
+            {feedPosts.length > 0
+              ? feedPosts.map((post) => {
+                  const authorName = post.author?.name || 'School Staff';
+                  const postDate =
+                    post.createdAt || post.created_at
+                      ? new Date(post.createdAt || post.created_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : 'Recent';
+
+                  return (
+                    <View key={post.feedPostId || post.feed_post_id} style={styles.feedCard}>
+                      <View style={styles.feedHeader}>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            flex: 1,
+                            marginRight: 8,
+                          }}
+                        >
+                          <View style={styles.feedAvatarBox}>
+                            <Ionicons
+                              name="school"
+                              size={18}
+                              color={DESIGN_TOKENS.colors.primary}
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.feedAuthorName} numberOfLines={1}>
+                              {authorName}
+                            </Text>
+                            <Text style={styles.feedMetaText}>
+                              {post.feedType || 'General'} • {postDate}
+                            </Text>
+                          </View>
+                        </View>
+                        <Badge label={post.feedType || 'Campus'} variant="neutral" />
+                      </View>
+
+                      {Boolean(post.title) && <Text style={styles.feedTitle}>{post.title}</Text>}
+                      <Text style={styles.feedContent}>{post.content}</Text>
+
+                      {/* Image Attachments Gallery */}
+                      {post.attachments && post.attachments.length > 0 && (
+                        <MobileFeedGallery
+                          attachments={post.attachments}
+                          onImagePress={(idx) => handleOpenImageViewer(post.attachments!, idx)}
+                        />
+                      )}
+
+                      <View style={styles.feedFooter}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons
+                            name="heart-outline"
+                            size={16}
+                            color={DESIGN_TOKENS.colors.textSecondary}
+                          />
+                          <Text style={styles.feedActionText}>
+                            {post.reactionSummary?.reduce((acc, r) => acc + (r.count || 0), 0) || 0}
+                          </Text>
+                          <Ionicons
+                            name="chatbubble-outline"
+                            size={15}
+                            color={DESIGN_TOKENS.colors.textSecondary}
+                            style={{ marginLeft: 16 }}
+                          />
+                          <Text style={styles.feedActionText}>{post.commentCount || 0}</Text>
+                          <Ionicons
+                            name="share-social-outline"
+                            size={16}
+                            color={DESIGN_TOKENS.colors.textSecondary}
+                            style={{ marginLeft: 16 }}
+                          />
+                          <Text style={styles.feedActionText}>Share</Text>
+                        </View>
+                        <Text style={styles.broadcastTag}>Official Broadcast</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              : communityPosts.map((post) => (
+                  <View key={post.id} style={styles.feedCard}>
+                    <View style={styles.feedHeader}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          flex: 1,
+                          marginRight: 8,
+                        }}
+                      >
+                        <View style={styles.feedAvatarBox}>
+                          <Ionicons name="school" size={18} color={DESIGN_TOKENS.colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.feedAuthorName} numberOfLines={1}>
+                            {post.author}
+                          </Text>
+                          <Text style={styles.feedMetaText}>
+                            {post.role} • {post.date}
+                          </Text>
+                        </View>
+                      </View>
+                      <Badge label={post.tag} variant="neutral" />
+                    </View>
+
+                    <Text style={styles.feedTitle}>{post.title}</Text>
+                    <Text style={styles.feedContent}>{post.content}</Text>
+
+                    <View style={styles.feedFooter}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons
+                          name="heart-outline"
+                          size={16}
+                          color={DESIGN_TOKENS.colors.textSecondary}
+                        />
+                        <Text style={styles.feedActionText}>Appreciate</Text>
+                        <Ionicons
+                          name="share-social-outline"
+                          size={16}
+                          color={DESIGN_TOKENS.colors.textSecondary}
+                          style={{ marginLeft: 16 }}
+                        />
+                        <Text style={styles.feedActionText}>Share</Text>
+                      </View>
+                      <Text style={styles.broadcastTag}>Official Broadcast</Text>
+                    </View>
+                  </View>
+                ))}
           </View>
         )}
       </ScrollView>
+
+      {/* Full Screen Image Viewer Modal */}
+      <MobileFeedImageViewer
+        visible={viewerVisible}
+        images={viewerImages}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerVisible(false)}
+      />
+
+      {/* Create Feed Post Modal */}
+      <MobileCreateFeedPostModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onSuccess={fetchFeeds}
+      />
     </View>
   );
 }
@@ -518,6 +693,33 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.textPrimary,
     marginTop: 8,
     textAlign: 'center',
+  },
+  createPostBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderWidth: 1,
+    borderRadius: DESIGN_TOKENS.radius.card,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+    ...DESIGN_TOKENS.shadows.subtle,
+  },
+  createPostAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: DESIGN_TOKENS.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  createPostPlaceholder: {
+    flex: 1,
+    fontSize: 13,
+    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: '500',
   },
   feedCard: {
     backgroundColor: DESIGN_TOKENS.colors.surface,

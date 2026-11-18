@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { CommunicationController } from './controllers/communication.controller';
+import { uploadSingleMiddleware } from '../../middlewares/upload.middleware';
 
 export const communicationRouter = Router();
 
@@ -17,6 +18,26 @@ communicationRouter.post('/feeds/:id/publish', CommunicationController.publishPo
 communicationRouter.delete('/feeds/:id', CommunicationController.removePost);
 communicationRouter.post('/feeds/:id/remove', CommunicationController.removePost);
 
+// Feed Post Attachments (Image Uploads & Lifecycle)
+communicationRouter.post(
+  '/feeds/:id/attachments',
+  uploadSingleMiddleware,
+  CommunicationController.uploadAttachment,
+);
+communicationRouter.get('/feeds/:id/attachments', CommunicationController.listAttachments);
+communicationRouter.patch(
+  '/feeds/:id/attachments/reorder',
+  CommunicationController.reorderAttachments,
+);
+communicationRouter.put(
+  '/feeds/:id/attachments/reorder',
+  CommunicationController.reorderAttachments,
+);
+communicationRouter.delete(
+  '/feeds/:id/attachments/:attachmentId',
+  CommunicationController.removeAttachment,
+);
+
 // Legacy /posts aliases for backwards compatibility
 communicationRouter.post('/posts', CommunicationController.createPost);
 communicationRouter.get('/posts', CommunicationController.listPosts);
@@ -26,6 +47,26 @@ communicationRouter.patch('/posts/:id/publish', CommunicationController.publishP
 communicationRouter.post('/posts/:id/publish', CommunicationController.publishPost);
 communicationRouter.delete('/posts/:id', CommunicationController.removePost);
 communicationRouter.post('/posts/:id/remove', CommunicationController.removePost);
+
+// Legacy /posts attachment aliases
+communicationRouter.post(
+  '/posts/:id/attachments',
+  uploadSingleMiddleware,
+  CommunicationController.uploadAttachment,
+);
+communicationRouter.get('/posts/:id/attachments', CommunicationController.listAttachments);
+communicationRouter.patch(
+  '/posts/:id/attachments/reorder',
+  CommunicationController.reorderAttachments,
+);
+communicationRouter.put(
+  '/posts/:id/attachments/reorder',
+  CommunicationController.reorderAttachments,
+);
+communicationRouter.delete(
+  '/posts/:id/attachments/:attachmentId',
+  CommunicationController.removeAttachment,
+);
 
 // Comments
 communicationRouter.post('/feeds/:id/comments', CommunicationController.addComment);

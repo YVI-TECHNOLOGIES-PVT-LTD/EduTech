@@ -365,6 +365,123 @@ export class CommunicationController {
   }
 
   // ==========================================
+  // ATTACHMENTS (FEED IMAGES)
+  // ==========================================
+
+  public static async uploadAttachment(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          error: 'NO_FILE_UPLOADED',
+          message: 'Please provide an image file to upload',
+        });
+      }
+
+      const caption = req.body?.caption;
+      const attachment = await FeedService.uploadAttachment(
+        orgId,
+        postId,
+        userId,
+        userContext,
+        file,
+        caption,
+      );
+
+      res.status(201).json({ success: true, data: attachment });
+    } catch (error: any) {
+      console.error('[CommunicationController.uploadAttachment] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'UPLOAD_ATTACHMENT_FAILED',
+        message: error.message || 'Failed to upload attachment',
+      });
+    }
+  }
+
+  public static async reorderAttachments(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const attachments = req.body?.attachments || req.body;
+
+      const updated = await FeedService.reorderAttachments(
+        orgId,
+        postId,
+        userId,
+        userContext,
+        attachments,
+      );
+
+      res.json({ success: true, data: updated });
+    } catch (error: any) {
+      console.error('[CommunicationController.reorderAttachments] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'REORDER_ATTACHMENTS_FAILED',
+        message: error.message || 'Failed to reorder attachments',
+      });
+    }
+  }
+
+  public static async removeAttachment(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+      const attachmentId = req.params.attachmentId;
+      const reason = req.body?.removalReason || req.body?.reason;
+
+      const result = await FeedService.softRemoveAttachment(
+        orgId,
+        postId,
+        attachmentId,
+        userId,
+        userContext,
+        reason,
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[CommunicationController.removeAttachment] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'REMOVE_ATTACHMENT_FAILED',
+        message: error.message || 'Failed to remove attachment',
+      });
+    }
+  }
+
+  public static async listAttachments(req: Request, res: Response) {
+    try {
+      const orgId = CommunicationController.extractOrgId(req);
+      const userId = CommunicationController.extractUserId(req);
+      const userContext = CommunicationController.extractUserContext(req);
+      const postId = req.params.id || req.params.feedPostId;
+
+      const attachments = await FeedService.listAttachments(orgId, postId, userId, userContext);
+
+      res.json({ success: true, data: attachments });
+    } catch (error: any) {
+      console.error('[CommunicationController.listAttachments] Error:', error);
+      res.status(error.status || 400).json({
+        success: false,
+        error: error.code || 'LIST_ATTACHMENTS_FAILED',
+        message: error.message || 'Failed to list attachments',
+      });
+    }
+  }
+
+  // ==========================================
   // HELPDESK
   // ==========================================
 

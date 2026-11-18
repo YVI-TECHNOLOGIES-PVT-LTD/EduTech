@@ -76,6 +76,23 @@ export interface FeedPost {
   reactionSummary: ReactionSummaryItem[];
   currentUserReaction: string | null; // reactionTypeId
   commentCount: number;
+  attachments?: FeedAttachment[];
+}
+
+export interface FeedAttachment {
+  attachmentId: string;
+  orgId: string;
+  feedPostId: string;
+  fileName: string;
+  storagePath: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  displayOrder: number;
+  caption: string | null;
+  uploadedBy: string;
+  uploadedAt: string;
+  signedUrl?: string;
+  signedUrlExpiresAt?: string;
 }
 
 export interface FeedComment {

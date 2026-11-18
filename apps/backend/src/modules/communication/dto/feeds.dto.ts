@@ -106,4 +106,45 @@ export interface FeedPostResponseDto {
   reactionSummary: ReactionSummaryItem[];
   currentUserReaction: string | null;
   commentCount: number;
+  attachments?: FeedAttachmentResponseDto[];
+}
+
+export interface FeedAttachmentResponseDto {
+  attachmentId: string;
+  attachment_id?: string;
+  orgId: string;
+  org_id?: string;
+  feedPostId: string;
+  feed_post_id?: string;
+  fileName: string;
+  file_name?: string;
+  storagePath: string;
+  storage_path?: string;
+  mimeType: string;
+  mime_type?: string;
+  fileSizeBytes: number;
+  file_size_bytes?: number;
+  displayOrder: number;
+  display_order?: number;
+  caption: string | null;
+  uploadedBy: string;
+  uploaded_by?: string;
+  uploadedAt: string;
+  uploaded_at?: string;
+  signedUrl?: string;
+  signed_url?: string;
+  signedUrlExpiresAt?: string;
+}
+
+export interface ReorderAttachmentItemDto {
+  attachmentId: string;
+  displayOrder: number;
+}
+
+export interface ReorderAttachmentsRequestDto {
+  attachments: ReorderAttachmentItemDto[];
+}
+
+export interface SoftRemoveAttachmentRequestDto {
+  removalReason?: string;
 }

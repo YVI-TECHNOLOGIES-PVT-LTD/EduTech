@@ -10,13 +10,218 @@ import {
   ListFeedsQuery,
   FeedPostResponseDto,
   ReactionSummaryItem,
+  FeedAttachmentResponseDto,
+  ReorderAttachmentItemDto,
+  SoftRemoveAttachmentRequestDto,
 } from '../dto/feeds.dto';
 import { FeedValidationService, UserContext } from './feed-validation.service';
 import { FeedVisibilityService } from './feed-visibility.service';
+import { StorageService } from '../../../services/storage.service';
+import { detectBufferMimeType } from '../../../middlewares/upload.middleware';
+import { v4 as uuidv4 } from 'uuid';
 
 export { CreateAnnouncementDto, UpdateAnnouncementDto, ListFeedsQuery };
 
 export class FeedService {
+  /**
+   * MIME magic bytes detector wrapper.
+   */
+  public static detectBufferMimeType(buffer: Buffer): string | null {
+    return detectBufferMimeType(buffer);
+  }
+
+  /**
+   * Validate attachment file size against 10 MB limit.
+   */
+  public static validateAttachmentFileSize(sizeBytes: number): void {
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (sizeBytes > MAX_SIZE) {
+      const err: any = new Error('File size exceeds maximum allowed limit of 10 MB');
+      err.status = 400;
+      err.code = 'FILE_TOO_LARGE';
+      throw err;
+    }
+  }
+
+  /**
+   * Validate attachment file signature and constraints.
+   */
+  public static validateAttachmentFile(fileName: string, buffer: Buffer): string {
+    if (!buffer || buffer.length === 0) {
+      const err: any = new Error('File content is empty');
+      err.status = 400;
+      err.code = 'EMPTY_FILE';
+      throw err;
+    }
+
+    FeedService.validateAttachmentFileSize(buffer.length);
+
+    const detected = detectBufferMimeType(buffer);
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!detected || !ALLOWED.includes(detected)) {
+      const err: any = new Error(
+        `Corrupted or unsupported file content signature. Allowed image formats: JPEG, PNG, WebP.`,
+      );
+      err.status = 400;
+      err.code = 'INVALID_FILE_TYPE';
+      throw err;
+    }
+
+    return detected;
+  }
+
+  /**
+   * Format isolated storage path.
+   */
+  public static buildAttachmentStoragePath(
+    orgId: string,
+    feedPostId: string,
+    fileName: string,
+  ): string {
+    const ext = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+    const sanitizedExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext)
+      ? ext === 'jpeg'
+        ? 'jpg'
+        : ext
+      : 'jpg';
+    return `organizations/${orgId}/feeds/${feedPostId}/${uuidv4()}.${sanitizedExt}`;
+  }
+
+  /**
+   * Assert active attachment cap (max 5 active per post).
+   */
+  public static assertAttachmentLimitNotExceeded(activeCount: number): void {
+    if (activeCount >= 5) {
+      const err: any = new Error('A feed post can have a maximum of 5 active attachments.');
+      err.status = 400;
+      err.code = 'ATTACHMENT_LIMIT_EXCEEDED';
+      throw err;
+    }
+  }
+
+  /**
+   * Validate reorder payload items.
+   */
+  public static validateReorderPayload(orderMapping: ReorderAttachmentItemDto[]): void {
+    if (!Array.isArray(orderMapping) || orderMapping.length === 0) {
+      const err: any = new Error('Invalid or empty reorder payload');
+      err.status = 400;
+      err.code = 'INVALID_REORDER_PAYLOAD';
+      throw err;
+    }
+
+    const seenOrders = new Set<number>();
+    for (const item of orderMapping) {
+      if (!item.displayOrder || item.displayOrder <= 0) {
+        const err: any = new Error('Display order must be a positive integer');
+        err.status = 400;
+        err.code = 'INVALID_DISPLAY_ORDER';
+        throw err;
+      }
+      if (seenOrders.has(item.displayOrder)) {
+        const err: any = new Error('Duplicate display order detected in reorder payload');
+        err.status = 400;
+        err.code = 'DUPLICATE_DISPLAY_ORDER';
+        throw err;
+      }
+      seenOrders.add(item.displayOrder);
+    }
+  }
+
+  /**
+   * Helper to map an attachment database row to a standardized response DTO.
+   */
+  public static mapAttachmentRowToDto(
+    row: any,
+    signedUrl?: string,
+    signedUrlExpiresAt?: string,
+  ): FeedAttachmentResponseDto {
+    const uploadedAt =
+      row.uploaded_at instanceof Date
+        ? row.uploaded_at.toISOString()
+        : new Date(row.uploaded_at).toISOString();
+
+    return {
+      attachmentId: row.attachment_id,
+      attachment_id: row.attachment_id,
+      orgId: row.org_id,
+      org_id: row.org_id,
+      feedPostId: row.feed_post_id,
+      feed_post_id: row.feed_post_id,
+      fileName: row.file_name,
+      file_name: row.file_name,
+      storagePath: row.storage_path,
+      storage_path: row.storage_path,
+      mimeType: row.mime_type,
+      mime_type: row.mime_type,
+      fileSizeBytes: Number(row.file_size_bytes),
+      file_size_bytes: Number(row.file_size_bytes),
+      displayOrder: row.display_order,
+      display_order: row.display_order,
+      caption: row.caption || null,
+      uploadedBy: row.uploaded_by,
+      uploaded_by: row.uploaded_by,
+      uploadedAt,
+      uploaded_at: uploadedAt,
+      ...(signedUrl ? { signedUrl, signed_url: signedUrl, signedUrlExpiresAt } : {}),
+    };
+  }
+
+  /**
+   * Batch retrieval of active attachments with signed URLs for multiple feed posts.
+   */
+  private static async getActiveAttachmentsForPostIds(
+    orgId: string,
+    postIds: string[],
+  ): Promise<Map<string, FeedAttachmentResponseDto[]>> {
+    const attachmentMap = new Map<string, FeedAttachmentResponseDto[]>();
+    if (postIds.length === 0) return attachmentMap;
+
+    try {
+      const rows: any = await prisma.$queryRawUnsafe(
+        `SELECT * FROM public.feed_post_attachments
+         WHERE org_id = $1::uuid AND feed_post_id = ANY($2::uuid[]) AND removed_at IS NULL
+         ORDER BY display_order ASC`,
+        orgId,
+        postIds,
+      );
+
+      await Promise.all(
+        rows.map(async (row: any) => {
+          let signedUrl: string | undefined;
+          let signedUrlExpiresAt: string | undefined;
+          try {
+            const urlResult = await StorageService.getSignedUrl({
+              bucket: 'communication-feeds',
+              path: row.storage_path,
+              expiresInSeconds: 3600,
+            });
+            signedUrl = urlResult.signedUrl;
+            signedUrlExpiresAt = urlResult.expiresAt;
+          } catch (storageErr: any) {
+            console.warn(
+              `[FeedService] Could not generate signed URL for attachment ${row.attachment_id}:`,
+              storageErr?.message,
+            );
+          }
+
+          const dto = FeedService.mapAttachmentRowToDto(row, signedUrl, signedUrlExpiresAt);
+          const existing = attachmentMap.get(row.feed_post_id) || [];
+          existing.push(dto);
+          attachmentMap.set(row.feed_post_id, existing);
+        }),
+      );
+    } catch (err: any) {
+      // Graceful fallback if table is not yet migrated to the database
+      console.warn(
+        '[FeedService] Attachments query bypassed (table may be pending migration):',
+        err.message,
+      );
+    }
+
+    return attachmentMap;
+  }
+
   /**
    * Helper to format a feed post into the standardized API response DTO.
    */
@@ -25,6 +230,7 @@ export class FeedService {
     reactionSummary: ReactionSummaryItem[] = [],
     currentUserReaction: string | null = null,
     commentCount: number = 0,
+    attachments: FeedAttachmentResponseDto[] = [],
   ): FeedPostResponseDto {
     const author = post.users_feed_posts_org_id_author_user_idTousers || {};
     const authorName = [author.first_name, author.last_name].filter(Boolean).join(' ') || 'Unknown';
@@ -74,6 +280,7 @@ export class FeedService {
       reactionSummary,
       currentUserReaction,
       commentCount,
+      attachments,
     };
   }
 
@@ -512,6 +719,34 @@ export class FeedService {
       },
     });
 
+    // Storage object lifecycle: delete objects from private storage bucket when post is removed
+    try {
+      const storageRows: any = await prisma.$queryRawUnsafe(
+        'SELECT storage_path FROM public.feed_post_attachments WHERE org_id = $1::uuid AND feed_post_id = $2::uuid',
+        orgId,
+        feedPostId,
+      );
+      if (storageRows && storageRows.length > 0) {
+        await Promise.all(
+          storageRows.map(async (row: any) => {
+            try {
+              await StorageService.deleteFile(row.storage_path, 'communication-feeds');
+            } catch (delErr: any) {
+              console.warn(
+                `[FeedService.removePost] Could not delete storage object ${row.storage_path}:`,
+                delErr?.message,
+              );
+            }
+          }),
+        );
+      }
+    } catch (cleanupErr: any) {
+      console.warn(
+        '[FeedService.removePost] Attachment cleanup query skipped (table may be pending migration):',
+        cleanupErr?.message,
+      );
+    }
+
     return FeedService.formatPostResponse(removed, [], null, 0);
   }
 
@@ -566,14 +801,18 @@ export class FeedService {
     ]);
 
     const postIds = rawPosts.map((p) => p.feed_post_id);
-    const { reactionSummaryMap, userReactionMap, commentCountMap } =
-      await FeedService.getReactionsAndCommentsMap(postIds, userContext.userId);
+    const [{ reactionSummaryMap, userReactionMap, commentCountMap }, attachmentMap] =
+      await Promise.all([
+        FeedService.getReactionsAndCommentsMap(postIds, userContext.userId),
+        FeedService.getActiveAttachmentsForPostIds(orgId, postIds),
+      ]);
 
     const formattedPosts = rawPosts.map((post) => {
       const summary = reactionSummaryMap.get(post.feed_post_id) || [];
       const userReaction = userReactionMap.get(post.feed_post_id) || null;
       const commentCount = commentCountMap.get(post.feed_post_id) || 0;
-      return FeedService.formatPostResponse(post, summary, userReaction, commentCount);
+      const attachments = attachmentMap.get(post.feed_post_id) || [];
+      return FeedService.formatPostResponse(post, summary, userReaction, commentCount, attachments);
     });
 
     return {
@@ -639,14 +878,18 @@ export class FeedService {
       throw err;
     }
 
-    const { reactionSummaryMap, userReactionMap, commentCountMap } =
-      await FeedService.getReactionsAndCommentsMap([feedPostId], userId);
+    const [{ reactionSummaryMap, userReactionMap, commentCountMap }, attachmentMap] =
+      await Promise.all([
+        FeedService.getReactionsAndCommentsMap([feedPostId], userId),
+        FeedService.getActiveAttachmentsForPostIds(orgId, [feedPostId]),
+      ]);
 
     const summary = reactionSummaryMap.get(feedPostId) || [];
     const userReaction = userReactionMap.get(feedPostId) || null;
     const commentCount = commentCountMap.get(feedPostId) || 0;
+    const attachments = attachmentMap.get(feedPostId) || [];
 
-    return FeedService.formatPostResponse(post, summary, userReaction, commentCount);
+    return FeedService.formatPostResponse(post, summary, userReaction, commentCount, attachments);
   }
 
   // ==========================================
@@ -1111,5 +1354,506 @@ export class FeedService {
     });
 
     return { success: true };
+  }
+
+  // ==========================================
+  // 5. ATTACHMENT MANAGEMENT & LIFECYCLE
+  // ==========================================
+
+  /**
+   * Upload an image attachment for a feed post.
+   * Concurrency-safe: Row lock + 5 active attachments limit.
+   * Storage failure cleanup: If DB insertion fails, automatically purges uploaded object from storage.
+   */
+  public static async uploadAttachment(
+    orgId: string,
+    feedPostId: string,
+    userId: string,
+    userContext: UserContext,
+    file: Express.Multer.File,
+    caption?: string,
+  ): Promise<FeedAttachmentResponseDto> {
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      const err: any = new Error('No file content uploaded');
+      err.status = 400;
+      err.code = 'NO_FILE_UPLOADED';
+      throw err;
+    }
+
+    // 1. File size validation (<= 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.buffer.length > MAX_SIZE) {
+      const err: any = new Error('File size exceeds maximum allowed limit of 10 MB');
+      err.status = 400;
+      err.code = 'FILE_TOO_LARGE';
+      throw err;
+    }
+
+    // 2. MIME type & magic bytes validation
+    const declaredMime = (file.mimetype || '').toLowerCase();
+    const normalizedDeclared = declaredMime === 'image/jpg' ? 'image/jpeg' : declaredMime;
+    const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!ALLOWED_MIMES.includes(normalizedDeclared)) {
+      const err: any = new Error(
+        `Invalid file type '${file.mimetype}'. Only JPEG, PNG, and WebP images are permitted for feed posts.`,
+      );
+      err.status = 400;
+      err.code = 'INVALID_MIME_TYPE';
+      throw err;
+    }
+
+    const detectedMime = detectBufferMimeType(file.buffer);
+    if (!detectedMime || detectedMime !== normalizedDeclared) {
+      const err: any = new Error(
+        `File content signature (${detectedMime || 'unknown'}) does not match declared MIME type (${file.mimetype}). File rejected.`,
+      );
+      err.status = 400;
+      err.code = 'CORRUPTED_FILE_CONTENT';
+      throw err;
+    }
+
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+    const ext = extMap[normalizedDeclared] || 'jpg';
+    const storagePath = `organizations/${orgId}/feeds/${feedPostId}/${uuidv4()}.${ext}`;
+
+    // 3. Concurrency-safe post lock & 5-image cap enforcement in transaction
+    return await prisma.$transaction(async (tx) => {
+      // Row-level lock on feed post
+      await tx.$queryRawUnsafe(
+        'SELECT feed_post_id FROM public.feed_posts WHERE feed_post_id = $1::uuid AND org_id = $2::uuid FOR UPDATE',
+        feedPostId,
+        orgId,
+      );
+
+      const post = await tx.feed_posts.findFirst({
+        where: { feed_post_id: feedPostId, org_id: orgId },
+      });
+
+      if (!post) {
+        const err: any = new Error('Feed post not found');
+        err.status = 404;
+        err.code = 'POST_NOT_FOUND';
+        throw err;
+      }
+
+      if (post.status === 'removed') {
+        const err: any = new Error('Cannot add attachments to a removed feed post');
+        err.status = 400;
+        err.code = 'POST_REMOVED';
+        throw err;
+      }
+
+      // Authorization: author or institutional management
+      const isAuthor = post.author_user_id === userId;
+      const isManagement = !!userContext.isManagement;
+      if (!isAuthor && !isManagement) {
+        const err: any = new Error('Only the post author or administrator can add attachments');
+        err.status = 403;
+        err.code = 'FORBIDDEN';
+        throw err;
+      }
+
+      // Check current active count
+      const countRows: any = await tx.$queryRawUnsafe(
+        'SELECT count(*)::int as count FROM public.feed_post_attachments WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL',
+        orgId,
+        feedPostId,
+      );
+      const activeCount = countRows[0]?.count ? Number(countRows[0].count) : 0;
+      if (activeCount >= 5) {
+        const err: any = new Error('A feed post cannot have more than 5 active image attachments.');
+        err.status = 400;
+        err.code = 'MAX_ATTACHMENTS_EXCEEDED';
+        throw err;
+      }
+
+      const maxOrderRows: any = await tx.$queryRawUnsafe(
+        'SELECT COALESCE(MAX(display_order), 0)::int as max_order FROM public.feed_post_attachments WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL',
+        orgId,
+        feedPostId,
+      );
+      const nextDisplayOrder = (maxOrderRows[0]?.max_order || 0) + 1;
+
+      // 4. Upload to Supabase Storage
+      await StorageService.uploadFile({
+        bucket: 'communication-feeds',
+        path: storagePath,
+        buffer: file.buffer,
+        mimeType: normalizedDeclared,
+      });
+
+      // 5. Insert attachment record with failure cleanup
+      let insertedRow: any;
+      try {
+        const insertRows: any = await tx.$queryRawUnsafe(
+          `INSERT INTO public.feed_post_attachments
+            (org_id, feed_post_id, file_name, storage_path, mime_type, file_size_bytes, display_order, caption, uploaded_by)
+           VALUES
+            ($1::uuid, $2::uuid, $3, $4, $5, $6::bigint, $7::int, $8, $9::uuid)
+           RETURNING *`,
+          orgId,
+          feedPostId,
+          file.originalname || `attachment-${nextDisplayOrder}.${ext}`,
+          storagePath,
+          normalizedDeclared,
+          file.buffer.length.toString(),
+          nextDisplayOrder,
+          caption ? caption.trim().slice(0, 255) : null,
+          userId,
+        );
+        insertedRow = insertRows[0];
+      } catch (dbErr: any) {
+        // Immediate failure cleanup for orphaned storage objects (Requirement 4)
+        console.error(
+          '[FeedService] DB insert failed after upload, deleting storage object:',
+          storagePath,
+          dbErr?.message,
+        );
+        try {
+          await StorageService.deleteFile(storagePath, 'communication-feeds');
+        } catch (cleanupErr: any) {
+          console.error('[FeedService] Failed deleting orphaned object:', cleanupErr?.message);
+        }
+        throw dbErr;
+      }
+
+      // 6. Generate signed URL for response
+      const { signedUrl, expiresAt } = await StorageService.getSignedUrl({
+        bucket: 'communication-feeds',
+        path: storagePath,
+        expiresInSeconds: 3600,
+      });
+
+      return FeedService.mapAttachmentRowToDto(insertedRow, signedUrl, expiresAt);
+    });
+  }
+
+  /**
+   * Reorder active attachments for a feed post.
+   * Concurrency-safe: Two-phase update prevents partial unique index collisions while
+   * strictly honoring the positive integer check constraint (display_order > 0).
+   */
+  public static async reorderAttachments(
+    orgId: string,
+    feedPostId: string,
+    userId: string,
+    userContext: UserContext,
+    orderMapping: Array<{ attachmentId: string; displayOrder: number }>,
+  ): Promise<FeedAttachmentResponseDto[]> {
+    if (!Array.isArray(orderMapping) || orderMapping.length === 0) {
+      const err: any = new Error('Invalid reorder request: attachments list must not be empty');
+      err.status = 400;
+      err.code = 'INVALID_REORDER_PAYLOAD';
+      throw err;
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      // Lock post
+      await tx.$queryRawUnsafe(
+        'SELECT feed_post_id FROM public.feed_posts WHERE feed_post_id = $1::uuid AND org_id = $2::uuid FOR UPDATE',
+        feedPostId,
+        orgId,
+      );
+
+      const post = await tx.feed_posts.findFirst({
+        where: { feed_post_id: feedPostId, org_id: orgId },
+      });
+
+      if (!post) {
+        const err: any = new Error('Feed post not found');
+        err.status = 404;
+        err.code = 'POST_NOT_FOUND';
+        throw err;
+      }
+
+      const isAuthor = post.author_user_id === userId;
+      const isManagement = !!userContext.isManagement;
+      if (!isAuthor && !isManagement) {
+        const err: any = new Error('Only the post author or administrator can reorder attachments');
+        err.status = 403;
+        err.code = 'FORBIDDEN';
+        throw err;
+      }
+
+      // Fetch existing active attachments
+      const existingRows: any = await tx.$queryRawUnsafe(
+        `SELECT attachment_id, display_order FROM public.feed_post_attachments
+         WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL
+         ORDER BY display_order ASC`,
+        orgId,
+        feedPostId,
+      );
+
+      const existingIds = new Set(existingRows.map((r: any) => r.attachment_id));
+      if (orderMapping.length !== existingRows.length) {
+        const err: any = new Error(
+          'Reorder payload count must match active attachments count exactly',
+        );
+        err.status = 400;
+        err.code = 'REORDER_COUNT_MISMATCH';
+        throw err;
+      }
+
+      const requestedOrders = new Set<number>();
+      for (const item of orderMapping) {
+        if (!existingIds.has(item.attachmentId)) {
+          const err: any = new Error(
+            `Attachment ${item.attachmentId} does not exist on this post or is removed`,
+          );
+          err.status = 400;
+          err.code = 'ATTACHMENT_NOT_FOUND';
+          throw err;
+        }
+        if (!item.displayOrder || item.displayOrder <= 0) {
+          const err: any = new Error('Display order must be a positive integer');
+          err.status = 400;
+          err.code = 'INVALID_DISPLAY_ORDER';
+          throw err;
+        }
+        if (requestedOrders.has(item.displayOrder)) {
+          const err: any = new Error('Duplicate display order detected in reorder payload');
+          err.status = 400;
+          err.code = 'DUPLICATE_DISPLAY_ORDER';
+          throw err;
+        }
+        requestedOrders.add(item.displayOrder);
+      }
+
+      // Phase 1: Shift existing display orders by +1000 to avoid partial unique index collisions
+      await tx.$queryRawUnsafe(
+        `UPDATE public.feed_post_attachments
+         SET display_order = display_order + 1000
+         WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL`,
+        orgId,
+        feedPostId,
+      );
+
+      // Phase 2: Set target display orders
+      for (const item of orderMapping) {
+        await tx.$queryRawUnsafe(
+          `UPDATE public.feed_post_attachments
+           SET display_order = $1::int
+           WHERE attachment_id = $2::uuid AND org_id = $3::uuid AND feed_post_id = $4::uuid AND removed_at IS NULL`,
+          item.displayOrder,
+          item.attachmentId,
+          orgId,
+          feedPostId,
+        );
+      }
+
+      // Return updated attachments with signed URLs
+      const updatedRows: any = await tx.$queryRawUnsafe(
+        `SELECT * FROM public.feed_post_attachments
+         WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL
+         ORDER BY display_order ASC`,
+        orgId,
+        feedPostId,
+      );
+
+      return await Promise.all(
+        updatedRows.map(async (row: any) => {
+          let signedUrl: string | undefined;
+          let signedUrlExpiresAt: string | undefined;
+          try {
+            const urlResult = await StorageService.getSignedUrl({
+              bucket: 'communication-feeds',
+              path: row.storage_path,
+              expiresInSeconds: 3600,
+            });
+            signedUrl = urlResult.signedUrl;
+            signedUrlExpiresAt = urlResult.expiresAt;
+          } catch {}
+          return FeedService.mapAttachmentRowToDto(row, signedUrl, signedUrlExpiresAt);
+        }),
+      );
+    });
+  }
+
+  /**
+   * Soft remove an attachment by setting removed_at, removed_by, and removal_reason.
+   * Re-compacts remaining active attachments so display orders remain contiguous (1..k).
+   */
+  public static async softRemoveAttachment(
+    orgId: string,
+    feedPostId: string,
+    attachmentId: string,
+    userId: string,
+    userContext: UserContext,
+    removalReason?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    return await prisma.$transaction(async (tx) => {
+      // Lock post
+      await tx.$queryRawUnsafe(
+        'SELECT feed_post_id FROM public.feed_posts WHERE feed_post_id = $1::uuid AND org_id = $2::uuid FOR UPDATE',
+        feedPostId,
+        orgId,
+      );
+
+      const post = await tx.feed_posts.findFirst({
+        where: { feed_post_id: feedPostId, org_id: orgId },
+      });
+
+      if (!post) {
+        const err: any = new Error('Feed post not found');
+        err.status = 404;
+        err.code = 'POST_NOT_FOUND';
+        throw err;
+      }
+
+      const isAuthor = post.author_user_id === userId;
+      const isManagement = !!userContext.isManagement;
+      if (!isAuthor && !isManagement) {
+        const err: any = new Error('Only the post author or administrator can remove attachments');
+        err.status = 403;
+        err.code = 'FORBIDDEN';
+        throw err;
+      }
+
+      const existingRows: any = await tx.$queryRawUnsafe(
+        `SELECT * FROM public.feed_post_attachments
+         WHERE attachment_id = $1::uuid AND feed_post_id = $2::uuid AND org_id = $3::uuid AND removed_at IS NULL`,
+        attachmentId,
+        feedPostId,
+        orgId,
+      );
+
+      if (existingRows.length === 0) {
+        const err: any = new Error('Attachment not found or already removed');
+        err.status = 404;
+        err.code = 'ATTACHMENT_NOT_FOUND';
+        throw err;
+      }
+
+      // Mark soft removed
+      await tx.$queryRawUnsafe(
+        `UPDATE public.feed_post_attachments
+         SET removed_at = NOW(), removed_by = $1::uuid, removal_reason = $2
+         WHERE attachment_id = $3::uuid AND feed_post_id = $4::uuid AND org_id = $5::uuid`,
+        userId,
+        removalReason || 'Removed by author',
+        attachmentId,
+        feedPostId,
+        orgId,
+      );
+
+      // Re-compact remaining active display orders
+      const remainingRows: any = await tx.$queryRawUnsafe(
+        `SELECT attachment_id FROM public.feed_post_attachments
+         WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL
+         ORDER BY display_order ASC`,
+        orgId,
+        feedPostId,
+      );
+
+      if (remainingRows.length > 0) {
+        await tx.$queryRawUnsafe(
+          `UPDATE public.feed_post_attachments
+           SET display_order = display_order + 1000
+           WHERE org_id = $1::uuid AND feed_post_id = $2::uuid AND removed_at IS NULL`,
+          orgId,
+          feedPostId,
+        );
+
+        for (let i = 0; i < remainingRows.length; i++) {
+          await tx.$queryRawUnsafe(
+            `UPDATE public.feed_post_attachments
+             SET display_order = $1::int
+             WHERE attachment_id = $2::uuid AND org_id = $3::uuid AND feed_post_id = $4::uuid AND removed_at IS NULL`,
+            i + 1,
+            remainingRows[i].attachment_id,
+            orgId,
+            feedPostId,
+          );
+        }
+      }
+
+      return { success: true, message: 'Attachment removed successfully' };
+    });
+  }
+
+  /**
+   * Retrieve active attachments for a single post with audience visibility enforcement.
+   */
+  public static async listAttachments(
+    orgId: string,
+    feedPostId: string,
+    userId: string,
+    userContext: UserContext,
+  ): Promise<FeedAttachmentResponseDto[]> {
+    const post = await prisma.feed_posts.findFirst({
+      where: { feed_post_id: feedPostId, org_id: orgId },
+      include: {
+        feed_post_academic_year_grade_targets: true,
+        feed_post_section_targets: true,
+        feed_post_student_targets: true,
+      },
+    });
+
+    if (!post) {
+      const err: any = new Error('Feed post not found');
+      err.status = 404;
+      err.code = 'POST_NOT_FOUND';
+      throw err;
+    }
+
+    const canView = await FeedVisibilityService.canUserViewPost(
+      prisma,
+      orgId,
+      userId,
+      userContext,
+      post,
+    );
+
+    if (!canView) {
+      const err: any = new Error('You do not have permission to view attachments for this post');
+      err.status = 403;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+
+    const attachmentMap = await FeedService.getActiveAttachmentsForPostIds(orgId, [feedPostId]);
+    return attachmentMap.get(feedPostId) || [];
+  }
+
+  /**
+   * Reconciles orphaned storage objects for soft-deleted attachments exceeding the retention period (30 days).
+   */
+  public static async reconcileStorageLifecycle(orgId?: string, retentionDays: number = 30) {
+    try {
+      const orgFilter = orgId ? 'AND org_id = $2::uuid' : '';
+      const params: any[] = [retentionDays];
+      if (orgId) params.push(orgId);
+
+      const rows: any = await prisma.$queryRawUnsafe(
+        `SELECT attachment_id, storage_path FROM public.feed_post_attachments
+         WHERE removed_at IS NOT NULL
+           AND removed_at < NOW() - ($1 || ' days')::interval
+           ${orgFilter}`,
+        ...params,
+      );
+
+      let cleanedCount = 0;
+      for (const row of rows) {
+        try {
+          await StorageService.deleteFile(row.storage_path, 'communication-feeds');
+          cleanedCount++;
+        } catch (e: any) {
+          console.warn(
+            `[FeedService.reconcileStorageLifecycle] Error deleting ${row.storage_path}:`,
+            e.message,
+          );
+        }
+      }
+
+      return { success: true, reclaimedCount: cleanedCount, totalEligible: rows.length };
+    } catch (err: any) {
+      console.warn('[FeedService.reconcileStorageLifecycle] Skipped:', err.message);
+      return { success: false, reclaimedCount: 0, error: err.message };
+    }
   }
 }

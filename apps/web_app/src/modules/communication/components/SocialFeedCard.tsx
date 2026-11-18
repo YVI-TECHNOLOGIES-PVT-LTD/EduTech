@@ -18,6 +18,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { FeedPost, ReactionType } from '../types';
 import { SocialFeedReactions } from './SocialFeedReactions';
 import { SocialFeedComments } from './SocialFeedComments';
+import { FeedImageGallery } from './FeedImageGallery';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -339,8 +340,10 @@ export const SocialFeedCard: React.FC<SocialFeedCardProps> = ({
         )}
       </div>
 
-      {/* Embedded Image Attachment */}
-      {detectedImage && (
+      {/* ─── ATTACHMENTS & MEDIA ─────────────────────────────────── */}
+      {post.attachments && post.attachments.length > 0 ? (
+        <FeedImageGallery attachments={post.attachments} postTitle={post.title} />
+      ) : detectedImage ? (
         <div className="mt-2 mb-3 px-4 sm:px-5">
           <div className="relative rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 max-h-96 bg-slate-100 dark:bg-slate-800">
             <img
@@ -351,7 +354,7 @@ export const SocialFeedCard: React.FC<SocialFeedCardProps> = ({
             />
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* ─── ENGAGEMENT COUNTS ROW ────────────────────────────────── */}
       {(totalReactions > 0 || commentCount > 0) && (

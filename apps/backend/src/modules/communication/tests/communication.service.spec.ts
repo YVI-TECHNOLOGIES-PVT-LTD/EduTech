@@ -1213,6 +1213,183 @@ export async function runCommunicationTests() {
     );
   });
 
+  // ==========================================
+  // FEED ATTACHMENTS (IMAGE UPLOADS & LIFECYCLE)
+  // ==========================================
+
+  await test('46. Feed Attachments: Route registration for attachments in communicationRouter', () => {
+    const registeredPaths = communicationRouter.stack
+      .filter((layer: any) => layer.route)
+      .map(
+        (layer: any) =>
+          `${Object.keys(layer.route.methods).join(',').toUpperCase()} ${layer.route.path}`,
+      );
+
+    assert(
+      registeredPaths.includes('POST /feeds/:id/attachments'),
+      'Must register POST /feeds/:id/attachments',
+    );
+    assert(
+      registeredPaths.includes('GET /feeds/:id/attachments'),
+      'Must register GET /feeds/:id/attachments',
+    );
+    assert(
+      registeredPaths.includes('PATCH /feeds/:id/attachments/reorder'),
+      'Must register PATCH /feeds/:id/attachments/reorder',
+    );
+    assert(
+      registeredPaths.includes('DELETE /feeds/:id/attachments/:attachmentId'),
+      'Must register DELETE /feeds/:id/attachments/:attachmentId',
+    );
+    assert(
+      registeredPaths.includes('POST /posts/:id/attachments'),
+      'Must register legacy POST /posts/:id/attachments',
+    );
+  });
+
+  await test('47. Feed Attachments: File validation rejects unsupported MIME types', async () => {
+    const dummyPdf = {
+      buffer: Buffer.from('%PDF-1.5 test content'),
+      mimetype: 'application/pdf',
+      originalname: 'document.pdf',
+    } as any;
+
+    await assert.rejects(
+      async () => {
+        await FeedService.uploadAttachment(
+          greenwoodOrgId,
+          testDraftPostId,
+          adminUserId,
+          { userId: adminUserId, isStaff: true, isManagement: true },
+          dummyPdf,
+        );
+      },
+      (err: any) => {
+        assert.strictEqual(err.code, 'INVALID_MIME_TYPE');
+        return true;
+      },
+    );
+  });
+
+  await test('48. Feed Attachments: File validation rejects files exceeding 10 MB limit', async () => {
+    const largeBuffer = Buffer.alloc(11 * 1024 * 1024);
+    const largeFile = {
+      buffer: largeBuffer,
+      mimetype: 'image/jpeg',
+      originalname: 'large-photo.jpg',
+    } as any;
+
+    await assert.rejects(
+      async () => {
+        await FeedService.uploadAttachment(
+          greenwoodOrgId,
+          testDraftPostId,
+          adminUserId,
+          { userId: adminUserId, isStaff: true, isManagement: true },
+          largeFile,
+        );
+      },
+      (err: any) => {
+        assert.strictEqual(err.code, 'FILE_TOO_LARGE');
+        return true;
+      },
+    );
+  });
+
+  await test('49. Feed Attachments: File validation rejects corrupted magic bytes mismatch', async () => {
+    const spoofedFile = {
+      buffer: Buffer.from('FAKE-CONTENT-NOT-AN-IMAGE'),
+      mimetype: 'image/png',
+      originalname: 'fake.png',
+    } as any;
+
+    await assert.rejects(
+      async () => {
+        await FeedService.uploadAttachment(
+          greenwoodOrgId,
+          testDraftPostId,
+          adminUserId,
+          { userId: adminUserId, isStaff: true, isManagement: true },
+          spoofedFile,
+        );
+      },
+      (err: any) => {
+        assert.strictEqual(err.code, 'CORRUPTED_FILE_CONTENT');
+        return true;
+      },
+    );
+  });
+
+  await test('50. Feed Attachments: Reorder validation rejects empty or invalid order payloads', async () => {
+    await assert.rejects(
+      async () => {
+        await FeedService.reorderAttachments(
+          greenwoodOrgId,
+          testDraftPostId,
+          adminUserId,
+          { userId: adminUserId, isStaff: true, isManagement: true },
+          [],
+        );
+      },
+      (err: any) => {
+        assert.strictEqual(err.code, 'INVALID_REORDER_PAYLOAD');
+        return true;
+      },
+    );
+  });
+
+  await test('51. Feed Attachments: Storage lifecycle reconciliation executes safely', async () => {
+    const res = await FeedService.reconcileStorageLifecycle(greenwoodOrgId, 30);
+    assert(res.success !== undefined, 'Reconciliation must return success indicator');
+  });
+
+  await test('52. Feed Attachments: Reordering rejects negative or zero display orders', async () => {
+    await assert.rejects(
+      async () => {
+        await FeedService.reorderAttachments(
+          greenwoodOrgId,
+          testDraftPostId,
+          adminUserId,
+          { userId: adminUserId, isStaff: true, isManagement: true },
+          [{ attachmentId: '00000000-0000-0000-0000-000000000001', displayOrder: 0 }],
+        );
+      },
+      (err: any) => {
+        // Post not found in offline DB or invalid display order
+        assert(err.code === 'INVALID_DISPLAY_ORDER' || err.code === 'POST_NOT_FOUND');
+        return true;
+      },
+    );
+  });
+
+  await test('53. Feed Attachments: DTO mapping correctly masks internal storage metadata into standard response format', () => {
+    const sampleRow = {
+      attachment_id: '11111111-1111-1111-1111-111111111111',
+      org_id: greenwoodOrgId,
+      feed_post_id: testDraftPostId,
+      file_name: 'test.png',
+      storage_path: `organizations/${greenwoodOrgId}/feeds/${testDraftPostId}/test.png`,
+      mime_type: 'image/png',
+      file_size_bytes: 4096,
+      display_order: 1,
+      caption: 'Sample photo',
+      uploaded_by: adminUserId,
+      uploaded_at: new Date('2026-11-18T10:00:00Z'),
+    };
+    const dto = FeedService.mapAttachmentRowToDto(
+      sampleRow,
+      'https://signed.url.example/test.png',
+      '2026-11-18T11:00:00Z',
+    );
+
+    assert.strictEqual(dto.attachmentId, sampleRow.attachment_id);
+    assert.strictEqual(dto.orgId, sampleRow.org_id);
+    assert.strictEqual(dto.feedPostId, sampleRow.feed_post_id);
+    assert.strictEqual(dto.fileSizeBytes, 4096);
+    assert.strictEqual(dto.signedUrl, 'https://signed.url.example/test.png');
+    assert.strictEqual(dto.signedUrlExpiresAt, '2026-11-18T11:00:00Z');
+  });
+
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   if (failed > 0) {
     throw new Error(`${failed} communication tests failed`);

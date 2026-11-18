@@ -987,6 +987,8 @@ model users {
   feed_posts_feed_posts_updated_by_user_idTousers                                                     feed_posts[]                              @relation("feed_posts_updated_by_user_idTousers")
   feed_posts_feed_posts_org_id_author_user_idTousers                                                  feed_posts[]                              @relation("feed_posts_org_id_author_user_idTousers")
   feed_posts_feed_posts_org_id_removed_by_user_idTousers                                              feed_posts[]                              @relation("feed_posts_org_id_removed_by_user_idTousers")
+  feed_post_attachments_feed_post_attachments_org_id_removed_byTousers                                feed_post_attachments[]                  @relation("feed_post_attachments_org_id_removed_byTousers")
+  feed_post_attachments_feed_post_attachments_org_id_uploaded_byTousers                               feed_post_attachments[]                  @relation("feed_post_attachments_org_id_uploaded_byTousers")
   gateway_settlement_items_gateway_settlement_items_created_byTousers                                 gateway_settlement_items[]                @relation("gateway_settlement_items_created_byTousers")
   gateway_settlement_items_gateway_settlement_items_updated_byTousers                                 gateway_settlement_items[]                @relation("gateway_settlement_items_updated_byTousers")
   gateway_settlements_gateway_settlements_created_byTousers                                           gateway_settlements[]                     @relation("gateway_settlements_created_byTousers")
@@ -1945,12 +1947,44 @@ model feed_posts {
   feed_post_allowed_reactions                       feed_post_allowed_reactions[]
   feed_post_section_targets                         feed_post_section_targets[]
   feed_post_student_targets                         feed_post_student_targets[]
+  feed_post_attachments                             feed_post_attachments[]
   organizations                                     organizations                           @relation(fields: [org_id], references: [org_id], onDelete: Cascade, onUpdate: NoAction)
   users_feed_posts_updated_by_user_idTousers        users?                                  @relation("feed_posts_updated_by_user_idTousers", fields: [updated_by_user_id], references: [user_id], onUpdate: NoAction)
   users_feed_posts_org_id_author_user_idTousers     users                                   @relation("feed_posts_org_id_author_user_idTousers", fields: [org_id, author_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_feed_posts_author")
   users_feed_posts_org_id_removed_by_user_idTousers users?                                  @relation("feed_posts_org_id_removed_by_user_idTousers", fields: [org_id, removed_by_user_id], references: [org_id, user_id], onUpdate: NoAction, map: "fk_feed_posts_removed_by")
 
   @@unique([org_id, feed_post_id], map: "uq_feed_posts_org_post")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feed_post_attachments {
+  attachment_id                                         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  org_id                                                String      @db.Uuid
+  feed_post_id                                          String      @db.Uuid
+  file_name                                             String      @db.VarChar(255)
+  storage_path                                          String      @db.VarChar(1000)
+  mime_type                                             String      @db.VarChar(150)
+  file_size_bytes                                       BigInt
+  display_order                                         Int         @default(1)
+  caption                                               String?     @db.VarChar(255)
+  uploaded_by                                           String      @db.Uuid
+  uploaded_at                                           DateTime    @default(now()) @db.Timestamptz(6)
+  removed_at                                            DateTime?   @db.Timestamptz(6)
+  removed_by                                            String?     @db.Uuid
+  removal_reason                                        String?
+  feed_posts                                            feed_posts  @relation(fields: [org_id, feed_post_id], references: [org_id, feed_post_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_feed_post_attachments_post")
+  users_feed_post_attachments_org_id_removed_byTousers  users?      @relation("feed_post_attachments_org_id_removed_byTousers", fields: [org_id, removed_by], references: [org_id, user_id], onUpdate: NoAction, map: "fk_feed_post_attachments_removed_by")
+  users_feed_post_attachments_org_id_uploaded_byTousers users       @relation("feed_post_attachments_org_id_uploaded_byTousers", fields: [org_id, uploaded_by], references: [org_id, user_id], onUpdate: NoAction, map: "fk_feed_post_attachments_uploader")
+
+  // Note: Partial unique index on (org_id, feed_post_id, display_order) WHERE removed_at IS NULL
+  // is managed directly in PostgreSQL DDL (communication/sql/12_feed_post_attachments.sql: uq_feed_post_attachments_active_order).
+  // Prisma @@unique is intentionally omitted here to prevent Prisma from creating a non-partial unique constraint,
+  // which would improperly block soft-deleted attachments from retaining historical display order values.
+  @@index([org_id, feed_post_id], map: "idx_feed_post_attachments_post")
+  @@index([org_id, uploaded_by], map: "idx_feed_post_attachments_uploader")
   @@schema("public")
 }
 

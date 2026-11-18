@@ -48,6 +48,34 @@ export interface FeedPost {
   reactionSummary: ReactionSummaryItem[];
   currentUserReaction?: string | null;
   commentCount: number;
+  attachments?: FeedAttachment[];
+}
+
+export interface FeedAttachment {
+  attachmentId: string;
+  attachment_id?: string;
+  orgId: string;
+  org_id?: string;
+  feedPostId: string;
+  feed_post_id?: string;
+  fileName: string;
+  file_name?: string;
+  storagePath: string;
+  storage_path?: string;
+  mimeType: string;
+  mime_type?: string;
+  fileSizeBytes: number;
+  file_size_bytes?: number;
+  displayOrder: number;
+  display_order?: number;
+  caption: string | null;
+  uploadedBy: string;
+  uploaded_by?: string;
+  uploadedAt: string;
+  uploaded_at?: string;
+  signedUrl?: string;
+  signed_url?: string;
+  signedUrlExpiresAt?: string;
 }
 
 export interface Announcement {
@@ -113,4 +141,34 @@ export const communicationApi = {
       ENDPOINTS.COMMUNICATION.DELETE_COMMENT(commentId),
     );
   },
+  createPost: async (payload: {
+    title?: string;
+    content: string;
+    feed_type?: string;
+    audience_scope?: string;
+    status?: string;
+    comments_enabled?: boolean;
+    reactions_enabled?: boolean;
+  }) => {
+    return apiClient.post<{ success: boolean; data: FeedPost }>(
+      ENDPOINTS.COMMUNICATION.FEEDS,
+      payload,
+    );
+  },
+  uploadAttachment: async (postId: string, formData: FormData) => {
+    return apiClient.upload<{ success: boolean; data: FeedAttachment }>(
+      ENDPOINTS.COMMUNICATION.ATTACHMENTS(postId),
+      formData,
+    );
+  },
+  removeAttachment: async (postId: string, attachmentId: string) => {
+    return apiClient.delete<{ success: boolean }>(
+      ENDPOINTS.COMMUNICATION.ATTACHMENT_BY_ID(postId, attachmentId),
+    );
+  },
 };
+
+export { MobileFeedImageViewer } from './components/MobileFeedImageViewer';
+export type { MobileFeedImageItem } from './components/MobileFeedImageViewer';
+export { MobileFeedGallery } from './components/MobileFeedGallery';
+export { MobileCreateFeedPostModal } from './components/MobileCreateFeedPostModal';
