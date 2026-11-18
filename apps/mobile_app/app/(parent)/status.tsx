@@ -174,7 +174,7 @@ export default function AdmissionStatusScreen() {
       return {
         title: 'Student Successfully Enrolled',
         description:
-          'Welcome to EduTrack! Your child is enrolled. Official credentials and orientation materials will be sent to your registered email.',
+          'Welcome to EduLyfe! Your child is enrolled. Official credentials and orientation materials will be sent to your registered email.',
         actionText: undefined,
         onAction: undefined,
         icon: 'check-circle' as keyof typeof Feather.glyphMap,

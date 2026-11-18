@@ -97,7 +97,7 @@ describe('Phase 8 — Release Candidate & Store Readiness Suite', () => {
 
   describe('1. Environment & Build Configuration Safety', () => {
     it('1. verifies production environment configuration safety', () => {
-      expect(ENV.APP_NAME).toBe('EduTrack ERP');
+      expect(ENV.APP_NAME).toBe('EduLyfe');
       expect(typeof ENV.API_URL).toBe('string');
       expect(typeof ENV.WS_URL).toBe('string');
     });
@@ -124,7 +124,7 @@ describe('Phase 8 — Release Candidate & Store Readiness Suite', () => {
     });
 
     it('20. verifies app.json and eas.json release configuration validity', () => {
-      expect(appConfig.expo.name).toBe('EduTrack ERP');
+      expect(appConfig.expo.name).toBe('EduLyfe');
       expect(appConfig.expo.slug).toBe('edutrack-mobile');
       expect(appConfig.expo.version).toBe('1.0.0');
       expect(appConfig.expo.android.package).toBe('com.edutrack.mobile');

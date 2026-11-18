@@ -164,9 +164,14 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               <div className="flex justify-center mb-4">
                 <Link to="/" className="inline-block group focus:outline-none">
                   <img
-                    src="/EduTrack_logo.png"
-                    alt="EduTrack"
-                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+                    src="/brand/edulyfe-logo-horizontal-color.png"
+                    alt="EduLyfe"
+                    className="h-10 sm:h-12 w-auto object-contain drop-shadow-xs group-hover:scale-105 transition-transform dark:hidden"
+                  />
+                  <img
+                    src="/brand/edulyfe-logo-horizontal-reversed.png"
+                    alt="EduLyfe"
+                    className="h-10 sm:h-12 w-auto object-contain drop-shadow-xs group-hover:scale-105 transition-transform hidden dark:block"
                   />
                 </Link>
               </div>
@@ -198,7 +203,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             {/* Bottom Security / Copyright Tag */}
             <div className="mt-6 text-center text-[11px] text-muted-foreground flex items-center justify-center space-x-2">
               <Lock className="w-3 h-3 text-[#063F40] dark:text-[#E7B76A]" />
-              <span>EduTrack Institutional Portal &bull; Secure Institutional Access</span>
+              <span>EduLyfe Institutional Portal &bull; Secure Institutional Access</span>
             </div>
           </div>
         </main>

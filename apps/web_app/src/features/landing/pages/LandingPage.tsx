@@ -39,7 +39,7 @@ export const LandingPage: React.FC = () => {
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 text-[#E7B76A] text-xs font-bold border border-[#E7B76A]/30 shadow-xs animate-fade-in stagger-1">
               <Sparkles className="w-3.5 h-3.5 text-[#E7B76A] shrink-0" />
               <span className="uppercase tracking-widest text-[10px] font-black">
-                EduTrack ERP • Academic Year 2026–27
+                EduLyfe ERP • Academic Year 2026–27
               </span>
             </div>
 
@@ -102,7 +102,7 @@ export const LandingPage: React.FC = () => {
                 <div className="aspect-[4/5] rounded-2xl relative overflow-hidden text-white border border-white/10">
                   <img
                     src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop"
-                    alt="EduTrack Campus Student Collaboration"
+                    alt="EduLyfe Campus Student Collaboration"
                     className="w-full h-full object-cover img-zoom-target"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
@@ -122,8 +122,8 @@ export const LandingPage: React.FC = () => {
                   <div className="absolute bottom-4 left-4 right-4 z-10 space-y-3 p-2 bg-slate-950/80 backdrop-blur-md rounded-xl border border-white/10">
                     <div className="flex items-center space-x-3">
                       <img
-                        src="/EduTrack_logo.png"
-                        alt="EduTrack"
+                        src="/brand/edulyfe-symbol-reversed.png"
+                        alt="EduLyfe"
                         className="w-10 h-10 object-contain rounded-xl shadow-md shrink-0"
                       />
                       <div>
@@ -175,18 +175,18 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. ABOUT EDUTRACK — OPEN EDITORIAL STORYTELLING */}
+      {/* 3. ABOUT EDULYFE — OPEN EDITORIAL STORYTELLING */}
       <section className="py-24 sm:py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-6 space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-muted text-muted-foreground text-[10px] font-black uppercase tracking-widest border border-border/80">
-              ABOUT EDUTRACK
+              ABOUT EDULYFE
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground leading-[1.15]">
               A Modern Academic Platform Built for Growth & Accountability
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              EduTrack brings together admissions CRM, student information management, parent
+              EduLyfe brings together admissions CRM, student information management, parent
               communication, and fee processing into a clean, modern interface designed for
               institutional standards.
             </p>
@@ -336,7 +336,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. WHY EDUTRACK — SOFT MIST BENTO SYSTEM WITH INTERACTION HOVERS */}
+      {/* 5. WHY EDULYFE — SOFT MIST BENTO SYSTEM WITH INTERACTION HOVERS */}
       <section className="py-24 bg-editorial-mist border-t border-border/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
@@ -347,7 +347,7 @@ export const LandingPage: React.FC = () => {
               Designed for Admissions, Built for Operations
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Explore the core capabilities powering EduTrack's academic workflows.
+              Explore the core capabilities powering EduLyfe's academic workflows.
             </p>
           </div>
 
@@ -601,7 +601,7 @@ export const LandingPage: React.FC = () => {
               Academic Year 2026-27
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-              Ready to Begin Your Educational Journey with EduTrack?
+              Ready to Begin Your Educational Journey with EduLyfe?
             </h2>
             <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
               Apply online today or submit an enquiry to connect with our admissions counselors.

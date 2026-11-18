@@ -47,7 +47,9 @@ export default function ProfileScreen() {
         </View>
         <View className="py-2.5 border-b border-slate-100 dark:border-slate-700/60 flex-row justify-between items-center">
           <Text className="text-xs font-bold text-slate-400 uppercase">Academic Period</Text>
-          <Text className="text-sm font-semibold text-slate-800 dark:text-slate-200">AY 2026-2027</Text>
+          <Text className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            AY 2026-2027
+          </Text>
         </View>
         <View className="py-2 flex-row justify-between items-center">
           <Text className="text-xs font-bold text-slate-400 uppercase">Account Status</Text>
@@ -63,7 +65,9 @@ export default function ProfileScreen() {
         >
           <View className="flex-row items-center">
             <Text className="text-lg mr-3">⚙️</Text>
-            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">App Settings</Text>
+            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              App Settings
+            </Text>
           </View>
           <Text className="text-slate-400">›</Text>
         </TouchableOpacity>
@@ -74,7 +78,9 @@ export default function ProfileScreen() {
         >
           <View className="flex-row items-center">
             <Text className="text-lg mr-3">🏫</Text>
-            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">Switch Workspace</Text>
+            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Switch Workspace
+            </Text>
           </View>
           <Text className="text-slate-400">›</Text>
         </TouchableOpacity>
@@ -82,7 +88,7 @@ export default function ProfileScreen() {
 
       {/* Logout Button */}
       <View className="my-4">
-        <Button title="Sign Out of EduTrack" variant="danger" size="lg" onPress={handleLogout} />
+        <Button title="Sign Out of EduLyfe" variant="danger" size="lg" onPress={handleLogout} />
       </View>
     </ScreenWrapper>
   );

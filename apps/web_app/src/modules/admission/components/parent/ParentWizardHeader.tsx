@@ -23,22 +23,22 @@ export const ParentWizardHeader: React.FC<ParentWizardHeaderProps> = ({
   return (
     <header className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-        {/* Left: EduTrack Logo & Subheading */}
+        {/* Left: EduLyfe Logo & Subheading */}
         <div
           className="flex items-center space-x-3 cursor-pointer"
           onClick={() => navigate('/app/admissions/my')}
         >
           <img
-            src="/EduTrack_logo.png"
-            alt="EduTrack"
-            className="w-12 h-12 object-contain drop-shadow-sm shrink-0"
+            src="/brand/edulyfe-symbol-color.png"
+            alt="EduLyfe"
+            className="w-10 h-10 object-contain drop-shadow-xs shrink-0"
           />
           <div className="flex flex-col">
             <span className="text-base font-black tracking-tight text-indigo-950 leading-tight">
-              EduTrack
+              EduLyfe
             </span>
             <span className="text-[9px] font-black text-amber-500 tracking-widest uppercase">
-              EXCELLENCE • GROWTH • TRUST
+              LONG LIVE EDUCATION
             </span>
           </div>
         </div>

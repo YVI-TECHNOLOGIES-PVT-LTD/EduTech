@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "EduTrack ERP",
+    "name": "EduLyfe",
     "slug": "edutrack-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./src/assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#12305E"
     },
     "updates": {
       "enabled": false,
@@ -29,7 +29,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/images/adaptive-icon.png",
-        "backgroundColor": "#0f172a"
+        "backgroundColor": "#12305E"
       },
       "package": "com.edutrack.mobile",
       "versionCode": 1,

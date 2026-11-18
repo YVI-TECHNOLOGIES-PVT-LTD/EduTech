@@ -16,7 +16,10 @@ export default function SettingsScreen() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <SectionHeader title="Application Settings" subtitle="Configure system preferences & security" />
+      <SectionHeader
+        title="Application Settings"
+        subtitle="Configure system preferences & security"
+      />
 
       {/* Theme Appearance Group */}
       <Card title="Appearance Theme">
@@ -50,8 +53,12 @@ export default function SettingsScreen() {
       <Card title="Preferences & Security">
         <View className="py-3 flex-row items-center justify-between border-b border-slate-100 dark:border-slate-700/60">
           <View>
-            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">Biometric Authentication</Text>
-            <Text className="text-xs text-slate-400 dark:text-slate-500">Face ID / Fingerprint login</Text>
+            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Biometric Authentication
+            </Text>
+            <Text className="text-xs text-slate-400 dark:text-slate-500">
+              Face ID / Fingerprint login
+            </Text>
           </View>
           <Switch
             value={biometricsEnabled}
@@ -62,8 +69,12 @@ export default function SettingsScreen() {
 
         <View className="py-3 flex-row items-center justify-between border-b border-slate-100 dark:border-slate-700/60">
           <View>
-            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">Push Notifications</Text>
-            <Text className="text-xs text-slate-400 dark:text-slate-500 font-medium">In-app & push alerts</Text>
+            <Text className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Push Notifications
+            </Text>
+            <Text className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+              In-app & push alerts
+            </Text>
           </View>
           <Switch
             value={pushEnabled}
@@ -82,10 +93,12 @@ export default function SettingsScreen() {
       </Card>
 
       {/* Application Meta */}
-      <Card title="About EduTrack Mobile">
+      <Card title="About EduLyfe Mobile">
         <View className="py-2 border-b border-slate-100 dark:border-slate-700/60 flex-row justify-between items-center">
           <Text className="text-xs font-semibold text-slate-500">Version</Text>
-          <Text className="text-xs font-bold text-slate-800 dark:text-slate-200">1.0.0 (Build 102)</Text>
+          <Text className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            1.0.0 (Build 102)
+          </Text>
         </View>
         <View className="py-2 flex-row justify-between items-center">
           <Text className="text-xs font-semibold text-slate-500">Platform Build</Text>

@@ -86,19 +86,19 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className, sticky = 
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between">
-        {/* 1. LEFT: EduTrack Brand Mark & Portal Subtitle */}
+        {/* 1. LEFT: EduLyfe Brand Mark & Portal Subtitle */}
         <Link
           to="/"
           className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E7B76A] rounded-xl"
         >
           <img
-            src="/EduTrack_logo.png"
-            alt="EduTrack"
-            className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0"
+            src="/brand/edulyfe-symbol-reversed.png"
+            alt="EduLyfe"
+            className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0"
           />
           <div className="flex flex-col">
             <span className="font-extrabold text-lg sm:text-xl tracking-tight text-white leading-none group-hover:text-[#E7B76A] transition-colors">
-              EDUTRACK
+              EDULYFE
             </span>
             <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-[#E7B76A] mt-1">
               Admission Portal

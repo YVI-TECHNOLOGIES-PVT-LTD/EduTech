@@ -3,8 +3,8 @@ import { ENV } from './env';
 export const APP_CONFIG = {
   name: ENV.APP_TITLE,
   version: '1.0.0-stage1',
-  copyright: `© ${new Date().getFullYear()} EduTrack ERP Platform. All rights reserved.`,
-  supportEmail: 'support@edutrack.io',
+  copyright: `© ${new Date().getFullYear()} EduLyfe ERP Platform. All rights reserved.`,
+  supportEmail: 'support@edulyfe.io',
   pagination: {
     defaultPageSize: 10,
     pageSizeOptions: [10, 20, 50, 100],

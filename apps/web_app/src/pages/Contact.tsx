@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { Mail, Phone, MapPin, Clock, Send, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AnimatedSection } from "@/components/common/AnimatedSection";
-import { SCHOOL_INFO } from "@/lib/public-constants";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
+import React, { useState } from 'react';
+import { Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AnimatedSection } from '@/components/common/AnimatedSection';
+import { SCHOOL_INFO } from '@/lib/public-constants';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -36,13 +36,13 @@ export default function Contact() {
     <div className="overflow-hidden">
       {/* Cinematic Hero Section */}
       <CinematicPageHero
-        eyebrow="CONTACT EDUTRACK"
+        eyebrow="CONTACT EDULYFE"
         title="Let's Connect About Your Education Journey"
         accentText="Education Journey"
         description="We'd love to hear from you. Reach out with any questions regarding admissions, academics, or campus tours."
         backgroundImage="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1600&auto=format&fit=crop"
         imagePosition="object-[65%_center]"
-        metadataItems={["Admissions", "Support", "Enquiries"]}
+        metadataItems={['Admissions', 'Support', 'Enquiries']}
       />
 
       <section className="py-20 bg-background">
@@ -57,7 +57,9 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground">Address</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{SCHOOL_INFO.address}</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {SCHOOL_INFO.address}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -66,7 +68,9 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground">Phone</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{SCHOOL_INFO.phone}</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {SCHOOL_INFO.phone}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -75,7 +79,9 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground">Email</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{SCHOOL_INFO.email}</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {SCHOOL_INFO.email}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -84,7 +90,9 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground">Office Hours</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">Mon - Fri: 8:00 AM - 5:00 PM</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      Mon - Fri: 8:00 AM - 5:00 PM
+                    </p>
                   </div>
                 </div>
               </div>
@@ -122,7 +130,12 @@ export default function Contact() {
                     className="w-full px-3.5 py-2 rounded-xl border border-input bg-background text-foreground transition-all duration-200 outline-none text-sm placeholder:text-muted-foreground focus-visible:border-[#063F40] focus-visible:ring-2 focus-visible:ring-[#063F40]/30 resize-none"
                     required
                   />
-                  <Button type="submit" disabled={isSubmitting} size="lg" className="w-full font-bold bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center justify-center space-x-2 rounded-xl h-11">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    size="lg"
+                    className="w-full font-bold bg-[#E7B76A] hover:bg-[#d8a658] text-[#063F40] shadow-md flex items-center justify-center space-x-2 rounded-xl h-11"
+                  >
                     {isSubmitting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
@@ -141,5 +154,3 @@ export default function Contact() {
     </div>
   );
 }
-
-

@@ -11,7 +11,7 @@ export default function MaintenanceScreen() {
           System Under Maintenance
         </Text>
         <Text className="text-sm text-slate-500 dark:text-slate-400 text-center">
-          EduTrack ERP is currently undergoing scheduled system updates. Please check back shortly.
+          EduLyfe ERP is currently undergoing scheduled system updates. Please check back shortly.
         </Text>
       </View>
     </ScreenWrapper>

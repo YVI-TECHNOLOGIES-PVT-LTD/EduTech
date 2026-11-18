@@ -1,41 +1,45 @@
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { ArrowRight, Award, Users, Target, Heart, BookOpen, Trophy } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
-import SectionHeader from "@/components/common/SectionHeader";
-import { SCHOOL_INFO } from "@/lib/public-constants";
-import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Award, Users, Target, Heart, BookOpen, Trophy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AnimatedSection,
+  StaggerContainer,
+  StaggerItem,
+} from '@/components/common/AnimatedSection';
+import SectionHeader from '@/components/common/SectionHeader';
+import { SCHOOL_INFO } from '@/lib/public-constants';
+import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
 
 const milestones = [
-  { year: "1952", event: "Foundation of EduTrack" },
-  { year: "1975", event: "Expansion to include High School programs" },
-  { year: "1990", event: "Introduction of Advanced Placement courses" },
-  { year: "2005", event: "State-of-the-art science complex opened" },
-  { year: "2015", event: "Launch of STEM Innovation Center" },
-  { year: "2023", event: "Recognition as a Center of Excellence" },
+  { year: '1952', event: 'Foundation of EduLyfe' },
+  { year: '1975', event: 'Expansion to include High School programs' },
+  { year: '1990', event: 'Introduction of Advanced Placement courses' },
+  { year: '2005', event: 'State-of-the-art science complex opened' },
+  { year: '2015', event: 'Launch of STEM Innovation Center' },
+  { year: '2023', event: 'Recognition as a Center of Excellence' },
 ];
 
 const values = [
   {
     icon: Award,
-    title: "Excellence",
-    description: "Striving for the highest standards in everything we do.",
+    title: 'Excellence',
+    description: 'Striving for the highest standards in everything we do.',
   },
   {
     icon: Heart,
-    title: "Integrity",
-    description: "Upholding honesty and strong moral principles.",
+    title: 'Integrity',
+    description: 'Upholding honesty and strong moral principles.',
   },
   {
     icon: Users,
-    title: "Community",
-    description: "Fostering a supportive and inclusive environment.",
+    title: 'Community',
+    description: 'Fostering a supportive and inclusive environment.',
   },
   {
     icon: Target,
-    title: "Innovation",
-    description: "Embracing creative solutions and forward thinking.",
+    title: 'Innovation',
+    description: 'Embracing creative solutions and forward thinking.',
   },
 ];
 
@@ -44,13 +48,13 @@ export default function About() {
     <div className="overflow-hidden">
       {/* Cinematic Hero Section */}
       <CinematicPageHero
-        eyebrow="ABOUT EDUTRACK"
+        eyebrow="ABOUT EDULYFE"
         title="Building Better Education Experiences for Every Learner"
         accentText="Every Learner"
         description={`Since ${SCHOOL_INFO.established}, ${SCHOOL_INFO.name} has been dedicated to nurturing young minds and shaping future leaders through holistic development and academic excellence.`}
         backgroundImage="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop"
         imagePosition="object-[65%_center]"
-        metadataItems={["Academic Excellence", "Parent Engagement", "Digital Operations"]}
+        metadataItems={['Academic Excellence', 'Parent Engagement', 'Digital Operations']}
       />
 
       {/* Story Section */}
@@ -58,25 +62,28 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <AnimatedSection direction="left">
-              <span className="text-[#063F40] font-black tracking-widest uppercase text-xs">Our Story</span>
+              <span className="text-[#063F40] font-black tracking-widest uppercase text-xs">
+                Our Story
+              </span>
               <h2 className="font-extrabold text-3xl md:text-4xl text-foreground mt-3 mb-6 tracking-tight">
-                Over {new Date().getFullYear() - SCHOOL_INFO.established} Years of Educational Excellence
+                Over {new Date().getFullYear() - SCHOOL_INFO.established} Years of Educational
+                Excellence
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed text-sm">
                 <p>
                   Founded in {SCHOOL_INFO.established}, {SCHOOL_INFO.name} began as a small
-                  institution with a big vision: to provide world-class education that
-                  nurtures not just academic excellence, but also character and creativity.
+                  institution with a big vision: to provide world-class education that nurtures not
+                  just academic excellence, but also character and creativity.
                 </p>
                 <p>
                   Over the decades, we have grown into one of the region's most respected
-                  educational institutions, producing graduates who have gone on to become
-                  leaders in their respective fields.
+                  educational institutions, producing graduates who have gone on to become leaders
+                  in their respective fields.
                 </p>
                 <p>
                   Our approach combines traditional academic rigor with innovative teaching
-                  methodologies, creating an environment where every student can discover
-                  and develop their unique potential.
+                  methodologies, creating an environment where every student can discover and
+                  develop their unique potential.
                 </p>
               </div>
               <div className="mt-8 flex gap-4">
@@ -87,7 +94,10 @@ export default function About() {
                   </Button>
                 </Link>
                 <Link to="/leadership">
-                  <Button variant="outline" className="font-bold border-border/80 rounded-xl h-11 px-6">
+                  <Button
+                    variant="outline"
+                    className="font-bold border-border/80 rounded-xl h-11 px-6"
+                  >
                     Meet Our Leaders
                   </Button>
                 </Link>
@@ -132,7 +142,7 @@ export default function About() {
           <SectionHeader
             subtitle="Our Values"
             title="The Principles We Stand By"
-            description="These core values guide everything we do at EduTrack."
+            description="These core values guide everything we do at EduLyfe."
           />
 
           <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">

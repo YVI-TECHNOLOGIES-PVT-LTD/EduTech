@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export const OrganizationBrandingTab: React.FC = () => {
   const [primaryColor, setPrimaryColor] = useState('#2563eb');
-  const [headerTitle, setHeaderTitle] = useState('EduTrack ERP Admin Portal');
+  const [headerTitle, setHeaderTitle] = useState('EduLyfe ERP Admin Portal');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = () => {
@@ -32,7 +32,7 @@ export const OrganizationBrandingTab: React.FC = () => {
           </label>
           <div className="flex items-center space-x-4">
             <img
-              src="/EduTrack_logo.png"
+              src="/brand/edulyfe-symbol-color.png"
               alt="Institution Logo"
               className="h-16 w-16 object-contain rounded-xl shadow-md border border-border p-1 bg-card"
             />

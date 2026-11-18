@@ -108,12 +108,17 @@ export default function LoginScreen() {
               },
             ]}
           >
-            {/* 1. EduTrack Institutional Logo */}
+            {/* 1. EduLyfe Brand Logo */}
             <View style={styles.logoRow}>
               <Image
-                source={require('../../src/assets/images/EduTrack_logo.png')}
+                source={
+                  isDark
+                    ? require('../../src/assets/brand/edulyfe-logo-horizontal-reversed.png')
+                    : require('../../src/assets/brand/edulyfe-logo-horizontal-color.png')
+                }
                 style={styles.logoImage}
                 resizeMode="contain"
+                accessibilityLabel="EduLyfe"
               />
             </View>
 
@@ -398,8 +403,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logoImage: {
-    width: 68,
-    height: 68,
+    width: 175,
+    height: 50,
   },
   titleSection: {
     alignItems: 'center',

@@ -67,7 +67,7 @@ export default function Admissions() {
       {/* Cinematic Hero Section */}
       <CinematicPageHero
         eyebrow="ADMISSIONS 2026-27"
-        title="Your Journey Into EduTrack Starts Here"
+        title="Your Journey Into EduLyfe Starts Here"
         accentText="Starts Here"
         description="Join a community of learners where every student is valued, challenged, and supported to achieve their fullest potential."
         backgroundImage="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop"

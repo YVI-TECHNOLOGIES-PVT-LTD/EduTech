@@ -164,7 +164,7 @@ export const ENV = {
   PARENT_WEB_URL: getParentWebUrl(),
   RAZORPAY_KEY_ID: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TnfW60mfvhJy7W',
   ENVIRONMENT: envType,
-  APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'EduTrack ERP',
+  APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'EduLyfe',
   ENABLE_LOGGING: isProd
     ? process.env.EXPO_PUBLIC_ENABLE_LOGGING === 'true'
     : process.env.EXPO_PUBLIC_ENABLE_LOGGING !== 'false',

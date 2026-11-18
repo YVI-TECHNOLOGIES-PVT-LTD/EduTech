@@ -78,9 +78,9 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-3 mb-6 group">
               <img
-                src="/EduTrack_logo.png"
-                alt="EduTrack ERP"
-                className="w-12 h-12 object-contain rounded-xl shadow-md"
+                src="/brand/edulyfe-symbol-reversed.png"
+                alt="EduLyfe ERP"
+                className="w-10 h-10 object-contain"
               />
               <div>
                 <span className="font-display text-xl font-bold block">{SCHOOL_INFO.name}</span>

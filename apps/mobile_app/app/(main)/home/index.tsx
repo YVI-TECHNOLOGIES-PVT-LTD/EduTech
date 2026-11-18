@@ -169,7 +169,7 @@ export default function HomeDashboardScreen() {
     tenantInfo?.schoolName ||
     selectedWorkspace?.name ||
     (activeChild?.kind === 'enrolled' ? activeChild.campusName : undefined) ||
-    'EduTrack International';
+    'EduLyfe International';
 
   const termInfo =
     academicContext?.displayText ||

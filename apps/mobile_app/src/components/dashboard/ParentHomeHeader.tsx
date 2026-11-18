@@ -20,7 +20,7 @@ export const ParentHomeHeader: React.FC<ParentHomeHeaderProps> = React.memo(
     parentName,
     unreadCount = 0,
     avatarUrl,
-    schoolName = 'EduTrack International',
+    schoolName = 'EduLyfe International',
     termInfo = 'Academic Session 2026–27',
     topInset = 44,
   }) => {
@@ -66,7 +66,7 @@ export const ParentHomeHeader: React.FC<ParentHomeHeaderProps> = React.memo(
                 </View>
                 <View style={styles.schoolTextColumn}>
                   <View style={styles.portalTitleRow}>
-                    <Text style={styles.portalName}>EduTrack</Text>
+                    <Text style={styles.portalName}>EduLyfe</Text>
                     <View style={styles.portalTagPill}>
                       <Text style={styles.portalTagText}>FAMILY</Text>
                     </View>

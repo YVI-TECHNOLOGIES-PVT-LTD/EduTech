@@ -13,7 +13,7 @@ export const UnlinkedOnboardingView: React.FC = () => {
       <View style={styles.iconCircle}>
         <Ionicons name="school" size={28} color={DESIGN_TOKENS.colors.royalIndigo} />
       </View>
-      <Text style={styles.title}>Welcome to EduTrack ERP</Text>
+      <Text style={styles.title}>Welcome to EduLyfe ERP</Text>
       <Text style={styles.description}>
         To get started, apply for your child's school admission or connect your existing enrolled
         student profile to track grades, timetable, attendance and fees.

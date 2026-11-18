@@ -7,15 +7,15 @@ interface FullScreenLoaderProps {
 }
 
 export const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
-  message = 'Initializing EduTrack ERP Admin Portal...',
+  message = 'Initializing EduLyfe ERP Admin Portal...',
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900 text-white">
       <div className="flex items-center space-x-3">
         <img
-          src="/EduTrack_logo.png"
-          alt="EduTrack ERP"
-          className="h-10 w-10 object-contain rounded-lg shadow-lg"
+          src="/brand/edulyfe-symbol-reversed.png"
+          alt="EduLyfe ERP"
+          className="h-10 w-10 object-contain drop-shadow-md"
         />
         <span className="text-xl font-bold tracking-tight">{APP_CONFIG.name}</span>
       </div>

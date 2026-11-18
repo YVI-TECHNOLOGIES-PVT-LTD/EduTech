@@ -99,7 +99,7 @@ export default function ReceiptScreen() {
               <Ionicons name="checkmark-circle" size={28} color="#10b981" />
             </View>
             <Text className="text-base font-black text-slate-900 dark:text-slate-100">
-              EduTrack ERP
+              EduLyfe ERP
             </Text>
             <Text className="text-xs font-bold text-slate-400 mt-0.5">
               Official Admission Fee Receipt
