@@ -197,6 +197,15 @@ export const admissionApi = {
     if (data?.academic_year_id) {
       payload.academic_year_id = data.academic_year_id;
     }
+    if (data?.school_id || data?.org_id) {
+      payload.school_id = data.school_id || data.org_id;
+    } else {
+      const storedTenant =
+        localStorage.getItem('edutrack_tenant_id') || localStorage.getItem('tenant_org_id');
+      if (storedTenant) {
+        payload.school_id = storedTenant;
+      }
+    }
 
     return apiClient.post<any>('/v1/admission/enquiries', payload, { silent: true } as any);
   },

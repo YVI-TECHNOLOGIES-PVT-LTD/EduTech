@@ -170,8 +170,35 @@ export const resolvePublicTenantMiddleware = async (
       return resolveTenantMiddleware(req, res, next);
     }
 
-    const explicitIdentifier =
+    let explicitIdentifier =
       getExplicitHeaderTenant(req) || getExplicitQueryTenant(req) || getExplicitBodyTenant(req);
+
+    // If not in headers/query/body, check if grade_applied_for is an academic_year_grade_id UUID
+    if (
+      !explicitIdentifier &&
+      req.body?.grade_applied_for &&
+      UUID_REGEX.test(req.body.grade_applied_for)
+    ) {
+      const ayg = await prisma.academic_year_grades.findUnique({
+        where: { academic_year_grade_id: req.body.grade_applied_for },
+        include: { academic_years: true },
+      });
+      if (ayg?.academic_years?.org_id) {
+        explicitIdentifier = ayg.academic_years.org_id;
+      }
+    }
+
+    // If still missing, resolve active school context
+    if (!explicitIdentifier) {
+      const activeYear = await prisma.academic_years.findFirst({
+        where: { organizations: { status: 'active' } },
+        orderBy: { start_date: 'desc' },
+        select: { org_id: true },
+      });
+      if (activeYear?.org_id) {
+        explicitIdentifier = activeYear.org_id;
+      }
+    }
 
     if (!explicitIdentifier) {
       return res.status(400).json({
