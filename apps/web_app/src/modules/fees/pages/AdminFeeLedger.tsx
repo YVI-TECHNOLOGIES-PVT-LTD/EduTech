@@ -120,6 +120,8 @@ export const AdminFeeLedger: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
   const selectedStudentRef = useRef<StudentListItem | null>(null);
   selectedStudentRef.current = selectedStudent;
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const activeStudentRequestRef = useRef<string | null>(null);
 
   // Ledger Detail State
   const [loadingLedger, setLoadingLedger] = useState(false);
@@ -180,31 +182,60 @@ export const AdminFeeLedger: React.FC = () => {
     }
   };
 
-  // 2. Fetch Students List
+  // 2. Fetch Students List with in-flight cancellation
   const fetchStudents = useCallback(
     async (query = '', yearId = selectedYearId) => {
+      // Abort any prior in-flight search request
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
       setSearching(true);
       try {
         const res = await apiClient.get('/fees/ledger/students', {
           params: {
-            query: query || undefined,
+            query: query.trim() || undefined,
             academicYearId: yearId || undefined,
             limit: 30,
           },
+          signal: controller.signal,
         });
 
         const list: StudentListItem[] = res.data?.data || [];
         setStudents(list);
 
-        // Auto-select first student if none selected
-        if (!selectedStudentRef.current && list.length > 0) {
-          loadStudentLedger(list[0]);
+        // Keep selection synced safely
+        if (list.length > 0) {
+          const currentId = selectedStudentRef.current?.student_id;
+          const stillInList = list.find((s) => s.student_id === currentId);
+
+          if (stillInList) {
+            // Keep current student selected without redundant re-fetch
+            setSelectedStudent(stillInList);
+          } else if (!selectedStudentRef.current) {
+            // Auto-select first student on initial load
+            loadStudentLedger(list[0]);
+          } else if (query.trim().length > 0) {
+            // Active search query changed: select first match
+            loadStudentLedger(list[0]);
+          }
         }
       } catch (err: any) {
+        if (
+          err?.name === 'CanceledError' ||
+          err?.code === 'ERR_CANCELED' ||
+          (err as any)?.__CANCEL__
+        ) {
+          return; // Aborted request, do not mutate state or show toast
+        }
         console.error('Error fetching students:', err);
         toast.error('Failed to search students');
       } finally {
-        setSearching(false);
+        if (searchAbortRef.current === controller) {
+          setSearching(false);
+        }
       }
     },
     [selectedYearId],
@@ -217,35 +248,65 @@ export const AdminFeeLedger: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery, selectedYearId, fetchStudents]);
 
-  // 3. Load Full Ledger for a Selected Student
+  // Clean up in-flight search on unmount
+  useEffect(() => {
+    return () => {
+      searchAbortRef.current?.abort();
+    };
+  }, []);
+
+  // 3. Staged / Optimized Ledger Loading (Core summary first, tab sub-resources asynchronously)
   const loadStudentLedger = async (student: StudentListItem) => {
     setSelectedStudent(student);
+    activeStudentRequestRef.current = student.student_id;
     setLoadingLedger(true);
+
     try {
-      const [sumRes, assRes, payRes, duesRes, txRes, concRes] = await Promise.all([
+      // Stage 1 (Fast Critical Path): Core summary and active structure assessments
+      const [sumRes, assRes] = await Promise.all([
         apiClient.get(`/fees/ledger/students/${student.student_id}`, {
           params: { academicYearId: selectedYearId || undefined },
         }),
         apiClient.get(`/fees/ledger/students/${student.student_id}/assessments`),
+      ]);
+
+      // Guard against race conditions if user clicked another student while fetching
+      if (activeStudentRequestRef.current !== student.student_id) return;
+
+      setLedgerSummary(sumRes.data?.data || null);
+      setAssessments(assRes.data?.data || null);
+      setLoadingLedger(false);
+
+      // Stage 2 (Asynchronous Non-Blocking Tab Hydration): Payments, dues, timeline, concessions
+      Promise.allSettled([
         apiClient.get(`/fees/ledger/students/${student.student_id}/payments`),
         apiClient.get(`/fees/ledger/students/${student.student_id}/dues`),
         apiClient.get(`/fees/ledger/students/${student.student_id}/transactions`),
         apiClient
           .get(`/fees/scholarships/student/${student.student_id}`)
           .catch(() => ({ data: { data: [] } })),
-      ]);
+      ]).then(([payRes, duesRes, txRes, concRes]) => {
+        if (activeStudentRequestRef.current !== student.student_id) return;
 
-      setLedgerSummary(sumRes.data?.data || null);
-      setAssessments(assRes.data?.data || null);
-      setPayments(payRes.data?.data || null);
-      setDues(duesRes.data?.data || []);
-      setTransactions(txRes.data?.data || []);
-      setStudentConcessions(concRes.data?.data || []);
+        if (payRes.status === 'fulfilled') {
+          setPayments(payRes.value.data?.data || null);
+        }
+        if (duesRes.status === 'fulfilled') {
+          setDues(duesRes.value.data?.data || []);
+        }
+        if (txRes.status === 'fulfilled') {
+          setTransactions(txRes.value.data?.data || []);
+        }
+        if (concRes.status === 'fulfilled') {
+          setStudentConcessions(concRes.value.data?.data || []);
+        }
+      });
     } catch (err: any) {
-      console.error('Error loading student ledger:', err);
-      toast.error('Failed to load student ledger details');
-    } finally {
-      setLoadingLedger(false);
+      if (activeStudentRequestRef.current === student.student_id) {
+        console.error('Error loading student ledger:', err);
+        toast.error('Failed to load student ledger details');
+        setLoadingLedger(false);
+      }
     }
   };
 
@@ -468,13 +529,33 @@ export const AdminFeeLedger: React.FC = () => {
                   placeholder="Search name or admission no..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all placeholder:text-slate-400"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      fetchStudents(searchQuery, selectedYearId);
+                    }
+                  }}
+                  className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all placeholder:text-slate-400"
                 />
+                {searching ? (
+                  <RefreshCw className="w-3.5 h-3.5 absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-600 animate-spin" />
+                ) : searchQuery ? (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : null}
               </div>
 
               {/* Students List */}
-              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                {searching ? (
+              <div
+                className={`space-y-2 max-h-[600px] overflow-y-auto pr-1 transition-opacity duration-200 ${
+                  searching ? 'opacity-60 pointer-events-none' : 'opacity-100'
+                }`}
+              >
+                {searching && students.length === 0 ? (
                   <div className="py-12 text-center text-slate-400 text-xs font-semibold">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-emerald-600" />
                     Searching student accounts...

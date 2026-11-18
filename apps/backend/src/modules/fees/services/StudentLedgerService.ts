@@ -106,6 +106,7 @@ export class StudentLedgerService {
           student_enrollments: {
             where: {
               status: 'active',
+              ...(safeYearId ? { academic_year_grades: { academic_year_id: safeYearId } } : {}),
             },
             orderBy: { created_at: 'desc' },
             take: 1,
@@ -117,6 +118,16 @@ export class StudentLedgerService {
                 },
               },
               sections: true,
+              student_fee_assignments: {
+                where: {
+                  status: 'active',
+                },
+                take: 1,
+                include: {
+                  fee_structures: true,
+                  installment_plans: true,
+                },
+              },
             },
           },
         },
