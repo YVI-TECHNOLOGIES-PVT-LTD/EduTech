@@ -22,6 +22,15 @@ export const authRequestInterceptor = async (config: any) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  // 3. Attach Tenant ID if present in localStorage and not explicitly provided in headers
+  if (!config.headers['x-tenant-id'] && !config.headers['X-Tenant-Id']) {
+    const tenantId =
+      localStorage.getItem('edutrack_tenant_id') || localStorage.getItem('tenant_org_id');
+    if (tenantId) {
+      config.headers['x-tenant-id'] = tenantId;
+    }
+  }
+
   // If payload is FormData, remove Content-Type header so the browser automatically computes the boundary
   if (config.data instanceof FormData && config.headers) {
     delete config.headers['Content-Type'];

@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Eye,
   EyeOff,
@@ -25,14 +25,70 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { AuthLayout } from '@/modules/auth/components/AuthLayout';
 import { registrationSchema, RegistrationFormData } from '../../schemas/registration.schema';
 import { admissionApi } from '@/modules/admission/admission.api';
+import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+
+const DEFAULT_SCHOOL_ID = '624efc1b-4144-43a4-90b8-552d945cbef7'; // Greenwood School, Delhi (ORG-001)
 
 export const RegistrationPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const querySchoolId = searchParams.get('school_id') || searchParams.get('org_id') || '';
+
+  // Pre-selected default organization context (seamlessly handled in background without frontend UI clutter)
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>(
+    querySchoolId || localStorage.getItem('edutrack_tenant_id') || DEFAULT_SCHOOL_ID,
+  );
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // Synchronize and pre-select school organization in the background
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSchools = async () => {
+      try {
+        const res = await apiClient.get('/schools');
+        if (!isMounted) return;
+        const schoolList: Array<{ id: string; name: string; code?: string }> = Array.isArray(
+          res.data,
+        )
+          ? res.data
+          : [];
+
+        const storedTenant =
+          localStorage.getItem('edutrack_tenant_id') || localStorage.getItem('tenant_org_id') || '';
+
+        const matchedQuery = schoolList.find(
+          (s) => s.id === querySchoolId || s.code === querySchoolId,
+        );
+        const matchedStored = schoolList.find((s) => s.id === storedTenant);
+        const matchedDefault = schoolList.find(
+          (s) => s.id === DEFAULT_SCHOOL_ID || s.code === 'ORG-001',
+        );
+
+        const targetId =
+          matchedQuery?.id ||
+          matchedStored?.id ||
+          matchedDefault?.id ||
+          (schoolList.length > 0 ? schoolList[0].id : DEFAULT_SCHOOL_ID);
+
+        if (targetId) {
+          setSelectedSchoolId(targetId);
+          localStorage.setItem('edutrack_tenant_id', targetId);
+        }
+      } catch (err) {
+        console.warn('Could not load schools list for registration', err);
+      }
+    };
+
+    fetchSchools();
+    return () => {
+      isMounted = false;
+    };
+  }, [querySchoolId]);
 
   const {
     register,
@@ -101,18 +157,28 @@ export const RegistrationPage: React.FC = () => {
     setApiError(null);
     try {
       const fullName = `${data.firstName.trim()} ${data.lastName.trim()}`;
-      await admissionApi.registerParent({
+      const targetSchoolId = selectedSchoolId || DEFAULT_SCHOOL_ID;
+      const payload: any = {
         full_name: fullName,
         email: data.email.trim(),
         phone: data.mobile.trim(),
         password: data.password,
+        school_id: targetSchoolId,
+        org_id: targetSchoolId,
         source: 'website',
-      });
+      };
+
+      localStorage.setItem('edutrack_tenant_id', targetSchoolId);
+
+      await admissionApi.registerParent(payload);
 
       toast.success('Registration initiated. Verification OTP sent!');
-      navigate(
-        `/admission/register/otp?email=${encodeURIComponent(data.email.trim())}&phone=${encodeURIComponent(data.mobile.trim())}`,
-      );
+      const otpUrl = `/admission/register/otp?email=${encodeURIComponent(
+        data.email.trim(),
+      )}&phone=${encodeURIComponent(data.mobile.trim())}&school_id=${encodeURIComponent(
+        targetSchoolId,
+      )}`;
+      navigate(otpUrl);
     } catch (err: any) {
       const errMsg =
         err?.data?.error ||
