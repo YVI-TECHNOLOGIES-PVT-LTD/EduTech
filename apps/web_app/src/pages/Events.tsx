@@ -1,17 +1,51 @@
-import { Calendar } from "lucide-react";
-import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/common/AnimatedSection";
-import SectionHeader from "@/components/common/SectionHeader";
+import { Calendar } from 'lucide-react';
+import {
+  AnimatedSection,
+  StaggerContainer,
+  StaggerItem,
+} from '@/components/common/AnimatedSection';
+import SectionHeader from '@/components/common/SectionHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CinematicPageHero } from "@/components/patterns/CinematicPageHero";
+import { CinematicPageHero } from '@/components/patterns/CinematicPageHero';
 
 const events = [
-  { title: "Open House 2026", date: "Feb 15, 2026", type: "Admissions", description: "Visit our campus and meet our faculty." },
-  { title: "Annual Science Fair", date: "Mar 10, 2026", type: "Academic", description: "Student innovations and discoveries on display." },
-  { title: "Spring Arts Festival", date: "Apr 5, 2026", type: "Arts", description: "A celebration of creativity and artistic expression." },
-  { title: "Sports Day", date: "Apr 20, 2026", type: "Sports", description: "Annual athletics meet and competitions." },
-  { title: "Graduation Ceremony", date: "May 25, 2026", type: "Ceremony", description: "Celebrating our graduating class of 2026." },
-  { title: "Summer Camp", date: "Jun 1-30, 2026", type: "Summer", description: "Fun learning activities during summer break." },
+  {
+    title: 'Open House 2026',
+    date: 'Feb 15, 2026',
+    type: 'Admissions',
+    description: 'Visit our campus and meet our faculty.',
+  },
+  {
+    title: 'Annual Science Fair',
+    date: 'Mar 10, 2026',
+    type: 'Academic',
+    description: 'Student innovations and discoveries on display.',
+  },
+  {
+    title: 'Spring Arts Festival',
+    date: 'Apr 5, 2026',
+    type: 'Arts',
+    description: 'A celebration of creativity and artistic expression.',
+  },
+  {
+    title: 'Sports Day',
+    date: 'Apr 20, 2026',
+    type: 'Sports',
+    description: 'Annual athletics meet and competitions.',
+  },
+  {
+    title: 'Graduation Ceremony',
+    date: 'May 25, 2026',
+    type: 'Ceremony',
+    description: 'Celebrating our graduating class of 2026.',
+  },
+  {
+    title: 'Summer Camp',
+    date: 'Jun 1-30, 2026',
+    type: 'Summer',
+    description: 'Fun learning activities during summer break.',
+  },
 ];
 
 export default function Events() {
@@ -19,13 +53,13 @@ export default function Events() {
     <div className="overflow-hidden">
       {/* Cinematic Hero Section */}
       <CinematicPageHero
-        eyebrow="EDUTRACK EVENTS"
+        eyebrow="EDULYFE EVENTS"
         title="Moments That Bring Our Learning Community Together"
         accentText="Learning Community"
         description="Stay connected with workshops, ceremonies, exhibitions, and campus activities."
         backgroundImage="https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1600&auto=format&fit=crop"
         imagePosition="object-[55%_center]"
-        metadataItems={["Events", "Workshops", "Community"]}
+        metadataItems={['Events', 'Workshops', 'Community']}
       />
 
       <section className="py-20 bg-background">
@@ -46,7 +80,9 @@ export default function Events() {
                       </Badge>
                     </div>
                     <h3 className="font-bold text-xl text-foreground">{event.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed mt-auto">{event.description}</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed mt-auto">
+                      {event.description}
+                    </p>
                   </div>
                 </Card>
               </StaggerItem>
@@ -57,4 +93,3 @@ export default function Events() {
     </div>
   );
 }
-

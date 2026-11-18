@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StatusBar, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StatusBar, TouchableOpacity, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,11 +16,11 @@ export default function SplashScreen() {
   const bottomSafe = Math.max(insets.bottom, 16);
 
   return (
-    <View className="flex-1 bg-[#3730a3]">
+    <View className="flex-1 bg-[#12305E]">
       <StatusBar barStyle="light-content" />
 
-      {/* Background Royal Blue/Purple Gradient Overlay Container */}
-      <View className="absolute inset-0 bg-[#312e81]">
+      {/* Background Navy Gradient Overlay Container */}
+      <View className="absolute inset-0 bg-[#0E254A]">
         {/* Faint Background Line Illustration Accents */}
         <View className="absolute top-28 right-6 opacity-15">
           <Ionicons name="school-outline" size={140} color="#ffffff" />
@@ -39,17 +39,12 @@ export default function SplashScreen() {
       >
         {/* Top Header Logo Bar */}
         <View className="items-center mt-6">
-          <View className="flex-row items-center justify-center">
-            <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center mr-3 border border-white/20">
-              <Ionicons name="school" size={28} color="#ffffff" />
-            </View>
-            <View>
-              <Text className="text-2xl font-black text-white tracking-tight">EduTrack</Text>
-              <Text className="text-xs font-semibold text-indigo-200 tracking-wider">
-                School ERP
-              </Text>
-            </View>
-          </View>
+          <Image
+            source={require('../../src/assets/brand/edulyfe-logo-horizontal-reversed.png')}
+            style={{ width: 190, height: 54 }}
+            resizeMode="contain"
+            accessibilityLabel="EduLyfe"
+          />
         </View>
 
         {/* Faint School Building Line Illustration Centerpiece */}

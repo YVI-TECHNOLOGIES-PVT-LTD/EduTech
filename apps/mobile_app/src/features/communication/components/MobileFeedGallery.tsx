@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { FeedAttachment } from '../index';
+import { FeedAttachment } from '../../../api/communication.api';
 
 interface MobileFeedGalleryProps {
   attachments?: FeedAttachment[];

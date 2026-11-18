@@ -22,7 +22,7 @@ export const RazorpayCheckoutDemo: React.FC = () => {
   const [amountRupees, setAmountRupees] = useState<number>(500);
   const [customAmount, setCustomAmount] = useState<string>('500');
   const [payerName, setPayerName] = useState<string>('Aarav Sharma');
-  const [payerEmail, setPayerEmail] = useState<string>('aarav.sharma@edutrack.edu');
+  const [payerEmail, setPayerEmail] = useState<string>('aarav.sharma@edulyfe.edu');
   const [payerPhone, setPayerPhone] = useState<string>('+91 9876543210');
   const [feeCategory, setFeeCategory] = useState<string>('Tuition Fee - Term 1');
 
@@ -67,7 +67,8 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               Razorpay Payment Gateway Integration
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Complete Standard Checkout workflow: Order Creation &rarr; Checkout Modal &rarr; HMAC-SHA256 Signature Verification.
+              Complete Standard Checkout workflow: Order Creation &rarr; Checkout Modal &rarr;
+              HMAC-SHA256 Signature Verification.
             </p>
           </div>
 
@@ -86,9 +87,13 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               1
             </div>
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">Backend Order Creation</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Backend Order Creation
+              </p>
               <p className="text-slate-500 mt-0.5 font-mono">POST /api/create-order</p>
-              <p className="text-slate-400 text-[11px] mt-1">Generates official gateway order in paise (min 100 paise)</p>
+              <p className="text-slate-400 text-[11px] mt-1">
+                Generates official gateway order in paise (min 100 paise)
+              </p>
             </div>
           </div>
 
@@ -97,9 +102,13 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               2
             </div>
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">Standard Web Checkout</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Standard Web Checkout
+              </p>
               <p className="text-slate-500 mt-0.5 font-mono">checkout.razorpay.com</p>
-              <p className="text-slate-400 text-[11px] mt-1">Interactive modal with UPI, Card, Net Banking & Wallets</p>
+              <p className="text-slate-400 text-[11px] mt-1">
+                Interactive modal with UPI, Card, Net Banking & Wallets
+              </p>
             </div>
           </div>
 
@@ -108,9 +117,13 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               3
             </div>
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">HMAC-SHA256 Verification</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                HMAC-SHA256 Verification
+              </p>
               <p className="text-slate-500 mt-0.5 font-mono">POST /api/verify-payment</p>
-              <p className="text-slate-400 text-[11px] mt-1">Timing-safe signature validation protects ledger integrity</p>
+              <p className="text-slate-400 text-[11px] mt-1">
+                Timing-safe signature validation protects ledger integrity
+              </p>
             </div>
           </div>
         </div>
@@ -121,12 +134,16 @@ export const RazorpayCheckoutDemo: React.FC = () => {
           <div className={`lg:col-span-7 ${GLASS_CARD} space-y-6`}>
             <div>
               <h2 className="text-lg font-bold">Payment Configuration</h2>
-              <p className="text-xs text-slate-500">Configure amount and customer attributes for this test transaction.</p>
+              <p className="text-xs text-slate-500">
+                Configure amount and customer attributes for this test transaction.
+              </p>
             </div>
 
             {/* Quick Amount Presets */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Select Amount</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Select Amount
+              </label>
               <div className="flex flex-wrap gap-2">
                 {presetAmounts.map((amt) => (
                   <button
@@ -147,7 +164,10 @@ export const RazorpayCheckoutDemo: React.FC = () => {
 
             {/* Custom Amount Field */}
             <div className="space-y-1.5">
-              <label htmlFor="custom-amount" className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <label
+                htmlFor="custom-amount"
+                className="text-xs font-semibold text-slate-600 dark:text-slate-300"
+              >
                 Amount in Rupees (INR)
               </label>
               <div className="relative">
@@ -176,7 +196,9 @@ export const RazorpayCheckoutDemo: React.FC = () => {
             {/* Payer Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-white/5">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Student / Payer Name</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Student / Payer Name
+                </label>
                 <input
                   type="text"
                   value={payerName}
@@ -186,7 +208,9 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Fee Purpose</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Fee Purpose
+                </label>
                 <input
                   type="text"
                   value={feeCategory}
@@ -196,7 +220,9 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Email Address</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   value={payerEmail}
@@ -206,7 +232,9 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Phone Number</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Phone Number
+                </label>
                 <input
                   type="tel"
                   value={payerPhone}
@@ -227,7 +255,7 @@ export const RazorpayCheckoutDemo: React.FC = () => {
 
               <RazorpayCheckout
                 amountInRupees={amountRupees}
-                name="EduTrack ERP"
+                name="EduLyfe ERP"
                 description={feeCategory}
                 receipt={`rcpt_${Date.now()}`}
                 prefill={{
@@ -254,29 +282,39 @@ export const RazorpayCheckoutDemo: React.FC = () => {
               <div className={`${GLASS_CARD} border-indigo-500/30 bg-indigo-500/5 space-y-4`}>
                 <div className="flex items-center gap-2.5 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                   <CheckCircle2 className="w-5 h-5 text-indigo-500 shrink-0" />
-                  <span>Gateway payment verified — demo only; EduTrack ledger not updated.</span>
+                  <span>Gateway payment verified — demo only; EduLyfe ledger not updated.</span>
                 </div>
 
                 <p className="text-xs text-slate-500">
-                  The payment signature was cryptographically validated using HMAC-SHA256 and authoritatively verified with the Razorpay API. As this is a sandbox demo transaction, no production student fee balances were altered.
+                  The payment signature was cryptographically validated using HMAC-SHA256 and
+                  authoritatively verified with the Razorpay API. As this is a sandbox demo
+                  transaction, no production student fee balances were altered.
                 </p>
 
                 <div className="space-y-2.5 text-xs font-mono bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200/60 dark:border-white/5">
                   <div>
                     <span className="text-slate-400">Payment ID:</span>
-                    <p className="text-slate-900 dark:text-white font-semibold truncate">{verifiedPayment.payment_id}</p>
+                    <p className="text-slate-900 dark:text-white font-semibold truncate">
+                      {verifiedPayment.payment_id}
+                    </p>
                   </div>
                   <div>
                     <span className="text-slate-400">Order ID:</span>
-                    <p className="text-slate-900 dark:text-white font-semibold truncate">{verifiedPayment.order_id}</p>
+                    <p className="text-slate-900 dark:text-white font-semibold truncate">
+                      {verifiedPayment.order_id}
+                    </p>
                   </div>
                   <div>
                     <span className="text-slate-400">HMAC Signature:</span>
-                    <p className="text-slate-600 dark:text-slate-400 text-[10px] break-all">{verifiedPayment.signature}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-[10px] break-all">
+                      {verifiedPayment.signature}
+                    </p>
                   </div>
                   <div>
                     <span className="text-slate-400">Verified Timestamp:</span>
-                    <p className="text-slate-600 dark:text-slate-300">{verifiedPayment.verifiedAt}</p>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      {verifiedPayment.verifiedAt}
+                    </p>
                   </div>
                 </div>
 
@@ -313,14 +351,17 @@ export const RazorpayCheckoutDemo: React.FC = () => {
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
                     <span className="text-slate-400 block mb-1">Supported Payment Methods:</span>
                     <p className="text-slate-600 dark:text-slate-300">
-                      UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards, Net Banking, and Mobile Wallets.
+                      UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards, Net Banking, and
+                      Mobile Wallets.
                     </p>
                   </div>
                 </div>
 
                 <div className="pt-2 text-[11px] text-slate-400 flex items-center gap-1.5">
                   <Info className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                  <span>In test mode, enter any standard test card or UPI ID to test the flow.</span>
+                  <span>
+                    In test mode, enter any standard test card or UPI ID to test the flow.
+                  </span>
                 </div>
               </div>
             )}

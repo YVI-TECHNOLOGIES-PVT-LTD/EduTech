@@ -43,11 +43,11 @@ export default function ProfileScreen() {
     user?.full_name ||
     `${user?.first_name || ''} ${user?.last_name || ''}`.trim() ||
     'Parent Account';
-  const parentEmail = user?.email || 'parent@edutrack.edu';
+  const parentEmail = user?.email || 'parent@edulyfe.edu';
   const parentPhone = user?.phone || user?.phoneNumber || '+91 98765 43210';
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out of EduTrack ERP?', [
+    Alert.alert('Sign Out', 'Are you sure you want to sign out of EduLyfe ERP?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -323,7 +323,7 @@ export default function ProfileScreen() {
           onPress={handleLogout}
           style={styles.logoutBtn}
           accessibilityRole="button"
-          accessibilityLabel="Sign out of EduTrack ERP"
+          accessibilityLabel="Sign out of EduLyfe ERP"
         >
           <Ionicons name="log-out-outline" size={18} color={DESIGN_TOKENS.colors.danger} />
           <Text style={styles.logoutBtnText}>Sign Out of Account</Text>

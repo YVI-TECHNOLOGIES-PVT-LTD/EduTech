@@ -84,7 +84,7 @@ export default function DashboardScreen() {
                 {user?.fullName || 'Parent'}
               </Text>
               <Text className="text-[11px] font-semibold text-slate-400">
-                Parent • EduTrack School
+                Parent • EduLyfe School
               </Text>
             </View>
           </View>
@@ -107,7 +107,7 @@ export default function DashboardScreen() {
             <View className="flex-1">
               <Text className="text-xs font-semibold text-indigo-200">Academic Year 2026-27</Text>
               <Text className="text-xl font-extrabold text-white tracking-tight mt-0.5">
-                EduTrack ERP
+                EduLyfe ERP
               </Text>
               <Text className="text-xs text-indigo-100/90 font-medium mt-0.5">
                 Excellence in Education

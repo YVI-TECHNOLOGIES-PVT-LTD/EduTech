@@ -8,7 +8,7 @@ export default function IndexScreen() {
   const { isAuthenticated, isHydrating } = useAuthStore();
 
   if (isHydrating) {
-    return <Loader type="page" message="Loading EduTrack ERP..." />;
+    return <Loader type="page" message="Loading EduLyfe ERP..." />;
   }
 
   return <Redirect href={(isAuthenticated ? ROUTES.MAIN.HOME : ROUTES.AUTH.LOGIN) as any} />;

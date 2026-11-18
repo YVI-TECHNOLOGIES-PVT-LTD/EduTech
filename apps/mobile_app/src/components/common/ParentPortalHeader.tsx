@@ -91,7 +91,7 @@ export const ParentPortalHeader: React.FC<ParentPortalHeaderProps> = ({
                     { color: isDark ? '#F8FAFC' : DESIGN_TOKENS.colors.textPrimary },
                   ]}
                 >
-                  EduTrack ERP
+                  EduLyfe ERP
                 </Text>
                 <Text style={styles.brandSubtitle}>Parent Portal</Text>
               </View>

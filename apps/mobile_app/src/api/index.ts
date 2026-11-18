@@ -15,3 +15,4 @@ export * from './academics.api';
 export * from './helpdesk.api';
 export * from './transport.api';
 export * from './library.api';
+export * from './communication.api';

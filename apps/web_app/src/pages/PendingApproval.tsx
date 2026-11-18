@@ -11,9 +11,9 @@ export const PendingApprovalPage = () => {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8 text-center">
         <div className="flex items-center justify-center mb-6">
           <img
-            src="/EduTrack_logo.png"
-            alt="EduTrack ERP"
-            className="w-12 h-12 object-contain rounded-2xl shadow-md"
+            src="/brand/edulyfe-symbol-color.png"
+            alt="EduLyfe ERP"
+            className="w-12 h-12 object-contain"
           />
         </div>
         <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">

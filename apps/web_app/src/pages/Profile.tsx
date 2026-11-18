@@ -205,7 +205,7 @@ export const Profile = () => {
                   />
                   <div className="min-w-0">
                     <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-50 truncate leading-snug">
-                      {fullName || 'EduTrack User'}
+                      {fullName || 'EduLyfe User'}
                     </h2>
                     <p className="text-[10px] font-bold text-slate-400 dark:text-neutral-500 mt-0.5">
                       #{shortId}
@@ -242,7 +242,7 @@ export const Profile = () => {
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
                       <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>School: EduTrack Global School</span>
+                      <span>School: EduLyfe Global School</span>
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
                       <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0 animate-pulse ml-0.5 mr-0.5" />
@@ -348,7 +348,7 @@ export const Profile = () => {
                         School / Institution
                       </span>
                       <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-0.5">
-                        EduTrack Global School
+                        EduLyfe Global School
                       </p>
                     </div>
                   </div>

@@ -59,11 +59,11 @@ export const ParentHeroCarousel: React.FC<ParentHeroCarouselProps> = React.memo(
 
     // Dynamic slides reflecting child state, academic status & school announcements
     const slides: CarouselSlideData[] = [
-      // Slide 1: Welcome to EduTrack
+      // Slide 1: Welcome to EduLyfe
       {
         id: 'welcome',
         badge: 'Portal Guide',
-        title: 'Welcome to EduTrack',
+        title: 'Welcome to EduLyfe',
         subtitle: 'Real-time attendance, fee receipts & grade analytics in one tap.',
         ctaText: 'Explore Tour',
         secondaryCtaText: 'Handbook',

@@ -24,9 +24,14 @@ export const Sidebar: React.FC = () => {
       <div className="flex h-16 items-center justify-between px-6 border-b border-border">
         <div className="flex items-center space-x-3">
           <img
-            src="/EduTrack_logo.png"
-            alt="EduTrack"
-            className="h-9 w-9 object-contain rounded-lg shadow-md shrink-0"
+            src="/brand/edulyfe-symbol-color.png"
+            alt="EduLyfe"
+            className="h-9 w-9 object-contain shrink-0 dark:hidden"
+          />
+          <img
+            src="/brand/edulyfe-symbol-reversed.png"
+            alt="EduLyfe"
+            className="h-9 w-9 object-contain shrink-0 hidden dark:block"
           />
           <div>
             <h1 className="text-sm font-bold tracking-tight text-black dark:text-white">

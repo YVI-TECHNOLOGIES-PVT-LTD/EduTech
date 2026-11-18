@@ -57,9 +57,28 @@ export function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
               <img
-                src="/EduTrack_logo.png"
-                alt="EduTrack ERP"
-                className="w-12 h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 object-contain rounded-xl shadow-md transition-all duration-300 group-hover:scale-105"
+                src="/brand/edulyfe-symbol-color.png"
+                alt="EduLyfe ERP"
+                className={cn(
+                  'w-10 h-10 lg:w-9 lg:h-9 xl:w-10 xl:h-10 object-contain transition-all duration-300 group-hover:scale-105',
+                  location.pathname.includes('/enquiry') ||
+                    location.pathname.includes('/app/') ||
+                    isScrolled
+                    ? 'block dark:hidden'
+                    : 'hidden',
+                )}
+              />
+              <img
+                src="/brand/edulyfe-symbol-reversed.png"
+                alt="EduLyfe ERP"
+                className={cn(
+                  'w-10 h-10 lg:w-9 lg:h-9 xl:w-10 xl:h-10 object-contain transition-all duration-300 group-hover:scale-105',
+                  location.pathname.includes('/enquiry') ||
+                    location.pathname.includes('/app/') ||
+                    isScrolled
+                    ? 'hidden dark:block'
+                    : 'block',
+                )}
               />
               <div>
                 <span

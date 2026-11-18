@@ -636,7 +636,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
 
   return (
     <Sidebar collapsible="icon" className={className}>
-      {/* 1. Header with EduTrack Logo, Context Label & Mobile Close Button */}
+      {/* 1. Header with EduLyfe Logo, Context Label & Mobile Close Button */}
       <SidebarHeader className="h-16 px-3.5 border-b border-sidebar-border flex items-center justify-between group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center bg-sidebar/50 backdrop-blur-md">
         <div className="flex items-center justify-between w-full">
           <Link
@@ -646,9 +646,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
           >
             <div className="relative p-1 rounded-xl bg-card border border-border/70 shadow-2xs group-hover:border-primary/40 group-hover:shadow-xs transition-all duration-200 shrink-0">
               <img
-                src="/EduTrack_logo.png"
-                alt="EduTrack"
-                className="w-8 h-8 object-contain shrink-0"
+                src="/brand/edulyfe-symbol-color.png"
+                alt="EduLyfe"
+                className="w-8 h-8 object-contain shrink-0 dark:hidden"
+              />
+              <img
+                src="/brand/edulyfe-symbol-reversed.png"
+                alt="EduLyfe"
+                className="w-8 h-8 object-contain shrink-0 hidden dark:block"
               />
             </div>
 
@@ -656,7 +661,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ className }) => {
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-black tracking-tight text-sidebar-foreground leading-none">
-                    EduTrack
+                    EduLyfe
                   </span>
                   <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 rounded-md">
                     ERP

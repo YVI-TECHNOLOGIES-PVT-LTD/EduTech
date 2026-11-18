@@ -126,18 +126,18 @@ export const NOTIFICATIONS = [
 
 // School information
 export const SCHOOL_INFO = {
-  name: 'EduTrack',
-  tagline: 'Excellence in Education Since 1952',
+  name: 'EduLyfe',
+  tagline: 'LONG LIVE EDUCATION',
   address: '123 Academic Avenue, Education City, EC 12345',
   phone: '+1 (800) 555-3388',
-  email: 'admissions@edutrack.edu',
+  email: 'admissions@edulyfe.edu',
   established: 1952,
   socialLinks: {
-    facebook: 'https://facebook.com/edutrack',
-    twitter: 'https://twitter.com/edutrack',
-    instagram: 'https://instagram.com/edutrack',
-    linkedin: 'https://linkedin.com/school/edutrack',
-    youtube: 'https://youtube.com/edutrack',
+    facebook: 'https://facebook.com/edulyfe',
+    twitter: 'https://twitter.com/edulyfe',
+    instagram: 'https://instagram.com/edulyfe',
+    linkedin: 'https://linkedin.com/school/edulyfe',
+    youtube: 'https://youtube.com/edulyfe',
   },
 } as const;
 

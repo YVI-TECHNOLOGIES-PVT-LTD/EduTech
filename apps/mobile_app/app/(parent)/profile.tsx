@@ -268,7 +268,7 @@ export default function ParentProfileScreen() {
             >
               {(user as any)?.school_id
                 ? `SCH-${(user as any).school_id.slice(0, 8)}`
-                : 'EduTrack Main'}
+                : 'EduLyfe Main'}
             </Text>
           </View>
         </View>

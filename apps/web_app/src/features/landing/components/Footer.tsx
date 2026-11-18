@@ -9,12 +9,12 @@ export const Footer: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center space-x-3">
             <img
-              src="/EduTrack_logo.png"
-              alt="EduTrack ERP"
-              className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md shrink-0"
+              src="/brand/edulyfe-symbol-reversed.png"
+              alt="EduLyfe ERP"
+              className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-md shrink-0"
             />
             <span className="font-extrabold text-base sm:text-lg text-white tracking-tight">
-              EDUTRACK ERP
+              EDULYFE ERP
             </span>
           </div>
           <p className="text-emerald-100/70 leading-relaxed">
