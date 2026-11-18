@@ -286,9 +286,12 @@ export class AuthService {
     }
 
     // Fallback: Create new unassigned registration lead for parent
-    const ayg = await tx.academic_year_grades.findFirst({
+    let ayg = await tx.academic_year_grades.findFirst({
       where: { academic_years: { org_id: orgId } },
     });
+    if (!ayg) {
+      ayg = await tx.academic_year_grades.findFirst();
+    }
 
     const year = new Date().getFullYear();
     const lastLead = await tx.leads.findFirst({

@@ -150,6 +150,20 @@ export default {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
+        'otp-shake': {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '20%, 60%': { transform: 'translateX(-7px)' },
+          '40%, 80%': { transform: 'translateX(7px)' },
+        },
+        'otp-pop': {
+          '0%': { transform: 'scale(0.8)', opacity: '0.5' },
+          '50%': { transform: 'scale(1.15)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        'otp-pulse': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(0.98)', opacity: '0.85' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -163,6 +177,9 @@ export default {
         float: 'float 3s ease-in-out infinite',
         'pulse-slow': 'pulse 3s ease-in-out infinite',
         'spin-slow': 'spin-slow 20s linear infinite',
+        'otp-shake': 'otp-shake 0.45s ease-in-out',
+        'otp-pop': 'otp-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'otp-pulse': 'otp-pulse 2s ease-in-out infinite',
       },
     },
   },
