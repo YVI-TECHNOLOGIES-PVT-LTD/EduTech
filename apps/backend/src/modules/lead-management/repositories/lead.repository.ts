@@ -78,11 +78,47 @@ export class LeadRepository {
       lead_number = `LEAD-${year}-${randomSuffix}`;
     }
 
+    let safeAygId: string | undefined = undefined;
+    if (dto.academic_year_grade_id) {
+      const existingAyg = await db.academic_year_grades.findUnique({
+        where: { academic_year_grade_id: dto.academic_year_grade_id },
+        select: { academic_year_grade_id: true },
+      });
+      if (existingAyg) {
+        safeAygId = existingAyg.academic_year_grade_id;
+      } else {
+        // Check if grade_id was passed instead of academic_year_grade_id
+        const byGrade = await db.academic_year_grades.findFirst({
+          where: {
+            grade_id: dto.academic_year_grade_id,
+            ...(dto.org_id ? { academic_years: { org_id: dto.org_id } } : {}),
+          },
+          select: { academic_year_grade_id: true },
+        });
+        if (byGrade) {
+          safeAygId = byGrade.academic_year_grade_id;
+        }
+      }
+    }
+
+    if (!safeAygId && dto.org_id) {
+      const defaultAyg = await db.academic_year_grades.findFirst({
+        where: {
+          academic_years: { org_id: dto.org_id },
+          is_active: true,
+        },
+        select: { academic_year_grade_id: true },
+      });
+      if (defaultAyg) {
+        safeAygId = defaultAyg.academic_year_grade_id;
+      }
+    }
+
     return db.leads.create({
       data: {
         lead_number,
         org_id: dto.org_id,
-        academic_year_grade_id: dto.academic_year_grade_id || undefined,
+        academic_year_grade_id: safeAygId || undefined,
         student_first_name: dto.student_first_name,
         student_last_name: dto.student_last_name || undefined,
         contact_name: dto.contact_name,

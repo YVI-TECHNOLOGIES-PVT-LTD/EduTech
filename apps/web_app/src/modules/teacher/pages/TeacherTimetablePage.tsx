@@ -62,7 +62,9 @@ export const TeacherTimetablePage: React.FC = () => {
           ...(staffId ? { staff_id: staffId } : {}),
         },
       });
-      setEntries(res.data?.data || res.data || []);
+      setEntries(
+        Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [],
+      );
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Failed to load timetable');
     } finally {

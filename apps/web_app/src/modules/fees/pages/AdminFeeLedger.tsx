@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiClient } from '../../../lib/api-client';
 import { Modal } from '../../../components/ui/modal';
 import {
@@ -118,6 +118,8 @@ export const AdminFeeLedger: React.FC = () => {
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
+  const selectedStudentRef = useRef<StudentListItem | null>(null);
+  selectedStudentRef.current = selectedStudent;
 
   // Ledger Detail State
   const [loadingLedger, setLoadingLedger] = useState(false);
@@ -154,17 +156,25 @@ export const AdminFeeLedger: React.FC = () => {
   const fetchInitialMetadata = async () => {
     try {
       const [yearRes, clsRes] = await Promise.all([
-        apiClient.get('/academic-years').catch(() => ({ data: [] })),
-        apiClient.get('/academic/classes').catch(() => ({ data: [] })),
+        apiClient
+          .get('/v1/academic/years')
+          .catch(() => apiClient.get('/academic-years'))
+          .catch(() => ({ data: [] })),
+        apiClient
+          .get('/v1/academic/classes')
+          .catch(() => apiClient.get('/academic/classes'))
+          .catch(() => ({ data: [] })),
       ]);
 
-      const years = Array.isArray(yearRes.data) ? yearRes.data : yearRes.data?.data || [];
+      const rawYears = yearRes.data?.data || yearRes.data || [];
+      const years = Array.isArray(rawYears) ? rawYears : [];
       setAcademicYears(years);
       if (years.length > 0) {
         setSelectedYearId(years[0].academic_year_id || years[0].id || '');
       }
 
-      setClasses(Array.isArray(clsRes.data) ? clsRes.data : []);
+      const rawCls = clsRes.data?.data || clsRes.data || [];
+      setClasses(Array.isArray(rawCls) ? rawCls : []);
     } catch (err) {
       console.error('Error loading metadata:', err);
     }
@@ -187,7 +197,7 @@ export const AdminFeeLedger: React.FC = () => {
         setStudents(list);
 
         // Auto-select first student if none selected
-        if (!selectedStudent && list.length > 0) {
+        if (!selectedStudentRef.current && list.length > 0) {
           loadStudentLedger(list[0]);
         }
       } catch (err: any) {
@@ -197,7 +207,7 @@ export const AdminFeeLedger: React.FC = () => {
         setSearching(false);
       }
     },
-    [selectedYearId, selectedStudent],
+    [selectedYearId],
   );
 
   useEffect(() => {

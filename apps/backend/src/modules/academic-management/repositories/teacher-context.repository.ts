@@ -94,6 +94,32 @@ export class TeacherContextRepository {
     });
   }
 
+  static async findFirstStaff(orgId: string) {
+    return prisma.staff.findFirst({
+      where: {
+        org_id: orgId,
+        is_active: true,
+      },
+      include: {
+        users_staff_user_idTousers: {
+          select: {
+            user_id: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+          },
+        },
+        designations: {
+          select: {
+            designation_id: true,
+            designation_name: true,
+          },
+        },
+      },
+      orderBy: { created_at: 'asc' },
+    });
+  }
+
   /**
    * Get sections assigned to teacher via faculty assignments and class teacher designation
    */

@@ -292,6 +292,21 @@ export class AuthService {
     if (!ayg) {
       ayg = await tx.academic_year_grades.findFirst();
     }
+    if (!ayg) {
+      const anyGrade =
+        (await tx.grades.findFirst({ where: { org_id: orgId } })) || (await tx.grades.findFirst());
+      const anyYear =
+        (await tx.academic_years.findFirst({ where: { org_id: orgId } })) ||
+        (await tx.academic_years.findFirst());
+      if (anyGrade && anyYear) {
+        ayg = await tx.academic_year_grades.create({
+          data: {
+            academic_year_id: anyYear.academic_year_id,
+            grade_id: anyGrade.grade_id,
+          },
+        });
+      }
+    }
 
     const year = new Date().getFullYear();
     const lastLead = await tx.leads.findFirst({
@@ -310,7 +325,7 @@ export class AuthService {
       data: {
         org_id: orgId,
         lead_number: leadNumber,
-        academic_year_grade_id: ayg?.academic_year_grade_id || crypto.randomUUID(),
+        academic_year_grade_id: ayg?.academic_year_grade_id || undefined,
         student_first_name: 'Applicant',
         student_last_name: undefined,
         contact_name: fullName,

@@ -46,6 +46,7 @@ export const MyFees: React.FC = () => {
 
   // Phase 3 Checkout & Receipt State
   const [selectedDueForPayment, setSelectedDueForPayment] = useState<any | null>(null);
+  const [selectedDueIds, setSelectedDueIds] = useState<string[]>([]);
   const [customPayAmount, setCustomPayAmount] = useState<number>(0);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
 
@@ -118,6 +119,7 @@ export const MyFees: React.FC = () => {
       toast.info('This installment due is already settled.');
       return;
     }
+    setSelectedDueIds([due.due_id]);
     setSelectedDueForPayment(due);
     setCustomPayAmount(Number(due.outstanding_amount));
     setIsCheckoutModalOpen(true);
@@ -148,6 +150,47 @@ export const MyFees: React.FC = () => {
   }, [childrenRecords, effectiveChildId, selectedChildIndex]);
 
   const activeRecord = childrenRecords[safeChildIndex] || null;
+
+  const unpaidDues = useMemo(() => {
+    if (!activeRecord?.dues) return [];
+    return activeRecord.dues.filter((d: any) => Number(d.outstanding_amount) > 0);
+  }, [activeRecord]);
+
+  const selectedDuesList = useMemo(() => {
+    if (!activeRecord?.dues) return [];
+    return activeRecord.dues.filter((d: any) => selectedDueIds.includes(d.due_id));
+  }, [activeRecord, selectedDueIds]);
+
+  const totalSelectedOutstanding = useMemo(() => {
+    return selectedDuesList.reduce(
+      (sum: number, d: any) => sum + Number(d.outstanding_amount || 0),
+      0,
+    );
+  }, [selectedDuesList]);
+
+  const handleToggleDue = (dueId: string) => {
+    setSelectedDueIds((prev) =>
+      prev.includes(dueId) ? prev.filter((id) => id !== dueId) : [...prev, dueId],
+    );
+  };
+
+  const handleSelectAllUnpaid = () => {
+    if (selectedDueIds.length === unpaidDues.length && unpaidDues.length > 0) {
+      setSelectedDueIds([]);
+    } else {
+      setSelectedDueIds(unpaidDues.map((d: any) => d.due_id));
+    }
+  };
+
+  const handleOpenCheckoutForSelected = () => {
+    if (selectedDuesList.length === 0) {
+      toast.info('Please select at least one fee due to pay.');
+      return;
+    }
+    setSelectedDueForPayment(selectedDuesList[0]);
+    setCustomPayAmount(totalSelectedOutstanding);
+    setIsCheckoutModalOpen(true);
+  };
 
   if (loading) {
     return <PageSkeleton />;
@@ -386,6 +429,46 @@ export const MyFees: React.FC = () => {
               </span>
             </div>
 
+            {/* Multi-term selection banner */}
+            {selectedDueIds.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
+                    {selectedDueIds.length}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                      {selectedDueIds.length} Fee Term{selectedDueIds.length > 1 ? 's' : ''}{' '}
+                      Selected
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Combined Outstanding:{' '}
+                      <strong className="text-indigo-600 dark:text-indigo-400">
+                        ₹{totalSelectedOutstanding.toLocaleString('en-IN')}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDueIds([])}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  >
+                    Clear Selection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenCheckoutForSelected}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Pay Selected (₹{totalSelectedOutstanding.toLocaleString('en-IN')})
+                  </button>
+                </div>
+              </div>
+            )}
+
             {!activeRecord.dues || activeRecord.dues.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400 italic">
                 No installment dues scheduled. Fees may not be assigned yet.
@@ -395,6 +478,18 @@ export const MyFees: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-bold">
                     <tr>
+                      <th className="py-3 px-3 text-center w-10">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all unpaid dues"
+                          checked={
+                            unpaidDues.length > 0 && selectedDueIds.length === unpaidDues.length
+                          }
+                          onChange={handleSelectAllUnpaid}
+                          disabled={unpaidDues.length === 0}
+                          className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </th>
                       <th className="py-3 px-4">Term Obligation</th>
                       <th className="py-3 px-4">Component</th>
                       <th className="py-3 px-4">Due Date</th>
@@ -408,6 +503,19 @@ export const MyFees: React.FC = () => {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {activeRecord.dues.map((due: any) => (
                       <tr key={due.due_id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-3 text-center">
+                          {Number(due.outstanding_amount) > 0 ? (
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${due.term_name}`}
+                              checked={selectedDueIds.includes(due.due_id)}
+                              onChange={() => handleToggleDue(due.due_id)}
+                              className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-700">—</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
                           {due.term_name}
                         </td>
@@ -677,32 +785,64 @@ export const MyFees: React.FC = () => {
                   {activeRecord.admission_no || activeRecord.student?.student_code})
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Fee Term:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  {selectedDueForPayment.term_name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Component:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  {selectedDueForPayment.component_name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Scheduled Due Date:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  {selectedDueForPayment.due_date
-                    ? new Date(selectedDueForPayment.due_date).toLocaleDateString()
-                    : '-'}
-                </span>
-              </div>
+
+              {selectedDuesList.length > 1 ? (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Selected Obligations:</span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {selectedDuesList.length} fee terms
+                    </span>
+                  </div>
+                  <div className="pl-2 border-l-2 border-indigo-400 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                    {selectedDuesList.map((d: any) => (
+                      <div key={d.due_id} className="flex justify-between">
+                        <span>
+                          {d.term_name} - {d.component_name}
+                        </span>
+                        <span className="font-mono font-bold">
+                          ₹{Number(d.outstanding_amount).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Fee Term:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {selectedDueForPayment.term_name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Component:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {selectedDueForPayment.component_name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Scheduled Due Date:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {selectedDueForPayment.due_date
+                        ? new Date(selectedDueForPayment.due_date).toLocaleDateString()
+                        : '-'}
+                    </span>
+                  </div>
+                </>
+              )}
+
               <div className="flex justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="font-bold text-slate-700 dark:text-slate-300">
-                  Outstanding Balance:
+                  Total Outstanding Balance:
                 </span>
                 <span className="font-black text-rose-600 dark:text-rose-400 text-sm">
-                  ₹{Number(selectedDueForPayment.outstanding_amount).toLocaleString('en-IN')}
+                  ₹
+                  {Number(
+                    selectedDuesList.length > 1
+                      ? totalSelectedOutstanding
+                      : selectedDueForPayment.outstanding_amount,
+                  ).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -712,7 +852,12 @@ export const MyFees: React.FC = () => {
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>Payment Amount (INR):</span>
                 <span className="text-[10px] text-slate-400 font-normal">
-                  Max: ₹{Number(selectedDueForPayment.outstanding_amount).toLocaleString('en-IN')}
+                  Max: ₹
+                  {Number(
+                    selectedDuesList.length > 1
+                      ? totalSelectedOutstanding
+                      : selectedDueForPayment.outstanding_amount,
+                  ).toLocaleString('en-IN')}
                 </span>
               </label>
               <div className="relative">
@@ -722,13 +867,20 @@ export const MyFees: React.FC = () => {
                 <input
                   type="number"
                   min={1}
-                  max={Number(selectedDueForPayment.outstanding_amount)}
+                  max={Number(
+                    selectedDuesList.length > 1
+                      ? totalSelectedOutstanding
+                      : selectedDueForPayment.outstanding_amount,
+                  )}
                   value={customPayAmount}
                   onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setCustomPayAmount(
-                      Math.min(Math.max(val, 0), Number(selectedDueForPayment.outstanding_amount)),
+                    const maxVal = Number(
+                      selectedDuesList.length > 1
+                        ? totalSelectedOutstanding
+                        : selectedDueForPayment.outstanding_amount,
                     );
+                    const val = Number(e.target.value);
+                    setCustomPayAmount(Math.min(Math.max(val, 0), maxVal));
                   }}
                   className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -737,26 +889,51 @@ export const MyFees: React.FC = () => {
                 <button
                   type="button"
                   onClick={() =>
-                    setCustomPayAmount(Number(selectedDueForPayment.outstanding_amount))
+                    setCustomPayAmount(
+                      Number(
+                        selectedDuesList.length > 1
+                          ? totalSelectedOutstanding
+                          : selectedDueForPayment.outstanding_amount,
+                      ),
+                    )
                   }
                   className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition-colors cursor-pointer"
                 >
                   Pay Full (₹
-                  {Number(selectedDueForPayment.outstanding_amount).toLocaleString('en-IN')})
+                  {Number(
+                    selectedDuesList.length > 1
+                      ? totalSelectedOutstanding
+                      : selectedDueForPayment.outstanding_amount,
+                  ).toLocaleString('en-IN')}
+                  )
                 </button>
-                {Number(selectedDueForPayment.outstanding_amount) > 1000 && (
+                {Number(
+                  selectedDuesList.length > 1
+                    ? totalSelectedOutstanding
+                    : selectedDueForPayment.outstanding_amount,
+                ) > 1000 && (
                   <button
                     type="button"
                     onClick={() =>
                       setCustomPayAmount(
-                        Math.round(Number(selectedDueForPayment.outstanding_amount) / 2),
+                        Math.round(
+                          Number(
+                            selectedDuesList.length > 1
+                              ? totalSelectedOutstanding
+                              : selectedDueForPayment.outstanding_amount,
+                          ) / 2,
+                        ),
                       )
                     }
                     className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors cursor-pointer"
                   >
                     50% (₹
                     {Math.round(
-                      Number(selectedDueForPayment.outstanding_amount) / 2,
+                      Number(
+                        selectedDuesList.length > 1
+                          ? totalSelectedOutstanding
+                          : selectedDueForPayment.outstanding_amount,
+                      ) / 2,
                     ).toLocaleString('en-IN')}
                     )
                   </button>
@@ -769,10 +946,23 @@ export const MyFees: React.FC = () => {
               <RazorpayCheckout
                 amountInRupees={customPayAmount}
                 studentId={activeRecord.student_id}
-                studentChargeDueId={selectedDueForPayment.due_id}
+                studentChargeDueId={
+                  selectedDuesList.length > 0
+                    ? selectedDuesList[0].due_id
+                    : selectedDueForPayment.due_id
+                }
+                dueIds={
+                  selectedDuesList.length > 1
+                    ? selectedDuesList.map((d: any) => d.due_id)
+                    : undefined
+                }
                 name="EduTrack Institutional Fees"
-                description={`${selectedDueForPayment.term_name} - ${selectedDueForPayment.component_name}`}
-                receipt={`rcpt_${selectedDueForPayment.due_id.slice(0, 8)}`}
+                description={
+                  selectedDuesList.length > 1
+                    ? `Combined Fee Payment (${selectedDuesList.length} terms)`
+                    : `${selectedDueForPayment.term_name} - ${selectedDueForPayment.component_name}`
+                }
+                receipt={`rcpt_${(selectedDuesList[0]?.due_id || selectedDueForPayment.due_id).slice(0, 8)}`}
                 prefill={{
                   name: (user as any)?.name || activeRecord.full_name,
                   email: user?.email || '',

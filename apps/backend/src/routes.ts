@@ -293,32 +293,48 @@ router.get('/public/classes', async (req: Request, res: Response) => {
     }
 
     if (aygList.length === 0 && targetOrgId) {
-      const grades = await prisma.grades.findMany({
-        where: { org_id: targetOrgId, is_active: true },
-        orderBy: { display_order: 'asc' },
+      const orgAygs = await prisma.academic_year_grades.findMany({
+        where: {
+          academic_years: { org_id: targetOrgId },
+          is_active: true,
+        },
+        include: {
+          grades: true,
+        },
+        orderBy: {
+          grades: { display_order: 'asc' },
+        },
       });
 
-      const seenGrades = new Set<string>();
-      const uniqueGrades: any[] = [];
-      for (const g of grades) {
-        const key = `${g.grade_name}_${g.board || ''}`;
-        if (!seenGrades.has(key)) {
-          seenGrades.add(key);
-          uniqueGrades.push(g);
-        }
-      }
+      if (orgAygs.length > 0) {
+        aygList = orgAygs;
+      } else {
+        const grades = await prisma.grades.findMany({
+          where: { org_id: targetOrgId, is_active: true },
+          orderBy: { display_order: 'asc' },
+        });
 
-      return res.json(
-        uniqueGrades.map((g) => ({
-          id: g.grade_id,
-          academic_year_grade_id: g.grade_id,
-          grade_id: g.grade_id,
-          name: g.grade_name,
-          grade_name: g.grade_name,
-          board: g.board || 'CBSE',
-          code: g.grade_code,
-        })),
-      );
+        const seenGrades = new Set<string>();
+        const uniqueGrades: any[] = [];
+        for (const g of grades) {
+          const key = `${g.grade_name}_${g.board || ''}`;
+          if (!seenGrades.has(key)) {
+            seenGrades.add(key);
+            uniqueGrades.push(g);
+          }
+        }
+
+        return res.json(
+          uniqueGrades.map((g) => ({
+            id: g.grade_id,
+            grade_id: g.grade_id,
+            name: g.grade_name,
+            grade_name: g.grade_name,
+            board: g.board || 'CBSE',
+            code: g.grade_code,
+          })),
+        );
+      }
     }
 
     const seenAygKeys = new Set<string>();
@@ -386,30 +402,46 @@ router.get('/v1/public/classes', async (req: Request, res: Response) => {
       });
     }
     if (aygList.length === 0 && targetOrgId) {
-      const grades = await prisma.grades.findMany({
-        where: { org_id: targetOrgId, is_active: true },
-        orderBy: { display_order: 'asc' },
+      const orgAygs = await prisma.academic_year_grades.findMany({
+        where: {
+          academic_years: { org_id: targetOrgId },
+          is_active: true,
+        },
+        include: {
+          grades: true,
+        },
+        orderBy: {
+          grades: { display_order: 'asc' },
+        },
       });
-      const seenGrades = new Set<string>();
-      const uniqueGrades: any[] = [];
-      for (const g of grades) {
-        const key = `${g.grade_name}_${g.board || ''}`;
-        if (!seenGrades.has(key)) {
-          seenGrades.add(key);
-          uniqueGrades.push(g);
+
+      if (orgAygs.length > 0) {
+        aygList = orgAygs;
+      } else {
+        const grades = await prisma.grades.findMany({
+          where: { org_id: targetOrgId, is_active: true },
+          orderBy: { display_order: 'asc' },
+        });
+        const seenGrades = new Set<string>();
+        const uniqueGrades: any[] = [];
+        for (const g of grades) {
+          const key = `${g.grade_name}_${g.board || ''}`;
+          if (!seenGrades.has(key)) {
+            seenGrades.add(key);
+            uniqueGrades.push(g);
+          }
         }
+        return res.json(
+          uniqueGrades.map((g) => ({
+            id: g.grade_id,
+            grade_id: g.grade_id,
+            name: g.grade_name,
+            grade_name: g.grade_name,
+            board: g.board || 'CBSE',
+            code: g.grade_code,
+          })),
+        );
       }
-      return res.json(
-        uniqueGrades.map((g) => ({
-          id: g.grade_id,
-          academic_year_grade_id: g.grade_id,
-          grade_id: g.grade_id,
-          name: g.grade_name,
-          grade_name: g.grade_name,
-          board: g.board || 'CBSE',
-          code: g.grade_code,
-        })),
-      );
     }
 
     const seenAygKeys = new Set<string>();
@@ -675,7 +707,11 @@ router.get('/schools/current', async (req: Request, res: Response) => {
 
 // 3. GET /academic-years/current
 router.get('/academic-years/current', async (req: Request, res: Response) => {
-  const orgId = req.context!.user.org_id || req.context!.user.school_id;
+  const orgId =
+    req.context?.user?.org_id ||
+    req.context?.user?.school_id ||
+    (req as any).user?.org_id ||
+    (req.headers['x-tenant-id'] as string);
   const data = await prisma.academic_years.findFirst({
     where: {
       ...(orgId ? { org_id: orgId } : {}),
@@ -688,13 +724,58 @@ router.get('/academic-years/current', async (req: Request, res: Response) => {
 
 // 3b. GET /academic-years (All)
 router.get('/academic-years', async (req: Request, res: Response) => {
-  const orgId = req.context!.user.org_id || req.context!.user.school_id;
+  const orgId =
+    req.context?.user?.org_id ||
+    req.context?.user?.school_id ||
+    (req as any).user?.org_id ||
+    (req.headers['x-tenant-id'] as string);
   const data = await prisma.academic_years.findMany({
     where: orgId ? { org_id: orgId } : {},
     orderBy: { start_date: 'desc' },
   });
 
   res.json(data);
+});
+
+// 3c. GET /academic/classes & /v1/academic/classes
+router.get(['/academic/classes', '/v1/academic/classes'], async (req: Request, res: Response) => {
+  try {
+    const orgId =
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id ||
+      (req as any).user?.org_id ||
+      (req.query.org_id as string) ||
+      (req.headers['x-tenant-id'] as string);
+
+    const grades = await prisma.grades.findMany({
+      where: orgId ? { org_id: orgId } : {},
+      orderBy: { display_order: 'asc' },
+      include: {
+        academic_year_grades: {
+          include: {
+            sections: {
+              where: { is_active: true },
+            },
+          },
+        },
+      },
+    });
+
+    const result = grades.map((g) => {
+      const allSections = g.academic_year_grades.flatMap((ayg) => ayg.sections);
+      const uniqueSections = Array.from(
+        new Map(allSections.map((s) => [s.section_id, s])).values(),
+      );
+      return {
+        ...g,
+        sections: uniqueSections,
+      };
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // 4. POST /academic-years

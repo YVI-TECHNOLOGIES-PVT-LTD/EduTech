@@ -40,7 +40,6 @@ import {
 } from 'lucide-react';
 import { ICON_MAP } from '../config/menu_registry';
 import { FrontOfficeExecutiveDashboard } from '../modules/admission/components/dashboard/FrontOfficeExecutiveDashboard';
-import { StaffHrDashboard } from '../modules/dashboard/components/StaffHrDashboard';
 import { SpotlightCard } from '@/components/react-bits/SpotlightCard';
 import { FadeContent } from '@/components/react-bits/FadeContent';
 import { SpecularButton } from '@/components/react-bits/SpecularButton';
@@ -139,11 +138,6 @@ export function SchoolOperationsWorkspace() {
   // If on Executive Dashboard tab, render the full-stack Command Center
   if (activeTab === 'dashboard') {
     return <FrontOfficeExecutiveDashboard customTabs={moduleTabs} />;
-  }
-
-  // If on People / HR tab, render the dedicated Staff & HR Dashboard
-  if (activeTab === 'people') {
-    return <StaffHrDashboard customTabs={moduleTabs} />;
   }
 
   return (
@@ -281,6 +275,79 @@ export function SchoolOperationsWorkspace() {
                 </SpotlightCard>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* People Directory Tab */}
+      {activeTab === 'people' && (
+        <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-sm space-y-6">
+          <div className="border-b border-border/60 pb-4">
+            <h2 className="text-lg font-extrabold text-foreground">People & Identity Directory</h2>
+            <p className="text-xs text-muted-foreground">
+              Manage student enrollment profiles, section allocations, staff & faculty directory,
+              and academic promotions.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
+              <div>
+                <GraduationCap className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
+                <h3 className="font-bold text-foreground text-sm">Students Directory</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">
+                  Browse enrolled students, admission records, section allocation, and student
+                  profiles.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/app/students')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                View Students <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </SpotlightCard>
+
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
+              <div>
+                <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
+                <h3 className="font-bold text-foreground text-sm">Staff & Faculty</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">
+                  Institutional human resources, faculty assignments, employee profiles, and staff
+                  roster.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/app/people/staff')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                Manage Staff <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </SpotlightCard>
+
+            <SpotlightCard
+              spotlightColor="rgba(6, 63, 64, 0.08)"
+              className="p-5 bg-muted/20 rounded-2xl border border-border/80 flex flex-col justify-between"
+            >
+              <div>
+                <CheckSquare className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mb-3" />
+                <h3 className="font-bold text-foreground text-sm">Academic Promotion</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">
+                  Bulk move students across academic sessions, classes, and sections.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/app/students/promotion')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                Open Promotion Desk <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </SpotlightCard>
           </div>
         </div>
       )}

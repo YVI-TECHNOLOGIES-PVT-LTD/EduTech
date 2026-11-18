@@ -15,6 +15,7 @@ import {
   FileText,
   FolderCheck,
   GraduationCap,
+  HelpCircle,
   Layers,
   MessageSquare,
   School,
@@ -229,6 +230,15 @@ export const ParentDashboard: React.FC = () => {
                     {summary.unread_notifications_count}
                   </Badge>
                 )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/parent/helpdesk')}
+                className="rounded-xl gap-2 cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4 text-primary" />
+                <span>Help Desk</span>
               </Button>
               <Button
                 variant="outline"
@@ -780,6 +790,7 @@ export const ParentDashboard: React.FC = () => {
                 { label: 'Documents Centre', icon: FolderCheck, path: '/app/parent/documents' },
                 { label: 'Communication', icon: MessageSquare, path: '/app/parent/communication' },
                 { label: 'Fees & Payments', icon: CreditCard, path: '/app/fees/my' },
+                { label: 'Help Desk', icon: HelpCircle, path: '/app/parent/helpdesk' },
               ].map((action) => {
                 const Icon = action.icon;
                 return (

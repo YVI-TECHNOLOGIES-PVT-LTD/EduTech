@@ -56,11 +56,32 @@ export class StudentLedgerService {
 
     if (filter.query && filter.query.trim().length > 0) {
       const q = filter.query.trim();
-      whereCondition.OR = [
+      const tokens = q.split(/\s+/).filter(Boolean);
+
+      const orConditions: Prisma.studentsWhereInput[] = [
         { admission_no: { contains: q, mode: 'insensitive' } },
         { first_name: { contains: q, mode: 'insensitive' } },
         { last_name: { contains: q, mode: 'insensitive' } },
       ];
+
+      if (tokens.length >= 2) {
+        orConditions.push(
+          {
+            AND: [
+              { first_name: { contains: tokens[0], mode: 'insensitive' } },
+              { last_name: { contains: tokens.slice(1).join(' '), mode: 'insensitive' } },
+            ],
+          },
+          {
+            AND: [
+              { first_name: { contains: tokens.slice(1).join(' '), mode: 'insensitive' } },
+              { last_name: { contains: tokens[0], mode: 'insensitive' } },
+            ],
+          },
+        );
+      }
+
+      whereCondition.OR = orConditions;
     }
 
     if (safeYearId || safeGradeId) {

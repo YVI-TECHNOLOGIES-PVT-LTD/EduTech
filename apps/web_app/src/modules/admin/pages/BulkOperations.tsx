@@ -28,12 +28,20 @@ export const BulkOperations = () => {
 
   useEffect(() => {
     apiClient
-      .get('/academic-years')
+      .get('/v1/academic/years')
+      .catch(() => apiClient.get('/academic-years'))
       .then((res) => {
-        const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const raw = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const list = raw.map((y: any) => ({
+          id: y.id || y.academic_year_id,
+          name: y.academic_year_name || y.year_label || y.name || 'Academic Year',
+          is_active: y.is_active || y.status === 'teaching',
+          status: y.status,
+        }));
         setAcademicYears(list);
         const active = list.find((y: any) => y.is_active);
         if (active) setSelectedYear(active.id);
+        else if (list.length > 0) setSelectedYear(list[0].id);
       })
       .catch(() => setAcademicYears([]));
   }, []);
@@ -124,14 +132,24 @@ export const BulkOperations = () => {
                 Target Academic Year
               </label>
               <select
+                aria-label="Target Academic Year"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="w-full bg-gray-50 border-gray-100 rounded-2xl py-4 font-black text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3.5 font-bold text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
               >
-                <option value="">Select Year...</option>
+                <option
+                  value=""
+                  className="text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800"
+                >
+                  Select Year...
+                </option>
                 {(academicYears || []).map((y: any) => (
-                  <option key={y.id} value={y.id}>
-                    {y.year_label || y.name} {y.is_active ? '(Active)' : ''}
+                  <option
+                    key={y.id}
+                    value={y.id}
+                    className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800"
+                  >
+                    {y.name} {y.is_active ? '(Active)' : ''}
                   </option>
                 ))}
               </select>

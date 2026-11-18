@@ -436,6 +436,28 @@ export class LearningActivitiesRepository {
     return rows[0] || null;
   }
 
+  static async getFirstActiveTeacherStaff(orgId: string): Promise<TeacherStaffRow | null> {
+    const rows = await prisma.$queryRaw<any[]>`
+      SELECT
+        st.staff_id,
+        st.org_id,
+        st.user_id,
+        COALESCE(
+          NULLIF(TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))), ''),
+          u.email,
+          st.employee_code,
+          'Teacher'
+        ) AS full_name
+      FROM public.staff st
+      LEFT JOIN public.users u ON u.user_id = st.user_id
+      WHERE st.org_id = ${orgId}::uuid
+        AND st.is_active = true
+      ORDER BY st.created_at ASC
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  }
+
   static async getTeacherAssignments(
     orgId: string,
     staffId: string,

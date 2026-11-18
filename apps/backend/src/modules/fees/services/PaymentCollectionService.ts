@@ -204,13 +204,22 @@ export class PaymentCollectionService {
     const safeOrgId = toSafeUuid(orgId) || orgId;
     const studentIdRaw = payload.studentId || payload.student_id;
     const dueIdRaw = payload.studentChargeDueId || payload.student_charge_due_id || payload.due_id;
+    const rawDueIds: string[] =
+      Array.isArray(payload.due_ids) && payload.due_ids.length > 0
+        ? payload.due_ids
+        : Array.isArray(payload.dues) && payload.dues.length > 0
+          ? payload.dues.map((d: any) => d.due_id || d.student_charge_due_id)
+          : dueIdRaw
+            ? [dueIdRaw]
+            : [];
+
     const paymentMethodRaw = (payload.paymentMethod || payload.payment_method || '').toLowerCase();
     const paymentDateRaw = payload.paymentDate || payload.payment_date;
     const transactionReferenceRaw = payload.transactionReference || payload.transaction_reference;
     const notesRaw = payload.notes || payload.remarks;
 
     const safeStudentId = toSafeUuid(studentIdRaw);
-    const safeDueId = toSafeUuid(dueIdRaw);
+    const safeDueIds = rawDueIds.map((id) => toSafeUuid(id)).filter(Boolean) as string[];
     const safeUserId = toSafeUuid(userId);
 
     if (!safeStudentId) {
@@ -218,7 +227,7 @@ export class PaymentCollectionService {
       err.statusCode = 400;
       throw err;
     }
-    if (!safeDueId) {
+    if (safeDueIds.length === 0) {
       const err: any = new Error('Valid obligation due identifier is required');
       err.statusCode = 400;
       throw err;
@@ -270,105 +279,147 @@ export class PaymentCollectionService {
           throw err;
         }
 
-        // 2. Verify Due exists and belongs to this student via PaymentRepository
-        const due = await PaymentRepository.findDueWithAllocations(safeDueId, safeStudentId, tx);
-
-        if (!due) {
-          const err: any = new Error(
-            'Obligation due not found or does not belong to the selected student',
-          );
-          err.statusCode = 404;
-          throw err;
-        }
-
-        if (due.status === 'cancelled' || due.status === 'waived') {
-          const err: any = new Error(
-            `Cannot collect payment on obligation with status '${due.status}'`,
-          );
-          err.statusCode = 400;
-          throw err;
-        }
-
-        // 3. Recalculate remaining balance under transaction lock to prevent overpayment
-        const dueAmount = Number(due.amount_due);
-        const allocatedSoFar = Number(due.allocated_amount);
-        const remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocatedSoFar));
-
-        if (remainingPayable <= 0) {
-          const err: any = new Error('This obligation has already been fully paid and settled');
-          err.statusCode = 400;
-          throw err;
-        }
-
-        if (amount > remainingPayable) {
-          const err: any = new Error(
-            `Payment amount (${amount.toFixed(2)}) exceeds eligible remaining balance (${remainingPayable.toFixed(2)})`,
-          );
-          err.statusCode = 400;
-          throw err;
-        }
-
-        // 4. Generate unique order reference
-        const orderRef = `ORD-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-
-        // 5. Create Payment Order durably via PaymentRepository
-        const paymentOrder = await PaymentRepository.createPaymentOrder(
-          {
-            studentId: safeStudentId,
-            studentChargeDueId: safeDueId,
-            amount,
-            status: 'paid',
-            orderReference: orderRef,
-            description:
-              notesRaw?.trim() ||
-              `Offline ${paymentMethodRaw} payment for ${due.student_charges.description}`,
-            createdBy: safeUserId,
-          },
-          tx,
+        // 2. Verify all Dues exist and belong to this student
+        const dues = await Promise.all(
+          safeDueIds.map((id) => PaymentRepository.findDueWithAllocations(id, safeStudentId, tx)),
         );
 
-        // 6. Create Payment Transaction durably via PaymentRepository
+        for (let i = 0; i < dues.length; i++) {
+          const d = dues[i];
+          if (!d) {
+            const err: any = new Error(
+              `Obligation due (${safeDueIds[i]}) not found or does not belong to the selected student`,
+            );
+            err.statusCode = 404;
+            throw err;
+          }
+
+          if (d.status === 'cancelled' || d.status === 'waived') {
+            const err: any = new Error(
+              `Cannot collect payment on obligation with status '${d.status}'`,
+            );
+            err.statusCode = 400;
+            throw err;
+          }
+        }
+
+        // 3. Recalculate total remaining balance under transaction lock
+        const totalRemaining = dues.reduce((acc, d) => {
+          const rem = Math.max(
+            0,
+            this.roundMoney(Number(d.amount_due) - Number(d.allocated_amount)),
+          );
+          return this.roundMoney(acc + rem);
+        }, 0);
+
+        if (totalRemaining <= 0) {
+          const err: any = new Error(
+            'Selected obligation(s) have already been fully paid and settled',
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+
+        if (amount > totalRemaining) {
+          const err: any = new Error(
+            `Payment amount (${amount.toFixed(2)}) exceeds eligible remaining balance (${totalRemaining.toFixed(2)})`,
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+
         const paymentDate = paymentDateRaw ? new Date(paymentDateRaw) : new Date();
         const gatewayTxId =
           (transactionReferenceRaw && String(transactionReferenceRaw).trim()) ||
           `REF-${Date.now()}`;
-
-        const paymentTx = await PaymentRepository.createPaymentTransaction(
-          {
-            paymentOrderId: paymentOrder.payment_order_id,
-            paymentMethod: paymentMethodRaw,
-            status: 'success',
-            amount,
-            transactionDate: paymentDate,
-            gatewayName: 'Offline Manual',
-            gatewayTransactionId: gatewayTxId,
-            createdBy: safeUserId,
-          },
-          tx,
-        );
-
-        // 7. Create Payment Allocation durably via PaymentRepository
-        const allocation = await PaymentRepository.createPaymentAllocation(
-          {
-            paymentTransactionId: paymentTx.payment_transaction_id,
-            studentChargeDueId: safeDueId,
-            allocatedAmount: amount,
-            notes: notesRaw || `Collected via ${paymentMethodRaw} (Ref: ${gatewayTxId})`,
-            createdBy: safeUserId,
-          },
-          tx,
-        );
-
-        // 8. Update Due Status durably via PaymentRepository
-        const newTotalAllocated = this.roundMoney(allocatedSoFar + amount);
-        const isFullySettled = newTotalAllocated >= dueAmount;
-        const newDueStatus = isFullySettled ? 'paid' : 'partially_paid';
-
-        await PaymentRepository.updateDueStatus(safeDueId, newDueStatus, safeUserId, tx);
-
-        // 9. Construct Receipt Data
-        const receiptNo = `RCPT-${new Date().getFullYear()}-${orderRef.split('-')[1] || Date.now().toString().slice(-6)}`;
         const activeEnrollment = student.student_enrollments[0] || null;
+
+        // 4. Allocate amount across dues
+        let remainingToAllocate = amount;
+        let primaryOrder: any = null;
+        let primaryTx: any = null;
+        const processedAllocations: any[] = [];
+        const obligationDescriptions: string[] = [];
+
+        for (const due of dues) {
+          if (remainingToAllocate <= 0) break;
+          const dueAmount = Number(due.amount_due);
+          const allocatedSoFar = Number(due.allocated_amount);
+          const remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocatedSoFar));
+          if (remainingPayable <= 0) continue;
+
+          const allocAmount = Math.min(remainingToAllocate, remainingPayable);
+          remainingToAllocate = this.roundMoney(remainingToAllocate - allocAmount);
+
+          const orderRef = `ORD-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+          const paymentOrder = await PaymentRepository.createPaymentOrder(
+            {
+              studentId: safeStudentId,
+              studentChargeDueId: due.student_charge_due_id,
+              amount: allocAmount,
+              status: 'paid',
+              orderReference: orderRef,
+              description:
+                notesRaw?.trim() ||
+                `Offline ${paymentMethodRaw} payment for ${due.student_charges?.description || 'Fee Obligation'}`,
+              createdBy: safeUserId,
+            },
+            tx,
+          );
+
+          if (!primaryOrder) primaryOrder = paymentOrder;
+
+          const paymentTx = await PaymentRepository.createPaymentTransaction(
+            {
+              paymentOrderId: paymentOrder.payment_order_id,
+              paymentMethod: paymentMethodRaw,
+              status: 'success',
+              amount: allocAmount,
+              transactionDate: paymentDate,
+              gatewayName: 'Offline Manual',
+              gatewayTransactionId: gatewayTxId,
+              createdBy: safeUserId,
+            },
+            tx,
+          );
+
+          if (!primaryTx) primaryTx = paymentTx;
+
+          const allocation = await PaymentRepository.createPaymentAllocation(
+            {
+              paymentTransactionId: paymentTx.payment_transaction_id,
+              studentChargeDueId: due.student_charge_due_id,
+              allocatedAmount: allocAmount,
+              notes: notesRaw || `Collected via ${paymentMethodRaw} (Ref: ${gatewayTxId})`,
+              createdBy: safeUserId,
+            },
+            tx,
+          );
+
+          const newTotalAllocated = this.roundMoney(allocatedSoFar + allocAmount);
+          const isFullySettled = newTotalAllocated >= dueAmount;
+          const newDueStatus = isFullySettled ? 'paid' : 'partially_paid';
+
+          await PaymentRepository.updateDueStatus(
+            due.student_charge_due_id,
+            newDueStatus,
+            safeUserId,
+            tx,
+          );
+
+          obligationDescriptions.push(due.student_charges?.description || 'Fee Obligation');
+          processedAllocations.push({
+            allocation_id: allocation.payment_allocation_id,
+            due_id: due.student_charge_due_id,
+            allocated_amount: allocAmount,
+            obligation_status: newDueStatus,
+            is_settled: isFullySettled,
+            remaining_due: Math.max(0, this.roundMoney(dueAmount - newTotalAllocated)),
+          });
+        }
+
+        // 5. Construct Receipt Data
+        const receiptNo = `RCPT-${new Date().getFullYear()}-${primaryOrder.order_reference.split('-')[1] || Date.now().toString().slice(-6)}`;
 
         const receipt: ReceiptDocument = {
           receipt_no: receiptNo,
@@ -376,43 +427,37 @@ export class PaymentCollectionService {
           student_id: student.student_id,
           student_name: `${student.first_name} ${student.last_name || ''}`.trim(),
           admission_no: student.admission_no,
-          grade_name: activeEnrollment?.academic_year_grades.grades.grade_name || 'N/A',
+          grade_name: activeEnrollment?.academic_year_grades?.grades?.grade_name || 'N/A',
           academic_year_name:
-            activeEnrollment?.academic_year_grades.academic_years.academic_year_name || 'N/A',
-          payment_transaction_id: paymentTx.payment_transaction_id,
-          payment_order_id: paymentOrder.payment_order_id,
-          order_reference: orderRef,
+            activeEnrollment?.academic_year_grades?.academic_years?.academic_year_name || 'N/A',
+          payment_transaction_id: primaryTx.payment_transaction_id,
+          payment_order_id: primaryOrder.payment_order_id,
+          order_reference: primaryOrder.order_reference,
           amount: amount,
           currency: 'INR',
-          payment_method: payload.paymentMethod,
+          payment_method: payload.paymentMethod || paymentMethodRaw,
           transaction_reference: gatewayTxId,
-          obligation_description: due.student_charges.description,
-          installment_term: due.installment_plan_terms?.term_name || 'Scheduled Term',
+          obligation_description: obligationDescriptions.join(', '),
+          installment_term: dues[0]?.installment_plan_terms?.term_name || 'Scheduled Term',
           collected_by: userId ? 'Authorized Staff' : 'Cashier Desk',
           status: 'GENERATED',
         };
 
         return {
           success: true,
-          message: 'Payment recorded and allocated successfully',
+          message: 'Payment recorded and allocated successfully across selected obligations',
           transaction: {
-            transaction_id: paymentTx.payment_transaction_id,
-            order_id: paymentOrder.payment_order_id,
-            order_reference: orderRef,
+            transaction_id: primaryTx.payment_transaction_id,
+            order_id: primaryOrder.payment_order_id,
+            order_reference: primaryOrder.order_reference,
             amount: amount,
-            payment_method: payload.paymentMethod,
+            payment_method: payload.paymentMethod || paymentMethodRaw,
             status: 'success',
             transaction_date: paymentDate.toISOString(),
             allocated_amount: amount,
           },
-          allocation: {
-            allocation_id: allocation.payment_allocation_id,
-            due_id: due.student_charge_due_id,
-            allocated_amount: amount,
-            obligation_status: newDueStatus,
-            is_settled: isFullySettled,
-            remaining_due: Math.max(0, this.roundMoney(dueAmount - newTotalAllocated)),
-          },
+          allocation: processedAllocations[0],
+          allocations: processedAllocations,
           receipt,
         };
       },
@@ -480,7 +525,16 @@ export class PaymentCollectionService {
     if (!orgId) throw new Error('Tenant organization ID is required');
     const safeOrgId = toSafeUuid(orgId) || orgId;
     const studentIdRaw = payload.studentId || payload.student_id;
-    const dueIdRaw = payload.studentChargeDueId || payload.student_charge_due_id || payload.due_id;
+    const rawDueIds: string[] =
+      Array.isArray(payload.dueIds) && payload.dueIds.length > 0
+        ? payload.dueIds
+        : Array.isArray(payload.due_ids) && payload.due_ids.length > 0
+          ? payload.due_ids
+          : [];
+    const dueIdRaw =
+      rawDueIds.length > 0
+        ? rawDueIds[0]
+        : payload.studentChargeDueId || payload.student_charge_due_id || payload.due_id;
     const paymentMethodRaw = (payload.paymentMethod || payload.payment_method || '').toLowerCase();
     const notesRaw = payload.notes || payload.remarks;
 
@@ -518,17 +572,31 @@ export class PaymentCollectionService {
       throw err;
     }
 
+    let remainingPayable = 0;
     const due = await PaymentRepository.findDueWithAllocations(safeDueId, safeStudentId);
-
     if (!due) {
       const err: any = new Error('Obligation due not found');
       err.statusCode = 404;
       throw err;
     }
 
-    const dueAmount = Number(due.amount_due);
-    const allocated = Number(due.allocated_amount);
-    const remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocated));
+    if (rawDueIds.length > 1) {
+      for (const dId of rawDueIds) {
+        const dSafe = toSafeUuid(dId);
+        if (!dSafe) continue;
+        const currentDue = await PaymentRepository.findDueWithAllocations(dSafe, safeStudentId);
+        if (currentDue) {
+          const dAmount = Number(currentDue.amount_due);
+          const dAlloc = Number(currentDue.allocated_amount);
+          remainingPayable += Math.max(0, this.roundMoney(dAmount - dAlloc));
+        }
+      }
+    } else {
+      const dueAmount = Number(due.amount_due);
+      const allocated = Number(due.allocated_amount);
+      remainingPayable = Math.max(0, this.roundMoney(dueAmount - allocated));
+    }
+
     if (amount > remainingPayable) {
       const err: any = new Error(
         `Amount exceeds remaining payable balance of ${remainingPayable.toFixed(2)}`,

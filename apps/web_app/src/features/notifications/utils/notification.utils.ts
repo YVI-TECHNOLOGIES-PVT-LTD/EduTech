@@ -207,9 +207,29 @@ export function deduplicateNotifications(items: NotificationItem[]): Notificatio
 }
 
 /**
- * Safe action URL extractor
+ * Safe action URL extractor with intelligent fallback mapping
  */
 export function getNotificationActionUrl(notification?: NotificationItem | null): string | null {
-  if (!notification?.action_url) return null;
-  return notification.action_url.trim() || null;
+  if (notification?.action_url && notification.action_url.trim()) {
+    const raw = notification.action_url.trim();
+    if (raw.startsWith('/') || raw.startsWith('http://') || raw.startsWith('https://')) {
+      return raw;
+    }
+    return `/${raw}`;
+  }
+
+  // Category-based fallback navigation routes for parent portal
+  switch (notification?.category) {
+    case 'FEE':
+      return '/app/fees/my';
+    case 'ADMISSION':
+      return '/app/parent/status';
+    case 'EXAM':
+      return '/app/parent/academic-progress';
+    case 'ATTENDANCE':
+      return '/app/parent/attendance';
+    case 'SYSTEM':
+    default:
+      return '/app/parent/dashboard';
+  }
 }

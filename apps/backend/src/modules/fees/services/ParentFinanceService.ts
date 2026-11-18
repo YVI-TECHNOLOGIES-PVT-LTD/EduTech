@@ -634,11 +634,19 @@ export class ParentFinanceService {
     const safeParentUserId = toSafeUuid(parentUserId);
     const studentIdRaw = payload.studentId || (payload as any).student_id;
     const safeStudentId = toSafeUuid(studentIdRaw);
+    const rawDueIds: string[] =
+      Array.isArray((payload as any).dueIds) && (payload as any).dueIds.length > 0
+        ? (payload as any).dueIds
+        : Array.isArray((payload as any).due_ids) && (payload as any).due_ids.length > 0
+          ? (payload as any).due_ids
+          : [];
+
     const dueIdRaw =
       payload.studentChargeDueId ||
       (payload as any).student_charge_due_id ||
       payload.dueId ||
-      (payload as any).due_id;
+      (payload as any).due_id ||
+      (rawDueIds.length > 0 ? rawDueIds[0] : undefined);
     const safeDueId = toSafeUuid(dueIdRaw);
 
     if (!safeOrgId) {
@@ -686,7 +694,49 @@ export class ParentFinanceService {
     let targetDueId: string;
     let payableAmount: number;
 
-    if (safeDueId) {
+    if (rawDueIds.length > 1) {
+      let totalRemaining = 0;
+      for (const dId of rawDueIds) {
+        const safeId = toSafeUuid(dId);
+        if (!safeId) continue;
+        const dueItem = await PaymentRepository.findDueWithAllocations(safeId, safeStudentId);
+        if (dueItem && dueItem.status !== 'cancelled' && dueItem.status !== 'waived') {
+          const rem = Math.max(
+            0,
+            StudentLedgerService.roundMoney(
+              Number(dueItem.amount_due) - Number(dueItem.allocated_amount),
+            ),
+          );
+          totalRemaining = StudentLedgerService.roundMoney(totalRemaining + rem);
+        }
+      }
+
+      if (totalRemaining <= 0) {
+        const err: any = new Error('All selected obligations have already been fully settled');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      if (payload.amount !== undefined && payload.amount !== null) {
+        const requested = Number(payload.amount);
+        if (isNaN(requested) || requested <= 0) {
+          const err: any = new Error('Payment amount must be a positive number');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (requested > totalRemaining + 0.001) {
+          const err: any = new Error(
+            `Payment amount (₹${requested.toFixed(2)}) exceeds eligible remaining balance (₹${totalRemaining.toFixed(2)})`,
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+        payableAmount = StudentLedgerService.roundMoney(requested);
+      } else {
+        payableAmount = totalRemaining;
+      }
+      targetDueId = safeDueId!;
+    } else if (safeDueId) {
       // Validate specific requested due
       const due = await PaymentRepository.findDueWithAllocations(safeDueId, safeStudentId);
       if (!due) {

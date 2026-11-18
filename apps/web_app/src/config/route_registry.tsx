@@ -261,6 +261,16 @@ const SchoolOperationsWorkspace = React.lazy(() =>
     default: m.SchoolOperationsWorkspace,
   })),
 );
+const StudentList = React.lazy(() =>
+  import('../modules/student/pages/StudentList').then((m) => ({
+    default: m.StudentList,
+  })),
+);
+const StaffHrDashboard = React.lazy(() =>
+  import('../modules/dashboard/components/StaffHrDashboard').then((m) => ({
+    default: m.StaffHrDashboard,
+  })),
+);
 const FinanceConfigurationPage = React.lazy(() =>
   import('../modules/fees/pages/FinanceConfiguration').then((m) => ({
     default: m.FinanceConfigurationPage,
@@ -761,7 +771,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'students',
-    element: <Navigate to="/app/people/students" replace />,
+    element: <StudentList />,
     layout: 'dashboard',
   },
   {
@@ -971,7 +981,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'people/students',
-    element: <SchoolOperationsWorkspace />,
+    element: <StudentList />,
     layout: 'dashboard',
     guardType: 'front_office',
   },
@@ -983,7 +993,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
   },
   {
     path: 'people/staff',
-    element: <SchoolOperationsWorkspace />,
+    element: <StaffHrDashboard />,
     layout: 'dashboard',
     guardType: 'front_office',
   },
@@ -1499,6 +1509,12 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     path: 'communication/helpdesk',
     element: <FinanceCommunicationHelpdesk />,
     layout: 'dashboard',
+  },
+  {
+    path: 'parent/helpdesk',
+    element: <FinanceCommunicationHelpdesk />,
+    layout: 'dashboard',
+    guardType: 'parent',
   },
   {
     path: 'communication/escalation',

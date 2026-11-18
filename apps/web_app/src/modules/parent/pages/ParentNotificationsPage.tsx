@@ -93,8 +93,13 @@ export const ParentNotificationsPage: React.FC = () => {
     if (!isRead) {
       markAsRead(id).catch(() => {});
     }
-    if (url && url.startsWith('/')) {
-      navigate(url);
+    if (url) {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        const dest = url.startsWith('/') ? url : `/${url}`;
+        navigate(dest);
+      }
     }
   };
 
@@ -231,7 +236,7 @@ export const ParentNotificationsPage: React.FC = () => {
                       </p>
 
                       <div className="flex flex-wrap items-center gap-2 pt-1">
-                        {actionUrl && actionUrl.startsWith('/') && (
+                        {actionUrl && (
                           <Button
                             size="sm"
                             variant="outline"

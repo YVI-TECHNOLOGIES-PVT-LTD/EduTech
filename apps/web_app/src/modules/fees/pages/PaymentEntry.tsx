@@ -182,7 +182,13 @@ export const PaymentEntry: React.FC = () => {
   const [loadingStudentData, setLoadingStudentData] = useState(false);
   const [studentLedger, setStudentLedger] = useState<StudentLedgerSummary | null>(null);
   const [obligations, setObligations] = useState<EligibleObligation[]>([]);
-  const [selectedObligation, setSelectedObligation] = useState<EligibleObligation | null>(null);
+  const [selectedObligations, setSelectedObligations] = useState<EligibleObligation[]>([]);
+  const selectedObligation = selectedObligations[0] || null;
+
+  const totalSelectedPayable = selectedObligations.reduce(
+    (sum, o) => sum + (o.remaining_payable_amount || 0),
+    0,
+  );
 
   // Payment Form Fields
   const [collectAmount, setCollectAmount] = useState<string>('');
@@ -274,7 +280,7 @@ export const PaymentEntry: React.FC = () => {
   // 3. Select Student & Load Ledger + Obligations
   const handleSelectStudent = async (student: StudentListItem) => {
     setSelectedStudent(student);
-    setSelectedObligation(null);
+    setSelectedObligations([]);
     setCollectAmount('');
     setReferenceNo('');
     setRemarks('');
@@ -302,7 +308,7 @@ export const PaymentEntry: React.FC = () => {
       // Auto-select the first unpaid obligation
       const firstPayable = obList.find((o) => o.remaining_payable_amount > 0);
       if (firstPayable) {
-        setSelectedObligation(firstPayable);
+        setSelectedObligations([firstPayable]);
         setCollectAmount(firstPayable.remaining_payable_amount.toFixed(2));
       }
     } catch (err: any) {
@@ -313,10 +319,34 @@ export const PaymentEntry: React.FC = () => {
     }
   };
 
-  // 4. Handle selecting obligation
+  // 4. Handle selecting/toggling obligations
+  const handleToggleObligation = (ob: EligibleObligation) => {
+    const obDueId = ob.student_charge_due_id || (ob as any).due_id;
+    setSelectedObligations((prev) => {
+      const exists = prev.some((o) => (o.student_charge_due_id || (o as any).due_id) === obDueId);
+      const next = exists
+        ? prev.filter((o) => (o.student_charge_due_id || (o as any).due_id) !== obDueId)
+        : [...prev, ob];
+      const totalRemaining = next.reduce((sum, o) => sum + (o.remaining_payable_amount || 0), 0);
+      setCollectAmount(totalRemaining > 0 ? totalRemaining.toFixed(2) : '');
+      return next;
+    });
+  };
+
+  const handleSelectAllObligations = () => {
+    const payable = obligations.filter((o) => o.remaining_payable_amount > 0);
+    if (selectedObligations.length === payable.length && payable.length > 0) {
+      setSelectedObligations([]);
+      setCollectAmount('');
+    } else {
+      setSelectedObligations(payable);
+      const totalRemaining = payable.reduce((sum, o) => sum + (o.remaining_payable_amount || 0), 0);
+      setCollectAmount(totalRemaining > 0 ? totalRemaining.toFixed(2) : '');
+    }
+  };
+
   const handleObligationChange = (ob: EligibleObligation) => {
-    setSelectedObligation(ob);
-    setCollectAmount(ob.remaining_payable_amount.toFixed(2));
+    handleToggleObligation(ob);
   };
 
   // 5. Payment Method Categories
@@ -328,8 +358,8 @@ export const PaymentEntry: React.FC = () => {
       toast.error('Please select a student');
       return false;
     }
-    if (!selectedObligation) {
-      toast.error('Please select an eligible fee obligation to pay');
+    if (selectedObligations.length === 0) {
+      toast.error('Please select at least one eligible fee obligation to pay');
       return false;
     }
     const entered = Number(collectAmount);
@@ -337,9 +367,9 @@ export const PaymentEntry: React.FC = () => {
       toast.error('Please enter a valid positive payment amount');
       return false;
     }
-    if (entered > selectedObligation.remaining_payable_amount) {
+    if (entered > totalSelectedPayable) {
       toast.error(
-        `Amount cannot exceed remaining payable due of ${formatMoney(selectedObligation.remaining_payable_amount)}`,
+        `Amount cannot exceed total remaining payable due of ${formatMoney(totalSelectedPayable)}`,
       );
       return false;
     }
@@ -366,17 +396,23 @@ export const PaymentEntry: React.FC = () => {
 
     try {
       const amountVal = Math.round(Number(collectAmount) * 100) / 100;
+      const dueIds = selectedObligations.map((o) => o.student_charge_due_id || (o as any).due_id);
+      const duesPayload = selectedObligations.map((o) => ({
+        due_id: o.student_charge_due_id || (o as any).due_id,
+        amount: o.remaining_payable_amount,
+      }));
+      const primaryDueId = dueIds[0];
 
       if (!isOnlineMethod) {
         // OFFLINE PAYMENT FLOW
-        const dueId =
-          selectedObligation!.student_charge_due_id || (selectedObligation as any)!.due_id;
         const payload = {
           student_id: selectedStudent!.student_id,
           studentId: selectedStudent!.student_id,
-          student_charge_due_id: dueId,
-          studentChargeDueId: dueId,
-          due_id: dueId,
+          student_charge_due_id: primaryDueId,
+          studentChargeDueId: primaryDueId,
+          due_id: primaryDueId,
+          due_ids: dueIds,
+          dues: duesPayload,
           amount: amountVal,
           payment_method: paymentMethod,
           paymentMethod: paymentMethod,
@@ -400,14 +436,15 @@ export const PaymentEntry: React.FC = () => {
         }
       } else {
         // ONLINE GATEWAY FLOW
-        const dueId =
-          selectedObligation!.student_charge_due_id || (selectedObligation as any)!.due_id;
         const orderPayload = {
           student_id: selectedStudent!.student_id,
           studentId: selectedStudent!.student_id,
-          student_charge_due_id: dueId,
-          studentChargeDueId: dueId,
-          due_id: dueId,
+          student_charge_due_id: primaryDueId,
+          studentChargeDueId: primaryDueId,
+          due_id: primaryDueId,
+          due_ids: dueIds,
+          dueIds: dueIds,
+          dues: duesPayload,
           amount: amountVal,
           payment_method: paymentMethod,
           paymentMethod: paymentMethod,
@@ -1081,11 +1118,20 @@ export const PaymentEntry: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
                     <Coins className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    2. Select Eligible Fee Obligation
+                    2. Select Fee Obligations ({selectedObligations.length} Selected)
                   </h3>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Authoritative Dues
-                  </span>
+                  {obligations.filter((o) => o.remaining_payable_amount > 0).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSelectAllObligations}
+                      className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950/40"
+                    >
+                      {selectedObligations.length ===
+                      obligations.filter((o) => o.remaining_payable_amount > 0).length
+                        ? 'Deselect All'
+                        : 'Select All Unpaid'}
+                    </button>
+                  )}
                 </div>
 
                 {loadingStudentData ? (
@@ -1108,15 +1154,13 @@ export const PaymentEntry: React.FC = () => {
                     {obligations.map((ob, idx) => {
                       const obDueId =
                         ob.student_charge_due_id || (ob as any).due_id || `due-${idx}`;
-                      const isSelected =
-                        (selectedObligation?.student_charge_due_id &&
-                          selectedObligation.student_charge_due_id === obDueId) ||
-                        ((selectedObligation as any)?.due_id &&
-                          (selectedObligation as any).due_id === obDueId);
+                      const isSelected = selectedObligations.some(
+                        (o) => (o.student_charge_due_id || (o as any).due_id) === obDueId,
+                      );
                       return (
                         <div
                           key={obDueId}
-                          onClick={() => handleObligationChange(ob)}
+                          onClick={() => handleToggleObligation(ob)}
                           className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
                             isSelected
                               ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 shadow-md ring-1 ring-indigo-500/20'
@@ -1169,7 +1213,7 @@ export const PaymentEntry: React.FC = () => {
                               </span>
                             </div>
                             <div
-                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                                 isSelected
                                   ? 'border-indigo-600 bg-indigo-600 text-white'
                                   : 'border-slate-300 dark:border-slate-600'
@@ -1192,11 +1236,11 @@ export const PaymentEntry: React.FC = () => {
                     <CreditCard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     3. Payment Entry & Method
                   </h3>
-                  {selectedObligation && (
+                  {selectedObligations.length > 0 && (
                     <span className="text-xs font-bold text-slate-500">
-                      Obligation:{' '}
+                      Selected ({selectedObligations.length}):{' '}
                       <b className="text-slate-800 dark:text-slate-200">
-                        {selectedObligation.component_name}
+                        {selectedObligations.map((o) => o.component_name).join(', ')}
                       </b>
                     </span>
                   )}
@@ -1208,24 +1252,18 @@ export const PaymentEntry: React.FC = () => {
                     <label className="font-bold text-slate-700 dark:text-slate-300">
                       Amount to Collect (INR ₹) <span className="text-rose-500">*</span>
                     </label>
-                    {selectedObligation && (
+                    {totalSelectedPayable > 0 && (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() =>
-                            setCollectAmount(selectedObligation.remaining_payable_amount.toFixed(2))
-                          }
+                          onClick={() => setCollectAmount(totalSelectedPayable.toFixed(2))}
                           className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold hover:bg-indigo-100 transition-all"
                         >
-                          Full ({formatMoney(selectedObligation.remaining_payable_amount)})
+                          Full ({formatMoney(totalSelectedPayable)})
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
-                            setCollectAmount(
-                              (selectedObligation.remaining_payable_amount / 2).toFixed(2),
-                            )
-                          }
+                          onClick={() => setCollectAmount((totalSelectedPayable / 2).toFixed(2))}
                           className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 transition-all"
                         >
                           50%
@@ -1241,22 +1279,20 @@ export const PaymentEntry: React.FC = () => {
                       type="number"
                       step="0.01"
                       min="0.01"
-                      max={selectedObligation?.remaining_payable_amount || 999999}
+                      max={totalSelectedPayable || 999999}
                       value={collectAmount}
                       onChange={(e) => setCollectAmount(e.target.value)}
                       placeholder="0.00"
-                      disabled={!selectedObligation}
+                      disabled={selectedObligations.length === 0}
                       className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white pl-8 pr-4 py-2.5 rounded-2xl outline-none font-mono font-bold text-base focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-50"
                     />
                   </div>
-                  {selectedObligation &&
-                    Number(collectAmount) > selectedObligation.remaining_payable_amount && (
-                      <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Amount exceeds eligible due of{' '}
-                        {formatMoney(selectedObligation.remaining_payable_amount)}
-                      </p>
-                    )}
+                  {totalSelectedPayable > 0 && Number(collectAmount) > totalSelectedPayable && (
+                    <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Amount exceeds total eligible dues of {formatMoney(totalSelectedPayable)}
+                    </p>
+                  )}
                 </div>
 
                 {/* Payment Method Selector Grid */}
@@ -1442,7 +1478,7 @@ export const PaymentEntry: React.FC = () => {
                   <button
                     type="submit"
                     disabled={
-                      !selectedObligation ||
+                      selectedObligations.length === 0 ||
                       !collectAmount ||
                       Number(collectAmount) <= 0 ||
                       submitting
@@ -1630,7 +1666,7 @@ export const PaymentEntry: React.FC = () => {
         description="Verify transaction amounts and recorded payment instrument."
         icon={<ShieldAlert className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
       >
-        {selectedStudent && selectedObligation && (
+        {selectedStudent && selectedObligations.length > 0 && (
           <div className="space-y-4">
             <div className="space-y-3 text-xs bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
               <div className="flex justify-between">
@@ -1639,11 +1675,24 @@ export const PaymentEntry: React.FC = () => {
                   {selectedStudent.full_name} ({selectedStudent.admission_no})
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Obligation:</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {selectedObligation.component_name}
-                </span>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Selected Obligations:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {selectedObligations.length} component(s)
+                  </span>
+                </div>
+                <div className="pl-2 border-l-2 border-indigo-400 space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300">
+                  {selectedObligations.map((o) => (
+                    <div
+                      key={o.student_charge_due_id || (o as any).due_id}
+                      className="flex justify-between"
+                    >
+                      <span>{o.component_name}</span>
+                      <span className="font-mono">{formatMoney(o.remaining_payable_amount)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Payment Method:</span>

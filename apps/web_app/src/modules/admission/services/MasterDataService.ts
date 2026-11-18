@@ -93,10 +93,21 @@ export const MasterDataService = {
 
   getGrades: async (): Promise<GradeMaster[]> => {
     // Fetches from /academic/classes which lists classes with sections
-    const res = await apiClient.get<GradeMaster[]>('/academic/classes', {
-      silent: true,
-    } as ApiRequestConfig);
-    return res.data || [];
+    try {
+      const res = await apiClient.get<any>('/academic/classes', {
+        silent: true,
+      } as ApiRequestConfig);
+      const raw = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray((res.data as any)?.data)
+          ? (res.data as any).data
+          : Array.isArray((res.data as any)?.items)
+            ? (res.data as any).items
+            : [];
+      return raw;
+    } catch {
+      return [];
+    }
   },
 
   getTransportRoutes: async (): Promise<TransportRouteMaster[]> => {

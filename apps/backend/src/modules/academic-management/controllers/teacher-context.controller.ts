@@ -4,7 +4,7 @@ import { ResponseHelper } from '../utils/response.helper';
 import { AcademicError } from '../errors/academic.errors';
 
 function extractContext(req: Request) {
-  const user = (req as any).context?.user;
+  const user = (req as any).context?.user || (req as any).user;
   const orgId = user?.org_id || user?.school_id || (req as any).tenantOrgId;
   if (!orgId) {
     throw new AcademicError('Tenant context is required', 401, 'UNAUTHORIZED');

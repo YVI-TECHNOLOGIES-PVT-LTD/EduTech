@@ -24,6 +24,12 @@ export class SuperAdminRepository {
    * Aggregate high-level academic statistics across the organization
    */
   static async getAcademicOverview(orgId: string): Promise<SuperAdminAcademicOverviewDto> {
+    const orgYears = await prisma.academic_years.findMany({
+      where: { org_id: orgId },
+      select: { academic_year_id: true },
+    });
+    const orgYearIds = orgYears.map((ay) => ay.academic_year_id);
+
     const [
       academicYearsCount,
       activeAcademicYear,
@@ -85,12 +91,14 @@ export class SuperAdminRepository {
         },
       }),
       prisma.learning_resources.count({ where: { org_id: orgId } }),
-      prisma.timetable_versions.count({
-        where: {
-          status: 'published',
-          academic_years: { org_id: orgId },
-        },
-      }),
+      orgYearIds.length === 0
+        ? Promise.resolve(0)
+        : prisma.timetable_versions.count({
+            where: {
+              status: 'published',
+              academic_year_id: { in: orgYearIds },
+            },
+          }),
     ]);
 
     return {

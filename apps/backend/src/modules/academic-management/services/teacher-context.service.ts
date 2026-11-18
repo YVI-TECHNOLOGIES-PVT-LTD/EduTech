@@ -32,6 +32,9 @@ export class TeacherContextService {
       }
     } else {
       staff = await TeacherContextRepository.findStaffByUserId(orgId, userId);
+      if (!staff && isAdministrative) {
+        staff = await TeacherContextRepository.findFirstStaff(orgId);
+      }
       if (!staff) {
         throw new AcademicError(
           `No active staff record found associated with your user account in this institution.`,

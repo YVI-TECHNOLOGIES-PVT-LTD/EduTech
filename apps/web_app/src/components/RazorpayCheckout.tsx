@@ -35,6 +35,7 @@ export interface RazorpayCheckoutProps {
   amountInPaise?: number; // amount in paise (e.g. 50000 for ₹500)
   studentId?: string; // Optional: Link to production student
   studentChargeDueId?: string; // Optional: Link to production obligation due
+  dueIds?: string[]; // Optional: Multiple obligation dues for combined checkout
   name?: string;
   description?: string;
   receipt?: string;
@@ -57,6 +58,7 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   amountInPaise,
   studentId,
   studentChargeDueId,
+  dueIds,
   name = 'EduTrack ERP',
   description = 'Fee Payment Checkout',
   receipt,
@@ -107,9 +109,16 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         notes: notes || {},
       };
 
-      if (studentId && studentChargeDueId) {
+      if (studentId && (studentChargeDueId || (dueIds && dueIds.length > 0))) {
         orderPayload.studentId = studentId;
-        orderPayload.studentChargeDueId = studentChargeDueId;
+        if (studentChargeDueId) orderPayload.studentChargeDueId = studentChargeDueId;
+        if (dueIds && dueIds.length > 0) {
+          orderPayload.dueIds = dueIds;
+          orderPayload.due_ids = dueIds;
+          if (!orderPayload.studentChargeDueId) {
+            orderPayload.studentChargeDueId = dueIds[0];
+          }
+        }
       }
 
       let createOrderRes: any;

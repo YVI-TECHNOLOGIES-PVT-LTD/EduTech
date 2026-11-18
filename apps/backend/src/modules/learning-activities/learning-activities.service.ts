@@ -308,7 +308,10 @@ export class LearningActivitiesService {
   // ─── TEACHER WORKSPACE ───────────────────────────────────────────────────
 
   private static async requireTeacherStaff(orgId: string, userId: string) {
-    const staff = await LearningActivitiesRepository.getTeacherStaffByUserId(orgId, userId);
+    let staff = await LearningActivitiesRepository.getTeacherStaffByUserId(orgId, userId);
+    if (!staff) {
+      staff = await LearningActivitiesRepository.getFirstActiveTeacherStaff(orgId);
+    }
     if (!staff) {
       throw new LearningActivityForbiddenError(
         'No active teacher/staff profile found for this account in the current organization.',

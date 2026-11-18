@@ -133,14 +133,12 @@ export const StudentFeeAssignment: React.FC = () => {
         const years = Array.from(yearsMap.entries()).map(([id, name]) => ({ id, name }));
         setAcademicYears(years);
 
-        if (years.length > 0 && !selectedYearId) {
-          setSelectedYearId(years[0].id);
-        }
+        setSelectedYearId((prev) => prev || (years.length > 0 ? years[0].id : ''));
       }
     } catch (err: any) {
       console.warn('[StudentFeeAssignment] Error fetching academic year grades:', err);
     }
-  }, [selectedYearId]);
+  }, []);
 
   useEffect(() => {
     fetchAcademicYearGrades();
@@ -152,15 +150,20 @@ export const StudentFeeAssignment: React.FC = () => {
     return academicYearGrades.filter((g) => g.academic_year_id === selectedYearId);
   }, [academicYearGrades, selectedYearId]);
 
-  // Set default grade when year changes
+  // Handle explicit academic year change without clobbering valid grade selections
+  const handleYearChange = (newYearId: string) => {
+    setSelectedYearId(newYearId);
+    const newGrades = academicYearGrades.filter((g) => g.academic_year_id === newYearId);
+    const currentGradeStillExists = newGrades.some((g) => g.grade_id === selectedGradeId);
+    if (!currentGradeStillExists) {
+      setSelectedGradeId(newGrades.length > 0 ? newGrades[0].grade_id : '');
+    }
+  };
+
+  // Set initial grade only if none selected
   useEffect(() => {
-    if (availableGradesForYear.length > 0) {
-      const currentExists = availableGradesForYear.some((g) => g.grade_id === selectedGradeId);
-      if (!currentExists) {
-        setSelectedGradeId(availableGradesForYear[0].grade_id);
-      }
-    } else {
-      setSelectedGradeId('');
+    if (!selectedGradeId && availableGradesForYear.length > 0) {
+      setSelectedGradeId(availableGradesForYear[0].grade_id);
     }
   }, [availableGradesForYear, selectedGradeId]);
 
@@ -387,7 +390,7 @@ export const StudentFeeAssignment: React.FC = () => {
             </label>
             <select
               value={selectedYearId}
-              onChange={(e) => setSelectedYearId(e.target.value)}
+              onChange={(e) => handleYearChange(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             >
               {academicYears.map((y) => (

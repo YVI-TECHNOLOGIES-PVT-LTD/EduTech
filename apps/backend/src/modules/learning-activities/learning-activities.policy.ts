@@ -2,7 +2,17 @@ import { NextFunction, Request, Response } from 'express';
 import { getEffectiveRoles } from '../../rbac/rbac.middleware';
 import { ParentPortalPolicy } from '../parent-management/policies/parent-portal.policy';
 
-export const ALLOWED_TEACHER_ROLES = ['TEACHER', 'FACULTY'];
+export const ALLOWED_TEACHER_ROLES = [
+  'TEACHER',
+  'FACULTY',
+  'ADMIN',
+  'ORG_ADMIN',
+  'SUPERADMIN',
+  'SUPER_ADMIN',
+  'HOI',
+  'HEAD_OF_INSTITUTE',
+  'PRINCIPAL',
+];
 export const ALLOWED_ADMIN_ROLES = [
   'ADMIN',
   'ORG_ADMIN',

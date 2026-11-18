@@ -32,39 +32,77 @@ export const StudentPromotion = () => {
   const [results, setResults] = useState<any>(null);
 
   useEffect(() => {
-    apiClient.get('/academic-years').then((res) => setYears(res.data));
+    apiClient
+      .get('/v1/academic/years')
+      .catch(() => apiClient.get('/academic-years'))
+      .then((res) => {
+        const raw = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        setYears(
+          raw.map((y: any) => ({
+            id: y.id || y.academic_year_id,
+            year_label: y.year_label || y.academic_year_name || y.name || 'Academic Year',
+            is_active: y.is_active || y.status === 'teaching',
+          })),
+        );
+      })
+      .catch(() => setYears([]));
   }, []);
 
   useEffect(() => {
     if (fromYearId) {
-      apiClient.get('/academic/classes').then((res) => {
-        const filtered = res.data.filter((c: any) => c.academic_year_id === fromYearId);
-        setSourceClasses(filtered);
-      });
+      apiClient
+        .get('/v1/academic/classes', { params: { academic_year_id: fromYearId } })
+        .catch(() => apiClient.get('/academic/classes'))
+        .then((res) => {
+          const raw = Array.isArray(res.data) ? res.data : res.data?.data || [];
+          const filtered = raw.filter(
+            (c: any) => !c.academic_year_id || c.academic_year_id === fromYearId,
+          );
+          setSourceClasses(filtered);
+        })
+        .catch(() => setSourceClasses([]));
     }
   }, [fromYearId]);
 
   useEffect(() => {
     if (toYearId) {
-      apiClient.get('/academic/classes').then((res) => {
-        const filtered = res.data.filter((c: any) => c.academic_year_id === toYearId);
-        setTargetClasses(filtered);
-      });
+      apiClient
+        .get('/v1/academic/classes', { params: { academic_year_id: toYearId } })
+        .catch(() => apiClient.get('/academic/classes'))
+        .then((res) => {
+          const raw = Array.isArray(res.data) ? res.data : res.data?.data || [];
+          const filtered = raw.filter(
+            (c: any) => !c.academic_year_id || c.academic_year_id === toYearId,
+          );
+          setTargetClasses(filtered);
+        })
+        .catch(() => setTargetClasses([]));
     }
   }, [toYearId]);
 
   useEffect(() => {
     if (sourceClassId) {
-      apiClient.get('/students', { params: { limit: 1000 } }).then((res) => {
-        const classStudents = res.data.data.filter((s: any) =>
-          s.sections?.some(
-            (sec: any) =>
-              sec.section?.class_id === sourceClassId && sec.academic_year_id === fromYearId,
-          ),
-        );
-        setStudents(classStudents);
-        setSelectedStudentIds(classStudents.map((s: any) => s.id));
-      });
+      apiClient
+        .get('/students', { params: { limit: 1000 } })
+        .then((res) => {
+          const rawList = Array.isArray(res.data) ? res.data : res.data?.data || [];
+          const classStudents = rawList.filter(
+            (s: any) =>
+              s.sections?.some(
+                (sec: any) =>
+                  sec.section?.class_id === sourceClassId &&
+                  (!fromYearId || sec.academic_year_id === fromYearId),
+              ) ||
+              s.student_enrollments?.some(
+                (enr: any) =>
+                  enr.academic_year_grades?.grade_id === sourceClassId &&
+                  (!fromYearId || enr.academic_year_grades?.academic_year_id === fromYearId),
+              ),
+          );
+          setStudents(classStudents);
+          setSelectedStudentIds(classStudents.map((s: any) => s.student_id || s.id));
+        })
+        .catch(() => setStudents([]));
     }
   }, [sourceClassId, fromYearId]);
 

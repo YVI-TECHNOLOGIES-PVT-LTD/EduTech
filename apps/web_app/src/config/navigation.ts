@@ -94,6 +94,12 @@ export const PARENT_NAVIGATION: NavigationGroup[] = [
         url: '/app/admissions/status',
         icon: CheckCircle2,
       },
+      {
+        id: 'p_helpdesk',
+        title: 'Help Desk',
+        url: '/app/parent/helpdesk',
+        icon: HelpCircle,
+      },
     ],
   },
 ];
@@ -181,6 +187,12 @@ export const POST_ADMISSION_PARENT_NAVIGATION: NavigationGroup[] = [
         title: 'Communication',
         url: '/app/parent/communication',
         icon: MessageSquare,
+      },
+      {
+        id: 'parent_helpdesk',
+        title: 'Help Desk',
+        url: '/app/parent/helpdesk',
+        icon: HelpCircle,
       },
     ],
   },

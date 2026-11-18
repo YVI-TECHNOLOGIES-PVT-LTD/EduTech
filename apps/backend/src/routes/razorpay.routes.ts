@@ -68,8 +68,15 @@ razorpayRouter.post('/create-order', async (req: Request, res: Response) => {
       });
     }
 
-    const { studentId, studentChargeDueId, dueId, due_id } = req.body;
-    const targetDueId = studentChargeDueId || dueId || due_id;
+    const { studentId, studentChargeDueId, dueId, due_id, due_ids, dueIds } = req.body;
+    const rawDueIds =
+      Array.isArray(dueIds) && dueIds.length > 0
+        ? dueIds
+        : Array.isArray(due_ids) && due_ids.length > 0
+          ? due_ids
+          : [];
+    const targetDueId =
+      studentChargeDueId || dueId || due_id || (rawDueIds.length > 0 ? rawDueIds[0] : undefined);
 
     // -------------------------------------------------------------------------
     // Mode A: Production ERP Fee Collection (Server-Authoritative Payable Amount)
@@ -78,6 +85,7 @@ razorpayRouter.post('/create-order', async (req: Request, res: Response) => {
       logger.info('[Razorpay Standard Checkout] Production fee payment intent initiated', {
         studentId,
         targetDueId,
+        dueCount: rawDueIds.length || 1,
       });
 
       // Resolve tenant organization from authenticated context, header, or student record
@@ -133,6 +141,8 @@ razorpayRouter.post('/create-order', async (req: Request, res: Response) => {
         {
           studentId,
           studentChargeDueId: targetDueId,
+          dueIds: rawDueIds,
+          due_ids: rawDueIds,
           amount: Number(requestedRupees),
           paymentMethod: req.body.paymentMethod || 'card',
           notes: req.body.notes ? JSON.stringify(req.body.notes) : undefined,

@@ -374,29 +374,6 @@ export const Profile = () => {
                         </p>
                       </div>
                     </div>
-
-                    {user.permissions && user.permissions.length > 0 && (
-                      <div className="pt-2 border-t border-slate-100 dark:border-neutral-800">
-                        <span className="block text-[9px] font-black text-slate-400 dark:text-neutral-500 uppercase tracking-wider mb-2">
-                          Active System Permissions ({user.permissions.length})
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {user.permissions.slice(0, 8).map((perm) => (
-                            <span
-                              key={perm}
-                              className="bg-slate-50 dark:bg-neutral-950 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-neutral-800 text-[9px] font-bold px-2 py-0.5 rounded-md"
-                            >
-                              {perm}
-                            </span>
-                          ))}
-                          {user.permissions.length > 8 && (
-                            <span className="bg-slate-50/50 dark:bg-neutral-950/25 text-slate-400 dark:text-neutral-500 text-[9px] font-bold px-2 py-0.5 rounded-md">
-                              +{user.permissions.length - 8} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
