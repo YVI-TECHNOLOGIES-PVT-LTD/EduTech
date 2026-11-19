@@ -1718,101 +1718,8 @@ exports.feesRouter.get('/admin/ledger', (0, rbac_middleware_1.checkPermission)(p
 });
 // ======================================
 // 6. DASHBOARD ANALYTICS (KPIs and Trends)
+// Handled by authoritative ReportingService endpoints below
 // ======================================
-exports.feesRouter.get('/dashboard/kpis', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_VIEW), async (req, res) => {
-    try {
-        const tenantOrgId = req.tenantOrgId || req.context?.user?.org_id || req.context?.user?.school_id;
-        const today = new Date().toISOString().split('T')[0];
-        // 1. Today's collections
-        const { data: todayTx } = await supabase_1.supabase
-            .from('payment_transactions')
-            .select('amount')
-            .eq('status', 'SUCCESS')
-            .gte('created_at', `${today}T00:00:00.000Z`);
-        const todayCollection = todayTx?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-        // 2. Month collections
-        const thisMonthStart = `${today.substring(0, 7)}-01T00:00:00.000Z`;
-        const { data: monthTx } = await supabase_1.supabase
-            .from('payment_transactions')
-            .select('amount')
-            .eq('status', 'SUCCESS')
-            .gte('created_at', thisMonthStart);
-        const monthCollection = monthTx?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-        // 3. Outstanding Balance from student_outstanding_view
-        let totalOutstanding = 0;
-        let pendingCount = 0;
-        try {
-            const safeOrgId = (0, FeeStructureManagerService_1.toSafeUuid)(tenantOrgId);
-            const outstandingAgg = safeOrgId
-                ? await prismaClient_1.default.$queryRaw `
-            SELECT
-              COALESCE(SUM(outstanding_amount), 0)::float as total_outstanding,
-              COUNT(DISTINCT student_charge_due_id)::int as pending_count
-            FROM student_outstanding_view
-            WHERE org_id = ${safeOrgId}::uuid
-          `
-                : await prismaClient_1.default.$queryRaw `
-            SELECT
-              COALESCE(SUM(outstanding_amount), 0)::float as total_outstanding,
-              COUNT(DISTINCT student_charge_due_id)::int as pending_count
-            FROM student_outstanding_view
-          `;
-            totalOutstanding = outstandingAgg[0]?.total_outstanding || 0;
-            pendingCount = outstandingAgg[0]?.pending_count || 0;
-        }
-        catch {
-            totalOutstanding = 0;
-            pendingCount = 0;
-        }
-        // 4. Active & Total Fee Structures count from fee_structures table via Prisma
-        let activeStructures = 0;
-        let totalStructures = 0;
-        if (tenantOrgId) {
-            const safeOrgId = (0, FeeStructureManagerService_1.toSafeUuid)(tenantOrgId) || tenantOrgId;
-            [activeStructures, totalStructures] = await Promise.all([
-                prismaClient_1.default.fee_structures.count({
-                    where: {
-                        status: 'published',
-                        academic_year_grades: {
-                            academic_years: {
-                                org_id: safeOrgId,
-                            },
-                        },
-                    },
-                }),
-                prismaClient_1.default.fee_structures.count({
-                    where: {
-                        academic_year_grades: {
-                            academic_years: {
-                                org_id: safeOrgId,
-                            },
-                        },
-                    },
-                }),
-            ]);
-        }
-        // 5. Total Transactions
-        const { count: txCount } = await supabase_1.supabase
-            .from('payment_transactions')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'SUCCESS');
-        res.json({
-            todayCollection,
-            monthCollection,
-            totalOutstanding,
-            pendingCount,
-            activeStructuresCount: activeStructures || totalStructures || 0,
-            totalStructuresCount: totalStructures || 0,
-            publishedStructuresCount: activeStructures || 0,
-            transactionsCount: txCount || 0,
-            collectionRate: 85, // Mock placeholder percentage
-        });
-    }
-    catch (error) {
-        console.error('GET /dashboard/kpis error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
 // ======================================
 // PHASE 2: NEW ENDPOINTS
 // ======================================
@@ -2134,7 +2041,7 @@ exports.feesRouter.post('/waivers', (0, rbac_middleware_1.checkPermission)(permi
 exports.feesRouter.post('/refunds', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_REFUND_PROCESS), async (req, res) => {
     try {
         const userId = req.context.user.id;
-        const schoolId = req.context.user.school_id;
+        const schoolId = req.tenantOrgId || req.context?.user?.school_id || req.context?.user?.org_id;
         const { student_id, application_id, transaction_id, amount, reason } = req.body;
         if (!amount || amount <= 0)
             return res.status(400).json({ error: 'Invalid refund amount' });
@@ -2208,7 +2115,7 @@ exports.feesRouter.get('/receipts', (0, rbac_middleware_1.checkPermission)(permi
 // ──────────────────────────────────────
 exports.feesRouter.get('/dashboard/kpis', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_VIEW), async (req, res) => {
     try {
-        const schoolId = req.context.user.school_id;
+        const schoolId = req.tenantOrgId || req.context?.user?.school_id || req.context?.user?.org_id;
         const kpis = await ReportingService_1.ReportingService.dashboardKpis({ school_id: schoolId });
         res.json(kpis);
     }
@@ -2221,7 +2128,7 @@ exports.feesRouter.get('/dashboard/kpis', (0, rbac_middleware_1.checkPermission)
 // ──────────────────────────────────────
 exports.feesRouter.get('/dashboard/collection-trend', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_VIEW), async (req, res) => {
     try {
-        const schoolId = req.context.user.school_id;
+        const schoolId = req.tenantOrgId || req.context?.user?.school_id || req.context?.user?.org_id;
         const trend = await ReportingService_1.ReportingService.collectionTrend({ school_id: schoolId });
         res.json(trend);
     }
@@ -2234,7 +2141,7 @@ exports.feesRouter.get('/dashboard/collection-trend', (0, rbac_middleware_1.chec
 // ──────────────────────────────────────
 exports.feesRouter.get('/dashboard/payment-modes', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_VIEW), async (req, res) => {
     try {
-        const schoolId = req.context.user.school_id;
+        const schoolId = req.tenantOrgId || req.context?.user?.school_id || req.context?.user?.org_id;
         const today = new Date();
         const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
         const result = await ReportingService_1.ReportingService.paymentModeReport({
@@ -2253,7 +2160,7 @@ exports.feesRouter.get('/dashboard/payment-modes', (0, rbac_middleware_1.checkPe
 // ──────────────────────────────────────
 exports.feesRouter.get('/dashboard/outstanding-by-class', (0, rbac_middleware_1.checkPermission)(permissions_1.PERMISSIONS.FEES_VIEW), async (req, res) => {
     try {
-        const schoolId = req.context.user.school_id;
+        const schoolId = req.tenantOrgId || req.context?.user?.school_id || req.context?.user?.org_id;
         const result = await ReportingService_1.ReportingService.classSummaryReport({ school_id: schoolId });
         res.json(result.data);
     }

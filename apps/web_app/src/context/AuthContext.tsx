@@ -406,7 +406,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (normalized.includes('STUDENT')) {
-        const studentPermissions = ['student.dashboard.view', 'STUDENT_VIEW_SELF'];
+        const studentPermissions = [
+          'student.dashboard.view',
+          'STUDENT_VIEW_SELF',
+          'admission.view_own',
+          'ATTENDANCE_VIEW_SELF',
+          'attendance.leave.apply',
+          'TRANSPORT_VIEW_SELF',
+          'TRIP_VIEW_SELF',
+          'CLASS_VIEW',
+          'SECTION_VIEW',
+          'SUBJECT_VIEW',
+          'TIMETABLE_VIEW',
+          'EXAM_VIEW',
+          'MARKS_VIEW',
+          'fees.view',
+          'fees.payment.view',
+          'assessment.attempt.write',
+          'assessment.attempt.view',
+          'assessment.result.view',
+        ];
         if (studentPermissions.includes(code)) return true;
       }
 

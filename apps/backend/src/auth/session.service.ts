@@ -170,6 +170,22 @@ export class SessionService {
     if (roles.includes('STUDENT')) {
       permissions.add('student.dashboard.view');
       permissions.add('STUDENT_VIEW_SELF');
+      permissions.add('admission.view_own');
+      permissions.add('ATTENDANCE_VIEW_SELF');
+      permissions.add('attendance.leave.apply');
+      permissions.add('TRANSPORT_VIEW_SELF');
+      permissions.add('TRIP_VIEW_SELF');
+      permissions.add('CLASS_VIEW');
+      permissions.add('SECTION_VIEW');
+      permissions.add('SUBJECT_VIEW');
+      permissions.add('TIMETABLE_VIEW');
+      permissions.add('EXAM_VIEW');
+      permissions.add('MARKS_VIEW');
+      permissions.add('fees.view');
+      permissions.add('fees.payment.view');
+      permissions.add('assessment.attempt.write');
+      permissions.add('assessment.attempt.view');
+      permissions.add('assessment.result.view');
     }
 
     return Array.from(permissions);

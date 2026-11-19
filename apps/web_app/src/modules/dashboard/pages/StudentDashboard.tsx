@@ -34,10 +34,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-// Phase 3.3 Enterprise Workspace imports
-import { WorkQueue } from '../components/workqueue/WorkQueue';
-import { RoleDashboardInsights } from '../components/analytics/RoleDashboardInsights';
-import { HealthPanel } from '../components/health/HealthPanel';
 
 export function StudentDashboard() {
   return (
@@ -57,12 +53,18 @@ function StudentDashboardInner() {
   } = useQuery({
     queryKey: ['student', 'admissions', user?.id, user?.school_id],
     queryFn: async () => {
-      const res = await apiClient.get('/v1/admission/my');
-      const list = res.data?.data || res.data || [];
-      return list.filter((a: any) => {
-        const status = (a.status ?? '').toLowerCase();
-        return status !== 'enrolled' && status !== 'rejected';
-      });
+      try {
+        const res = await apiClient.get('/v1/admission/my', { silent: true } as any);
+        const list = res.data?.data || res.data || [];
+        return Array.isArray(list)
+          ? list.filter((a: any) => {
+              const status = (a.status ?? '').toLowerCase();
+              return status !== 'enrolled' && status !== 'rejected';
+            })
+          : [];
+      } catch {
+        return [];
+      }
     },
     enabled: Boolean(isAuthenticated && user?.id),
     staleTime: 300_000,
@@ -412,10 +414,56 @@ function StudentDashboardInner() {
           </p>
         </div>
 
-        {/* ─── Phase 3.3 Enterprise Workspace Panels ───────────────────── */}
-        <RoleDashboardInsights />
-        <WorkQueue />
-        <HealthPanel />
+        {/* Learning Focus & Quick Hub */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Academic Focus & Quick Access</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Stay updated with your daily timetable, live hybrid lectures, and coursework
+              </p>
+            </div>
+            <Link
+              to="/app/student/classroom"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            >
+              Open Classroom <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-2">
+              <div className="flex items-center gap-2 text-foreground font-bold text-xs">
+                <CalendarCheck className="w-4 h-4 text-emerald-500" />
+                <span>Hybrid Digital Classroom</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Connect to live sessions, watch recorded lectures, and download flipped learning
+                materials.
+              </p>
+              <Link
+                to="/app/student/classroom"
+                className="inline-flex items-center text-xs font-semibold text-primary hover:underline pt-1"
+              >
+                Join Classes &rarr;
+              </Link>
+            </div>
+            <div className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-2">
+              <div className="flex items-center gap-2 text-foreground font-bold text-xs">
+                <Bot className="w-4 h-4 text-indigo-500" />
+                <span>AI Study Coach</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Get step-by-step concept explanations, practice questions, and exam revision guides.
+              </p>
+              <Link
+                to="/app/student/ai-study-assistant"
+                className="inline-flex items-center text-xs font-semibold text-primary hover:underline pt-1"
+              >
+                Ask Assistant &rarr;
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </PageWrapper>
   );

@@ -21,6 +21,23 @@ class EnquiryController {
                 await this.checkFlags(req);
                 let schoolId = req.context?.user?.school_id || req.tenantOrgId;
                 let academicYearId = req.headers['x-academic-year-id'] || req.body?.academic_year_id;
+                // Direct inference: If grade_applied_for is a UUID matching an academic_year_grade,
+                // it directly determines the target school (org_id) and academic_year_id!
+                const gradeAppliedFor = req.body?.grade_applied_for;
+                if ((!schoolId || !academicYearId) &&
+                    gradeAppliedFor &&
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gradeAppliedFor)) {
+                    const ayg = await prismaClient_1.default.academic_year_grades.findUnique({
+                        where: { academic_year_grade_id: gradeAppliedFor },
+                        include: { academic_years: true },
+                    });
+                    if (ayg && ayg.academic_years) {
+                        if (!schoolId)
+                            schoolId = ayg.academic_years.org_id;
+                        if (!academicYearId)
+                            academicYearId = ayg.academic_year_id;
+                    }
+                }
                 if (!schoolId || !academicYearId) {
                     const requestedYear = req.body?.academic_year || req.body?.academicYear || req.body?.academic_year_name;
                     const resolved = await admission_service_1.AdmissionService.resolveContext(requestedYear);

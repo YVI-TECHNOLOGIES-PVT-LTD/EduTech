@@ -118,6 +118,33 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
       return next();
     }
 
+    // Student Self-Service Bypass
+    if (
+      roles.includes('STUDENT') &&
+      [
+        'student.dashboard.view',
+        'STUDENT_VIEW_SELF',
+        'admission.view_own',
+        'ATTENDANCE_VIEW_SELF',
+        'attendance.leave.apply',
+        'TRANSPORT_VIEW_SELF',
+        'TRIP_VIEW_SELF',
+        'CLASS_VIEW',
+        'SECTION_VIEW',
+        'SUBJECT_VIEW',
+        'TIMETABLE_VIEW',
+        'EXAM_VIEW',
+        'MARKS_VIEW',
+        'fees.view',
+        'fees.payment.view',
+        'assessment.attempt.write',
+        'assessment.attempt.view',
+        'assessment.result.view',
+      ].includes(requiredPermission)
+    ) {
+      return next();
+    }
+
     // 3. Dynamic Permission Hierarchy Evaluation
     // Allow higher-level permission hierarchies (e.g., view_all grants view_own)
     if (

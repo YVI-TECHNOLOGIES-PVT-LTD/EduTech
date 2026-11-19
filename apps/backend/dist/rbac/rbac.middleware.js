@@ -114,6 +114,30 @@ const checkPermission = (requiredPermission) => {
             ].includes(requiredPermission)) {
             return next();
         }
+        // Student Self-Service Bypass
+        if (roles.includes('STUDENT') &&
+            [
+                'student.dashboard.view',
+                'STUDENT_VIEW_SELF',
+                'admission.view_own',
+                'ATTENDANCE_VIEW_SELF',
+                'attendance.leave.apply',
+                'TRANSPORT_VIEW_SELF',
+                'TRIP_VIEW_SELF',
+                'CLASS_VIEW',
+                'SECTION_VIEW',
+                'SUBJECT_VIEW',
+                'TIMETABLE_VIEW',
+                'EXAM_VIEW',
+                'MARKS_VIEW',
+                'fees.view',
+                'fees.payment.view',
+                'assessment.attempt.write',
+                'assessment.attempt.view',
+                'assessment.result.view',
+            ].includes(requiredPermission)) {
+            return next();
+        }
         // 3. Dynamic Permission Hierarchy Evaluation
         // Allow higher-level permission hierarchies (e.g., view_all grants view_own)
         if (permissions.includes(requiredPermission) ||
@@ -141,7 +165,8 @@ const checkPermission = (requiredPermission) => {
                     roles.includes('ADMIN') ||
                     roles.includes('FINANCE_OFFICER') ||
                     roles.includes('FINANCE_MANAGER') ||
-                    roles.includes('ACCOUNTANT'))) ||
+                    roles.includes('ACCOUNTANT') ||
+                    roles.includes('FRONT_OFFICE'))) ||
             (requiredPermission === 'fees.payment.collect' &&
                 (permissions.includes('fees.payment.collect') ||
                     roles.includes('ADMIN') ||
@@ -165,7 +190,10 @@ const checkPermission = (requiredPermission) => {
                     roles.includes('PRINCIPAL') ||
                     roles.includes('HOI') ||
                     roles.includes('STAFF') ||
-                    roles.includes('TEACHER'))) ||
+                    roles.includes('TEACHER') ||
+                    roles.includes('FINANCE_OFFICER') ||
+                    roles.includes('FINANCE_MANAGER') ||
+                    roles.includes('ACCOUNTANT'))) ||
             ((requiredPermission === 'ACADEMIC_SETUP' ||
                 requiredPermission === 'CLASS_CREATE' ||
                 requiredPermission === 'SECTION_CREATE' ||
@@ -212,7 +240,8 @@ const checkPermission = (requiredPermission) => {
                 requiredPermission === 'admission.enrol' ||
                 requiredPermission === 'admission.assessment.evaluate' ||
                 requiredPermission === 'admission.assessment.config.manage' ||
-                requiredPermission === 'admission.assessment.dashboard.view') &&
+                requiredPermission === 'admission.assessment.dashboard.view' ||
+                requiredPermission === 'admission.application.view') &&
                 (permissions.includes('admission.leads.manage') ||
                     permissions.includes('admission.enquiry.view') ||
                     permissions.includes('admission.review') ||
@@ -220,6 +249,7 @@ const checkPermission = (requiredPermission) => {
                     permissions.includes('admission.recommend') ||
                     permissions.includes('admission.approve') ||
                     permissions.includes('admission.enrol') ||
+                    permissions.includes('admission.application.view') ||
                     roles.includes('ADMIN') ||
                     roles.includes('SUPERADMIN') ||
                     roles.includes('FRONT_OFFICE') ||

@@ -19,8 +19,13 @@ const authenticate = async (req, res, next) => {
             user: {
                 id: userProfile.id,
                 email: userProfile.email,
+                full_name: userProfile.full_name,
+                phone: userProfile.phone,
+                phone_number: userProfile.phone,
                 org_id: userProfile.org_id || userProfile.school_id,
                 school_id: userProfile.school_id || userProfile.org_id,
+                org_name: userProfile.org_name,
+                tenant_name: userProfile.tenant_name,
                 roles: userProfile.roles,
                 permissions: userProfile.permissions,
                 login_status: userProfile.login_status,
@@ -54,8 +59,13 @@ const authenticateOptional = async (req, res, next) => {
                 user: {
                     id: userProfile.id,
                     email: userProfile.email,
+                    full_name: userProfile.full_name,
+                    phone: userProfile.phone,
+                    phone_number: userProfile.phone,
                     org_id: userProfile.org_id || userProfile.school_id,
                     school_id: userProfile.school_id || userProfile.org_id,
+                    org_name: userProfile.org_name,
+                    tenant_name: userProfile.tenant_name,
                     roles: userProfile.roles,
                     permissions: userProfile.permissions,
                     login_status: userProfile.login_status,
@@ -81,7 +91,7 @@ const checkLoginApproval = (req, res, next) => {
     const user = req.context?.user;
     if (!user)
         return next();
-    // Admins and Faculty are always approved bypass (Staff)
+    // Admins, Faculty, and Staff (including Finance) are approved bypass
     const canonicalRoles = (0, role_normalization_1.normalizeRoles)(user.roles);
     if (canonicalRoles.some((r) => [
         'SUPERADMIN',
@@ -93,7 +103,12 @@ const checkLoginApproval = (req, res, next) => {
         'PRINCIPAL',
         'FACULTY',
         'TEACHER',
-    ].includes(r))) {
+        'FINANCE_MANAGER',
+        'FINANCE_OFFICER',
+        'ACCOUNTANT',
+        'STAFF',
+    ].includes(r)) ||
+        Boolean(user.staff_id)) {
         return next();
     }
     if (user.login_status !== 'APPROVED') {

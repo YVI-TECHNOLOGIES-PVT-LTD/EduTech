@@ -79,7 +79,7 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
   'section-view': 'Section View',
   'mark-daily': 'Daily Attendance',
   period: 'Period Attendance',
-  student: 'Student Attendance',
+  student: 'Student Portal',
   corrections: 'Corrections',
   holidays: 'Holiday Calendar',
   biometric: 'Biometric Integration',

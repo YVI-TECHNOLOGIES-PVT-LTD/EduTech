@@ -11,6 +11,45 @@ const prismaClient_1 = __importDefault(require("../../lib/prismaClient"));
 const country_resolver_1 = require("../../utils/country-resolver");
 class AdmissionService {
     static async resolveContext(academicYearName) {
+        // 1. Directly find the most eligible academic year under an active organization
+        const activeYearWithOrg = (await prismaClient_1.default.academic_years.findFirst({
+            where: {
+                organizations: { status: 'active' },
+                ...(academicYearName ? { academic_year_name: academicYearName } : {}),
+                status: {
+                    in: ['admissions_open', 'open', 'planning'],
+                },
+            },
+            orderBy: { start_date: 'desc' },
+            select: { academic_year_id: true, org_id: true },
+        })) ||
+            (await prismaClient_1.default.academic_years.findFirst({
+                where: {
+                    organizations: { status: 'active' },
+                    status: {
+                        in: ['admissions_open', 'open', 'planning'],
+                    },
+                },
+                orderBy: { start_date: 'desc' },
+                select: { academic_year_id: true, org_id: true },
+            })) ||
+            (await prismaClient_1.default.academic_years.findFirst({
+                where: {
+                    organizations: { status: 'active' },
+                },
+                orderBy: { start_date: 'desc' },
+                select: { academic_year_id: true, org_id: true },
+            })) ||
+            (await prismaClient_1.default.academic_years.findFirst({
+                orderBy: { start_date: 'desc' },
+                select: { academic_year_id: true, org_id: true },
+            }));
+        if (activeYearWithOrg && activeYearWithOrg.org_id && activeYearWithOrg.academic_year_id) {
+            return {
+                school_id: activeYearWithOrg.org_id,
+                academic_year_id: activeYearWithOrg.academic_year_id,
+            };
+        }
         const org = (await prismaClient_1.default.organizations.findFirst({
             where: { status: 'active' },
             select: { org_id: true },
