@@ -244,11 +244,9 @@ export class ApplicationController {
       const expectedUpdatedAt =
         (req.headers['x-expected-updated-at'] as string) || req.body.expected_updated_at;
       if (!expectedUpdatedAt) {
-        return res
-          .status(400)
-          .json({
-            error: 'x-expected-updated-at header/expected_updated_at attribute is required',
-          });
+        return res.status(400).json({
+          error: 'x-expected-updated-at header/expected_updated_at attribute is required',
+        });
       }
 
       const correlationId = req.headers['x-correlation-id'] as string;
@@ -273,11 +271,9 @@ export class ApplicationController {
       const expectedUpdatedAt =
         (req.headers['x-expected-updated-at'] as string) || req.body.expected_updated_at;
       if (!expectedUpdatedAt) {
-        return res
-          .status(400)
-          .json({
-            error: 'x-expected-updated-at header/expected_updated_at attribute is required',
-          });
+        return res.status(400).json({
+          error: 'x-expected-updated-at header/expected_updated_at attribute is required',
+        });
       }
 
       const correlationId = req.headers['x-correlation-id'] as string;
@@ -302,11 +298,9 @@ export class ApplicationController {
       const expectedUpdatedAt =
         (req.headers['x-expected-updated-at'] as string) || req.body.expected_updated_at;
       if (!expectedUpdatedAt) {
-        return res
-          .status(400)
-          .json({
-            error: 'x-expected-updated-at header/expected_updated_at attribute is required',
-          });
+        return res.status(400).json({
+          error: 'x-expected-updated-at header/expected_updated_at attribute is required',
+        });
       }
 
       const correlationId = req.headers['x-correlation-id'] as string;
@@ -331,11 +325,9 @@ export class ApplicationController {
       const expectedUpdatedAt =
         (req.headers['x-expected-updated-at'] as string) || req.body.expected_updated_at;
       if (!expectedUpdatedAt) {
-        return res
-          .status(400)
-          .json({
-            error: 'x-expected-updated-at header/expected_updated_at attribute is required',
-          });
+        return res.status(400).json({
+          error: 'x-expected-updated-at header/expected_updated_at attribute is required',
+        });
       }
 
       const correlationId = req.headers['x-correlation-id'] as string;
@@ -360,11 +352,9 @@ export class ApplicationController {
       const expectedUpdatedAt =
         (req.headers['x-expected-updated-at'] as string) || req.body.expected_updated_at;
       if (!expectedUpdatedAt) {
-        return res
-          .status(400)
-          .json({
-            error: 'x-expected-updated-at header/expected_updated_at attribute is required',
-          });
+        return res.status(400).json({
+          error: 'x-expected-updated-at header/expected_updated_at attribute is required',
+        });
       }
 
       const correlationId = req.headers['x-correlation-id'] as string;
@@ -578,6 +568,98 @@ export class ApplicationController {
       );
       res.json({ success: true, application: data, message: 'Documents verified' });
     } catch (err) {
+      handleControllerError(res, err);
+    }
+  };
+
+  public recordDecisionOrAccept = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { decision_status, remarks } = req.body || {};
+      const user = req.context?.user;
+      const userId = user?.id || null;
+      const orgId = user?.org_id || user?.school_id;
+
+      await this.enforceAccess(req, id);
+
+      const prisma = (await import('../../../../lib/prismaClient')).default;
+      const application = await prisma.admissions_applications.findUnique({
+        where: { application_id: id },
+        include: { admission_decisions: true, admission_fee_payments: true, leads: true },
+      });
+
+      if (!application) {
+        return res.status(404).json({ error: `Application not found: ${id}` });
+      }
+
+      const targetDecisionStatus = decision_status || 'approved';
+      if (targetDecisionStatus === 'approved') {
+        // Upsert decision record in database
+        await prisma.admission_decisions.upsert({
+          where: { application_id: id },
+          update: {
+            decision_status: 'approved',
+            remarks: remarks || 'Offer accepted by parent',
+            updated_at: new Date(),
+            updated_by: userId || undefined,
+          },
+          create: {
+            application_id: id,
+            decision_status: 'approved',
+            remarks: remarks || 'Offer accepted by parent',
+            created_by: userId || undefined,
+          },
+        });
+
+        // Auto-finalize enrollment into student master if admission fee is paid or waived
+        let studentResult: any = null;
+        const feeStatus = application.admission_fee_payments?.payment_status;
+        if (feeStatus === 'paid' || feeStatus === 'waived') {
+          const { StudentService } =
+            await import('../../../student-management/services/student.service');
+          studentResult = await StudentService.convertApplicationToStudent(
+            id,
+            userId,
+            orgId,
+            req.body,
+          ).catch((e: any) => {
+            console.warn('[ApplicationController] Auto-enrollment info:', e.message);
+            return null;
+          });
+        }
+
+        return res.json({
+          success: true,
+          message: 'Admission offer accepted successfully',
+          enrolled: Boolean(studentResult?.student || studentResult?.is_existing),
+          student: studentResult?.student || null,
+          enrollment: studentResult?.enrollment || null,
+        });
+      }
+
+      if (targetDecisionStatus === 'rejected') {
+        await prisma.admission_decisions.upsert({
+          where: { application_id: id },
+          update: {
+            decision_status: 'rejected',
+            reason: remarks || req.body.reason || 'Offer rejected by parent',
+            updated_at: new Date(),
+            updated_by: userId || undefined,
+          },
+          create: {
+            application_id: id,
+            decision_status: 'rejected',
+            reason: remarks || req.body.reason || 'Offer rejected by parent',
+            created_by: userId || undefined,
+          },
+        });
+        return res.json({ success: true, message: 'Admission offer rejected' });
+      }
+
+      return res
+        .status(400)
+        .json({ error: `Unsupported decision status: ${targetDecisionStatus}` });
+    } catch (err: any) {
       handleControllerError(res, err);
     }
   };

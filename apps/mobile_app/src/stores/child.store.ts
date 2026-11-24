@@ -4,6 +4,7 @@ import { UnifiedChild, EnrolledChild, ApplicantChild } from '../types/child.type
 import { apiClient } from '../api/client';
 import { applicationsApi } from '../api/applications.api';
 import { financeApi } from '../api/finance.api';
+import { useAuthStore } from './auth.store';
 
 const STORAGE_KEY = 'edutrack_active_child_id';
 
@@ -136,6 +137,13 @@ export const useChildStore = create<ChildStoreState>((set, get) => ({
   },
 
   syncChildren: async (parentId?: string, force = false) => {
+    // Auth guard: Never fire protected lifecycle calls without an active session
+    const isAuth = useAuthStore.getState().isAuthenticated;
+    if (!isAuth && !parentId) {
+      set({ isLoading: false });
+      return;
+    }
+
     const { children, lastSyncedAt } = get();
     // Cache guard: If children already loaded and synced within last 60 seconds, reuse unless forced
     if (!force && children.length > 0 && Date.now() - lastSyncedAt < 60 * 1000) {

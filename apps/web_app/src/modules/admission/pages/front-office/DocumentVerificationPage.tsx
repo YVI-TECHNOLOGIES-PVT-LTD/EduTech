@@ -461,7 +461,7 @@ export const DocumentVerificationPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Document Types</SelectItem>
-                {(documentTypes || []).map((dt: any) => (
+                {(Array.isArray(documentTypes) ? documentTypes : []).map((dt: any) => (
                   <SelectItem
                     key={dt.document_type_id || dt.id}
                     value={dt.document_type_id || dt.id}
@@ -485,7 +485,7 @@ export const DocumentVerificationPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Grades</SelectItem>
-                {(grades || []).map((g: any) => (
+                {(Array.isArray(grades) ? grades : []).map((g: any) => (
                   <SelectItem key={g.id || g.grade_id} value={g.id || g.grade_id}>
                     {g.name || g.grade_name}
                   </SelectItem>
@@ -507,7 +507,7 @@ export const DocumentVerificationPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Academic Years</SelectItem>
-                  {(academicYears || []).map((ay: any) => (
+                  {(Array.isArray(academicYears) ? academicYears : []).map((ay: any) => (
                     <SelectItem
                       key={ay.id || ay.academic_year_id}
                       value={ay.id || ay.academic_year_id}

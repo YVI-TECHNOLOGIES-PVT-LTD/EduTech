@@ -131,8 +131,16 @@ router.use('/chatbot', chatbotRouter);
 router.get('/schools', async (req: Request, res: Response) => {
   try {
     const orgs = await prisma.organizations.findMany({
-      where: { status: 'active' },
+      where: {
+        status: 'active',
+        NOT: {
+          org_id: {
+            in: ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'],
+          },
+        },
+      },
       select: { org_id: true, org_name: true, org_code: true },
+      orderBy: { org_name: 'asc' },
       take: 10,
     });
     res.json(orgs.map((o) => ({ id: o.org_id, name: o.org_name, code: o.org_code })));
@@ -145,8 +153,16 @@ router.get('/schools', async (req: Request, res: Response) => {
 router.get('/v1/schools', async (req: Request, res: Response) => {
   try {
     const orgs = await prisma.organizations.findMany({
-      where: { status: 'active' },
+      where: {
+        status: 'active',
+        NOT: {
+          org_id: {
+            in: ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'],
+          },
+        },
+      },
       select: { org_id: true, org_name: true, org_code: true },
+      orderBy: { org_name: 'asc' },
       take: 10,
     });
     res.json(orgs.map((o) => ({ id: o.org_id, name: o.org_name, code: o.org_code })));
@@ -184,71 +200,7 @@ router.get('/v1/public/academic-year', async (req: Request, res: Response) => {
 import { academic_year_status } from '@prisma/client';
 
 // Public lookup for academic years of a school
-router.get('/public/academic-years', async (req: Request, res: Response) => {
-  try {
-    const targetOrgId = (req.query.school_id ||
-      req.query.org_id ||
-      req.context?.user?.org_id ||
-      req.context?.user?.school_id) as string;
-    if (!targetOrgId) {
-      return res
-        .status(400)
-        .json({ error: 'School ID (school_id or org_id) parameter is required' });
-    }
-
-    const years = await prisma.academic_years.findMany({
-      where: { org_id: targetOrgId },
-      orderBy: { created_at: 'desc' },
-      select: { academic_year_id: true, academic_year_name: true, status: true },
-    });
-    res.json(
-      years.map((y) => ({
-        id: y.academic_year_id,
-        year_label: y.academic_year_name,
-        is_active:
-          y.status === academic_year_status.admissions_open ||
-          y.status === academic_year_status.open ||
-          y.status === academic_year_status.planning,
-      })),
-    );
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// v1-prefixed alias
-router.get('/v1/public/academic-years', async (req: Request, res: Response) => {
-  try {
-    const targetOrgId = (req.query.school_id ||
-      req.query.org_id ||
-      req.context?.user?.org_id ||
-      req.context?.user?.school_id) as string;
-    if (!targetOrgId) {
-      return res
-        .status(400)
-        .json({ error: 'School ID (school_id or org_id) parameter is required' });
-    }
-    const years = await prisma.academic_years.findMany({
-      where: { org_id: targetOrgId },
-      orderBy: { created_at: 'desc' },
-      select: { academic_year_id: true, academic_year_name: true, status: true },
-    });
-    res.json(
-      years.map((y) => ({
-        id: y.academic_year_id,
-        year_label: y.academic_year_name,
-        is_active:
-          y.status === academic_year_status.admissions_open ||
-          y.status === academic_year_status.open ||
-          y.status === academic_year_status.planning,
-      })),
-    );
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/public/classes', async (req: Request, res: Response) => {
+const handlePublicAcademicYears = async (req: Request, res: Response) => {
   try {
     let targetOrgId = (req.query.school_id ||
       req.query.org_id ||
@@ -256,14 +208,81 @@ router.get('/public/classes', async (req: Request, res: Response) => {
       req.context?.user?.school_id) as string;
     if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
       const activeOrg =
-        (await prisma.organizations.findFirst({ where: { status: 'active' } })) ||
-        (await prisma.organizations.findFirst());
+        (await prisma.organizations.findFirst({
+          where: {
+            status: 'active',
+            NOT: {
+              org_id: {
+                in: [
+                  '00000000-0000-0000-0000-000000000001',
+                  '00000000-0000-0000-0000-000000000002',
+                ],
+              },
+            },
+          },
+          orderBy: { org_name: 'asc' },
+        })) || (await prisma.organizations.findFirst({ where: { status: 'active' } }));
       if (activeOrg) targetOrgId = activeOrg.org_id;
     }
-    if (!targetOrgId) {
-      return res
-        .status(400)
-        .json({ error: 'School ID (school_id or org_id) parameter is required' });
+
+    let years =
+      targetOrgId && isUuidStr(targetOrgId)
+        ? await prisma.academic_years.findMany({
+            where: { org_id: targetOrgId },
+            orderBy: { created_at: 'desc' },
+            select: { academic_year_id: true, academic_year_name: true, status: true },
+          })
+        : [];
+
+    if (years.length === 0) {
+      years = await prisma.academic_years.findMany({
+        orderBy: { created_at: 'desc' },
+        select: { academic_year_id: true, academic_year_name: true, status: true },
+        take: 5,
+      });
+    }
+
+    res.json(
+      years.map((y) => ({
+        id: y.academic_year_id,
+        year_label: y.academic_year_name,
+        is_active:
+          y.status === academic_year_status.admissions_open ||
+          y.status === academic_year_status.open ||
+          y.status === academic_year_status.planning,
+      })),
+    );
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+router.get('/public/academic-years', handlePublicAcademicYears);
+router.get('/v1/public/academic-years', handlePublicAcademicYears);
+
+const handlePublicClasses = async (req: Request, res: Response) => {
+  try {
+    let targetOrgId = (req.query.school_id ||
+      req.query.org_id ||
+      req.context?.user?.org_id ||
+      req.context?.user?.school_id) as string;
+    if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
+      const activeOrg =
+        (await prisma.organizations.findFirst({
+          where: {
+            status: 'active',
+            NOT: {
+              org_id: {
+                in: [
+                  '00000000-0000-0000-0000-000000000001',
+                  '00000000-0000-0000-0000-000000000002',
+                ],
+              },
+            },
+          },
+          orderBy: { org_name: 'asc' },
+        })) || (await prisma.organizations.findFirst({ where: { status: 'active' } }));
+      if (activeOrg) targetOrgId = activeOrg.org_id;
     }
 
     const { academic_year_id } = req.query;
@@ -292,7 +311,7 @@ router.get('/public/classes', async (req: Request, res: Response) => {
       });
     }
 
-    if (aygList.length === 0 && targetOrgId) {
+    if (aygList.length === 0 && targetOrgId && isUuidStr(targetOrgId)) {
       const orgAygs = await prisma.academic_year_grades.findMany({
         where: {
           academic_years: { org_id: targetOrgId },
@@ -308,33 +327,53 @@ router.get('/public/classes', async (req: Request, res: Response) => {
 
       if (orgAygs.length > 0) {
         aygList = orgAygs;
-      } else {
-        const grades = await prisma.grades.findMany({
-          where: { org_id: targetOrgId, is_active: true },
-          orderBy: { display_order: 'asc' },
-        });
-
-        const seenGrades = new Set<string>();
-        const uniqueGrades: any[] = [];
-        for (const g of grades) {
-          const key = `${g.grade_name}_${g.board || ''}`;
-          if (!seenGrades.has(key)) {
-            seenGrades.add(key);
-            uniqueGrades.push(g);
-          }
-        }
-
-        return res.json(
-          uniqueGrades.map((g) => ({
-            id: g.grade_id,
-            grade_id: g.grade_id,
-            name: g.grade_name,
-            grade_name: g.grade_name,
-            board: g.board || 'CBSE',
-            code: g.grade_code,
-          })),
-        );
       }
+    }
+
+    if (aygList.length === 0) {
+      let grades =
+        targetOrgId && isUuidStr(targetOrgId)
+          ? await prisma.grades.findMany({
+              where: { org_id: targetOrgId, is_active: true },
+              orderBy: { display_order: 'asc' },
+            })
+          : [];
+
+      if (grades.length === 0) {
+        grades = await prisma.grades.findMany({
+          where: { is_active: true },
+          orderBy: { display_order: 'asc' },
+          take: 30,
+        });
+      }
+
+      if (grades.length === 0) {
+        grades = await prisma.grades.findMany({
+          orderBy: { display_order: 'asc' },
+          take: 30,
+        });
+      }
+
+      const seenGrades = new Set<string>();
+      const uniqueGrades: any[] = [];
+      for (const g of grades) {
+        const key = `${g.grade_name}_${g.board || ''}`;
+        if (!seenGrades.has(key)) {
+          seenGrades.add(key);
+          uniqueGrades.push(g);
+        }
+      }
+
+      return res.json(
+        uniqueGrades.map((g) => ({
+          id: g.grade_id,
+          grade_id: g.grade_id,
+          name: g.grade_name,
+          grade_name: g.grade_name,
+          board: g.board || 'CBSE',
+          code: g.grade_code,
+        })),
+      );
     }
 
     const seenAygKeys = new Set<string>();
@@ -353,124 +392,20 @@ router.get('/public/classes', async (req: Request, res: Response) => {
         id: ayg.academic_year_grade_id,
         academic_year_grade_id: ayg.academic_year_grade_id,
         grade_id: ayg.grade_id,
-        name: ayg.grades.grade_name,
-        grade_name: ayg.grades.grade_name,
-        board: ayg.grades.board || 'CBSE',
-        code: ayg.grades.grade_code,
-        display_order: ayg.grades.display_order,
+        name: ayg.grades?.grade_name || 'Grade',
+        grade_name: ayg.grades?.grade_name || 'Grade',
+        board: ayg.grades?.board || 'CBSE',
+        code: ayg.grades?.grade_code || '',
+        display_order: ayg.grades?.display_order ?? 0,
       })),
     );
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
-});
+};
 
-// v1-prefixed alias
-router.get('/v1/public/classes', async (req: Request, res: Response) => {
-  try {
-    let targetOrgId = (req.query.school_id ||
-      req.query.org_id ||
-      req.context?.user?.org_id ||
-      req.context?.user?.school_id) as string;
-    if (!targetOrgId || targetOrgId === 'school-main' || targetOrgId === 'org-main') {
-      const activeOrg =
-        (await prisma.organizations.findFirst({ where: { status: 'active' } })) ||
-        (await prisma.organizations.findFirst());
-      if (activeOrg) targetOrgId = activeOrg.org_id;
-    }
-    if (!targetOrgId) {
-      return res
-        .status(400)
-        .json({ error: 'School ID (school_id or org_id) parameter is required' });
-    }
-    const { academic_year_id } = req.query;
-
-    let targetYearId = isUuidStr(academic_year_id as string) ? (academic_year_id as string) : '';
-    if (!targetYearId && targetOrgId && isUuidStr(targetOrgId)) {
-      const activeYear = await prisma.academic_years.findFirst({
-        where: { org_id: targetOrgId },
-        orderBy: { created_at: 'desc' },
-      });
-      targetYearId = activeYear?.academic_year_id || '';
-    }
-    let aygList: any[] = [];
-    if (targetYearId && isUuidStr(targetYearId)) {
-      aygList = await prisma.academic_year_grades.findMany({
-        where: { academic_year_id: targetYearId, is_active: true },
-        include: { grades: true },
-        orderBy: { grades: { display_order: 'asc' } },
-      });
-    }
-    if (aygList.length === 0 && targetOrgId) {
-      const orgAygs = await prisma.academic_year_grades.findMany({
-        where: {
-          academic_years: { org_id: targetOrgId },
-          is_active: true,
-        },
-        include: {
-          grades: true,
-        },
-        orderBy: {
-          grades: { display_order: 'asc' },
-        },
-      });
-
-      if (orgAygs.length > 0) {
-        aygList = orgAygs;
-      } else {
-        const grades = await prisma.grades.findMany({
-          where: { org_id: targetOrgId, is_active: true },
-          orderBy: { display_order: 'asc' },
-        });
-        const seenGrades = new Set<string>();
-        const uniqueGrades: any[] = [];
-        for (const g of grades) {
-          const key = `${g.grade_name}_${g.board || ''}`;
-          if (!seenGrades.has(key)) {
-            seenGrades.add(key);
-            uniqueGrades.push(g);
-          }
-        }
-        return res.json(
-          uniqueGrades.map((g) => ({
-            id: g.grade_id,
-            grade_id: g.grade_id,
-            name: g.grade_name,
-            grade_name: g.grade_name,
-            board: g.board || 'CBSE',
-            code: g.grade_code,
-          })),
-        );
-      }
-    }
-
-    const seenAygKeys = new Set<string>();
-    const uniqueAygList: any[] = [];
-    for (const ayg of aygList) {
-      const gName = ayg.grades?.grade_name || ayg.grade_id;
-      const key = `${gName}_${ayg.grades?.board || ''}`;
-      if (!seenAygKeys.has(key)) {
-        seenAygKeys.add(key);
-        uniqueAygList.push(ayg);
-      }
-    }
-
-    res.json(
-      uniqueAygList.map((ayg) => ({
-        id: ayg.academic_year_grade_id,
-        academic_year_grade_id: ayg.academic_year_grade_id,
-        grade_id: ayg.grade_id,
-        name: ayg.grades.grade_name,
-        grade_name: ayg.grades.grade_name,
-        board: ayg.grades.board || 'CBSE',
-        code: ayg.grades.grade_code,
-        display_order: ayg.grades.display_order,
-      })),
-    );
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get('/public/classes', handlePublicClasses);
+router.get('/v1/public/classes', handlePublicClasses);
 
 // Public lookup for transport routes of a school
 router.get('/public/transport-routes', async (req: Request, res: Response) => {

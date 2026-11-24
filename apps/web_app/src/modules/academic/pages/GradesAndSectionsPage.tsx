@@ -57,9 +57,15 @@ export const GradesAndSectionsPage: React.FC = () => {
         AcademicManagementService.listStaffDirectory().catch(() => []),
       ]);
 
-      setYears(yearsRes.items);
-      setGrades(gradesRes.items);
-      setStaffList(staffRes);
+      setYears(Array.isArray(yearsRes?.items) ? yearsRes.items : []);
+      setGrades(
+        Array.isArray(gradesRes?.items)
+          ? gradesRes.items
+          : Array.isArray(gradesRes)
+            ? (gradesRes as any)
+            : [],
+      );
+      setStaffList(Array.isArray(staffRes) ? staffRes : []);
 
       const yearId =
         preferredYearId ||
@@ -430,7 +436,7 @@ export const GradesAndSectionsPage: React.FC = () => {
                     className="w-full h-9 rounded-lg border border-input bg-background px-2.5 text-sm"
                   >
                     <option value="">-- Select Grade --</option>
-                    {grades.map((g) => (
+                    {(Array.isArray(grades) ? grades : []).map((g) => (
                       <option key={g.grade_id} value={g.grade_id}>
                         {g.grade_name} ({g.grade_code})
                       </option>
@@ -555,7 +561,7 @@ export const GradesAndSectionsPage: React.FC = () => {
               <CardTitle className="text-base font-bold">Master Grades Directory</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {grades.map((g) => (
+              {(Array.isArray(grades) ? grades : []).map((g) => (
                 <div
                   key={g.grade_id}
                   className="p-3.5 rounded-xl border border-border/70 flex items-center justify-between"

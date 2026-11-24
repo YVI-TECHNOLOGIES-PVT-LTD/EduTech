@@ -455,7 +455,7 @@ export const FeeCollectionPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Grades</SelectItem>
-                {(gradesData || []).map((grade: any) => (
+                {(Array.isArray(gradesData) ? gradesData : []).map((grade: any) => (
                   <SelectItem key={grade.grade_id || grade.id} value={grade.grade_id || grade.id}>
                     {grade.grade_name || grade.name}
                   </SelectItem>
@@ -475,7 +475,7 @@ export const FeeCollectionPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Academic Years</SelectItem>
-                {(academicYearsData || []).map((ay: any) => (
+                {(Array.isArray(academicYearsData) ? academicYearsData : []).map((ay: any) => (
                   <SelectItem
                     key={ay.academic_year_id || ay.id}
                     value={ay.academic_year_id || ay.id}

@@ -33,6 +33,21 @@ declare global {
 }
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  // Public route bypass safeguard: Never reject unauthenticated public auth/public endpoints
+  const reqUrl = req.originalUrl || req.url || '';
+  const isPublicRoute =
+    reqUrl.includes('/auth/login') ||
+    reqUrl.includes('/auth/refresh') ||
+    reqUrl.includes('/admission/register') ||
+    reqUrl.includes('/admission/verify-otp') ||
+    reqUrl.includes('/admission/public-apply') ||
+    reqUrl.includes('/public/') ||
+    reqUrl.includes('/health');
+
+  if (isPublicRoute) {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   console.log(
     `[AuthMiddleware] Header present: ${!!authHeader}, StartsWithBearer: ${authHeader?.startsWith('Bearer ')}`,

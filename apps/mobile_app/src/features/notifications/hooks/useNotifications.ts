@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { notificationsApi } from '../../../api/notifications.api';
 import { QUERY_KEYS } from '../../../api/query-keys';
 import { NotificationItem } from '../../../types/notification.types';
+import { useAuthStore } from '../../../stores/auth.store';
 
 export function deduplicateNotifications(items: NotificationItem[]): NotificationItem[] {
   if (!Array.isArray(items)) return [];
@@ -20,6 +21,7 @@ export function deduplicateNotifications(items: NotificationItem[]): Notificatio
 }
 
 export function useNotifications() {
+  const { isAuthenticated } = useAuthStore();
   const query = useQuery<NotificationItem[], Error>({
     queryKey: QUERY_KEYS.notifications.all,
     queryFn: async () => {
@@ -28,6 +30,7 @@ export function useNotifications() {
     },
     staleTime: 1000 * 60, // 1 minute
     select: (data) => deduplicateNotifications(data),
+    enabled: Boolean(isAuthenticated),
   });
 
   return {

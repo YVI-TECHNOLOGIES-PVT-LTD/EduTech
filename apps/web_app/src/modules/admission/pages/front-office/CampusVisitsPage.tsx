@@ -476,7 +476,7 @@ export const CampusVisitsPage: React.FC = () => {
               <SelectItem value="ALL" className="text-xs">
                 All Counsellors
               </SelectItem>
-              {(staffList || []).map((s: any) => (
+              {(Array.isArray(staffList) ? staffList : []).map((s: any) => (
                 <SelectItem key={s.staff_id || s.id} value={s.staff_id || s.id} className="text-xs">
                   {s.name ||
                     (s.first_name

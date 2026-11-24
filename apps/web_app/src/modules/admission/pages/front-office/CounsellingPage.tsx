@@ -504,7 +504,7 @@ export const CounsellingPage: React.FC = () => {
                 <SelectItem value="unassigned" className="text-xs font-bold text-rose-600">
                   Unassigned Leads
                 </SelectItem>
-                {(counsellors || []).map((c: any) => (
+                {(Array.isArray(counsellors) ? counsellors : []).map((c: any) => (
                   <SelectItem
                     key={c.staff_id || c.id}
                     value={c.staff_id || c.id}

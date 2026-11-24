@@ -66,7 +66,12 @@ export default function LoginScreen() {
     });
   };
 
-  const errorMessage = error instanceof Error ? error.message : null;
+  const rawError = error instanceof Error ? error.message : null;
+  const errorMessage =
+    rawError &&
+    (rawError.includes('Authorization header') || rawError.includes('Missing or invalid'))
+      ? 'Invalid email or password. Please check your credentials and try again.'
+      : rawError;
 
   // Safe area insets with sensible Android fallbacks
   const topInset = Math.max(
@@ -343,7 +348,7 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     setValue('email', 'sathish1@gmail.com', { shouldValidate: true });
-                    setValue('password', 'Password@123', { shouldValidate: true });
+                    setValue('password', 'Welcome#321', { shouldValidate: true });
                   }}
                   style={styles.devButton}
                   activeOpacity={0.8}
@@ -358,7 +363,7 @@ export default function LoginScreen() {
                     setValue('email', 'syn.parent.tanmay.bhardwaj.54@synthetic.edutrack.internal', {
                       shouldValidate: true,
                     });
-                    setValue('password', 'Password@123', { shouldValidate: true });
+                    setValue('password', 'Welcome#321', { shouldValidate: true });
                   }}
                   style={[styles.devButton, { marginTop: 6 }]}
                   activeOpacity={0.8}

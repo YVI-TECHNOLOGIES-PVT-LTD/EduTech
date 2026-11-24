@@ -64,10 +64,16 @@ export const LessonPlanningPage: React.FC = () => {
         AcademicManagementService.listSavedLessonPlans({ limit: 25 }),
       ]);
 
-      setYears(yearsRes.items);
-      setGrades(gradesRes.items);
-      setSubjects(subjectsRes.items);
-      setSavedPlans(plansRes.items);
+      setYears(Array.isArray(yearsRes?.items) ? yearsRes.items : []);
+      setGrades(
+        Array.isArray(gradesRes?.items)
+          ? gradesRes.items
+          : Array.isArray(gradesRes)
+            ? (gradesRes as any)
+            : [],
+      );
+      setSubjects(Array.isArray(subjectsRes?.items) ? subjectsRes.items : []);
+      setSavedPlans(Array.isArray(plansRes?.items) ? plansRes.items : []);
 
       const defaultYear =
         yearsRes.items.find((y) => y.status === 'teaching')?.academic_year_id ||
@@ -270,7 +276,7 @@ export const LessonPlanningPage: React.FC = () => {
                     className="w-full h-9 rounded-lg border border-input bg-background px-2.5 text-sm"
                   >
                     <option value="">-- Grade --</option>
-                    {grades.map((g) => (
+                    {(Array.isArray(grades) ? grades : []).map((g) => (
                       <option key={g.grade_id} value={g.grade_id}>
                         {g.grade_name}
                       </option>

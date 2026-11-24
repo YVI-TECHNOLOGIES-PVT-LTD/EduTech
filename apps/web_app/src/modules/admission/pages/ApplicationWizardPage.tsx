@@ -188,12 +188,22 @@ export function ApplicationWizardPage() {
         if (formData.academic_year_id && formData.academic_year_id !== 'ay-2026') {
           params.academic_year_id = formData.academic_year_id;
         }
-        const res = await apiClient.get('/public/classes', { params });
-        if (Array.isArray(res.data)) {
+        let res = await apiClient.get('/public/classes', { params });
+        if (!Array.isArray(res.data) || res.data.length === 0) {
+          // Robust fallback without filters to load all available active grades
+          res = await apiClient.get('/public/classes');
+        }
+        if (Array.isArray(res.data) && res.data.length > 0) {
           setClasses(res.data);
         }
       } catch (err) {
         console.error('Failed to load classes', err);
+        try {
+          const fallbackRes = await apiClient.get('/public/classes');
+          if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
+            setClasses(fallbackRes.data);
+          }
+        } catch {}
       }
     };
     fetchClasses();

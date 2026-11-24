@@ -523,23 +523,22 @@ export class ParentStudentLifecycleService {
           status: { in: ['teaching', 'open', 'planning'] },
         },
         orderBy: [{ status: 'asc' }, { start_date: 'desc' }],
-        include: {
-          academic_calendars: {
-            include: {
-              academic_terms: {
-                where: { is_active: true },
-                orderBy: { term_number: 'asc' },
-              },
-            },
-          },
-        },
       });
 
       if (activeYear) {
+        const calendar = await prisma.academic_calendars.findFirst({
+          where: { academic_year_id: activeYear.academic_year_id },
+          include: {
+            academic_terms: {
+              where: { is_active: true },
+              orderBy: { term_number: 'asc' },
+            },
+          },
+        });
         const today = new Date();
-        const terms = activeYear.academic_calendars?.academic_terms || [];
+        const terms = (calendar?.academic_terms as any[]) || [];
         const currentTerm =
-          terms.find((t) => t.start_date <= today && t.end_date >= today) || terms[0] || null;
+          terms.find((t: any) => t.start_date <= today && t.end_date >= today) || terms[0] || null;
 
         let weekNum = 1;
         const refStartDate = currentTerm?.start_date || activeYear.start_date;

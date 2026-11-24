@@ -34,6 +34,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { admissionApi } from '../../admission.api';
 
 export function ParentAdmissionStatusPage() {
   const navigate = useNavigate();
@@ -86,6 +88,22 @@ export function ParentAdmissionStatusPage() {
   } = useGetApplicationDocumentsQuery(activeApplicationId, {
     skip: !activeApplicationId,
   });
+
+  const [isAcceptingOffer, setIsAcceptingOffer] = React.useState(false);
+
+  const handleAcceptOffer = async () => {
+    if (!activeApplicationId) return;
+    setIsAcceptingOffer(true);
+    try {
+      await admissionApi.acceptOffer({ application_id: activeApplicationId });
+      toast.success('Congratulations! Admission offer accepted. Student enrollment is finalized.');
+      await Promise.all([refetchApps(), refetchDecision(), refetchFee()]);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err?.message || 'Failed to accept admission offer');
+    } finally {
+      setIsAcceptingOffer(false);
+    }
+  };
 
   if (isAppLoading) {
     return (
@@ -482,8 +500,28 @@ export function ParentAdmissionStatusPage() {
               <h5 className="text-sm font-bold text-foreground">
                 4. Committee Decision &amp; Offer Status
               </h5>
-              {isApproved || isEnrolled ? (
-                <div className="mt-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+              {isEnrolled ? (
+                <div className="mt-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-3">
+                  <div className="flex items-center space-x-2 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>STUDENT ENROLLED — ACTIVE ENROLLMENT CONFIRMED</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {studentName} is actively enrolled in {gradeApplied}. Your parent-student
+                    relationship is fully verified.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => navigate('/app/parent/dashboard')}
+                  >
+                    <Users className="w-3.5 h-3.5 mr-1.5" />
+                    <span>View in My Children</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                </div>
+              ) : isApproved ? (
+                <div className="mt-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-3">
                   <div className="flex items-center space-x-2 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
                     <Award className="w-4 h-4" />
                     <span>CONGRATULATIONS — ADMISSION OFFER ISSUED</span>
@@ -498,6 +536,26 @@ export function ParentAdmissionStatusPage() {
                       {new Date(currentDecision.offer_expiry_date).toLocaleDateString()}
                     </p>
                   )}
+                  <div className="pt-1 flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+                    <Button
+                      size="sm"
+                      disabled={isAcceptingOffer}
+                      onClick={handleAcceptOffer}
+                      className="font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    >
+                      {isAcceptingOffer ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          <span>Finalizing Enrollment...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                          <span>Accept Offer &amp; Finalize Enrollment</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ) : isWaitlisted ? (
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
@@ -551,6 +609,27 @@ export function ParentAdmissionStatusPage() {
             <span>View Full Details</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
+          {isApproved && !isEnrolled && (
+            <Button
+              size="sm"
+              disabled={isAcceptingOffer}
+              onClick={handleAcceptOffer}
+              className="w-full sm:w-auto font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+              <span>Accept Offer &amp; Enroll</span>
+            </Button>
+          )}
+          {isEnrolled && (
+            <Button
+              size="sm"
+              onClick={() => navigate('/app/parent/dashboard')}
+              className="w-full sm:w-auto font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            >
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              <span>Go to My Children</span>
+            </Button>
+          )}
         </div>
       </Card>
     </PageContainer>

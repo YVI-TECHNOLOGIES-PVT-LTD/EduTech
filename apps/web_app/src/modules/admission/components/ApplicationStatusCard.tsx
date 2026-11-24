@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
+import { admissionApi } from '../admission.api';
 
 export interface ApplicationStatusCardProps {
   application: any;
@@ -164,6 +165,21 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
           : 'application_submitted');
 
   const [updateApplicationStatus, { isLoading: isUpdating }] = useUpdateApplicationStatusMutation();
+  const [isAcceptingOffer, setIsAcceptingOffer] = React.useState(false);
+
+  const handleAcceptOffer = async () => {
+    if (!appId) return;
+    setIsAcceptingOffer(true);
+    try {
+      await admissionApi.acceptOffer({ application_id: appId });
+      toast.success('Congratulations! Admission offer accepted. Student enrollment is finalized.');
+      navigate('/app/parent/dashboard');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err?.message || 'Failed to accept admission offer');
+    } finally {
+      setIsAcceptingOffer(false);
+    }
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -318,6 +334,26 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
 
       {/* Card Action Area */}
       <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-1">
+        {appStatus === 'approved' && (
+          <Button
+            size="sm"
+            disabled={isAcceptingOffer}
+            onClick={handleAcceptOffer}
+            className="w-full sm:w-auto font-bold text-xs flex items-center justify-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+          >
+            {isAcceptingOffer ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                <span>Enrolling...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                <span>Accept Offer &amp; Enroll</span>
+              </>
+            )}
+          </Button>
+        )}
         <Button
           size="sm"
           onClick={handleViewApplication}

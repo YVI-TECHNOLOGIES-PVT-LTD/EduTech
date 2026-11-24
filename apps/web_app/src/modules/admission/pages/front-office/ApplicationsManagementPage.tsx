@@ -474,7 +474,7 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectItem value="ALL" className="text-xs">
                   All Grades
                 </SelectItem>
-                {(gradesData || []).map((g: any) => (
+                {(Array.isArray(gradesData) ? gradesData : []).map((g: any) => (
                   <SelectItem
                     key={g.grade_id || g.id}
                     value={g.grade_id || g.id}
@@ -500,7 +500,7 @@ export const ApplicationsManagementPage: React.FC = () => {
                 <SelectItem value="ALL" className="text-xs">
                   All Academic Years
                 </SelectItem>
-                {(academicYearsData || []).map((ay: any) => (
+                {(Array.isArray(academicYearsData) ? academicYearsData : []).map((ay: any) => (
                   <SelectItem
                     key={ay.academic_year_id || ay.id}
                     value={ay.academic_year_id || ay.id}

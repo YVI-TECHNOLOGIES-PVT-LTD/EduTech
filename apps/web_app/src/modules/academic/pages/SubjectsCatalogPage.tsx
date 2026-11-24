@@ -44,9 +44,15 @@ export const SubjectsCatalogPage: React.FC = () => {
         AcademicManagementService.listSubjectCategories(),
         AcademicManagementService.listGrades({ limit: 50 }),
       ]);
-      setSubjects(subjectsRes.items);
-      setCategories(categoriesRes);
-      setGrades(gradesRes.items);
+      setSubjects(Array.isArray(subjectsRes?.items) ? subjectsRes.items : []);
+      setCategories(Array.isArray(categoriesRes) ? categoriesRes : []);
+      setGrades(
+        Array.isArray(gradesRes?.items)
+          ? gradesRes.items
+          : Array.isArray(gradesRes)
+            ? (gradesRes as any)
+            : [],
+      );
     } catch (err: any) {
       setError(extractAcademicApiError(err, 'Failed to load subjects catalog'));
     } finally {
@@ -127,7 +133,7 @@ export const SubjectsCatalogPage: React.FC = () => {
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
           >
             <option value="">Inspect Grade Allocation...</option>
-            {grades.map((g) => (
+            {(Array.isArray(grades) ? grades : []).map((g) => (
               <option key={g.grade_id} value={g.grade_id}>
                 {g.grade_name} ({g.grade_code})
               </option>

@@ -2,12 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { feesApi } from '../../../api/fees.api';
 import { QUERY_KEYS } from '../../../api/query-keys';
 import { ParentChildrenFeesResponse, ChildFeeOverview } from '../../../types/admission.types';
+import { useAuthStore } from '../../../stores/auth.store';
 
 export function useMyChildrenFees() {
+  const { isAuthenticated } = useAuthStore();
   const query = useQuery<ParentChildrenFeesResponse, Error>({
     queryKey: QUERY_KEYS.fees.myChildren(),
     queryFn: () => feesApi.getMyChildrenFees(),
     staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled: Boolean(isAuthenticated),
   });
 
   const children: ChildFeeOverview[] = query.data?.children || query.data?.data || [];

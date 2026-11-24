@@ -55,7 +55,14 @@ axiosInstance.interceptors.request.use(
       config.url?.includes('/admission/verify-otp') ||
       config.url?.includes('/public/');
 
-    if (!isPublicAuthRoute && token && typeof token === 'string' && token.trim()) {
+    if (isPublicAuthRoute) {
+      if (typeof (config.headers as any)?.delete === 'function') {
+        (config.headers as any).delete('Authorization');
+        (config.headers as any).delete('authorization');
+      }
+      delete config.headers.Authorization;
+      delete (config.headers as any).authorization;
+    } else if (token && typeof token === 'string' && token.trim()) {
       config.headers.Authorization = `Bearer ${token.trim()}`;
     }
 
@@ -258,7 +265,14 @@ axiosInstance.interceptors.response.use(
         useAuthStore.getState().logout();
       }
 
-      const message = serverMessage || 'Session expired. Please sign in again.';
+      let message = serverMessage || 'Session expired. Please sign in again.';
+      if (
+        isAuthRoute &&
+        typeof message === 'string' &&
+        (message.includes('Authorization header') || message.includes('Missing or invalid'))
+      ) {
+        message = 'Invalid email or password. Please check your credentials and try again.';
+      }
       return Promise.reject(new ApiError(401, message, serverCode || 'UNAUTHORIZED', details));
     }
 
