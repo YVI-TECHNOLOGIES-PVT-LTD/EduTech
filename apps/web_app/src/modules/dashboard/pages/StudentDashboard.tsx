@@ -44,7 +44,14 @@ export function StudentDashboard() {
 }
 
 function StudentDashboardInner() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, boundaryState } = useAuth();
+
+  const canViewOwnAdmissions = Boolean(
+    user?.permissions?.includes('admission.view_own') ||
+    user?.roles?.some((r: string) =>
+      ['PARENT', 'GUARDIAN', 'APPLICANT'].includes(String(r).toUpperCase()),
+    ),
+  );
 
   const {
     data: admissions = [],
@@ -66,7 +73,9 @@ function StudentDashboardInner() {
         return [];
       }
     },
-    enabled: Boolean(isAuthenticated && user?.id),
+    enabled: Boolean(
+      isAuthenticated && boundaryState === 'stable' && user?.id && canViewOwnAdmissions,
+    ),
     staleTime: 300_000,
   });
 
@@ -76,38 +85,10 @@ function StudentDashboardInner() {
     loading: dashboardLoading,
   } = useDashboard();
 
-  if (dashboardLoading) {
-    return (
-      <PageWrapper title="Student Dashboard">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-            Loading Academic Portal...
-          </p>
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  const getKPIValue = (id: string, fallback: number) => {
-    const item = engineKPIs.find((k: any) => k.id === id);
-    return item ? DashboardMapper.safeNumber(item.value) : fallback;
-  };
-
-  const attendancePercent = getKPIValue('student.kpi.attendance', 88);
-  const feeDue = getKPIValue('student.kpi.fees_due', 0);
-  const upcomingExams = getKPIValue('student.kpi.exams', 0);
-  const pendingAssignments = getKPIValue('student.kpi.tasks', 0);
-
-  const formattedFee = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(feeDue);
-
   const announcements = useMemo(() => {
-    if (engineNotifications && engineNotifications.length > 0) {
-      return engineNotifications.map((n: any) => ({
+    const list = Array.isArray(engineNotifications) ? engineNotifications : [];
+    if (list.length > 0) {
+      return list.map((n: any) => ({
         id: n.id,
         title: n.title,
         body: n.message,
@@ -125,6 +106,38 @@ function StudentDashboardInner() {
       },
     ];
   }, [engineNotifications]);
+
+  if (dashboardLoading) {
+    return (
+      <PageWrapper title="Student Dashboard">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
+            Loading Academic Portal...
+          </p>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  const safeKPIs = Array.isArray(engineKPIs) ? engineKPIs : [];
+  const safeAdmissions = Array.isArray(admissions) ? admissions : [];
+
+  const getKPIValue = (id: string, fallback: number) => {
+    const item = safeKPIs.find((k: any) => k.id === id);
+    return item ? DashboardMapper.safeNumber(item.value) : fallback;
+  };
+
+  const attendancePercent = getKPIValue('student.kpi.attendance', 88);
+  const feeDue = getKPIValue('student.kpi.fees_due', 0);
+  const upcomingExams = getKPIValue('student.kpi.exams', 0);
+  const pendingAssignments = getKPIValue('student.kpi.tasks', 0);
+
+  const formattedFee = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(feeDue);
 
   const quickActions = [
     {
@@ -268,13 +281,13 @@ function StudentDashboardInner() {
     >
       <div className="space-y-6">
         {/* Active Admission Applications Timelines if applicable */}
-        {admissions.length > 0 && (
+        {safeAdmissions.length > 0 && (
           <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" />
               Admission Application Tracker
             </h3>
-            {admissions.map((app: any) => {
+            {safeAdmissions.map((app: any) => {
               const steps = [
                 { key: 'draft', label: 'Draft' },
                 { key: 'submitted', label: 'Submitted' },
