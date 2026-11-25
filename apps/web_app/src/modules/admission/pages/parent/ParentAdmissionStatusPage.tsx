@@ -36,6 +36,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { admissionApi } from '../../admission.api';
+import { useDispatch } from 'react-redux';
+import { apiSlice } from '@/app/store/apiSlice';
 
 export function ParentAdmissionStatusPage() {
   const navigate = useNavigate();
@@ -90,13 +92,32 @@ export function ParentAdmissionStatusPage() {
   });
 
   const [isAcceptingOffer, setIsAcceptingOffer] = React.useState(false);
+  const dispatch = useDispatch();
 
   const handleAcceptOffer = async () => {
     if (!activeApplicationId) return;
     setIsAcceptingOffer(true);
     try {
-      await admissionApi.acceptOffer({ application_id: activeApplicationId });
-      toast.success('Congratulations! Admission offer accepted. Student enrollment is finalized.');
+      const res: any = await admissionApi.acceptOffer({ application_id: activeApplicationId });
+      dispatch(
+        apiSlice.util.invalidateTags([
+          'ParentPortal',
+          'Application',
+          'Student',
+          'Parent',
+          'Enrollment',
+        ]),
+      );
+      if (res?.enrolled) {
+        toast.success(
+          'Congratulations! Admission offer accepted. Student enrollment is finalized.',
+        );
+      } else {
+        toast.success(
+          res?.message ||
+            'Admission offer accepted. Please settle admission fee to finalize enrollment.',
+        );
+      }
       await Promise.all([refetchApps(), refetchDecision(), refetchFee()]);
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err?.message || 'Failed to accept admission offer');

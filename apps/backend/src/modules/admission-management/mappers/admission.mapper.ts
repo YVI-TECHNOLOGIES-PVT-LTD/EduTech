@@ -135,6 +135,7 @@ export class AdmissionMapper {
         ? {
             lead_id: lead.lead_id,
             lead_number: lead.lead_number,
+            stage: lead.stage || null,
             student_first_name: lead.student_first_name,
             student_last_name: lead.student_last_name || null,
             student_name: studentFullName || lead.student_first_name,
@@ -149,6 +150,17 @@ export class AdmissionMapper {
             grade_name: gradeName,
             assigned_counsellor_id: lead.assigned_counsellor_id || null,
             counselor_name: counselorName,
+          }
+        : null,
+      is_enrolled: Boolean(record.students) || lead?.stage === 'enrolled',
+      students: record.students
+        ? {
+            student_id: record.students.student_id,
+            admission_no: record.students.admission_no,
+            first_name: record.students.first_name,
+            last_name: record.students.last_name,
+            status: record.students.status,
+            student_enrollments: record.students.student_enrollments || [],
           }
         : null,
       academic_year: record.academic_years

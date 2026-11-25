@@ -46,6 +46,18 @@ export class AdmissionRepository {
         application_assessments: true,
         admission_decisions: true,
         admission_fee_payments: true,
+        students: {
+          include: {
+            student_enrollments: {
+              include: {
+                sections: true,
+                academic_year_grades: {
+                  include: { grades: true, academic_years: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -80,6 +92,7 @@ export class AdmissionRepository {
         application_assessments: true,
         admission_decisions: true,
         admission_fee_payments: true,
+        students: true,
       },
     });
   }

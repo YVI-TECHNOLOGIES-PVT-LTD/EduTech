@@ -593,7 +593,42 @@ export class ApplicationController {
       }
 
       const targetDecisionStatus = decision_status || 'approved';
+      const isStaff = (user?.roles || []).some((r: string) =>
+        [
+          'ADMIN',
+          'SUPERADMIN',
+          'ORG_ADMIN',
+          'PRINCIPAL',
+          'HOI',
+          'ADMISSION_OFFICER',
+          'FRONT_OFFICE',
+          'STAFF',
+        ].includes(String(r).toUpperCase()),
+      );
+
       if (targetDecisionStatus === 'approved') {
+        const existingDecisionStatus = application.admission_decisions?.decision_status;
+        if (
+          !isStaff &&
+          existingDecisionStatus !== 'approved' &&
+          application.status !== 'approved'
+        ) {
+          return res.status(400).json({
+            error:
+              'Application has not been approved by the admissions committee yet. Offer acceptance is only available after approval.',
+          });
+        }
+
+        if (
+          !isStaff &&
+          application.admission_decisions?.offer_expiry_date &&
+          new Date(application.admission_decisions.offer_expiry_date) < new Date()
+        ) {
+          return res.status(400).json({
+            error: 'Cannot accept offer. The offer letter validity has expired.',
+          });
+        }
+
         // Upsert decision record in database
         await prisma.admission_decisions.upsert({
           where: { application_id: id },
@@ -620,17 +655,17 @@ export class ApplicationController {
           studentResult = await StudentService.convertApplicationToStudent(
             id,
             userId,
-            orgId,
+            orgId || application.org_id,
             req.body,
-          ).catch((e: any) => {
-            console.warn('[ApplicationController] Auto-enrollment info:', e.message);
-            return null;
-          });
+          );
         }
 
         return res.json({
           success: true,
-          message: 'Admission offer accepted successfully',
+          message:
+            studentResult?.student || studentResult?.is_existing
+              ? 'Admission offer accepted and student enrollment finalized'
+              : 'Admission offer accepted. Please complete admission fee settlement to finalize enrollment.',
           enrolled: Boolean(studentResult?.student || studentResult?.is_existing),
           student: studentResult?.student || null,
           enrollment: studentResult?.enrollment || null,

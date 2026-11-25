@@ -69,6 +69,7 @@ export interface ApplicationResponseDto {
   lead?: {
     lead_id: string;
     lead_number: string;
+    stage?: string | null;
     student_first_name: string;
     student_last_name: string | null;
     student_name: string;
@@ -98,6 +99,8 @@ export interface ApplicationResponseDto {
   assessment?: AssessmentResponseDto | null;
   decision?: DecisionResponseDto | null;
   payment?: FeePaymentResponseDto | null;
+  is_enrolled?: boolean;
+  students?: any | null;
 }
 
 export interface PaginatedResponse<T> {

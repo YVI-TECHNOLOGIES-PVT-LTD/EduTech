@@ -411,12 +411,59 @@ export class StudentService {
     // ATOMIC PRISMA TRANSACTION for Parent + Student + Parent Link + Student Enrollment + Application & Lead Status
     const result = await prisma.$transaction(async (tx) => {
       // 0. Resolve or create Parent record atomically with Student & Enrollment
-      let parent = await tx.parents.findFirst({
-        where: {
-          org_id: app.org_id,
-          phone: parentPhone,
-        },
-      });
+      // Priority:
+      // 1) Explicit lead.parent_id (authoritative parent who initiated the application)
+      // 2) Authenticated user_id (app.created_by or performedBy)
+      // 3) Contact phone / email fallback
+      let parent: any = null;
+      if (lead?.parent_id) {
+        parent = await tx.parents.findFirst({
+          where: {
+            parent_id: lead.parent_id,
+            org_id: app.org_id,
+          },
+        });
+      }
+
+      if (!parent) {
+        const candidateUserIds = Array.from(
+          new Set([app.created_by, authorUuid].filter((v): v is string => isValidUuid(v))),
+        );
+        if (candidateUserIds.length > 0) {
+          parent = await tx.parents.findFirst({
+            where: {
+              org_id: app.org_id,
+              user_id: { in: candidateUserIds },
+            },
+          });
+        }
+      }
+
+      if (!parent && parentPhone && parentPhone !== '0000000000') {
+        const digits = parentPhone.replace(/\D/g, '');
+        const phoneCandidates = Array.from(
+          new Set([
+            parentPhone,
+            ...(digits.length === 10 ? [`+91${digits}`, digits] : []),
+            ...(digits.length > 10 ? [digits, digits.slice(-10)] : []),
+          ]),
+        );
+        parent = await tx.parents.findFirst({
+          where: {
+            org_id: app.org_id,
+            phone: { in: phoneCandidates },
+          },
+        });
+      }
+
+      if (!parent && parentEmail) {
+        parent = await tx.parents.findFirst({
+          where: {
+            org_id: app.org_id,
+            email: { equals: parentEmail, mode: 'insensitive' },
+          },
+        });
+      }
 
       if (!parent) {
         const nameParts = parentName.trim().split(' ');
@@ -430,6 +477,7 @@ export class StudentService {
             last_name: pLastName,
             phone: parentPhone,
             email: parentEmail,
+            user_id: isValidUuid(app.created_by) ? app.created_by : undefined,
             created_by: authorUuid,
           },
         });
@@ -460,7 +508,7 @@ export class StudentService {
         where: {
           student_id_parent_id: {
             student_id: student.student_id,
-            parent_id: (parent as any).parent_id,
+            parent_id: parent.parent_id,
           },
         },
         update: {
@@ -470,28 +518,55 @@ export class StudentService {
         },
         create: {
           student_id: student.student_id,
-          parent_id: (parent as any).parent_id,
+          parent_id: parent.parent_id,
           relationship: relationshipEnum as any,
           is_primary_contact: true,
           created_by: authorUuid,
         },
       });
 
-      // 3. Create Student Enrollment Record
-      const enrollment = await tx.student_enrollments.create({
-        data: {
+      // 3. Resolve Section (explicit or first active section with capacity) & Create/Reuse Enrollment
+      let enrollment = await tx.student_enrollments.findFirst({
+        where: {
           student_id: student.student_id,
           academic_year_grade_id: aygId,
-          section_id:
-            body?.section_id && body.section_id.trim() !== '' ? body.section_id : undefined,
-          roll_number:
-            body?.roll_number && body.roll_number.trim() !== '' ? body.roll_number : undefined,
-          enrollment_date: new Date(),
-          status: 'active',
-          remarks: body?.remarks || 'Enrolled from approved application',
-          created_by: authorUuid,
         },
       });
+
+      if (!enrollment) {
+        let resolvedSectionId: string | undefined =
+          body?.section_id && body.section_id.trim() !== '' ? body.section_id : undefined;
+
+        if (!resolvedSectionId) {
+          const activeSections = await tx.sections.findMany({
+            where: { academic_year_grade_id: aygId, is_active: true },
+            orderBy: { section_name: 'asc' },
+            include: {
+              _count: { select: { student_enrollments: { where: { status: 'active' } } } },
+            },
+          });
+          const availableSection =
+            activeSections.find((s) => s._count.student_enrollments < (s.capacity ?? 40)) ||
+            activeSections[0];
+          if (availableSection) {
+            resolvedSectionId = availableSection.section_id;
+          }
+        }
+
+        enrollment = await tx.student_enrollments.create({
+          data: {
+            student_id: student.student_id,
+            academic_year_grade_id: aygId,
+            section_id: resolvedSectionId,
+            roll_number:
+              body?.roll_number && body.roll_number.trim() !== '' ? body.roll_number : undefined,
+            enrollment_date: new Date(),
+            status: 'active',
+            remarks: body?.remarks || 'Enrolled from approved application',
+            created_by: authorUuid,
+          },
+        });
+      }
 
       // 4. Update Application updated metadata
       await tx.admissions_applications.update({
@@ -502,12 +577,13 @@ export class StudentService {
         },
       });
 
-      // 5. Update Lead Stage to 'enrolled' if lead exists
+      // 5. Update Lead Stage to 'enrolled' (and backfill parent_id if missing)
       if (app.lead_id) {
         await tx.leads.update({
           where: { lead_id: app.lead_id },
           data: {
             stage: 'enrolled',
+            ...(lead && !lead.parent_id ? { parent_id: parent.parent_id } : {}),
             updated_at: new Date(),
             updated_by: authorUuid,
           },
@@ -518,8 +594,7 @@ export class StudentService {
     });
 
     // ADMISSION STUDENT PHOTOGRAPH COPYING (Post-Student Creation)
-    const targetUserId =
-      result.student?.user_id || app.created_by || (result.parent as any)?.user_id;
+    const targetUserId = result.student?.user_id || null;
     if (targetUserId) {
       try {
         // Look up canonical document type for Student Photograph

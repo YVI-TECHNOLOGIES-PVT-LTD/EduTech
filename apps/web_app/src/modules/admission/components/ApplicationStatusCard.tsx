@@ -32,6 +32,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { admissionApi } from '../admission.api';
+import { useDispatch } from 'react-redux';
+import { apiSlice } from '@/app/store/apiSlice';
 
 export interface ApplicationStatusCardProps {
   application: any;
@@ -166,14 +168,41 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
 
   const [updateApplicationStatus, { isLoading: isUpdating }] = useUpdateApplicationStatusMutation();
   const [isAcceptingOffer, setIsAcceptingOffer] = React.useState(false);
+  const dispatch = useDispatch();
+
+  const isEnrolled = Boolean(
+    application.is_enrolled ||
+    application.students ||
+    rawStage === 'enrolled' ||
+    appStatus === 'enrolled',
+  );
+  const effectiveStage = isEnrolled ? 'enrolled' : rawStage;
 
   const handleAcceptOffer = async () => {
     if (!appId) return;
     setIsAcceptingOffer(true);
     try {
-      await admissionApi.acceptOffer({ application_id: appId });
-      toast.success('Congratulations! Admission offer accepted. Student enrollment is finalized.');
-      navigate('/app/parent/dashboard');
+      const res: any = await admissionApi.acceptOffer({ application_id: appId });
+      dispatch(
+        apiSlice.util.invalidateTags([
+          'ParentPortal',
+          'Application',
+          'Student',
+          'Parent',
+          'Enrollment',
+        ]),
+      );
+      if (res?.enrolled) {
+        toast.success(
+          'Congratulations! Admission offer accepted. Student enrollment is finalized.',
+        );
+        navigate('/app/parent/dashboard');
+      } else {
+        toast.success(
+          res?.message ||
+            'Admission offer accepted. Please settle admission fee to finalize enrollment.',
+        );
+      }
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err?.message || 'Failed to accept admission offer');
     } finally {
@@ -240,7 +269,7 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
         <div className="shrink-0 self-start sm:self-auto flex items-center gap-2">
           {/* Stage Badge */}
           <span className="px-2.5 py-1 rounded-full border text-[10px] font-bold bg-muted text-muted-foreground">
-            Stage: {formatStatusLabel(rawStage)}
+            Stage: {formatStatusLabel(effectiveStage)}
           </span>
 
           {/* Status Dropdown for Staff, Badge for Parents */}
@@ -334,7 +363,7 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
 
       {/* Card Action Area */}
       <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-1">
-        {appStatus === 'approved' && (
+        {appStatus === 'approved' && !isEnrolled && (
           <Button
             size="sm"
             disabled={isAcceptingOffer}
@@ -352,6 +381,16 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({ ap
                 <span>Accept Offer &amp; Enroll</span>
               </>
             )}
+          </Button>
+        )}
+        {isEnrolled && (
+          <Button
+            size="sm"
+            onClick={() => navigate('/app/parent/dashboard')}
+            className="w-full sm:w-auto font-bold text-xs flex items-center justify-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+            <span>View in My Children</span>
           </Button>
         )}
         <Button
